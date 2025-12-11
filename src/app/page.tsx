@@ -13,8 +13,11 @@ export default function HomePage() {
                 <div className="space-y-5">
                     <h1 className="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl md:text-[2.6rem] md:leading-snug">
                         See what Canadian public health websites{" "}
-                        <span className="text-ha-accent">used to say</span>,<br />
-                        even <TrackChangesPhrase /> they change.
+                        <span className="text-ha-accent">used to say</span>,
+                        <span className="block sm:inline">
+                            {" "}
+                            even <TrackChangesPhrase /> they change.
+                        </span>
                     </h1>
                     <p className="text-sm leading-relaxed text-ha-muted sm:text-base">
                         HealthArchive.ca is a volunteer-led project preserving

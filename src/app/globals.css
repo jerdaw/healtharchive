@@ -126,7 +126,6 @@ a:focus-visible {
 
 /* Theme toggle slider */
 .ha-theme-toggle {
-    display: inline-flex;
     align-items: center;
     justify-content: center;
     padding: 0;
@@ -171,6 +170,10 @@ a:focus-visible {
 
 .ha-theme-toggle-icon-moon {
   right: 5px;
+}
+
+.ha-typing-caret {
+    background-color: var(--accent);
 }
 
 .ha-header-title {

@@ -154,7 +154,7 @@ export function TrackChangesPhrase() {
     }, [afterLength, beforeLength, prefersReducedMotion, hasAnimated]);
 
     const caret = (
-        <span className="inline-block h-[1.1em] w-px bg-slate-800 align-middle" />
+        <span className="inline-block h-[1.1em] w-px ha-typing-caret align-middle" />
     );
 
     const renderBeforeWithCursor = (caretIndex: number | null) => {
