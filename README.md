@@ -38,6 +38,7 @@ This repository contains the **Next.js frontend** for the public site at:
   - Metrics: `ha-metric-*` helpers and animated bars used in the “Project snapshot” card.
   - Audience/explainer sections: `ha-audience-*` helpers plus `ha-section-lede` for readable intro copy.
   - CTA glow: `ha-btn-glow` with `HoverGlowLink` / `HoverGlowButton` provides a subtle cursor-follow highlight on primary/secondary actions.
+  - Hero before/after phrase includes a `<noscript>` fallback so the intended text remains clear for non-JS crawlers/users.
 
 ---
 

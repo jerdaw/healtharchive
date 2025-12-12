@@ -10,6 +10,7 @@
 - Homepage surfaces and CTAs:
   - Use `ha-home-hero` for featured sections; `ha-home-hero-plain` drops the gradient on follow-up sections while keeping padding/border/shadow; `ha-home-panel` for inset cards.
   - `ha-btn-glow` with `HoverGlowLink` / `HoverGlowButton` provides the subtle cursor-follow highlight on primary/secondary buttons.
+- Hero before/after phrase includes a `<noscript>` fallback for non-JS crawlers/users.
 - Primary documentation for humans and agents:
   - `docs/documentation.md` → architecture, routes, styling system, deployment details.
   - `docs/staging-verification.md` → staging CSP/CORS/snapshot viewer verification.

@@ -351,6 +351,7 @@ Accessibility-related helpers:
   * `.ha-metric-*` helpers for the mini dashboard (“Project snapshot”), including animated bar fills.
   * `.ha-audience-*` helpers for audience cards and icons; `.ha-section-lede` for higher-contrast intro copy in sections like “Who is this for?” and the explainer band.
   * CTA glow: `.ha-btn-glow` plus `HoverGlowLink` / `HoverGlowButton` for a subtle cursor-follow highlight on primary/secondary actions.
+  * Animated hero phrase (`TrackChangesPhrase`) includes a `<noscript>` fallback so the final “after” wording is present for non-JS crawlers/users.
 
 **Important:** There was previously a Tailwind class usage like `bg-ha-bg` that broke Tailwind validation. That’s been removed; we now use pure CSS classes for colors (`ha-*`) instead of Tailwind’s `bg-*` custom colors in `globals.css`.
 
