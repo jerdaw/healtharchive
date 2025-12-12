@@ -33,7 +33,7 @@ export default function ResearchersPage() {
         </ul>
       </section>
 
-      <section className="ha-home-hero space-y-5">
+      <section className="ha-home-hero ha-home-hero-plain space-y-5">
         <h2 className="ha-section-heading">Working with the demo archive</h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           The current demo offers a deliberately small, hand-curated dataset.
@@ -64,7 +64,7 @@ export default function ResearchersPage() {
         </p>
       </section>
 
-      <section className="ha-home-hero space-y-5">
+      <section className="ha-home-hero ha-home-hero-plain space-y-5">
         <h2 className="ha-section-heading">Citing HealthArchive.ca</h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           Until formal citation guidance is published, a pragmatic format for
@@ -87,7 +87,7 @@ export default function ResearchersPage() {
         </div>
       </section>
 
-      <section className="ha-home-hero space-y-4">
+      <section className="ha-home-hero ha-home-hero-plain space-y-4">
         <div className="ha-callout">
           <h3 className="ha-callout-title">
             Planned researcher-focused capabilities (not yet implemented)

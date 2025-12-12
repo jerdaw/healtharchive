@@ -23,7 +23,7 @@ export default function AboutPage() {
         </p>
       </section>
 
-      <section className="ha-home-hero space-y-5">
+      <section className="ha-home-hero ha-home-hero-plain space-y-5">
         <h2 className="ha-section-heading">Independence and non-partisanship</h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           The project is independent and non-governmental. It does not speak for
@@ -39,7 +39,7 @@ export default function AboutPage() {
         </p>
       </section>
 
-      <section className="ha-home-hero space-y-5">
+      <section className="ha-home-hero ha-home-hero-plain space-y-5">
         <h2 className="ha-section-heading">Project status</h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           At this stage, HealthArchive.ca is an early technical demo. It

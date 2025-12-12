@@ -31,7 +31,7 @@ export default function MethodsPage() {
         </p>
       </section>
 
-      <section className="ha-home-hero space-y-5">
+      <section className="ha-home-hero ha-home-hero-plain space-y-5">
         <h2 className="ha-section-heading">Capture methods</h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           The live system is intended to use browser-based crawlers and
@@ -60,7 +60,7 @@ export default function MethodsPage() {
         </p>
       </section>
 
-      <section className="ha-home-hero space-y-5">
+      <section className="ha-home-hero ha-home-hero-plain space-y-5">
         <h2 className="ha-section-heading">Storage & replay</h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           In a full deployment, the archive would rely on dedicated storage for
@@ -85,7 +85,7 @@ export default function MethodsPage() {
         </p>
       </section>
 
-      <section className="ha-home-hero space-y-4">
+      <section className="ha-home-hero ha-home-hero-plain space-y-4">
         <div className="ha-callout">
           <h3 className="ha-callout-title">Limitations and interpretation</h3>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed sm:text-sm">
