@@ -130,12 +130,12 @@ a:focus-visible {
     position: absolute;
     left: 0;
     right: 0;
-    bottom: -21px;
+    bottom: -23px;
     height: 27px;
     pointer-events: none;
     background: linear-gradient(
         to bottom,
-        rgba(15, 23, 42, 0.025) 0%,
+        rgba(15, 23, 42, 0.02) 0%,
         rgba(15, 23, 42, 0) 100%
     );
 }
@@ -1133,6 +1133,14 @@ html[data-theme="dark"] .ha-home-panel {
 
 html[data-theme="dark"] .ha-home-hero-plain {
     background: #181a1b;
+}
+
+html[data-theme="dark"] .ha-shell-header::after {
+    background: linear-gradient(
+        to bottom,
+        rgba(0, 0, 0, 0.22) 0%,
+        rgba(0, 0, 0, 0) 100%
+    );
 }
 
 html[data-theme="dark"] .ha-audience-icon {
