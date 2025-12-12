@@ -248,9 +248,9 @@ a:focus-visible {
     border-radius: 999px;
     background: linear-gradient(
         90deg,
-        color-mix(in srgb, var(--accent) 90%, transparent) 0%,
-        color-mix(in srgb, var(--accent) 70%, var(--brand) 30%) 55%,
-        color-mix(in srgb, var(--brand) 55%, transparent) 78%,
+        color-mix(in srgb, var(--accent) 85%, var(--brand) 15%) 0%,
+        color-mix(in srgb, var(--accent) 60%, var(--brand) 40%) 55%,
+        color-mix(in srgb, var(--brand) 35%, transparent) 78%,
         rgba(255, 255, 255, 0) 100%
     );
     box-shadow:

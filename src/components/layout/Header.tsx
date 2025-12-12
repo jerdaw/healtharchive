@@ -351,7 +351,7 @@ export function Header() {
                 );
               })}
             </div>
-            <div className="flex items-center justify-between pt-1">
+            <div className="flex items-center justify-end pt-1">
               <button
                 type="button"
                 onClick={toggleTheme}
