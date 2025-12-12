@@ -39,6 +39,9 @@ This repository contains the **Next.js frontend** for the public site at:
   - Audience/explainer sections: `ha-audience-*` helpers plus `ha-section-lede` for readable intro copy.
   - CTA glow: `ha-btn-glow` with `HoverGlowLink` / `HoverGlowButton` provides a subtle cursor-follow highlight on primary/secondary actions.
   - Hero before/after phrase includes a `<noscript>` fallback so the intended text remains clear for non-JS crawlers/users.
+  - Hero animation orchestration:
+    - `TrackChangesPhrase` dispatches `ha-trackchanges-finished` when the “before → after” typing sequence completes.
+    - The homepage “Project snapshot” metrics start on that event and then dispatch `ha-project-snapshot-finished` after both metrics complete, which triggers the final “before” removal.
 
 ---
 

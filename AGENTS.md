@@ -11,6 +11,9 @@
   - Use `ha-home-hero` for featured sections; `ha-home-hero-plain` drops the gradient on follow-up sections while keeping padding/border/shadow; `ha-home-panel` for inset cards.
   - `ha-btn-glow` with `HoverGlowLink` / `HoverGlowButton` provides the subtle cursor-follow highlight on primary/secondary buttons.
 - Hero before/after phrase includes a `<noscript>` fallback for non-JS crawlers/users.
+- Homepage hero animation events:
+  - `ha-trackchanges-finished` is dispatched by `TrackChangesPhrase` after the “before → after” typing sequence completes.
+  - “Project snapshot” metrics start on that event and dispatch `ha-project-snapshot-finished` after all metric animations complete (used to trigger the final “before” fade-out).
 - Primary documentation for humans and agents:
   - `docs/documentation.md` → architecture, routes, styling system, deployment details.
   - `docs/staging-verification.md` → staging CSP/CORS/snapshot viewer verification.

@@ -194,7 +194,53 @@ a:focus-visible {
 }
 
 .ha-typing-caret {
+    position: relative;
+    width: 0;
+}
+
+.ha-typing-caret::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    width: 1px;
     background-color: var(--accent);
+}
+
+.ha-before-word {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    vertical-align: baseline;
+    overflow: hidden;
+    white-space: nowrap;
+    max-width: var(--ha-before-width, 999px);
+    height: 1em;
+    line-height: 1em;
+    transition: max-width 5400ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.ha-before-word-text {
+    text-decoration: line-through;
+    text-decoration-thickness: 0.045em;
+    /* text-decoration-color: rgba(15, 23, 42, 0.95); */
+}
+
+.ha-before-word--fading {
+    max-width: 0px;
+    -webkit-mask-image: linear-gradient(
+        to left,
+        rgba(0, 0, 0, 0),
+        rgba(0, 0, 0, 1) 1.4ch
+    );
+    mask-image: linear-gradient(
+        to left,
+        rgba(0, 0, 0, 0),
+        rgba(0, 0, 0, 1) 1.4ch
+    );
+    -webkit-mask-repeat: no-repeat;
+    mask-repeat: no-repeat;
+    -webkit-mask-size: 100% 100%;
+    mask-size: 100% 100%;
 }
 
 .ha-header-title {
@@ -1024,6 +1070,10 @@ html[data-theme="dark"] .text-slate-800 {
 
 html[data-theme="dark"] .text-slate-700 {
     color: var(--muted) !important;
+}
+
+html[data-theme="dark"] .ha-before-word-text {
+    text-decoration-color: rgba(226, 232, 240, 0.75);
 }
 
 html[data-theme="dark"] .bg-blue-50 {

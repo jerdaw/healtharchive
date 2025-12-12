@@ -11,6 +11,8 @@ type Phase =
     | "inserting"
     | "final";
 
+type BeforeVisibility = "visible" | "fading" | "hidden";
+
 function usePrefersReducedMotion() {
     const [reduced, setReduced] = useState<boolean>(() => {
         if (typeof window === "undefined" || !window.matchMedia) {
@@ -58,7 +60,34 @@ export function TrackChangesPhrase() {
         prefersReducedMotion ? afterLength : 0,
     );
     const [hasAnimated, setHasAnimated] = useState(prefersReducedMotion);
+    const [beforeVisibility, setBeforeVisibility] =
+        useState<BeforeVisibility>("visible");
+    const [beforeWidth, setBeforeWidth] = useState<number | null>(null);
     const hasNotifiedRef = useRef(false);
+    const beforeFadeTimeoutRef = useRef<number | null>(null);
+    const beforeHideTimeoutRef = useRef<number | null>(null);
+    const beforeVisibilityRef = useRef<BeforeVisibility>("visible");
+    const beforeRef = useRef<HTMLSpanElement | null>(null);
+
+    const fadeDelayMs = 750;
+    const fadeDurationMs = 5400;
+
+    useEffect(() => {
+        beforeVisibilityRef.current = beforeVisibility;
+    }, [beforeVisibility]);
+
+    useEffect(() => {
+        if (
+            (phase === "inserting" || phase === "final") &&
+            beforeRef.current &&
+            beforeWidth == null
+        ) {
+            const measured = beforeRef.current.getBoundingClientRect().width;
+            if (measured > 0) {
+                setBeforeWidth(measured);
+            }
+        }
+    }, [phase, beforeWidth]);
 
     useEffect(() => {
         if (prefersReducedMotion || hasAnimated) {
@@ -163,8 +192,72 @@ export function TrackChangesPhrase() {
         }
     }, [phase]);
 
+    useEffect(() => {
+        const handleProjectSnapshotFinished = () => {
+            if (beforeVisibilityRef.current !== "visible") {
+                return;
+            }
+
+            const width =
+                beforeRef.current?.getBoundingClientRect().width ??
+                beforeWidth ??
+                0;
+
+            if (beforeWidth == null && width > 0) {
+                setBeforeWidth(width);
+            }
+
+            const startFade = () => {
+                if (prefersReducedMotion) {
+                    setBeforeVisibility("hidden");
+                    beforeVisibilityRef.current = "hidden";
+                    return;
+                }
+
+                setBeforeVisibility("fading");
+                beforeVisibilityRef.current = "fading";
+
+                if (beforeHideTimeoutRef.current != null) {
+                    window.clearTimeout(beforeHideTimeoutRef.current);
+                }
+
+                beforeHideTimeoutRef.current = window.setTimeout(() => {
+                    setBeforeVisibility("hidden");
+                    beforeVisibilityRef.current = "hidden";
+                }, fadeDurationMs + 80);
+            };
+
+            if (beforeFadeTimeoutRef.current != null) {
+                window.clearTimeout(beforeFadeTimeoutRef.current);
+            }
+
+            beforeFadeTimeoutRef.current = window.setTimeout(
+                startFade,
+                fadeDelayMs,
+            );
+        };
+
+        window.addEventListener(
+            "ha-project-snapshot-finished",
+            handleProjectSnapshotFinished,
+        );
+
+        return () => {
+            window.removeEventListener(
+                "ha-project-snapshot-finished",
+                handleProjectSnapshotFinished,
+            );
+            if (beforeFadeTimeoutRef.current != null) {
+                window.clearTimeout(beforeFadeTimeoutRef.current);
+            }
+            if (beforeHideTimeoutRef.current != null) {
+                window.clearTimeout(beforeHideTimeoutRef.current);
+            }
+        };
+    }, [prefersReducedMotion, fadeDelayMs, fadeDurationMs, beforeWidth]);
+
     const caret = (
-        <span className="inline-block h-[1.1em] w-px ha-typing-caret align-middle" />
+        <span className="inline-block h-[1.1em] w-0 ha-typing-caret align-middle" />
     );
 
     const renderBeforeWithCursor = (caretIndex: number | null) => {
@@ -202,6 +295,31 @@ export function TrackChangesPhrase() {
         return nodes;
     };
 
+    const renderFinalBeforeWord = () => {
+        if (beforeVisibility === "hidden") {
+            return null;
+        }
+
+        const fading = beforeVisibility === "fading";
+        const widthVar =
+            beforeWidth != null ? `${beforeWidth}px` : `${beforeLength + 1}ch`;
+
+        return (
+            <span
+                ref={beforeRef}
+                className={`ha-before-word ${
+                    fading ? "ha-before-word--fading" : ""
+                }`}
+                style={{ ["--ha-before-width" as string]: widthVar }}
+            >
+                <span className="ha-before-word-text text-slate-900">
+                    {beforeWord}
+                </span>
+                {"\u00a0"}
+            </span>
+        );
+    };
+
     const caretIndexForBefore =
         phase === "cursor"
             ? beforeLength
@@ -229,10 +347,7 @@ export function TrackChangesPhrase() {
 
                 {(phase === "inserting" || phase === "final") && (
                     <>
-                        <span className="inline-block text-slate-900 line-through">
-                            {beforeWord}
-                        </span>
-                        <span>{" "}</span>
+                        {renderFinalBeforeWord()}
                         {showAfter && (
                             <span className="inline-block text-ha-accent">
                                 {afterText}

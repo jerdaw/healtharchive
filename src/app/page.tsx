@@ -3,6 +3,7 @@ import { TrackChangesPhrase } from "@/components/TrackChangesPhrase";
 import Link from "next/link";
 import { AnimatedMetric } from "@/components/home/AnimatedMetric";
 import { HoverGlowLink } from "@/components/home/HoverGlowLink";
+import { ProjectSnapshotOrchestrator } from "@/components/home/ProjectSnapshotOrchestrator";
 
 export default function HomePage() {
     const recordCount = demoRecords.length;
@@ -55,6 +56,9 @@ export default function HomePage() {
 
                     {/* Side card */}
                     <div className="ha-card ha-card-elevated p-4 sm:p-5">
+                        <ProjectSnapshotOrchestrator
+                            expectedIds={["records", "sources"]}
+                        />
                         <div className="flex items-center justify-between gap-3">
                             <div>
                                 <h2 className="text-sm font-semibold text-slate-900">
@@ -71,20 +75,24 @@ export default function HomePage() {
                         </div>
                         <dl className="mt-4 ha-metric-grid ha-metric-grid-2 text-xs sm:text-sm">
                             <AnimatedMetric
+                                id="records"
                                 label="Sample records"
                                 value={recordCount}
                                 unit="entries"
                                 barPercent={Math.min(100, recordCount * 8)}
                                 start={false}
                                 startEvent="ha-trackchanges-finished"
+                                completeEvent="ha-metric-finished"
                             />
                             <AnimatedMetric
+                                id="sources"
                                 label="Federal sources"
                                 value={sourceCount}
                                 unit="sites"
                                 barPercent={Math.min(100, sourceCount * 22)}
                                 start={false}
                                 startEvent="ha-trackchanges-finished"
+                                completeEvent="ha-metric-finished"
                             />
                             <div>
                                 <dt className="ha-metric-label">Focus</dt>

@@ -94,17 +94,14 @@ export default async function ArchivePage({
             label: t,
         })
     );
-    let sourcesFromBackend = false;
-    let topicsFromBackend = false;
 
-    // Start with demo search results and project them into a shape that does not
-    // depend on `snapshotPath`, so we can reuse the same type for backend
-    // results and demo fallback.
+    // Start with demo search results. `DemoRecord` is assignable to the
+    // `ArchiveListRecord` view used for rendering (it has extra fields).
     let results: ArchiveListRecord[] = searchDemoRecords({
         q,
         source,
         topic,
-    }).map(({ snapshotPath: _ignored, ...rest }) => rest);
+    });
     let totalResults = results.length;
     let usingBackend = false;
 
@@ -115,7 +112,6 @@ export default async function ArchivePage({
         ]);
 
         if (apiSources.length > 0) {
-            sourcesFromBackend = true;
             sourceOptions = apiSources.map((s) => ({
                 value: s.sourceCode,
                 label: s.sourceName,
@@ -124,7 +120,6 @@ export default async function ArchivePage({
 
         const canonicalTopics = apiTopics ?? [];
         if (canonicalTopics.length > 0) {
-            topicsFromBackend = true;
             topicOptions = canonicalTopics
                 .slice()
                 .sort((a, b) => a.label.localeCompare(b.label))
@@ -137,7 +132,6 @@ export default async function ArchivePage({
                 });
             });
             if (topicMap.size > 0) {
-                topicsFromBackend = true;
                 topicOptions = Array.from(topicMap.entries())
                     .sort((a, b) => a[1].localeCompare(b[1]))
                     .map(([slug, label]) => ({ value: slug, label }));
@@ -149,8 +143,6 @@ export default async function ArchivePage({
             value: s.sourceCode,
             label: s.sourceName,
         }));
-        sourcesFromBackend = false;
-        topicsFromBackend = false;
     }
 
     // Attempt to use the backend search API if configured; fall back to the

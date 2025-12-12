@@ -4,6 +4,7 @@
 import { useEffect, useRef, useState } from "react";
 
 type AnimatedMetricProps = {
+    id?: string;
     label: string;
     value: number;
     unit?: string;
@@ -12,9 +13,12 @@ type AnimatedMetricProps = {
     start?: boolean;
     startEvent?: string;
     startDelayMs?: number;
+    onComplete?: (id?: string) => void;
+    completeEvent?: string;
 };
 
 export function AnimatedMetric({
+    id,
     label,
     value,
     unit,
@@ -23,11 +27,14 @@ export function AnimatedMetric({
     start = true,
     startEvent,
     startDelayMs = 0,
+    onComplete,
+    completeEvent,
 }: AnimatedMetricProps) {
     const [displayValue, setDisplayValue] = useState(0);
     const [fillPercent, setFillPercent] = useState(0);
     const frameRef = useRef<number | null>(null);
     const [isActive, setIsActive] = useState(start);
+    const completedRef = useRef(false);
 
     useEffect(() => {
         setIsActive(start);
@@ -64,6 +71,7 @@ export function AnimatedMetric({
             return;
         }
 
+        completedRef.current = false;
         const start = performance.now();
         setDisplayValue(0);
         setFillPercent(0);
@@ -73,6 +81,16 @@ export function AnimatedMetric({
             setFillPercent(Math.max(0, Math.min(100, progress * barPercent)));
             if (progress < 1) {
                 frameRef.current = requestAnimationFrame(animate);
+            } else if (!completedRef.current) {
+                completedRef.current = true;
+                onComplete?.(id);
+                if (completeEvent) {
+                    window.dispatchEvent(
+                        new CustomEvent(completeEvent, {
+                            detail: { id, label },
+                        }),
+                    );
+                }
             }
         };
 
@@ -82,7 +100,16 @@ export function AnimatedMetric({
                 cancelAnimationFrame(frameRef.current);
             }
         };
-    }, [value, barPercent, durationMs, isActive]);
+    }, [
+        value,
+        barPercent,
+        durationMs,
+        isActive,
+        completeEvent,
+        id,
+        label,
+        onComplete,
+    ]);
 
     return (
         <div>
