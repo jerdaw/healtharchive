@@ -359,7 +359,10 @@ export default async function ArchivePage({
                 <input type="hidden" name="topic" value={topic} />
                 <input type="hidden" name="page" value={String(effectivePage)} />
                 <input type="hidden" name="pageSize" value={String(pageSize)} />
-                <button type="submit" className="ha-btn-secondary text-xs">
+                <button
+                  type="submit"
+                  className="ha-btn-secondary ha-btn-glow text-xs"
+                >
                   Search
                 </button>
               </form>
