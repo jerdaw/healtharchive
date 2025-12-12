@@ -1,4 +1,3 @@
-import Link from "next/link";
 import { PageShell } from "@/components/layout/PageShell";
 import {
   getAllTopics,
@@ -14,6 +13,8 @@ import {
   type SearchParams as ApiSearchParams,
 } from "@/lib/api";
 import { ApiHealthBanner } from "@/components/ApiHealthBanner";
+import { HoverGlowButton } from "@/components/home/HoverGlowButton";
+import Link from "next/link";
 
 function formatDate(iso: string | undefined | null): string {
   if (!iso) return "Unknown";
@@ -297,9 +298,9 @@ export default async function ArchivePage({
             </div>
 
             <div className="flex items-center justify-between gap-2 pt-1">
-              <button type="submit" className="ha-btn-primary ha-btn-glow text-xs">
+              <HoverGlowButton type="submit" className="ha-btn-primary text-xs">
                 Apply filters
-              </button>
+              </HoverGlowButton>
               <Link
                 href="/archive"
                 className="text-xs font-medium text-ha-muted hover:text-slate-900"
@@ -359,12 +360,12 @@ export default async function ArchivePage({
                 <input type="hidden" name="topic" value={topic} />
                 <input type="hidden" name="page" value={String(effectivePage)} />
                 <input type="hidden" name="pageSize" value={String(pageSize)} />
-                <button
+                <HoverGlowButton
                   type="submit"
-                  className="ha-btn-secondary ha-btn-glow text-xs"
+                  className="ha-btn-secondary text-xs"
                 >
                   Search
-                </button>
+                </HoverGlowButton>
               </form>
 
               {usingBackend && (
