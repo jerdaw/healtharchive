@@ -216,19 +216,19 @@ export default async function ArchivePage({
       intro="This is a prototype view showing how the archive explorer will behave. Search and filters are powered by a small demo dataset from selected Public Health Agency of Canada and Health Canada pages."
     >
       <ApiHealthBanner />
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,260px),minmax(0,1fr)] lg:items-start">
+      <div className="ha-home-hero grid gap-8 lg:grid-cols-[minmax(0,280px),minmax(0,1fr)] lg:items-start">
         {/* Filters panel */}
-        <aside className="ha-card p-4 sm:p-5">
+        <aside className="ha-card ha-home-panel p-4 sm:p-5 space-y-3">
           <h2 className="text-sm font-semibold text-slate-900">
             Filters {usingBackend ? "(live API)" : "(demo dataset fallback)"}
           </h2>
-          <p className="mt-1 text-xs text-ha-muted">
+          <p className="text-sm leading-relaxed text-ha-muted">
             Adjust these filters and re-run the search on the right. In the full
             archive, more granular options such as date ranges and jurisdictions
             would be available.
           </p>
 
-          <form className="mt-4 space-y-4" method="get">
+          <form className="space-y-4" method="get">
             <input type="hidden" name="page" value={String(effectivePage)} />
             <input type="hidden" name="pageSize" value={String(pageSize)} />
             {/* Text search */}
@@ -312,7 +312,7 @@ export default async function ArchivePage({
 
         {/* Search & results */}
         <section className="space-y-4">
-          <div className="ha-card p-4 sm:p-5">
+          <div className="ha-card ha-home-panel p-4 sm:p-5 space-y-3">
             <div className="flex flex-wrap items-baseline justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-slate-900">
@@ -394,8 +394,8 @@ export default async function ArchivePage({
           </div>
 
           <div className="space-y-3">
-            {totalResults === 0 ? (
-              <div className="ha-card p-4 sm:p-5">
+              {totalResults === 0 ? (
+              <div className="ha-card ha-home-panel p-4 sm:p-5">
                 <p className="text-sm text-ha-muted">
                   No records match the current filters. Try removing some
                   filters, using broader keywords, or{" "}
@@ -465,7 +465,7 @@ export default async function ArchivePage({
           </div>
 
           {pageCount > 1 && (
-            <div className="ha-card flex flex-wrap items-center justify-between gap-3 p-4 text-sm text-ha-muted sm:p-5">
+            <div className="ha-card ha-home-panel flex flex-wrap items-center justify-between gap-3 p-4 text-sm text-ha-muted sm:p-5">
               <div className="flex flex-wrap items-center gap-2">
                 <span>
                   Page {Math.min(effectivePage, pageCount)} of {pageCount}
