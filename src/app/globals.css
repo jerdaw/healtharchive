@@ -726,9 +726,9 @@ a:focus-visible {
     inset: -1px;
     background: radial-gradient(
         circle at var(--ha-glow-x, 50%) var(--ha-glow-y, 50%),
-        color-mix(in srgb, var(--accent) 18%, transparent) 0%,
-        color-mix(in srgb, var(--accent) 10%, transparent) 48%,
-        rgba(255, 255, 255, 0) 70%
+        rgba(255, 255, 255, 0.28) 0%,
+        rgba(255, 255, 255, 0.14) 46%,
+        rgba(255, 255, 255, 0) 72%
     );
     opacity: 0;
     transition: opacity 140ms ease-out, transform 200ms ease-out;
@@ -738,7 +738,7 @@ a:focus-visible {
 
 .ha-btn-glow:hover::before {
     opacity: 1;
-    transform: scale(1.01);
+    transform: scale(1.012);
 }
 
 .ha-btn-glow > * {
