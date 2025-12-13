@@ -810,9 +810,9 @@ a:focus-visible {
     inset: -1px;
     background: radial-gradient(
         circle at var(--ha-glow-x, 50%) var(--ha-glow-y, 50%),
-        rgba(255, 255, 255, 0.08) 0%,
-        rgba(255, 255, 255, 0.05) 26%,
-        rgba(255, 255, 255, 0) 48%
+        rgba(255, 255, 255, 0.2) 0%,
+        rgba(255, 255, 255, 0.1) 20%,
+        rgba(255, 255, 255, 0) 36%
     );
     opacity: 0;
     transition: opacity 140ms ease-out, transform 200ms ease-out;
