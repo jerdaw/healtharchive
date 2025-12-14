@@ -6,8 +6,8 @@ const csp = [
   "style-src 'self' 'unsafe-inline';",
   "img-src 'self' data: https:;",
   "font-src 'self' data:;",
-  "connect-src 'self' https://api.healtharchive.ca https://api-staging.healtharchive.ca;",
-  "frame-src 'self' https://api.healtharchive.ca https://api-staging.healtharchive.ca;",
+  "connect-src 'self' https://api.healtharchive.ca;",
+  "frame-src 'self' https://api.healtharchive.ca;",
   "frame-ancestors 'self';",
   "base-uri 'self';",
   "form-action 'self';",
@@ -22,7 +22,7 @@ const securityHeaders = [
     value: "geolocation=(), microphone=(), camera=()",
   },
   {
-    // Start in report-only mode so we can tune the policy in staging
+    // Start in report-only mode so we can tune the policy safely
     // without breaking users if we missed an allowed origin.
     key: "Content-Security-Policy-Report-Only",
     value: csp,

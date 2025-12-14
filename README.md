@@ -71,14 +71,18 @@ Then edit `.env.local` and set:
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001
 ```
 
-On Vercel (staging/production), set `NEXT_PUBLIC_API_BASE_URL` via the Vercel
+On Vercel (Preview/Production), set `NEXT_PUBLIC_API_BASE_URL` via the Vercel
 UI under **Settings → Environment Variables**. Recommended values:
 
 | Environment | Frontend URL                       | Backend URL                                      | `NEXT_PUBLIC_API_BASE_URL`             |
 | ----------- | ---------------------------------- | ------------------------------------------------ | -------------------------------------- |
 | Local       | `http://localhost:3000`            | `http://127.0.0.1:8001`                          | `http://127.0.0.1:8001`                |
-| Preview     | `https://healtharchive.vercel.app` | `https://api-staging.healtharchive.ca` (or prod) | `https://api-staging.healtharchive.ca` |
+| Preview     | `https://healtharchive.vercel.app` | `https://api.healtharchive.ca`                   | `https://api.healtharchive.ca`         |
 | Production  | `https://healtharchive.ca` / `www` | `https://api.healtharchive.ca`                   | `https://api.healtharchive.ca`         |
+
+> Expected limitation (by design): branch preview URLs like
+> `https://healtharchive-git-...vercel.app` may fall back to demo mode until we
+> decide to loosen the backend CORS allowlist.
 
 > `NEXT_PUBLIC_BACKEND_URL` is still supported for backward-compatibility, but
 > `NEXT_PUBLIC_API_BASE_URL` is the preferred and documented way to configure
@@ -136,7 +140,7 @@ Vitest + Testing Library with mocked fetch; no live backend needed.
         npm audit --audit-level=high
         ```
 
--   Ensure `NEXT_PUBLIC_API_BASE_URL` is set per environment (Vercel/staging/prod).
+-   Ensure `NEXT_PUBLIC_API_BASE_URL` is set per environment (Vercel Preview/Production).
 -   Optional diagnostics envs (`NEXT_PUBLIC_SHOW_API_HEALTH_BANNER`,
     `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE`, `NEXT_PUBLIC_SHOW_API_BASE_HINT`) are
     normally disabled in CI and production to keep logs quiet.

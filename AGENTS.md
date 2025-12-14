@@ -16,7 +16,7 @@
   - “Project snapshot” metrics start on that event and dispatch `ha-project-snapshot-finished` after all metric animations complete (used to trigger the final “before” fade-out).
 - Primary documentation for humans and agents:
   - `docs/documentation.md` → architecture, routes, styling system, deployment details.
-  - `docs/staging-verification.md` → staging CSP/CORS/snapshot viewer verification.
+  - `docs/deployment-verification.md` → Preview/Production CSP/CORS/snapshot viewer verification.
 
 When you’re unsure about architecture, routes, or design decisions, **read `docs/documentation.md` first instead of guessing**.
 
@@ -62,7 +62,7 @@ Environment variables (for local dev):
 - `NEXT_PUBLIC_API_BASE_URL`  
   - Default fallback if unset: `http://localhost:8001`.
   - Local dev example: `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001`.
-- Dev/staging-only diagnostics (can be enabled locally, but keep them off in production/CI):
+- Dev/Preview-only diagnostics (can be enabled locally, but keep them off in production/CI):
   - `NEXT_PUBLIC_SHOW_API_HEALTH_BANNER`
   - `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE`
   - `NEXT_PUBLIC_SHOW_API_BASE_HINT`

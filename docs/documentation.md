@@ -65,9 +65,9 @@ npm test
 
 ### Environment variables
 
--   `NEXT_PUBLIC_API_BASE_URL` – base URL for the backend API (e.g., `http://localhost:8001` for local dev, `https://api.healtharchive.ca` for staging/prod). If unset, the API client falls back to `http://localhost:8001`.
--   `NEXT_PUBLIC_SHOW_API_HEALTH_BANNER` – when set to `true`, shows a small banner in the UI if `/api/health` fails (dev/staging helper).
--   `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE` – when set to `true`, logs a console warning if `/api/health` fails (dev/staging helper).
+-   `NEXT_PUBLIC_API_BASE_URL` – base URL for the backend API (e.g., `http://localhost:8001` for local dev, `https://api.healtharchive.ca` for Preview/Production). If unset, the API client falls back to `http://localhost:8001`.
+-   `NEXT_PUBLIC_SHOW_API_HEALTH_BANNER` – when set to `true`, shows a small banner in the UI if `/api/health` fails (dev/Preview helper).
+-   `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE` – when set to `true`, logs a console warning if `/api/health` fails (dev/Preview helper).
 -   `NEXT_PUBLIC_SHOW_API_BASE_HINT` – when set to `true` in development, logs the effective API base URL to the browser console via `ApiHealthBanner` (dev-only helper; silenced in tests and production). This should remain disabled in production and CI to avoid noisy logs.
 -   Topics and sources are built from backend data when available. Topics are
     exposed by the backend as `{slug, label}` pairs; demo/fallback data
@@ -101,10 +101,10 @@ npm test
     -   `X-Frame-Options: SAMEORIGIN`
     -   `Permissions-Policy: geolocation=(), microphone=(), camera=()`
 -   A `Content-Security-Policy-Report-Only` header is also set to help tune a
-    CSP in staging without breaking users. The policy:
+    CSP without breaking users. The policy:
     -   Restricts scripts and styles to `self` (with inline styles allowed).
     -   Restricts `connect-src` and `frame-src` to the frontend itself plus
-        `https://api.healtharchive.ca` and `https://api-staging.healtharchive.ca`.
+        `https://api.healtharchive.ca`.
     -   Limits `frame-ancestors` to `self`, `base-uri` to `self`, and `form-action`
         to `self`.
 -   The snapshot viewer (`SnapshotFrame`) loads archived HTML in an `<iframe>`
@@ -133,17 +133,17 @@ npm test
     `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE`, `NEXT_PUBLIC_SHOW_API_BASE_HINT`) are
     disabled to keep output quiet and deterministic.
 
-### Deployment env expectations (Vercel/staging)
+### Deployment env expectations (Vercel Preview/Production)
 
 -   `NEXT_PUBLIC_API_BASE_URL` must point at the backend for the environment.
 
     Suggested values:
 
     -   **Local dev:** `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001`
-    -   **Preview / staging:** `NEXT_PUBLIC_API_BASE_URL=https://api-staging.healtharchive.ca` (or re-use `https://api.healtharchive.ca` if you don’t have a separate staging API)
+    -   **Preview:** `NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca`
     -   **Production:** `NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca`
 
--   Optional diagnostics (usually enabled in dev/staging, disabled in production/CI):
+-   Optional diagnostics (usually enabled in dev/Preview, disabled in production/CI):
 
     -   `NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=true` to surface a UI banner on health failures.
     -   `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true` to log health failures to the console.
