@@ -6,54 +6,14 @@ import { HoverGlowLink } from "@/components/home/HoverGlowLink";
 import { ProjectSnapshotOrchestrator } from "@/components/home/ProjectSnapshotOrchestrator";
 import { fetchArchiveStats } from "@/lib/api";
 
-function formatDate(iso: string | undefined | null): string {
-    if (!iso) return "Unknown";
-    const parts = iso.split("-");
-    if (parts.length === 3) {
-        const [yearStr, monthStr, dayStr] = parts;
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        const day = Number(dayStr);
-        if (year && month && day) {
-            const d = new Date(year, month - 1, day);
-            if (!Number.isNaN(d.getTime())) {
-                return d.toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                });
-            }
-        }
-    }
-
-    const parsed = new Date(iso);
-    if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-        });
-    }
-
-    return iso;
-}
-
 export default async function HomePage() {
     const fallbackRecordCount = demoRecords.length;
     const fallbackPageCount = new Set(demoRecords.map((r) => r.originalUrl)).size;
-    const fallbackSourceCount = new Set(demoRecords.map((r) => r.sourceName)).size;
 
     const stats = await fetchArchiveStats().catch(() => null);
     const usingBackendStats = stats != null;
     const recordCount = stats?.snapshotsTotal ?? fallbackRecordCount;
     const pageCount = stats?.pagesTotal ?? fallbackPageCount;
-    const sourceCount = stats?.sourcesTotal ?? fallbackSourceCount;
-    const latestCaptureDate = stats?.latestCaptureDate ?? null;
-    const latestCaptureAgeDays = stats?.latestCaptureAgeDays ?? null;
-    const recencyBarPercent =
-        latestCaptureAgeDays == null
-            ? 0
-            : Math.max(0, 100 - (latestCaptureAgeDays / 365) * 100);
 
     return (
         <div className="ha-container space-y-14 pt-3 sm:pt-4">
@@ -101,7 +61,7 @@ export default async function HomePage() {
                     {/* Side card */}
                     <div className="ha-card ha-card-elevated p-4 sm:p-5">
                         <ProjectSnapshotOrchestrator
-                            expectedIds={["records", "pages", "sources", "recency"]}
+                            expectedIds={["records", "pages"]}
                         />
                         <div className="flex items-center justify-between gap-3">
                             <div>
@@ -136,33 +96,7 @@ export default async function HomePage() {
                                 startEvent="ha-trackchanges-finished"
                                 completeEvent="ha-metric-finished"
                             />
-                            <AnimatedMetric
-                                id="sources"
-                                label="Sources"
-                                value={sourceCount}
-                                unit="sources"
-                                barPercent={Math.min(100, (sourceCount / 20) * 100)}
-                                start={false}
-                                startEvent="ha-trackchanges-finished"
-                                completeEvent="ha-metric-finished"
-                            />
-                            <AnimatedMetric
-                                id="recency"
-                                label="Days since capture"
-                                value={latestCaptureAgeDays ?? 0}
-                                unit="days"
-                                barPercent={recencyBarPercent}
-                                start={false}
-                                startEvent="ha-trackchanges-finished"
-                                completeEvent="ha-metric-finished"
-                            />
                         </dl>
-                        <p className="mt-3 text-xs text-ha-muted">
-                            Latest capture:{" "}
-                            <span className="font-medium text-slate-900">
-                                {latestCaptureDate ? formatDate(latestCaptureDate) : "Unknown"}
-                            </span>
-                        </p>
                     </div>
                 </div>
             </section>
