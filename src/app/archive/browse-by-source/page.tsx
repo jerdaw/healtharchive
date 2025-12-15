@@ -67,9 +67,13 @@ export default async function BrowseBySourcePage() {
 
   return (
     <PageShell
-      eyebrow="Archive explorer (demo)"
+      eyebrow={usingBackend ? "Archive explorer" : "Archive explorer (demo)"}
       title="Browse records by source"
-      intro="This view summarizes which snapshots are available for each source. In a fuller archive, this would expand to a broader set of agencies and jurisdictions."
+      intro={
+        usingBackend
+          ? "This view summarizes which snapshots are available for each source."
+          : "This view summarizes which snapshots are available for each source. In a fuller archive, this would expand to a broader set of agencies and jurisdictions."
+      }
     >
       {!usingBackend && (
         <div className="ha-callout mb-6">

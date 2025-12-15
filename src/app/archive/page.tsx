@@ -53,6 +53,8 @@ type ArchiveSearchParams = {
     q?: string;
     source?: string;
     topic?: string;
+    sort?: string;
+    includeNon2xx?: string;
     page?: string;
     pageSize?: string;
 };
@@ -60,7 +62,9 @@ type ArchiveSearchParams = {
 const DEFAULT_PAGE_SIZE = 10;
 const MAX_PAGE_SIZE = 50;
 
-type ArchiveListRecord = Omit<DemoRecord, "snapshotPath">;
+type ArchiveListRecord = Omit<DemoRecord, "snapshotPath" | "sourceCode"> & {
+    sourceCode: string;
+};
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
     const parsed = Number(value);
@@ -68,6 +72,12 @@ function parsePositiveInt(value: string | undefined, fallback: number): number {
         return fallback;
     }
     return parsed;
+}
+
+function parseBoolean(value: string | undefined): boolean {
+    if (!value) return false;
+    const normalized = value.trim().toLowerCase();
+    return normalized === "1" || normalized === "true" || normalized === "on";
 }
 
 export default async function ArchivePage({
@@ -79,6 +89,13 @@ export default async function ArchivePage({
     const q = params.q?.trim() ?? "";
     const source = params.source?.trim() ?? "";
     const topic = params.topic?.trim() ?? "";
+    const includeNon2xx = parseBoolean(params.includeNon2xx);
+    const requestedSort = params.sort?.trim().toLowerCase() ?? "";
+    const defaultSort = q ? "relevance" : "newest";
+    const sort =
+        requestedSort === "newest" || requestedSort === "relevance"
+            ? requestedSort
+            : defaultSort;
     const page = parsePositiveInt(params.page, 1);
     const rawPageSize = parsePositiveInt(params.pageSize, DEFAULT_PAGE_SIZE);
     const pageSize = Math.min(rawPageSize, MAX_PAGE_SIZE);
@@ -152,13 +169,15 @@ export default async function ArchivePage({
             q: q || undefined,
             source: source || undefined,
             topic: topic || undefined,
+            sort: sort === "relevance" || sort === "newest" ? sort : undefined,
+            includeNon2xx: includeNon2xx || undefined,
             page,
             pageSize,
         } as ApiSearchParams);
         results = backend.results.map((r) => ({
             id: String(r.id),
             title: r.title ?? "",
-            sourceCode: r.sourceCode as "phac" | "hc",
+            sourceCode: r.sourceCode,
             sourceName: r.sourceName,
             language: r.language ?? "",
             topics: r.topics.map((t) => t.label),
@@ -193,6 +212,8 @@ export default async function ArchivePage({
         if (q) qs.set("q", q);
         if (source) qs.set("source", source);
         if (topic) qs.set("topic", topic);
+        if (sort !== defaultSort) qs.set("sort", sort);
+        if (includeNon2xx) qs.set("includeNon2xx", "true");
         if (targetPage > 1) qs.set("page", String(targetPage));
         if (pageSize !== DEFAULT_PAGE_SIZE)
             qs.set("pageSize", String(pageSize));
@@ -202,9 +223,17 @@ export default async function ArchivePage({
 
     return (
         <PageShell
-            eyebrow="Archive explorer (demo)"
-            title="Browse & search demo snapshots"
-            intro="This is a prototype view showing how the archive explorer will behave. Search and filters are powered by a small demo dataset from selected Public Health Agency of Canada and Health Canada pages."
+            eyebrow={usingBackend ? "Archive explorer" : "Archive explorer (demo)"}
+            title={
+                usingBackend
+                    ? "Browse & search snapshots"
+                    : "Browse & search demo snapshots"
+            }
+            intro={
+                usingBackend
+                    ? "Browse and search archived snapshots by keyword, source, and topic. This is an early release — coverage and features are still expanding."
+                    : "This is a prototype view showing how the archive explorer will behave. Search and filters are powered by a small demo dataset from selected Public Health Agency of Canada and Health Canada pages."
+            }
         >
             <ApiHealthBanner />
             <div className="ha-home-hero grid gap-8 lg:grid-cols-[minmax(0,280px),minmax(0,1fr)] lg:items-start">
@@ -233,6 +262,16 @@ export default async function ArchivePage({
                             name="pageSize"
                             value={String(pageSize)}
                         />
+                        {sort !== defaultSort && (
+                            <input type="hidden" name="sort" value={sort} />
+                        )}
+                        {includeNon2xx && (
+                            <input
+                                type="hidden"
+                                name="includeNon2xx"
+                                value="true"
+                            />
+                        )}
                         {/* Text search */}
                         <div className="space-y-1">
                             <label
@@ -393,6 +432,20 @@ export default async function ArchivePage({
                                     name="pageSize"
                                     value={String(pageSize)}
                                 />
+                                {sort !== defaultSort && (
+                                    <input
+                                        type="hidden"
+                                        name="sort"
+                                        value={sort}
+                                    />
+                                )}
+                                {includeNon2xx && (
+                                    <input
+                                        type="hidden"
+                                        name="includeNon2xx"
+                                        value="true"
+                                    />
+                                )}
                                 <HoverGlowButton
                                     type="submit"
                                     className="ha-btn-primary text-xs"
@@ -403,7 +456,7 @@ export default async function ArchivePage({
 
                             {usingBackend && (
                                 <form
-                                    className="flex items-center gap-2"
+                                    className="flex flex-wrap items-center gap-2"
                                     method="get"
                                 >
                                     <input type="hidden" name="q" value={q} />
@@ -423,6 +476,21 @@ export default async function ArchivePage({
                                         value="1"
                                     />
                                     <label
+                                        htmlFor="sort"
+                                        className="text-xs text-ha-muted"
+                                    >
+                                        Sort
+                                    </label>
+                                    <select
+                                        id="sort"
+                                        name="sort"
+                                        defaultValue={sort}
+                                        className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                    >
+                                        <option value="relevance">Relevance</option>
+                                        <option value="newest">Newest</option>
+                                    </select>
+                                    <label
                                         htmlFor="pageSize"
                                         className="text-xs text-ha-muted"
                                     >
@@ -440,6 +508,15 @@ export default async function ArchivePage({
                                             </option>
                                         ))}
                                     </select>
+                                    <label className="flex items-center gap-1 text-xs text-ha-muted">
+                                        <input
+                                            type="checkbox"
+                                            name="includeNon2xx"
+                                            value="true"
+                                            defaultChecked={includeNon2xx}
+                                        />
+                                        Include error pages
+                                    </label>
                                     <button
                                         type="submit"
                                         className="ha-btn-secondary text-xs"

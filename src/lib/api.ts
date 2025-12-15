@@ -96,6 +96,8 @@ export type SearchParams = {
   topic?: string;
   page?: number;
   pageSize?: number;
+  sort?: "relevance" | "newest";
+  includeNon2xx?: boolean;
 };
 
 export async function searchSnapshots(params: SearchParams): Promise<SearchResponse> {
@@ -104,6 +106,8 @@ export async function searchSnapshots(params: SearchParams): Promise<SearchRespo
   if (params.q) query.set("q", params.q);
   if (params.source) query.set("source", params.source);
   if (params.topic) query.set("topic", params.topic);
+  if (params.sort) query.set("sort", params.sort);
+  if (params.includeNon2xx) query.set("includeNon2xx", "true");
   if (params.page && params.page > 1) query.set("page", String(params.page));
   if (params.pageSize) query.set("pageSize", String(params.pageSize));
 
