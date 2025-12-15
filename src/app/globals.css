@@ -950,6 +950,207 @@ a:focus-visible {
 }
 
 /* ====================================
+   Archive search results
+   ==================================== */
+
+.ha-line-clamp-3 {
+    display: -webkit-box;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 3;
+    overflow: hidden;
+}
+
+.ha-mark {
+    background-color: color-mix(in srgb, var(--accent) 16%, transparent);
+    color: inherit;
+    padding: 0.05em 0.15em;
+    border-radius: 0.25rem;
+}
+
+.ha-result-card {
+    background-color: var(--card-bg);
+    border-radius: 0.9rem;
+    border: 1px solid var(--border);
+    padding: 1rem 1.1rem;
+    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
+    transition: box-shadow 160ms ease-out, transform 160ms ease-out,
+        border-color 160ms ease-out;
+    border-left-width: 4px;
+}
+
+.ha-result-card:hover {
+    box-shadow: 0 16px 44px rgba(15, 23, 42, 0.1);
+    transform: translateY(-1px);
+}
+
+.ha-result-accent--hc {
+    border-left-color: color-mix(in srgb, var(--brand) 92%, white);
+}
+
+.ha-result-accent--phac {
+    border-left-color: #0f766e;
+}
+
+.ha-result-accent--cihr {
+    border-left-color: #7c3aed;
+}
+
+.ha-result-accent--default {
+    border-left-color: color-mix(in srgb, var(--border) 65%, var(--muted));
+}
+
+.ha-result-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.ha-result-main {
+    min-width: 0;
+}
+
+.ha-result-title {
+    margin: 0;
+    font-size: 0.98rem;
+    line-height: 1.3;
+    font-weight: 650;
+    color: var(--text);
+}
+
+.ha-result-title-link {
+    color: inherit;
+    text-decoration: none;
+}
+
+.ha-result-title-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+    text-decoration-thickness: 0.07em;
+    text-underline-offset: 0.18em;
+}
+
+.ha-result-meta {
+    margin-top: 0.35rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem 0.6rem;
+    align-items: center;
+    font-size: 0.8rem;
+    color: var(--muted);
+}
+
+.ha-result-meta-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    white-space: nowrap;
+}
+
+.ha-result-meta-label {
+    font-weight: 550;
+    color: color-mix(in srgb, var(--muted) 72%, var(--text));
+}
+
+.ha-result-icon {
+    display: inline-flex;
+    width: 14px;
+    height: 14px;
+    color: color-mix(in srgb, var(--muted) 75%, var(--text));
+}
+
+.ha-result-icon svg {
+    width: 14px;
+    height: 14px;
+}
+
+.ha-result-actions {
+    flex: 0 0 auto;
+}
+
+.ha-result-snippet {
+    margin: 0.75rem 0 0;
+    font-size: 0.92rem;
+    line-height: 1.45;
+    color: color-mix(in srgb, var(--text) 82%, var(--muted));
+}
+
+.ha-result-url-row {
+    margin-top: 0.75rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+}
+
+.ha-result-url {
+    min-width: 0;
+    display: flex;
+    gap: 0.5rem;
+    align-items: baseline;
+}
+
+.ha-result-url-label {
+    font-size: 0.74rem;
+    color: var(--muted);
+    white-space: nowrap;
+}
+
+.ha-result-url-link {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+        "Liberation Mono", "Courier New", monospace;
+    font-size: 0.78rem;
+    color: var(--text);
+    text-decoration: none;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    max-width: 100%;
+}
+
+.ha-result-url-link:hover {
+    color: var(--accent);
+    text-decoration: underline;
+}
+
+.ha-result-url-host {
+    font-weight: 650;
+}
+
+.ha-result-url-rest {
+    color: var(--muted);
+}
+
+.ha-result-topics {
+    margin-top: 0.75rem;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.35rem;
+}
+
+.ha-result-badge {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.15rem 0.55rem;
+    border-radius: 999px;
+    font-size: 0.72rem;
+    font-weight: 550;
+    border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+    background-color: color-mix(in srgb, var(--accent) 10%, transparent);
+    color: color-mix(in srgb, var(--text) 85%, var(--muted));
+}
+
+.ha-result-badge--source {
+    background-color: color-mix(in srgb, var(--brand) 13%, transparent);
+    border-color: color-mix(in srgb, var(--brand) 22%, var(--border));
+    color: color-mix(in srgb, var(--text) 88%, var(--muted));
+}
+
+.ha-result-badge--topic {
+    background-color: color-mix(in srgb, var(--accent) 9%, transparent);
+}
+
+/* ====================================
    Callout panels
    ==================================== */
 

@@ -14,40 +14,8 @@ import {
 } from "@/lib/api";
 import { ApiHealthBanner } from "@/components/ApiHealthBanner";
 import { HoverGlowButton } from "@/components/home/HoverGlowButton";
+import { SearchResultCard } from "@/components/archive/SearchResultCard";
 import Link from "next/link";
-
-function formatDate(iso: string | undefined | null): string {
-    if (!iso) return "Unknown";
-
-    const parts = iso.split("-");
-    if (parts.length === 3) {
-        const [yearStr, monthStr, dayStr] = parts;
-        const year = Number(yearStr);
-        const month = Number(monthStr);
-        const day = Number(dayStr);
-        if (year && month && day) {
-            const d = new Date(year, month - 1, day);
-            if (!Number.isNaN(d.getTime())) {
-                return d.toLocaleDateString(undefined, {
-                    year: "numeric",
-                    month: "short",
-                    day: "numeric",
-                });
-            }
-        }
-    }
-
-    const parsed = new Date(iso);
-    if (!Number.isNaN(parsed.getTime())) {
-        return parsed.toLocaleDateString(undefined, {
-            year: "numeric",
-            month: "short",
-            day: "numeric",
-        });
-    }
-
-    return iso;
-}
 
 type ArchiveSearchParams = {
     q?: string;
@@ -214,8 +182,11 @@ export default async function ArchivePage({
               effectivePage * paginationSize
           );
 
+    const resultNoun = view === "pages" ? "page" : "snapshot";
     const resultCountText =
-        totalResults === 1 ? "1 snapshot" : `${totalResults} snapshots`;
+        totalResults === 1
+            ? `1 ${resultNoun}`
+            : `${totalResults} ${resultNoun}s`;
 
     const buildPageHref = (targetPage: number) => {
         const qs = new URLSearchParams();
@@ -584,64 +555,12 @@ export default async function ArchivePage({
                             </div>
                         ) : (
                             paginatedResults.map((record) => (
-                                <article
+                                <SearchResultCard
                                     key={record.id}
-                                    className="ha-card ha-card-elevated p-4 sm:p-5"
-                                >
-                                    <div className="flex flex-wrap items-start justify-between gap-3">
-                                        <div className="space-y-1">
-                                            <h3 className="text-sm font-semibold text-slate-900">
-                                                <Link
-                                                    href={`/snapshot/${record.id}`}
-                                                    className="hover:text-ha-accent"
-                                                >
-                                                    {record.title}
-                                                </Link>
-                                            </h3>
-                                            <p className="text-xs text-ha-muted">
-                                                {[
-                                                    record.sourceName,
-                                                    record.captureDate
-                                                        ? `captured ${formatDate(
-                                                              record.captureDate
-                                                          )}`
-                                                        : null,
-                                                    record.language || null,
-                                                ]
-                                                    .filter(Boolean)
-                                                    .join(" · ")}
-                                            </p>
-                                        </div>
-                                        <Link
-                                            href={`/snapshot/${record.id}`}
-                                            className="ha-btn-secondary text-xs"
-                                        >
-                                            View snapshot
-                                        </Link>
-                                    </div>
-                                    <p className="mt-3 text-xs leading-relaxed text-slate-800 sm:text-sm">
-                                        {record.snippet ||
-                                            "No summary available for this snapshot yet."}
-                                    </p>
-                                    <p className="mt-2 text-[11px] text-ha-muted">
-                                        Original URL:{" "}
-                                        <span className="break-all">
-                                            {record.originalUrl}
-                                        </span>
-                                    </p>
-                                    {record.topics.length > 0 && (
-                                        <div className="mt-3 flex flex-wrap gap-1.5">
-                                            {record.topics.map((t) => (
-                                                <span
-                                                    key={t}
-                                                    className="ha-badge"
-                                                >
-                                                    {t}
-                                                </span>
-                                            ))}
-                                        </div>
-                                    )}
-                                </article>
+                                    record={record}
+                                    view={view as "pages" | "snapshots"}
+                                    query={q}
+                                />
                             ))
                         )}
                     </div>

@@ -323,6 +323,9 @@ Then defines a small **design system** with `.ha-*` classes:
 
     -   `.ha-card`, `.ha-card-title`, `.ha-card-meta`, `.ha-card-body`.
 
+-   Archive search results:
+    -   Result cards on `/archive` use `src/components/archive/SearchResultCard.tsx` plus `.ha-result-*` styles in `src/app/globals.css` (title/meta/url/snippet/badges, plus line clamping and query highlights).
+
 -   Tags/chips:
 
     -   `.ha-tag` and `.ha-badge` for visual chips.

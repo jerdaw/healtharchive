@@ -66,7 +66,9 @@ describe("/archive", () => {
     render(ui);
 
     expect(screen.getByText(/Search results/i)).toBeInTheDocument();
-    expect(screen.getByText("Test Snapshot")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /test snapshot/i }),
+    ).toBeInTheDocument();
     expect(screen.getByText(/1 snapshot/)).toBeInTheDocument();
   });
 
