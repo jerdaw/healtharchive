@@ -584,6 +584,10 @@ a:focus-visible {
     box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
 }
 
+.ha-home-hero > * {
+    min-width: 0;
+}
+
 .ha-home-band-muted {
     margin-top: 0;
     padding: 2rem 0 2.2rem;
@@ -971,32 +975,8 @@ a:focus-visible {
     background-color: var(--card-bg);
     border-radius: 0.9rem;
     border: 1px solid var(--border);
-    padding: 1rem 1.1rem;
-    box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
-    transition: box-shadow 160ms ease-out, transform 160ms ease-out,
-        border-color 160ms ease-out;
-    border-left-width: 4px;
-}
-
-.ha-result-card:hover {
-    box-shadow: 0 16px 44px rgba(15, 23, 42, 0.1);
-    transform: translateY(-1px);
-}
-
-.ha-result-accent--hc {
-    border-left-color: color-mix(in srgb, var(--brand) 92%, white);
-}
-
-.ha-result-accent--phac {
-    border-left-color: #0f766e;
-}
-
-.ha-result-accent--cihr {
-    border-left-color: #7c3aed;
-}
-
-.ha-result-accent--default {
-    border-left-color: color-mix(in srgb, var(--border) 65%, var(--muted));
+    padding: 1rem 1.1rem 0.8rem;
+    box-shadow: none;
 }
 
 .ha-result-row {
@@ -1069,18 +1049,14 @@ a:focus-visible {
 }
 
 .ha-result-snippet {
-    margin: 0.75rem 0 0;
+    margin: 0.85rem 0 0;
     font-size: 0.92rem;
     line-height: 1.45;
     color: color-mix(in srgb, var(--text) 82%, var(--muted));
 }
 
 .ha-result-url-row {
-    margin-top: 0.75rem;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 0.75rem;
+    margin-top: 0.45rem;
 }
 
 .ha-result-url {
@@ -1088,6 +1064,7 @@ a:focus-visible {
     display: flex;
     gap: 0.5rem;
     align-items: baseline;
+    flex: 1 1 auto;
 }
 
 .ha-result-url-label {
@@ -1099,6 +1076,9 @@ a:focus-visible {
 .ha-result-url-link {
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
         "Liberation Mono", "Courier New", monospace;
+    display: block;
+    min-width: 0;
+    flex: 1 1 auto;
     font-size: 0.78rem;
     color: var(--text);
     text-decoration: none;
@@ -1119,6 +1099,37 @@ a:focus-visible {
 
 .ha-result-url-rest {
     color: var(--muted);
+}
+
+.ha-icon-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 1.75rem;
+    height: 1.75rem;
+    border-radius: 999px;
+    border: 1px solid var(--border);
+    background-color: color-mix(in srgb, var(--surface-bg) 92%, transparent);
+    color: var(--muted);
+    transition: background-color 150ms ease-out, color 150ms ease-out;
+    flex: 0 0 auto;
+}
+
+.ha-icon-btn:hover {
+    background-color: color-mix(in srgb, var(--surface-bg) 80%, transparent);
+    color: color-mix(in srgb, var(--text) 85%, var(--muted));
+    text-decoration: none;
+}
+
+.ha-icon-btn:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+
+.ha-icon-btn svg {
+    width: 15px;
+    height: 15px;
+    fill: currentColor;
 }
 
 .ha-result-topics {

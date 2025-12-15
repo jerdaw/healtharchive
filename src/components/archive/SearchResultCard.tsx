@@ -117,14 +117,6 @@ function formatUrlParts(urlStr: string): { host: string; rest: string } {
     }
 }
 
-function sourceAccentClass(sourceCode: string): string {
-    const code = sourceCode.toLowerCase();
-    if (code === "hc") return "ha-result-accent--hc";
-    if (code === "phac") return "ha-result-accent--phac";
-    if (code === "cihr") return "ha-result-accent--cihr";
-    return "ha-result-accent--default";
-}
-
 function ResultIcon({
     children,
 }: {
@@ -145,6 +137,14 @@ function GlobeIcon(): ReactElement {
     return (
         <svg viewBox="0 0 20 20" fill="currentColor">
             <path d="M10 18a8 8 0 1 0 0-16 8 8 0 0 0 0 16Zm5.87-9H14.2a13.6 13.6 0 0 0-.93-4.18A6.01 6.01 0 0 1 15.87 9ZM12.1 9H7.9c.12-1.5.5-2.9 1.06-4.06.37-.75.75-1.14 1.04-1.14.29 0 .67.39 1.04 1.14.56 1.16.94 2.56 1.06 4.06ZM4.13 9a6.01 6.01 0 0 1 2.6-4.18A13.6 13.6 0 0 0 5.8 9H4.13Zm0 2H5.8c.15 1.44.5 2.82.93 4.02A6.01 6.01 0 0 1 4.13 11Zm3.77 0h4.2c-.12 1.44-.5 2.82-1.06 4.02-.37.8-.75 1.2-1.04 1.2-.29 0-.67-.4-1.04-1.2-.56-1.2-.94-2.58-1.06-4.02ZM13.27 15.02c.42-1.2.78-2.58.93-4.02h1.67a6.01 6.01 0 0 1-2.6 4.02Z" />
+        </svg>
+    );
+}
+
+function CopyIcon(): ReactElement {
+    return (
+        <svg viewBox="0 0 20 20" aria-hidden="true">
+            <path d="M6 2a2 2 0 0 0-2 2v9a2 2 0 0 0 2 2h1v1a2 2 0 0 0 2 2h7a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-1V4a2 2 0 0 0-2-2H6Zm9 4h-1V4H6v9h1V8a2 2 0 0 1 2-2h6Zm-6 3h7v9H9V9Z" />
         </svg>
     );
 }
@@ -174,7 +174,7 @@ export function SearchResultCard({
     const overflowCount = Math.max(0, record.topics.length - displayTopics.length);
 
     return (
-        <article className={`ha-result-card ${sourceAccentClass(record.sourceCode)}`}>
+        <article className="ha-result-card">
             <div className="ha-result-row">
                 <div className="ha-result-main">
                     <h3 className="ha-result-title">
@@ -231,12 +231,14 @@ export function SearchResultCard({
                             <span className="ha-result-url-rest">{urlParts.rest}</span>
                         )}
                     </a>
+                    <CopyButton
+                        text={record.originalUrl}
+                        label="Copy URL"
+                        className="ha-icon-btn"
+                    >
+                        <CopyIcon />
+                    </CopyButton>
                 </div>
-                <CopyButton
-                    text={record.originalUrl}
-                    label="Copy"
-                    className="ha-btn-secondary text-xs"
-                />
             </div>
 
             {displayTopics.length > 0 && (

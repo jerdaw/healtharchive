@@ -1,14 +1,21 @@
 "use client";
 
+import type { ReactNode } from "react";
 import { useId, useState } from "react";
 
 type CopyButtonProps = {
     text: string;
     label: string;
     className?: string;
+    children?: ReactNode;
 };
 
-export function CopyButton({ text, label, className }: CopyButtonProps) {
+export function CopyButton({
+    text,
+    label,
+    className,
+    children,
+}: CopyButtonProps) {
     const [copied, setCopied] = useState(false);
     const statusId = useId();
 
@@ -27,13 +34,14 @@ export function CopyButton({ text, label, className }: CopyButtonProps) {
             type="button"
             className={className}
             onClick={onCopy}
+            title={label}
+            aria-label={label}
             aria-describedby={statusId}
         >
-            {label}
+            {children ?? label}
             <span id={statusId} className="sr-only" aria-live="polite">
                 {copied ? "Copied to clipboard." : ""}
             </span>
         </button>
     );
 }
-
