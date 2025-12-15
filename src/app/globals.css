@@ -1049,14 +1049,14 @@ a:focus-visible {
 }
 
 .ha-result-snippet {
-    margin: 0.85rem 0 0;
+    margin: 0.5rem 0 0 !important;
     font-size: 0.92rem;
     line-height: 1.45;
     color: color-mix(in srgb, var(--text) 82%, var(--muted));
 }
 
 .ha-result-url-row {
-    margin-top: 0.45rem;
+    margin-top: 0rem;
 }
 
 .ha-result-url {
@@ -1108,7 +1108,7 @@ a:focus-visible {
     width: 1.75rem;
     height: 1.75rem;
     border-radius: 999px;
-    border: 1px solid var(--border);
+    border: 0px solid var(--border);
     background-color: color-mix(in srgb, var(--surface-bg) 92%, transparent);
     color: var(--muted);
     transition: background-color 150ms ease-out, color 150ms ease-out;
