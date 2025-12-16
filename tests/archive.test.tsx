@@ -12,6 +12,7 @@ vi.mock("next/link", () => ({
 vi.mock("@/lib/api", () => ({
   fetchSources: vi.fn(),
   searchSnapshots: vi.fn(),
+  getApiBaseUrl: () => "https://api.example.test",
 }));
 
 import { fetchSources, searchSnapshots } from "@/lib/api";
@@ -68,6 +69,41 @@ describe("/archive", () => {
     const ids = nodes.map((node) => node.dataset.testid);
 
     expect(ids).toEqual(["archive-source-hc", "archive-source-cihr"]);
+  });
+
+  it("renders cached preview images when available", async () => {
+    mockFetchSources.mockResolvedValue([
+      {
+        sourceCode: "hc",
+        sourceName: "Health Canada",
+        baseUrl: "https://www.canada.ca/en/health-canada.html",
+        description: "HC",
+        recordCount: 100,
+        firstCapture: "2024-01-01",
+        lastCapture: "2024-01-02",
+        latestRecordId: 1,
+        entryRecordId: 1,
+        entryBrowseUrl: "https://replay.healtharchive.ca/job-1/https://www.canada.ca/en/health-canada.html",
+        entryPreviewUrl: "/api/sources/hc/preview?jobId=1",
+      },
+    ]);
+    mockSearchSnapshots.mockResolvedValue({
+      results: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+    });
+
+    const ui = await ArchivePage({
+      searchParams: Promise.resolve({}),
+    });
+    render(ui);
+
+    const img = screen.getByAltText("Health Canada preview");
+    expect(img).toHaveAttribute(
+      "src",
+      "https://api.example.test/api/sources/hc/preview?jobId=1",
+    );
   });
 
   it("renders backend search results with pagination", async () => {

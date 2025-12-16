@@ -6,6 +6,7 @@ import {
 import type { DemoRecord } from "@/data/demo-records";
 import {
     fetchSources,
+    getApiBaseUrl,
     searchSnapshots,
     type SearchParams as ApiSearchParams,
 } from "@/lib/api";
@@ -42,6 +43,7 @@ type SourceBrowseSummary = {
     latestRecordId: number | string | null;
     entryRecordId: number | string | null;
     entryBrowseUrl?: string | null;
+    entryPreviewUrl?: string | null;
 };
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -153,6 +155,7 @@ export default async function ArchivePage({
                 latestRecordId: s.latestRecordId,
                 entryRecordId: s.entryRecordId,
                 entryBrowseUrl: s.entryBrowseUrl,
+                entryPreviewUrl: s.entryPreviewUrl ?? null,
             }));
         }
     } catch {
@@ -172,6 +175,7 @@ export default async function ArchivePage({
                 latestRecordId: s.latestRecordId,
                 entryRecordId: s.latestRecordId,
                 entryBrowseUrl: null,
+                entryPreviewUrl: null,
             }));
     }
 
@@ -242,6 +246,8 @@ export default async function ArchivePage({
         return a.sourceName.localeCompare(b.sourceName);
     });
 
+    const apiBaseUrl = getApiBaseUrl();
+
     return (
         <PageShell
             eyebrow="Archive explorer"
@@ -279,8 +285,9 @@ export default async function ArchivePage({
                                     ? "Browse archived site"
                                     : "Browse latest capture";
 
-                                const previewUrl =
-                                    summary.entryBrowseUrl ?? undefined;
+                                const previewSrc = summary.entryPreviewUrl
+                                    ? `${apiBaseUrl}${summary.entryPreviewUrl}`
+                                    : null;
 
                                 return (
                                     <article
@@ -288,17 +295,16 @@ export default async function ArchivePage({
                                         className="ha-card ha-card-elevated w-[min(360px,85vw)] flex-shrink-0 overflow-hidden p-0"
                                         data-testid={`archive-source-${summary.sourceCode}`}
                                     >
-                                        {previewUrl ? (
+                                        {previewSrc ? (
                                             <div className="relative h-24 overflow-hidden border-b border-ha-border bg-white">
-                                                <div className="pointer-events-none absolute inset-0 origin-top-left scale-[0.18]">
-                                                    <iframe
-                                                        title={`${summary.sourceName} preview`}
-                                                        src={previewUrl}
-                                                        loading="lazy"
-                                                        sandbox=""
-                                                        className="h-[540px] w-[1000px] border-0"
-                                                    />
-                                                </div>
+                                                {/* eslint-disable-next-line @next/next/no-img-element */}
+                                                <img
+                                                    src={previewSrc}
+                                                    alt={`${summary.sourceName} preview`}
+                                                    loading="lazy"
+                                                    decoding="async"
+                                                    className="h-full w-full object-cover object-top"
+                                                />
                                                 <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/35 to-transparent dark:from-[#0b0c0d]/90 dark:via-[#0b0c0d]/35" />
                                             </div>
                                         ) : (

@@ -9,6 +9,7 @@ export type SourceSummary = {
   latestRecordId: number | null;
   entryRecordId: number | null;
   entryBrowseUrl: string | null;
+  entryPreviewUrl?: string | null;
 };
 
 export type SourceEdition = {
