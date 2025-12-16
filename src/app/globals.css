@@ -870,6 +870,31 @@ a:focus-visible {
     outline-offset: 2px;
 }
 
+/* ====================================
+   Form controls
+   ==================================== */
+
+.ha-select {
+    background-color: var(--card-bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 0.65rem;
+    padding: 0.4rem 0.7rem;
+    font: inherit;
+    line-height: 1.25;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+}
+
+.ha-select-sm {
+    padding: 0.3rem 0.55rem;
+    font-size: 0.75rem;
+}
+
+.ha-select:focus-visible {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+}
+
 /* Legacy button names kept for safety */
 .ha-button-primary {
     composes: ha-btn-primary;

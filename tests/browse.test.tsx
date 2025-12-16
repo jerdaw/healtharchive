@@ -16,6 +16,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/api", () => ({
   fetchSnapshotDetail: vi.fn(),
+  fetchSourceEditions: vi.fn(),
   getApiBaseUrl: () => "https://api.example.test",
 }));
 
@@ -38,8 +39,9 @@ vi.mock("@/components/SnapshotFrame", () => ({
   ),
 }));
 
-import { fetchSnapshotDetail } from "@/lib/api";
+import { fetchSnapshotDetail, fetchSourceEditions } from "@/lib/api";
 const mockFetchSnapshotDetail = vi.mocked(fetchSnapshotDetail);
+const mockFetchSourceEditions = vi.mocked(fetchSourceEditions);
 
 describe("/browse/[id]", () => {
   beforeEach(() => {
@@ -64,12 +66,29 @@ describe("/browse/[id]", () => {
       mimeType: "text/html",
       statusCode: 200,
     });
+    mockFetchSourceEditions.mockResolvedValue([
+      {
+        jobId: 1,
+        jobName: "legacy-hc-older",
+        recordCount: 123,
+        firstCapture: "2024-01-01",
+        lastCapture: "2024-01-02",
+      },
+      {
+        jobId: 2,
+        jobName: "legacy-hc-newer",
+        recordCount: 456,
+        firstCapture: "2024-02-01",
+        lastCapture: "2024-02-02",
+      },
+    ]);
 
     const ui = await BrowseSnapshotPage({ params: Promise.resolve({ id: "45" }) });
     render(ui);
 
     expect(screen.getByText(/Browsing archived site/i)).toBeInTheDocument();
     expect(screen.getByText(/Health Canada/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Switch backup/i)).toBeInTheDocument();
     expect(screen.getByText(/Open in replay/i)).toBeInTheDocument();
     expect(
       screen.getByText(

@@ -11,6 +11,14 @@ export type SourceSummary = {
   entryBrowseUrl: string | null;
 };
 
+export type SourceEdition = {
+  jobId: number;
+  jobName: string;
+  recordCount: number;
+  firstCapture: string;
+  lastCapture: string;
+};
+
 export type SnapshotSummary = {
   id: number;
   title: string | null;
@@ -105,6 +113,17 @@ async function fetchJson<T>(
 
 export async function fetchSources(): Promise<SourceSummary[]> {
   return fetchJson<SourceSummary[]>("/api/sources");
+}
+
+export async function fetchSourceEditions(
+  sourceCode: string,
+): Promise<SourceEdition[]> {
+  const normalized = sourceCode.trim();
+  if (!normalized) return [];
+
+  return fetchJson<SourceEdition[]>(
+    `/api/sources/${encodeURIComponent(normalized)}/editions`,
+  );
 }
 
 export type SearchParams = {

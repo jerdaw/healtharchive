@@ -16,6 +16,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/api", () => ({
   fetchSnapshotDetail: vi.fn(),
+  fetchSourceEditions: vi.fn(),
   getApiBaseUrl: () => "https://api.example.test",
 }));
 
@@ -51,8 +52,9 @@ vi.mock("@/components/SnapshotFrame", () => ({
   ),
 }));
 
-import { fetchSnapshotDetail } from "@/lib/api";
+import { fetchSnapshotDetail, fetchSourceEditions } from "@/lib/api";
 const mockFetchSnapshotDetail = vi.mocked(fetchSnapshotDetail);
+const mockFetchSourceEditions = vi.mocked(fetchSourceEditions);
 
 describe("/snapshot/[id]", () => {
   beforeEach(() => {
@@ -152,6 +154,22 @@ describe("/snapshot/[id]", () => {
       mimeType: "text/html",
       statusCode: 200,
     });
+    mockFetchSourceEditions.mockResolvedValue([
+      {
+        jobId: 1,
+        jobName: "legacy-hc-older",
+        recordCount: 123,
+        firstCapture: "2024-01-01",
+        lastCapture: "2024-01-02",
+      },
+      {
+        jobId: 2,
+        jobName: "legacy-hc-newer",
+        recordCount: 456,
+        firstCapture: "2024-02-01",
+        lastCapture: "2024-02-02",
+      },
+    ]);
 
     const ui = await SnapshotPage({ params: Promise.resolve({ id: "45" }) });
     render(ui);
@@ -159,6 +177,7 @@ describe("/snapshot/[id]", () => {
     expect(screen.getAllByText(/Browse full screen/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Open in replay/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Raw HTML/i).length).toBeGreaterThan(0);
+    expect(screen.getByLabelText(/Backup/i)).toBeInTheDocument();
   });
 
   it("calls notFound when no snapshot exists", async () => {

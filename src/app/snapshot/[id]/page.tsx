@@ -2,8 +2,8 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { getRecordById } from "@/data/demo-records";
-import { fetchSnapshotDetail, getApiBaseUrl } from "@/lib/api";
-import { SnapshotFrame } from "@/components/SnapshotFrame";
+import { fetchSnapshotDetail, fetchSourceEditions, getApiBaseUrl } from "@/lib/api";
+import { SnapshotReplayClient } from "@/components/replay/SnapshotReplayClient";
 
 function formatDate(iso: string | undefined | null): string {
   if (!iso) return "Unknown";
@@ -78,6 +78,8 @@ export default async function SnapshotPage({
   const language = snapshotMeta?.language ?? record?.language ?? "Unknown";
   const originalUrl =
     snapshotMeta?.originalUrl ?? record?.originalUrl ?? "Unknown URL";
+  const captureTimestamp = snapshotMeta?.captureTimestamp ?? null;
+  const jobId = snapshotMeta?.jobId ?? null;
   // Backend-backed snapshots may include:
   // - browseUrl: an absolute URL to the replay service (preferred for browsing)
   // - rawSnapshotUrl: a backend-relative HTML endpoint for debugging/fallback
@@ -94,12 +96,20 @@ export default async function SnapshotPage({
       : record?.snapshotPath ?? null;
   const browseUrl = snapshotMeta?.browseUrl ?? null;
   const viewerUrl = browseUrl ?? rawHtmlUrl ?? null;
-  const browseLink = browseUrl ?? undefined;
-  const rawLink = rawHtmlUrl ?? undefined;
   const apiLink =
     usingBackend && snapshotMeta?.id != null
       ? `${apiBaseUrl}/api/snapshot/${snapshotMeta.id}`
       : undefined;
+
+  let sourceEditions: Awaited<ReturnType<typeof fetchSourceEditions>> | null =
+    null;
+  if (usingBackend && snapshotMeta?.sourceCode) {
+    try {
+      sourceEditions = await fetchSourceEditions(snapshotMeta.sourceCode);
+    } catch {
+      sourceEditions = null;
+    }
+  }
 
   return (
     <PageShell
@@ -224,12 +234,16 @@ export default async function SnapshotPage({
           </div>
           <div className="flex-1">
             {viewerUrl ? (
-              <SnapshotFrame
-                src={viewerUrl}
+              <SnapshotReplayClient
                 title={title}
-                browseLink={browseLink}
-                rawLink={rawLink}
+                initialSrc={viewerUrl}
+                browseUrl={browseUrl}
+                rawHtmlUrl={rawHtmlUrl}
                 apiLink={apiLink}
+                editions={sourceEditions}
+                initialJobId={jobId}
+                initialCaptureTimestamp={captureTimestamp}
+                initialOriginalUrl={originalUrl}
               />
             ) : (
               <div className="flex h-[320px] items-center justify-center px-4 text-center text-xs text-ha-muted sm:h-[560px] sm:text-sm">
