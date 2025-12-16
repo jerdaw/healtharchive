@@ -254,6 +254,7 @@ export default async function ArchivePage({
             eyebrow="Archive explorer"
             title="Browse & search snapshots"
             compact
+            hideHeaderVisually
         >
             <ApiHealthBanner />
             {sourceSummaries.length > 0 && (
@@ -282,9 +283,6 @@ export default async function ArchivePage({
                                 const entryId = summary.entryRecordId;
                                 const fallbackId = summary.latestRecordId;
                                 const browseId = entryId ?? fallbackId;
-                                const browseLabel = entryId
-                                    ? "Browse archived site"
-                                    : "Browse latest capture";
 
                                 const previewSrc = summary.entryPreviewUrl
                                     ? `${apiBaseUrl}${summary.entryPreviewUrl}`
@@ -342,15 +340,7 @@ export default async function ArchivePage({
                                                         href={`/browse/${browseId}`}
                                                         className="ha-btn-primary"
                                                     >
-                                                        {browseLabel
-                                                            .replace(
-                                                                "Browse archived site",
-                                                                "Browse site"
-                                                            )
-	                                                            .replace(
-	                                                                "Browse latest capture",
-	                                                                "Browse latest"
-	                                                            )}
+                                                        View
 	                                                    </Link>
 	                                                )}
 	                                                {summary.entryBrowseUrl && (
