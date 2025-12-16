@@ -7,7 +7,7 @@ const csp = [
   "img-src 'self' data: https:;",
   "font-src 'self' data:;",
   "connect-src 'self' https://api.healtharchive.ca;",
-  "frame-src 'self' https://api.healtharchive.ca;",
+  "frame-src 'self' https://api.healtharchive.ca https://replay.healtharchive.ca;",
   "frame-ancestors 'self';",
   "base-uri 'self';",
   "form-action 'self';",

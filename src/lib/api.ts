@@ -14,9 +14,12 @@ export type SnapshotSummary = {
   sourceName: string;
   language: string | null;
   captureDate: string;
+  captureTimestamp: string | null;
+  jobId: number | null;
   originalUrl: string;
   snippet: string | null;
   rawSnapshotUrl: string | null;
+  browseUrl: string | null;
 };
 
 export type SearchResponse = {
@@ -33,9 +36,12 @@ export type SnapshotDetail = {
   sourceName: string;
   language: string | null;
   captureDate: string;
+  captureTimestamp: string | null;
+  jobId: number | null;
   originalUrl: string;
   snippet: string | null;
   rawSnapshotUrl: string | null;
+  browseUrl: string | null;
   mimeType: string | null;
   statusCode: number | null;
 };

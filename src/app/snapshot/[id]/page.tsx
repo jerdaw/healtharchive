@@ -77,20 +77,27 @@ export default async function SnapshotPage({
   const language = snapshotMeta?.language ?? record?.language ?? "Unknown";
   const originalUrl =
     snapshotMeta?.originalUrl ?? record?.originalUrl ?? "Unknown URL";
+  // Backend-backed snapshots may include:
+  // - browseUrl: an absolute URL to the replay service (preferred for browsing)
+  // - rawSnapshotUrl: a backend-relative HTML endpoint for debugging/fallback
+  //
   // For backend-backed snapshots, rawSnapshotUrl is a path (e.g.
   // "/api/snapshots/raw/{id}") relative to the backend host. Prefix it with
   // the configured API base URL so the iframe/link always point at the backend
   // origin, not the frontend origin. For demo records, fall back to the local
   // static snapshot path under /public.
   const apiBaseUrl = getApiBaseUrl();
-  const rawSnapshotUrl =
+  const rawHtmlUrl =
     snapshotMeta?.rawSnapshotUrl != null
       ? `${apiBaseUrl}${snapshotMeta.rawSnapshotUrl}`
       : record?.snapshotPath ?? null;
-  const rawLink = rawSnapshotUrl ?? undefined;
+  const browseUrl = snapshotMeta?.browseUrl ?? null;
+  const viewerUrl = browseUrl ?? rawHtmlUrl ?? null;
+  const browseLink = browseUrl ?? undefined;
+  const rawLink = rawHtmlUrl ?? undefined;
   const apiLink =
     usingBackend && snapshotMeta?.id != null
-      ? `/api/snapshot/${snapshotMeta.id}`
+      ? `${apiBaseUrl}/api/snapshot/${snapshotMeta.id}`
       : undefined;
 
   return (
@@ -135,14 +142,34 @@ export default async function SnapshotPage({
               <Link href="/archive" className="ha-btn-secondary text-xs">
                 ← Back to archive
               </Link>
-              {rawSnapshotUrl && (
+              {browseUrl && (
                 <a
-                  href={rawSnapshotUrl}
+                  href={browseUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ha-btn-primary text-xs"
+                >
+                  Open archived page
+                </a>
+              )}
+              {!browseUrl && rawHtmlUrl && (
+                <a
+                  href={rawHtmlUrl}
                   target="_blank"
                   rel="noreferrer"
                   className="ha-btn-primary text-xs"
                 >
                   Open raw snapshot
+                </a>
+              )}
+              {browseUrl && rawHtmlUrl && (
+                <a
+                  href={rawHtmlUrl}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="ha-btn-secondary text-xs"
+                >
+                  Open raw HTML
                 </a>
               )}
             </div>
@@ -164,14 +191,18 @@ export default async function SnapshotPage({
         <div className="ha-card ha-card-elevated flex min-h-[320px] flex-col">
           <div className="border-b border-ha-border px-4 py-3 text-xs text-ha-muted sm:px-5">
             <span className="font-medium text-slate-900">Archived content</span>{" "}
-            {rawSnapshotUrl ? (
+            {viewerUrl ? (
               <>
                 {" "}
                 · served from{" "}
                 <code>
-                  {rawSnapshotUrl}
+                  {viewerUrl}
                 </code>{" "}
-                {usingBackend ? "from the live API." : "from the offline sample."}
+                {browseUrl
+                  ? "via the replay service."
+                  : usingBackend
+                    ? "from the live API."
+                    : "from the offline sample."}
               </>
             ) : (
               <>
@@ -188,8 +219,14 @@ export default async function SnapshotPage({
             </span>
           </div>
           <div className="flex-1">
-            {rawSnapshotUrl ? (
-              <SnapshotFrame src={rawSnapshotUrl} title={title} rawLink={rawLink} apiLink={apiLink} />
+            {viewerUrl ? (
+              <SnapshotFrame
+                src={viewerUrl}
+                title={title}
+                browseLink={browseLink}
+                rawLink={rawLink}
+                apiLink={apiLink}
+              />
             ) : (
               <div className="flex h-[320px] items-center justify-center px-4 text-center text-xs text-ha-muted sm:h-[560px] sm:text-sm">
                 {usingBackend && snapshotMeta ? (

@@ -76,7 +76,7 @@ In Chrome or Firefox DevTools:
    - `Permissions-Policy: geolocation=(), microphone=(), camera=()`
    - `Content-Security-Policy-Report-Only: ...` with a value containing:
      - `connect-src 'self' https://api.healtharchive.ca;`
-     - `frame-src 'self' https://api.healtharchive.ca;`
+     - `frame-src 'self' https://api.healtharchive.ca https://replay.healtharchive.ca;`
 
 5. Check the **Console** tab for `Content-Security-Policy-Report-Only` warnings.
    Some warnings are expected while the CSP is report-only and being tuned.

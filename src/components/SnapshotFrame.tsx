@@ -5,11 +5,18 @@ import { useState } from "react";
 type SnapshotFrameProps = {
   src: string;
   title: string;
+  browseLink?: string;
   rawLink?: string;
   apiLink?: string;
 };
 
-export function SnapshotFrame({ src, title, rawLink, apiLink }: SnapshotFrameProps) {
+export function SnapshotFrame({
+  src,
+  title,
+  browseLink,
+  rawLink,
+  apiLink,
+}: SnapshotFrameProps) {
   const [status, setStatus] = useState<"loading" | "loaded" | "error">(
     "loading",
   );
@@ -23,10 +30,20 @@ export function SnapshotFrame({ src, title, rawLink, apiLink }: SnapshotFramePro
               Archived content unavailable
             </p>
             <p>
-              The snapshot failed to load. Try opening the raw snapshot link
-              above or reloading the page.
+              The archived page failed to load. Try opening it in a new tab or
+              reloading the page.
             </p>
             <div className="flex justify-center gap-2 text-[11px] font-medium">
+              {browseLink && (
+                <a
+                  href={browseLink}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-ha-accent hover:text-blue-700"
+                >
+                  Open archived page →
+                </a>
+              )}
               {rawLink && (
                 <a
                   href={rawLink}
@@ -34,7 +51,7 @@ export function SnapshotFrame({ src, title, rawLink, apiLink }: SnapshotFramePro
                   rel="noreferrer"
                   className="text-ha-accent hover:text-blue-700"
                 >
-                  Open raw snapshot →
+                  Open raw HTML →
                 </a>
               )}
               {apiLink && (
@@ -54,7 +71,7 @@ export function SnapshotFrame({ src, title, rawLink, apiLink }: SnapshotFramePro
         <iframe
           src={src}
           title={title}
-          sandbox="allow-same-origin allow-scripts"
+          sandbox="allow-same-origin allow-scripts allow-forms"
           className="h-[480px] w-full border-0 sm:h-[560px]"
           onLoad={() => setStatus("loaded")}
           onError={() => setStatus("error")}

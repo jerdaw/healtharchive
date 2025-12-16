@@ -27,21 +27,25 @@ vi.mock("@/components/SnapshotFrame", () => ({
   SnapshotFrame: ({
     src,
     title,
+    browseLink,
     rawLink,
     apiLink,
   }: {
     src: string;
     title: string;
+    browseLink?: string;
     rawLink?: string;
     apiLink?: string;
   }) => (
     <div>
       <div>SnapshotFrame mock: {title}</div>
       <div>src: {src}</div>
+      <div>browse: {browseLink}</div>
       <div>raw: {rawLink}</div>
       <div>api: {apiLink}</div>
       <div>Archived content unavailable</div>
-      <a href={rawLink}>Open raw snapshot</a>
+      {browseLink && <a href={browseLink}>Open archived page</a>}
+      {rawLink && <a href={rawLink}>Open raw HTML</a>}
       {apiLink && <a href={apiLink}>View metadata JSON</a>}
     </div>
   ),
@@ -63,9 +67,12 @@ describe("/snapshot/[id]", () => {
       sourceName: "PHAC",
       language: "en",
       captureDate: "2024-01-02",
+      captureTimestamp: "2024-01-02T00:00:00+00:00",
+      jobId: 1,
       originalUrl: "https://example.com",
       snippet: "Summary",
       rawSnapshotUrl: "/api/snapshots/raw/42",
+      browseUrl: null,
       mimeType: "text/html",
       statusCode: 200,
     });
@@ -85,9 +92,12 @@ describe("/snapshot/[id]", () => {
       sourceName: "PHAC",
       language: "en",
       captureDate: "2024-01-02",
+      captureTimestamp: "2024-01-02T00:00:00+00:00",
+      jobId: 1,
       originalUrl: "https://example.com",
       snippet: "Summary",
       rawSnapshotUrl: "/api/snapshots/raw/43",
+      browseUrl: null,
       mimeType: "text/html",
       statusCode: 200,
     });
@@ -108,9 +118,12 @@ describe("/snapshot/[id]", () => {
       sourceName: "PHAC",
       language: "en",
       captureDate: "2024-01-03",
+      captureTimestamp: "2024-01-03T00:00:00+00:00",
+      jobId: 1,
       originalUrl: "https://example.com",
       snippet: "Summary",
       rawSnapshotUrl: null,
+      browseUrl: null,
       mimeType: "text/html",
       statusCode: 200,
     });
@@ -120,6 +133,31 @@ describe("/snapshot/[id]", () => {
 
     // Should render metadata title even when raw content is missing.
     expect(screen.getAllByText(/Snapshot No Raw/i).length).toBeGreaterThan(0);
+  });
+
+  it("prefers browseUrl when available", async () => {
+    mockFetchSnapshotDetail.mockResolvedValue({
+      id: 45,
+      title: "Snapshot Replay",
+      sourceCode: "hc",
+      sourceName: "Health Canada",
+      language: "en",
+      captureDate: "2024-01-04",
+      captureTimestamp: "2024-01-04T00:00:00+00:00",
+      jobId: 1,
+      originalUrl: "https://canada.ca/en/health-canada.html",
+      snippet: "Summary",
+      rawSnapshotUrl: "/api/snapshots/raw/45",
+      browseUrl: "https://replay.healtharchive.ca/job-1/https://canada.ca/en/health-canada.html",
+      mimeType: "text/html",
+      statusCode: 200,
+    });
+
+    const ui = await SnapshotPage({ params: Promise.resolve({ id: "45" }) });
+    render(ui);
+
+    expect(screen.getAllByText(/Open archived page/i).length).toBeGreaterThan(0);
+    expect(screen.getAllByText(/Open raw HTML/i).length).toBeGreaterThan(0);
   });
 
   it("calls notFound when no snapshot exists", async () => {
