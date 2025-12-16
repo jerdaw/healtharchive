@@ -70,6 +70,11 @@ export default async function BrowseBySourcePage() {
       entryBrowseUrl: s.entryBrowseUrl,
     }));
     summaries = summaries.filter((s) => s.sourceCode !== "test");
+    summaries = summaries.sort((a, b) => {
+      const diff = (b.recordCount ?? 0) - (a.recordCount ?? 0);
+      if (diff !== 0) return diff;
+      return a.sourceName.localeCompare(b.sourceName);
+    });
     usingBackend = true;
   } catch {
     // Keep demo summaries if backend is unavailable.

@@ -23,6 +23,53 @@ describe("/archive", () => {
     vi.clearAllMocks();
   });
 
+  it("orders browse source cards by snapshot count", async () => {
+    mockFetchSources.mockResolvedValue([
+      {
+        sourceCode: "cihr",
+        sourceName: "CIHR",
+        baseUrl: "https://cihr-irsc.gc.ca/",
+        description: "CIHR",
+        recordCount: 10,
+        firstCapture: "2024-01-01",
+        lastCapture: "2024-01-02",
+        latestRecordId: 2,
+        entryRecordId: 2,
+        entryBrowseUrl: "https://replay.healtharchive.ca/job-2/https://cihr-irsc.gc.ca/",
+      },
+      {
+        sourceCode: "hc",
+        sourceName: "Health Canada",
+        baseUrl: "https://www.canada.ca/en/health-canada.html",
+        description: "HC",
+        recordCount: 100,
+        firstCapture: "2024-01-01",
+        lastCapture: "2024-01-02",
+        latestRecordId: 1,
+        entryRecordId: 1,
+        entryBrowseUrl: "https://replay.healtharchive.ca/job-1/https://www.canada.ca/en/health-canada.html",
+      },
+    ]);
+    mockSearchSnapshots.mockResolvedValue({
+      results: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+    });
+
+    const ui = await ArchivePage({
+      searchParams: Promise.resolve({}),
+    });
+    const { container } = render(ui);
+
+    const nodes = Array.from(
+      container.querySelectorAll<HTMLElement>('[data-testid^="archive-source-"]'),
+    );
+    const ids = nodes.map((node) => node.dataset.testid);
+
+    expect(ids).toEqual(["archive-source-hc", "archive-source-cihr"]);
+  });
+
   it("renders backend search results with pagination", async () => {
     mockFetchSources.mockResolvedValue([
       {

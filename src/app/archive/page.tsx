@@ -236,6 +236,12 @@ export default async function ArchivePage({
         return queryString ? `/archive?${queryString}` : "/archive";
     };
 
+    const orderedSourceSummaries = [...sourceSummaries].sort((a, b) => {
+        const diff = (b.recordCount ?? 0) - (a.recordCount ?? 0);
+        if (diff !== 0) return diff;
+        return a.sourceName.localeCompare(b.sourceName);
+    });
+
     return (
         <PageShell
             eyebrow="Archive explorer"
@@ -244,7 +250,7 @@ export default async function ArchivePage({
         >
             <ApiHealthBanner />
             {sourceSummaries.length > 0 && (
-                <section className="ha-card ha-home-panel mb-6 p-4 sm:p-5 space-y-4">
+                <section className="ha-home-panel-gradient mb-6 space-y-4">
                     <div className="flex flex-wrap items-baseline justify-between gap-3">
                         <div>
                             <h2 className="text-sm font-semibold text-slate-900">
@@ -263,67 +269,98 @@ export default async function ArchivePage({
                         </Link>
                     </div>
 
-                    <div className="ha-grid-3">
-                        {sourceSummaries.map((summary) => {
-                            const entryId = summary.entryRecordId;
-                            const fallbackId = summary.latestRecordId;
-                            const browseId = entryId ?? fallbackId;
-                            const browseLabel = entryId
-                                ? "Browse archived site"
-                                : "Browse latest capture";
+                    <div className="-mx-1 overflow-x-auto px-1 pb-1">
+                        <div className="flex gap-3">
+                            {orderedSourceSummaries.map((summary) => {
+                                const entryId = summary.entryRecordId;
+                                const fallbackId = summary.latestRecordId;
+                                const browseId = entryId ?? fallbackId;
+                                const browseLabel = entryId
+                                    ? "Browse archived site"
+                                    : "Browse latest capture";
 
-                            return (
-                                <article
-                                    key={summary.sourceCode}
-                                    className="ha-card ha-card-elevated p-4 sm:p-5"
-                                >
-                                    <h3 className="text-sm font-semibold text-slate-900">
-                                        {summary.sourceName}
-                                    </h3>
-                                    <p className="mt-1 text-xs text-ha-muted">
-                                        {summary.recordCount} snapshot
-                                        {summary.recordCount === 1 ? "" : "s"} ·
-                                        latest capture{" "}
-                                        {formatDate(summary.lastCapture)}
-                                    </p>
-                                    {summary.baseUrl && (
-                                        <p className="mt-2 break-all text-[11px] text-ha-muted">
-                                            <span className="font-medium text-slate-800">
-                                                Homepage:
-                                            </span>{" "}
-                                            {summary.baseUrl}
-                                        </p>
-                                    )}
+                                const previewUrl =
+                                    summary.entryBrowseUrl ?? undefined;
 
-                                    <div className="mt-4 flex flex-wrap gap-2">
-                                        {browseId && (
-                                            <Link
-                                                href={`/browse/${browseId}`}
-                                                className="ha-btn-primary text-xs"
-                                            >
-                                                {browseLabel}
-                                            </Link>
+                                return (
+                                    <article
+                                        key={summary.sourceCode}
+                                        className="ha-card ha-card-elevated w-[min(360px,85vw)] flex-shrink-0 overflow-hidden p-0"
+                                        data-testid={`archive-source-${summary.sourceCode}`}
+                                    >
+                                        {previewUrl ? (
+                                            <div className="relative h-24 overflow-hidden border-b border-ha-border bg-white">
+                                                <div className="pointer-events-none absolute inset-0 origin-top-left scale-[0.18]">
+                                                    <iframe
+                                                        title={`${summary.sourceName} preview`}
+                                                        src={previewUrl}
+                                                        loading="lazy"
+                                                        sandbox=""
+                                                        className="h-[540px] w-[1000px] border-0"
+                                                    />
+                                                </div>
+                                                <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/35 to-transparent dark:from-[#0b0c0d]/90 dark:via-[#0b0c0d]/35" />
+                                            </div>
+                                        ) : (
+                                            <div className="flex h-24 items-center justify-center border-b border-ha-border bg-white px-4 text-xs text-ha-muted dark:bg-[#0b0c0d]">
+                                                Preview unavailable
+                                            </div>
                                         )}
-                                        {summary.entryBrowseUrl && (
-                                            <a
-                                                href={summary.entryBrowseUrl}
-                                                target="_blank"
-                                                rel="noreferrer"
-                                                className="ha-btn-secondary text-xs"
-                                            >
-                                                Open in replay ↗
-                                            </a>
-                                        )}
-                                        <Link
-                                            href={`/archive?source=${summary.sourceCode}`}
-                                            className="ha-btn-secondary text-xs"
-                                        >
-                                            Search this source
-                                        </Link>
-                                    </div>
-                                </article>
-                            );
-                        })}
+
+                                        <div className="p-4 sm:p-5">
+                                            <h3 className="text-sm font-semibold text-slate-900">
+                                                {summary.sourceName}
+                                            </h3>
+                                            <p className="mt-1 text-xs text-ha-muted">
+                                                {summary.recordCount} snapshot
+                                                {summary.recordCount === 1
+                                                    ? ""
+                                                    : "s"}{" "}
+                                                · latest capture{" "}
+                                                {formatDate(summary.lastCapture)}
+                                            </p>
+                                            {summary.baseUrl && (
+                                                <p className="mt-2 break-all text-[11px] text-ha-muted">
+                                                    <span className="font-medium text-slate-800">
+                                                        Homepage:
+                                                    </span>{" "}
+                                                    {summary.baseUrl}
+                                                </p>
+                                            )}
+
+                                            <div className="mt-4 flex flex-wrap gap-2">
+                                                {browseId && (
+                                                    <Link
+                                                        href={`/browse/${browseId}`}
+                                                        className="ha-btn-primary text-xs"
+                                                    >
+                                                        {browseLabel}
+                                                    </Link>
+                                                )}
+                                                {summary.entryBrowseUrl && (
+                                                    <a
+                                                        href={
+                                                            summary.entryBrowseUrl
+                                                        }
+                                                        target="_blank"
+                                                        rel="noreferrer"
+                                                        className="ha-btn-secondary text-xs"
+                                                    >
+                                                        Open in replay ↗
+                                                    </a>
+                                                )}
+                                                <Link
+                                                    href={`/archive?source=${summary.sourceCode}`}
+                                                    className="ha-btn-secondary text-xs"
+                                                >
+                                                    Search this source
+                                                </Link>
+                                            </div>
+                                        </div>
+                                    </article>
+                                );
+                            })}
+                        </div>
                     </div>
                 </section>
             )}
