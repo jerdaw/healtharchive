@@ -90,12 +90,16 @@ In Chrome or Firefox DevTools:
 1. Open `https://www.healtharchive.ca/archive`.
 2. Confirm the page does not show the offline fallback notice (for example,
    “Live API unavailable”).
-3. In **DevTools → Network**, look for requests to `https://api.healtharchive.ca`
+3. (Optional, if previews are enabled) Confirm the “Browse archived sites” cards
+   show preview images. If they do not:
+   - confirm `HEALTHARCHIVE_REPLAY_PREVIEW_DIR` is set on the backend host, and
+   - confirm `/api/sources` includes `entryPreviewUrl` values.
+4. In **DevTools → Network**, look for requests to `https://api.healtharchive.ca`
    like:
    - `/api/health`
    - `/api/sources`
    - `/api/search?...`
-4. Click one of those requests and confirm in **Response headers**:
+5. Click one of those requests and confirm in **Response headers**:
    - `Access-Control-Allow-Origin` matches the frontend origin
    - `Vary: Origin` is present
 
