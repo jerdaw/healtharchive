@@ -48,6 +48,7 @@ export default async function BrowseSnapshotPage({
   }
 
   const title = snapshotMeta?.title ?? record?.title ?? "Archived page";
+  const sourceCode = snapshotMeta?.sourceCode ?? record?.sourceCode ?? null;
   const sourceName =
     snapshotMeta?.sourceName ?? record?.sourceName ?? "Unknown source";
   const captureDate =
@@ -117,6 +118,14 @@ export default async function BrowseSnapshotPage({
               <Link href="/archive" className="ha-btn-secondary text-xs">
                 ← Back to archive
               </Link>
+              {sourceCode && (
+                <Link
+                  href={`/archive?source=${encodeURIComponent(sourceCode)}`}
+                  className="ha-btn-secondary text-xs"
+                >
+                  Search this source
+                </Link>
+              )}
               <Link href={`/snapshot/${id}`} className="ha-btn-secondary text-xs">
                 Snapshot details
               </Link>
@@ -174,4 +183,3 @@ export default async function BrowseSnapshotPage({
     </div>
   );
 }
-

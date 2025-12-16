@@ -41,6 +41,7 @@ type SourceBrowseSummary = {
     lastCapture: string;
     latestRecordId: number | string | null;
     entryRecordId: number | string | null;
+    entryBrowseUrl?: string | null;
 };
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -151,6 +152,7 @@ export default async function ArchivePage({
                 lastCapture: s.lastCapture,
                 latestRecordId: s.latestRecordId,
                 entryRecordId: s.entryRecordId,
+                entryBrowseUrl: s.entryBrowseUrl,
             }));
         }
     } catch {
@@ -159,17 +161,18 @@ export default async function ArchivePage({
             value: s.sourceCode,
             label: s.sourceName,
         }));
-        sourceSummaries = demoSources.map((s) => ({
-            sourceCode: s.sourceCode,
-            sourceName: s.sourceName,
-            baseUrl: null,
-            description: null,
-            recordCount: s.recordCount,
-            firstCapture: s.firstCapture,
-            lastCapture: s.lastCapture,
-            latestRecordId: s.latestRecordId,
-            entryRecordId: s.latestRecordId,
-        }));
+            sourceSummaries = demoSources.map((s) => ({
+                sourceCode: s.sourceCode,
+                sourceName: s.sourceName,
+                baseUrl: null,
+                description: null,
+                recordCount: s.recordCount,
+                firstCapture: s.firstCapture,
+                lastCapture: s.lastCapture,
+                latestRecordId: s.latestRecordId,
+                entryRecordId: s.latestRecordId,
+                entryBrowseUrl: null,
+            }));
     }
 
     // Attempt to use the backend search API; fall back to the bundled offline
@@ -262,8 +265,12 @@ export default async function ArchivePage({
 
                     <div className="ha-grid-3">
                         {sourceSummaries.map((summary) => {
-                            const entryId =
-                                summary.entryRecordId ?? summary.latestRecordId;
+                            const entryId = summary.entryRecordId;
+                            const fallbackId = summary.latestRecordId;
+                            const browseId = entryId ?? fallbackId;
+                            const browseLabel = entryId
+                                ? "Browse archived site"
+                                : "Browse latest capture";
 
                             return (
                                 <article
@@ -289,13 +296,23 @@ export default async function ArchivePage({
                                     )}
 
                                     <div className="mt-4 flex flex-wrap gap-2">
-                                        {entryId && (
+                                        {browseId && (
                                             <Link
-                                                href={`/browse/${entryId}`}
+                                                href={`/browse/${browseId}`}
                                                 className="ha-btn-primary text-xs"
                                             >
-                                                Browse archived site
+                                                {browseLabel}
                                             </Link>
+                                        )}
+                                        {summary.entryBrowseUrl && (
+                                            <a
+                                                href={summary.entryBrowseUrl}
+                                                target="_blank"
+                                                rel="noreferrer"
+                                                className="ha-btn-secondary text-xs"
+                                            >
+                                                Open in replay ↗
+                                            </a>
                                         )}
                                         <Link
                                             href={`/archive?source=${summary.sourceCode}`}

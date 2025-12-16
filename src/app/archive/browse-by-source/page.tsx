@@ -43,12 +43,14 @@ type SourceSummaryLike = {
   lastCapture: string;
   latestRecordId: number | string | null;
   entryRecordId: number | string | null;
+  entryBrowseUrl?: string | null;
 };
 
 export default async function BrowseBySourcePage() {
   let summaries: SourceSummaryLike[] = getSourcesSummary().map((s) => ({
     ...s,
     entryRecordId: s.latestRecordId,
+    entryBrowseUrl: null,
   }));
   let usingBackend = false;
 
@@ -65,6 +67,7 @@ export default async function BrowseBySourcePage() {
       lastCapture: s.lastCapture,
       latestRecordId: s.latestRecordId,
       entryRecordId: s.entryRecordId,
+      entryBrowseUrl: s.entryBrowseUrl,
     }));
     summaries = summaries.filter((s) => s.sourceCode !== "test");
     usingBackend = true;
@@ -91,7 +94,12 @@ export default async function BrowseBySourcePage() {
       )}
       <div className="ha-grid-2">
         {summaries.map((source) => {
-          const entryId = source.entryRecordId ?? source.latestRecordId;
+          const entryId = source.entryRecordId;
+          const fallbackId = source.latestRecordId;
+          const browseId = entryId ?? fallbackId;
+          const browseLabel = entryId
+            ? "Browse archived site"
+            : "Browse latest capture";
 
           return (
             <article
@@ -109,13 +117,23 @@ export default async function BrowseBySourcePage() {
               </p>
 
               <div className="mt-4 flex flex-wrap gap-2">
-                {entryId && (
+                {browseId && (
                   <Link
-                    href={`/browse/${entryId}`}
+                    href={`/browse/${browseId}`}
                     className="ha-btn-primary text-xs"
                   >
-                    Browse archived site
+                    {browseLabel}
                   </Link>
+                )}
+                {source.entryBrowseUrl && (
+                  <a
+                    href={source.entryBrowseUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="ha-btn-secondary text-xs"
+                  >
+                    Open in replay ↗
+                  </a>
                 )}
                 <Link
                   href={`/archive?source=${source.sourceCode}`}

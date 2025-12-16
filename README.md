@@ -157,7 +157,8 @@ Vitest + Testing Library with mocked fetch; no live backend needed.
 -   Pages:
     -   `/archive`: uses backend search with pagination and page-size selection; falls back to an offline sample dataset and shows a fallback notice.
     -   `/archive/browse-by-source`: uses backend source summaries; falls back to offline sample summaries with a notice.
-    -   `/snapshot/[id]`: fetches backend snapshot detail/raw URL first; falls back to offline sample record/static snapshot if needed. The viewer shows a loading overlay and a friendly error state if the iframe fails.
+    -   `/snapshot/[id]`: fetches backend snapshot detail first; prefers a replay `browseUrl` when configured (full-fidelity CSS/JS/images) and falls back to raw HTML (`/api/snapshots/raw/{id}`) or offline sample HTML when needed.
+    -   `/browse/[id]`: full-screen “browse archived site” mode with a persistent HealthArchive banner/controls above the replay iframe.
 -   Health diagnostics (optional): set `NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=true` to surface a small banner when the backend health check fails (useful in dev/staging).
     -   If the health banner is off, you can still log failures by setting `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true` (dev-only).
 
@@ -166,6 +167,7 @@ Vitest + Testing Library with mocked fetch; no live backend needed.
 -   Search (`/archive`): keywords + source filter, pagination (First/Prev/Next/Last), page-size selector.
 -   Browse by source (`/archive/browse-by-source`): cards load with record counts.
 -   Snapshot (`/snapshot/[id]`): metadata present; iframe loads or shows error overlay with raw/API links; missing ID returns notFound.
+-   Browse full-screen (`/browse/[id]`): banner renders; iframe loads replay content and lets you click around within the archived backup.
 -   Some API calls happen server-side in Next.js; if you don’t see requests in the browser Network tab, tail backend logs or call the API directly to confirm connectivity.
 
 This runs the Next.js/ESLint config for the app.
@@ -192,6 +194,7 @@ This runs the Next.js/ESLint config for the app.
     │   ├── favicon.ico        # Favicon wired via Next metadata
     │   ├── page.tsx           # Home
     │   ├── archive/           # Search & browse
+    │   ├── browse/[id]/       # Full-screen browse wrapper (replay iframe)
     │   ├── methods/           # Methods & scope
     │   ├── researchers/       # For researchers
     │   ├── about/             # About the project

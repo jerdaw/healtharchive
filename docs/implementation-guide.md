@@ -98,7 +98,8 @@ npm test
 -   Pages:
     -   `/archive`: prefers backend search results with pagination; falls back to the bundled offline sample dataset with a fallback notice when the API is unreachable.
     -   `/archive/browse-by-source`: prefers backend source summaries; falls back to bundled offline sample summaries with a notice.
-    -   `/snapshot/[id]`: prefers backend snapshot detail/raw URL; falls back to the offline sample record/static snapshot if missing. The viewer shows a loading overlay and a friendly error if the iframe fails to load.
+    -   `/snapshot/[id]`: fetches backend snapshot detail first; prefers a replay `browseUrl` when configured (full-fidelity CSS/JS/images) and falls back to raw HTML (`/api/snapshots/raw/{id}`) or the offline sample record/static snapshot when needed.
+    -   `/browse/[id]`: full-screen “browse archived site” mode with a persistent HealthArchive banner/controls above the replay iframe.
 -   Fallback behavior keeps the UI usable when the backend is unreachable or not configured.
 
 ### Security & browser hardening
@@ -117,7 +118,7 @@ npm test
     -   Limits `frame-ancestors` to `self`, `base-uri` to `self`, and `form-action`
         to `self`.
 -   The snapshot viewer (`SnapshotFrame`) loads archived HTML in an `<iframe>`
-    with a `sandbox="allow-same-origin allow-scripts"` attribute to constrain
+    with a `sandbox="allow-same-origin allow-scripts allow-forms"` attribute to constrain
     what captured content can do in the browser. Raw snapshot URLs are served
     from the backend API origin, and CSP further limits where frames can be
     embedded from.
@@ -127,7 +128,8 @@ npm test
 -   `/archive`: search with and without filters; verify pagination/Next/Prev/First/Last and page-size selector; see fallback notice if API is down.
 -   `/archive/browse-by-source`: cards load with counts; fallback notice if API is down.
 -   `/snapshot/[id]`: loads metadata and iframe; iframe shows loading overlay, then content; error overlay when iframe fails; notFound on missing ID.
--   Dev-only debug: when iframe fails, “Open raw snapshot” and optional “View metadata JSON” links remain available.
+-   `/browse/[id]`: full-screen browse view loads banner + iframe and supports clicking around within the archived backup.
+-   Dev-only debug: when iframe fails, “Raw HTML” and optional “View metadata JSON” links remain available.
 
 ### CI expectations
 
@@ -715,18 +717,20 @@ All in `src/data/demo-records.ts`:
             -   “Include error pages” toggle (includes non‑2xx captures).
             -   Results-per-page selector.
 
-    -   Results list:
+	    -   Results list:
 
-    -   If empty: show explanatory message.
-    -   Else: for each `record`:
+	    -   If empty: show explanatory message.
+	    -   Else: for each `record`:
 
-        -   Article with `.ha-card ha-card-elevated`:
+	            -   Article with `.ha-card ha-card-elevated`:
 
-            -   Title (link to `/snapshot/${record.id}`).
-            -   Meta line: `sourceName · captured {formatted date} · language`.
-            -   “View snapshot” button linking to same snapshot.
-            -   Snippet paragraph.
-            -   Original URL line.
+	            -   Title (link to `/snapshot/${record.id}`).
+	            -   Meta line: `sourceName · captured {formatted date} · language`.
+	            -   Actions:
+	                -   “Browse” → `/browse/${record.id}` (full-screen browse mode).
+	                -   “Details” → `/snapshot/${record.id}`.
+	            -   Snippet paragraph.
+	            -   Original URL line (host + path) with a copy-to-clipboard button.
 
 ### 8.3 Browse by source `/archive/browse-by-source` – `src/app/archive/browse-by-source/page.tsx`
 
@@ -744,10 +748,11 @@ All in `src/data/demo-records.ts`:
 
         -   `sourceName`
         -   “N snapshots captured between [first] and [last]”.
-        -   Buttons:
+	        -   Buttons:
 
-            -   “Browse records” → `/archive?source=${sourceCode}`
-            -   “View latest snapshot →” → `/snapshot/${latestRecordId}` (if exists).
+	            -   “Browse archived site” → `/browse/${entryRecordId}` (falls back to `latestRecordId`).
+	            -   “Browse records” → `/archive?source=${sourceCode}`
+	            -   Optional: “Open in replay ↗” → `entryBrowseUrl` (when replay is configured in the backend).
 
 ### 8.4 Methods `/methods` – `src/app/methods/page.tsx`
 
@@ -818,14 +823,17 @@ All text is stable, but can be refined later.
 
     1. Left column:
 
-        - **Metadata card**:
+	        - **Metadata card**:
 
 	            - Capture date.
 	            - Details: Source, capture date, language, original URL.
-	            - Buttons:
+		            - Buttons:
 
-                - Back to `/archive`.
-                - “Open raw snapshot” (opens the backend `/api/snapshots/raw/{id}` when available; falls back to the offline sample HTML path).
+	                - Back to `/archive`.
+	                - “Search this source” → `/archive?source=${sourceCode}`.
+	                - “Browse full screen” → `/browse/${id}`.
+	                - Optional: “Open in replay ↗” (opens the replay `browseUrl` in a new tab when replay is configured).
+	                - Optional: “Raw HTML ↗” (opens the backend `/api/snapshots/raw/{id}` when available; falls back to the offline sample HTML path).
 
         - **Important note callout**:
 
@@ -836,6 +844,14 @@ All text is stable, but can be refined later.
         - **Viewer card** that embeds the archived HTML in an iframe (or shows a friendly placeholder if the HTML isn’t available for that record).
 
 -   **Important**: the offline sample `snapshotPath` is relative to `/public`, but used as an absolute path in `href`/`src` (e.g., `/demo-archive/hc/2024-11-01-covid-vaccines.html`).
+
+### 8.9 Full-screen browse `/browse/[id]` – `src/app/browse/[id]/page.tsx`
+
+-   Async server component that prefers backend `GET /api/snapshot/{id}` (via `fetchSnapshotDetail()`).
+-   Uses `browseUrl` (replay) when available and falls back to raw HTML when replay is not configured.
+-   Renders a persistent HealthArchive wrapper above the iframe so users can:
+    -   confirm which source and capture time they are browsing, and
+    -   navigate back to the main HealthArchive UI quickly.
 
 ---
 

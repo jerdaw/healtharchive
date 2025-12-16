@@ -72,6 +72,7 @@ export default async function SnapshotPage({
   const title = snapshotMeta?.title ?? record?.title ?? "Snapshot";
   const captureDate =
     snapshotMeta?.captureDate ?? record?.captureDate ?? "Unknown";
+  const sourceCode = snapshotMeta?.sourceCode ?? record?.sourceCode ?? null;
   const sourceName =
     snapshotMeta?.sourceName ?? record?.sourceName ?? "Unknown source";
   const language = snapshotMeta?.language ?? record?.language ?? "Unknown";
@@ -142,6 +143,14 @@ export default async function SnapshotPage({
               <Link href="/archive" className="ha-btn-secondary text-xs">
                 ← Back to archive
               </Link>
+              {sourceCode && (
+                <Link
+                  href={`/archive?source=${encodeURIComponent(sourceCode)}`}
+                  className="ha-btn-secondary text-xs"
+                >
+                  Search this source
+                </Link>
+              )}
               {viewerUrl && (
                 <Link href={`/browse/${id}`} className="ha-btn-primary text-xs">
                   Browse full screen
