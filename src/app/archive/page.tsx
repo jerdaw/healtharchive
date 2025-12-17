@@ -298,7 +298,7 @@ export default async function ArchivePage({
                                             browseId ? (
                                                 <Link
                                                     href={`/browse/${browseId}`}
-                                                    className="relative block h-[5.5rem] overflow-hidden border-b border-ha-border bg-white"
+                                                    className="relative block h-[6.5rem] overflow-hidden border-b border-ha-border bg-white"
                                                     aria-label={`View ${summary.sourceName}`}
                                                 >
                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -311,7 +311,7 @@ export default async function ArchivePage({
                                                     />
                                                 </Link>
                                             ) : (
-                                                <div className="relative h-[5.5rem] overflow-hidden border-b border-ha-border bg-white">
+                                                <div className="relative h-[6.5rem] overflow-hidden border-b border-ha-border bg-white">
                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                                     <img
                                                         src={previewSrc}
@@ -325,13 +325,13 @@ export default async function ArchivePage({
                                         ) : browseId ? (
                                             <Link
                                                 href={`/browse/${browseId}`}
-                                                className="flex h-[5.5rem] items-center justify-center border-b border-ha-border bg-white px-4 text-xs text-ha-muted dark:bg-[#0b0c0d]"
+                                                className="flex h-[6.5rem] items-center justify-center border-b border-ha-border bg-white px-4 text-xs text-ha-muted dark:bg-[#0b0c0d]"
                                                 aria-label={`View ${summary.sourceName}`}
                                             >
                                                 Preview unavailable
                                             </Link>
                                         ) : (
-                                            <div className="flex h-[5.5rem] items-center justify-center border-b border-ha-border bg-white px-4 text-xs text-ha-muted dark:bg-[#0b0c0d]">
+                                            <div className="flex h-[6.5rem] items-center justify-center border-b border-ha-border bg-white px-4 text-xs text-ha-muted dark:bg-[#0b0c0d]">
                                                 Preview unavailable
                                             </div>
                                         )}
