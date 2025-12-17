@@ -51,6 +51,9 @@ You’re joining after:
     -   TailwindCSS is installed and available.
     -   But primary design is expressed via **hand-written CSS utility classes** with `.ha-*` prefixes in `src/app/globals.css`.
     -   Tailwind is used selectively for layout/spacing/typography (e.g., `flex`, `grid`, `text-sm`).
+    -   Notable layout shells:
+        -   `ha-home-panel-gradient`: inset card shell with subtle gradient (used on `/archive` for “Browse archived sites”).
+        -   `ha-home-panel-gradient-compact`: tighter padding variant for space-constrained layouts.
 
 -   **Package manager:** npm
 -   **Build tooling:** PostCSS + Tailwind, Next’s Turbopack dev server.
