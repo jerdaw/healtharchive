@@ -1,8 +1,5 @@
 import { PageShell } from "@/components/layout/PageShell";
-import {
-    searchDemoRecords,
-    getSourcesSummary,
-} from "@/data/demo-records";
+import { searchDemoRecords, getSourcesSummary } from "@/data/demo-records";
 import type { DemoRecord } from "@/data/demo-records";
 import {
     fetchSources,
@@ -106,8 +103,8 @@ export default async function ArchivePage({
         requestedSort === "newest" || requestedSort === "relevance"
             ? requestedSort
             : q
-              ? "relevance"
-              : "newest";
+            ? "relevance"
+            : "newest";
     const defaultSort = q ? "relevance" : "newest";
     const requestedView = params.view?.trim().toLowerCase() ?? "";
     const view =
@@ -140,11 +137,10 @@ export default async function ArchivePage({
 
         if (apiSources.length > 0) {
             const filtered = apiSources.filter((s) => s.sourceCode !== "test");
-            sourceOptions = filtered
-                .map((s) => ({
-                    value: s.sourceCode,
-                    label: s.sourceName,
-                }));
+            sourceOptions = filtered.map((s) => ({
+                value: s.sourceCode,
+                label: s.sourceName,
+            }));
             sourceSummaries = filtered.map((s) => ({
                 sourceCode: s.sourceCode,
                 sourceName: s.sourceName,
@@ -165,19 +161,19 @@ export default async function ArchivePage({
             value: s.sourceCode,
             label: s.sourceName,
         }));
-            sourceSummaries = demoSources.map((s) => ({
-                sourceCode: s.sourceCode,
-                sourceName: s.sourceName,
-                baseUrl: null,
-                description: null,
-                recordCount: s.recordCount,
-                firstCapture: s.firstCapture,
-                lastCapture: s.lastCapture,
-                latestRecordId: s.latestRecordId,
-                entryRecordId: s.latestRecordId,
-                entryBrowseUrl: null,
-                entryPreviewUrl: null,
-            }));
+        sourceSummaries = demoSources.map((s) => ({
+            sourceCode: s.sourceCode,
+            sourceName: s.sourceName,
+            baseUrl: null,
+            description: null,
+            recordCount: s.recordCount,
+            firstCapture: s.firstCapture,
+            lastCapture: s.lastCapture,
+            latestRecordId: s.latestRecordId,
+            entryRecordId: s.latestRecordId,
+            entryBrowseUrl: null,
+            entryPreviewUrl: null,
+        }));
     }
 
     // Attempt to use the backend search API; fall back to the bundled offline
@@ -258,16 +254,12 @@ export default async function ArchivePage({
         >
             <ApiHealthBanner />
             {sourceSummaries.length > 0 && (
-                <section className="ha-home-panel-gradient mb-6 space-y-4">
+                <section className="ha-home-panel-gradient ha-home-panel-gradient-compact mb-4 space-y-3">
                     <div className="flex flex-wrap items-baseline justify-between gap-3">
                         <div>
                             <h2 className="text-sm font-semibold text-slate-900">
                                 Browse archived sites
                             </h2>
-                            <p className="text-xs leading-relaxed text-ha-muted">
-                                Jump into a source’s archived website and
-                                follow links within that backup.
-                            </p>
                         </div>
                         <Link
                             href="/archive/browse-by-source"
@@ -298,7 +290,7 @@ export default async function ArchivePage({
                                             browseId ? (
                                                 <Link
                                                     href={`/browse/${browseId}`}
-                                                    className="relative block h-[6.5rem] overflow-hidden border-b border-ha-border bg-white"
+                                                    className="relative block h-[6rem] overflow-hidden border-b border-ha-border bg-white"
                                                     aria-label={`View ${summary.sourceName}`}
                                                 >
                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -311,7 +303,7 @@ export default async function ArchivePage({
                                                     />
                                                 </Link>
                                             ) : (
-                                                <div className="relative h-[6.5rem] overflow-hidden border-b border-ha-border bg-white">
+                                                <div className="relative h-[6rem] overflow-hidden border-b border-ha-border bg-white">
                                                     {/* eslint-disable-next-line @next/next/no-img-element */}
                                                     <img
                                                         src={previewSrc}
@@ -325,13 +317,13 @@ export default async function ArchivePage({
                                         ) : browseId ? (
                                             <Link
                                                 href={`/browse/${browseId}`}
-                                                className="flex h-[6.5rem] items-center justify-center border-b border-ha-border bg-white px-4 text-xs text-ha-muted dark:bg-[#0b0c0d]"
+                                                className="flex h-[6rem] items-center justify-center border-b border-ha-border bg-white px-4 text-xs text-ha-muted dark:bg-[#0b0c0d]"
                                                 aria-label={`View ${summary.sourceName}`}
                                             >
                                                 Preview unavailable
                                             </Link>
                                         ) : (
-                                            <div className="flex h-[6.5rem] items-center justify-center border-b border-ha-border bg-white px-4 text-xs text-ha-muted dark:bg-[#0b0c0d]">
+                                            <div className="flex h-[6rem] items-center justify-center border-b border-ha-border bg-white px-4 text-xs text-ha-muted dark:bg-[#0b0c0d]">
                                                 Preview unavailable
                                             </div>
                                         )}
@@ -356,24 +348,32 @@ export default async function ArchivePage({
                                                     ? ""
                                                     : "s"}{" "}
                                                 · latest{" "}
-                                                {formatDate(summary.lastCapture)}
+                                                {formatDate(
+                                                    summary.lastCapture
+                                                )}
                                             </p>
                                             {summary.baseUrl && (
-                                                <p className="mt-2 break-all text-[11px] text-ha-muted">
-                                                    <span className="font-medium text-slate-800">
+                                                <div className="mt-2 flex min-w-0 items-baseline gap-1 text-[11px] text-ha-muted">
+                                                    <span className="flex-shrink-0 font-medium text-slate-800">
                                                         Homepage:
-                                                    </span>{" "}
+                                                    </span>
                                                     {browseId ? (
                                                         <Link
                                                             href={`/browse/${browseId}`}
-                                                            className="hover:underline"
+                                                            className="min-w-0 truncate hover:underline"
+                                                            title={summary.baseUrl}
                                                         >
                                                             {summary.baseUrl}
                                                         </Link>
                                                     ) : (
-                                                        summary.baseUrl
+                                                        <span
+                                                            className="min-w-0 truncate"
+                                                            title={summary.baseUrl}
+                                                        >
+                                                            {summary.baseUrl}
+                                                        </span>
                                                     )}
-                                                </p>
+                                                </div>
                                             )}
 
                                             <div className="mt-3 flex flex-wrap gap-2 sm:flex-nowrap">
@@ -399,7 +399,9 @@ export default async function ArchivePage({
                                                     </a>
                                                 )}
                                                 <Link
-                                                    href={`/archive?source=${encodeURIComponent(summary.sourceCode)}&focus=filters`}
+                                                    href={`/archive?source=${encodeURIComponent(
+                                                        summary.sourceCode
+                                                    )}&focus=filters`}
                                                     scroll={false}
                                                     className="ha-btn-secondary"
                                                 >
@@ -430,7 +432,9 @@ export default async function ArchivePage({
                     </p>
 
                     <form
-                        key={`archive-filters:${q}:${source}:${sort}:${view}:${includeNon2xx ? "1" : "0"}:${pageSize}`}
+                        key={`archive-filters:${q}:${source}:${sort}:${view}:${
+                            includeNon2xx ? "1" : "0"
+                        }:${pageSize}`}
                         className="space-y-4"
                         method="get"
                     >
@@ -651,7 +655,9 @@ export default async function ArchivePage({
                                         <option value="snapshots">
                                             All snapshots
                                         </option>
-                                        <option value="pages">Pages (latest)</option>
+                                        <option value="pages">
+                                            Pages (latest)
+                                        </option>
                                     </select>
                                     <label
                                         htmlFor="sort"
@@ -665,7 +671,9 @@ export default async function ArchivePage({
                                         defaultValue={sort}
                                         className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
                                     >
-                                        <option value="relevance">Relevance</option>
+                                        <option value="relevance">
+                                            Relevance
+                                        </option>
                                         <option value="newest">Newest</option>
                                     </select>
                                     <label
