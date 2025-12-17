@@ -269,7 +269,7 @@ export default async function ArchivePage({
                         </Link>
                     </div>
 
-                    <div className="overflow-x-auto pb-1">
+                    <div className="overflow-x-auto px-1 py-4">
                         <div className="flex gap-3">
                             {orderedSourceSummaries.map((summary) => {
                                 const entryId = summary.entryRecordId;
