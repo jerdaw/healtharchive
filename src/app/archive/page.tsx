@@ -269,7 +269,7 @@ export default async function ArchivePage({
                         </Link>
                     </div>
 
-                    <div className="overflow-x-auto px-1 py-4">
+                    <div className="overflow-x-auto px-0 pb-4 pt-0">
                         <div className="flex gap-3">
                             {orderedSourceSummaries.map((summary) => {
                                 const entryId = summary.entryRecordId;
@@ -283,7 +283,7 @@ export default async function ArchivePage({
                                 return (
                                     <article
                                         key={summary.sourceCode}
-                                        className="ha-card ha-card-elevated w-[min(360px,86vw)] flex-shrink-0 overflow-hidden p-0"
+                                        className="ha-card ha-card-tight-shadow w-[min(360px,86vw)] flex-shrink-0 overflow-hidden p-0"
                                         data-testid={`archive-source-${summary.sourceCode}`}
                                     >
                                         {previewSrc ? (
@@ -361,14 +361,18 @@ export default async function ArchivePage({
                                                         <Link
                                                             href={`/browse/${browseId}`}
                                                             className="min-w-0 truncate hover:underline"
-                                                            title={summary.baseUrl}
+                                                            title={
+                                                                summary.baseUrl
+                                                            }
                                                         >
                                                             {summary.baseUrl}
                                                         </Link>
                                                     ) : (
                                                         <span
                                                             className="min-w-0 truncate"
-                                                            title={summary.baseUrl}
+                                                            title={
+                                                                summary.baseUrl
+                                                            }
                                                         >
                                                             {summary.baseUrl}
                                                         </span>
