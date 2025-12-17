@@ -156,6 +156,9 @@ function normalize(str: string): string {
 export function searchDemoRecords(params: SearchParams): DemoRecord[] {
   const q = params.q?.trim();
   const source = params.source?.trim();
+  const tokens =
+    q?.match(/[a-z0-9]+/gi)?.map((t) => t.toLowerCase()).filter((t) => t.length >= 3) ??
+    [];
 
   return demoRecords.filter((record) => {
     if (source && record.sourceCode !== source) return false;
@@ -163,12 +166,17 @@ export function searchDemoRecords(params: SearchParams): DemoRecord[] {
     if (!q) return true;
 
     const haystack = normalize(
-      [record.title, record.snippet, record.sourceName, record.language].join(
-        " ",
-      ),
+      [
+        record.title,
+        record.snippet,
+        record.sourceName,
+        record.language,
+        record.originalUrl,
+      ].join(" "),
     );
 
-    return haystack.includes(normalize(q));
+    if (tokens.length === 0) return haystack.includes(normalize(q));
+    return tokens.every((t) => haystack.includes(t));
   });
 }
 

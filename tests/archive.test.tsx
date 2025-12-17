@@ -153,7 +153,7 @@ describe("/archive", () => {
     expect(
       screen.getByRole("link", { name: /test snapshot/i }),
     ).toBeInTheDocument();
-    expect(screen.getByText(/1 snapshot/)).toBeInTheDocument();
+    expect(screen.getByText(/1 page/)).toBeInTheDocument();
   });
 
   it("passes source through to backend search", async () => {
@@ -203,6 +203,22 @@ describe("/archive", () => {
 
     expect(
       screen.getByRole("link", { name: /Information for Canadians/i }),
+    ).toBeInTheDocument();
+  });
+
+  it("supports URL queries in offline sample mode", async () => {
+    mockFetchSources.mockRejectedValue(new Error("API down"));
+    mockSearchSnapshots.mockRejectedValue(new Error("API down"));
+
+    const ui = await ArchivePage({
+      searchParams: Promise.resolve({
+        q: "https://www.canada.ca/en/public-health/services/diseases/monkeypox.html",
+      }),
+    });
+    render(ui);
+
+    expect(
+      screen.getByRole("link", { name: /Mpox \(monkeypox\): Situation update/i }),
     ).toBeInTheDocument();
   });
 });

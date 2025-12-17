@@ -1,7 +1,7 @@
 "use client";
 
 import type { ReactNode } from "react";
-import { useId, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 
 type CopyButtonProps = {
     text: string;
@@ -27,38 +27,123 @@ function CheckIcon() {
     );
 }
 
+type CopyState = "idle" | "copied" | "failed";
+
+function copyWithExecCommand(text: string): boolean {
+    try {
+        const textarea = document.createElement("textarea");
+        textarea.value = text;
+        textarea.setAttribute("readonly", "");
+        textarea.style.position = "fixed";
+        textarea.style.top = "-1000px";
+        textarea.style.left = "-1000px";
+        textarea.style.opacity = "0";
+        document.body.appendChild(textarea);
+
+        textarea.focus();
+        textarea.select();
+
+        const ok = typeof document.execCommand === "function"
+            ? document.execCommand("copy")
+            : false;
+
+        document.body.removeChild(textarea);
+        return Boolean(ok);
+    } catch {
+        return false;
+    }
+}
+
 export function CopyButton({
     text,
     label,
     className,
     children,
 }: CopyButtonProps) {
-    const [copied, setCopied] = useState(false);
+    const [state, setState] = useState<CopyState>("idle");
     const statusId = useId();
+    const timeoutRef = useRef<number | null>(null);
+
+    useEffect(() => {
+        return () => {
+            if (timeoutRef.current != null) {
+                window.clearTimeout(timeoutRef.current);
+                timeoutRef.current = null;
+            }
+        };
+    }, []);
+
+    const scheduleReset = (delayMs: number) => {
+        if (timeoutRef.current != null) {
+            window.clearTimeout(timeoutRef.current);
+        }
+        timeoutRef.current = window.setTimeout(() => {
+            setState("idle");
+        }, delayMs);
+    };
 
     const onCopy = async () => {
+        const trimmed = text.trim();
+        if (!trimmed) {
+            setState("failed");
+            scheduleReset(1600);
+            return;
+        }
+
         try {
-            await navigator.clipboard.writeText(text);
-            setCopied(true);
-            window.setTimeout(() => setCopied(false), 1200);
+            if (
+                typeof navigator !== "undefined" &&
+                navigator.clipboard &&
+                typeof navigator.clipboard.writeText === "function"
+            ) {
+                await navigator.clipboard.writeText(trimmed);
+                setState("copied");
+                scheduleReset(1200);
+                return;
+            }
+
+            const ok = copyWithExecCommand(trimmed);
+            setState(ok ? "copied" : "failed");
+            scheduleReset(ok ? 1200 : 1600);
         } catch {
-            setCopied(false);
+            const ok = copyWithExecCommand(trimmed);
+            setState(ok ? "copied" : "failed");
+            scheduleReset(ok ? 1200 : 1600);
         }
     };
 
     return (
-        <button
-            type="button"
-            className={className}
-            onClick={onCopy}
-            title={label}
-            aria-label={label}
-            aria-describedby={statusId}
-        >
-            {children ? (copied ? <CheckIcon /> : children) : label}
+        <span className="relative inline-flex">
+            <button
+                type="button"
+                className={className}
+                onClick={onCopy}
+                title={label}
+                aria-label={label}
+                aria-describedby={statusId}
+            >
+                {children ? (state === "copied" ? <CheckIcon /> : children) : label}
+            </button>
+
+            {state !== "idle" && (
+                <span
+                    className={`pointer-events-none absolute left-1/2 top-0 z-10 -translate-x-1/2 -translate-y-[calc(100%+0.4rem)] whitespace-nowrap rounded-md px-2 py-1 text-[11px] shadow ${
+                        state === "copied"
+                            ? "bg-slate-900 text-white"
+                            : "bg-rose-700 text-white"
+                    }`}
+                >
+                    {state === "copied" ? "Copied" : "Copy failed"}
+                </span>
+            )}
+
             <span id={statusId} className="sr-only" aria-live="polite">
-                {copied ? "Copied to clipboard." : ""}
+                {state === "copied"
+                    ? "Copied to clipboard."
+                    : state === "failed"
+                    ? "Copy failed."
+                    : ""}
             </span>
-        </button>
+        </span>
     );
 }

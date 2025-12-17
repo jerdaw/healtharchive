@@ -110,8 +110,8 @@ export default async function ArchivePage({
     const view =
         requestedView === "pages" || requestedView === "snapshots"
             ? requestedView
-            : "snapshots";
-    const defaultView = "snapshots";
+            : "pages";
+    const defaultView = "pages";
     const page = parsePositiveInt(params.page, 1);
     const rawPageSize = parsePositiveInt(params.pageSize, DEFAULT_PAGE_SIZE);
     const pageSize = Math.min(rawPageSize, MAX_PAGE_SIZE);
@@ -217,7 +217,11 @@ export default async function ArchivePage({
               effectivePage * paginationSize
           );
 
-    const resultNoun = view === "pages" ? "page" : "snapshot";
+    const resultNoun = usingBackend
+        ? view === "pages"
+            ? "page"
+            : "snapshot"
+        : "snapshot";
     const resultCountText =
         totalResults === 1
             ? `1 ${resultNoun}`
@@ -487,8 +491,9 @@ export default async function ArchivePage({
                                 id="archive-keywords-help"
                                 className="text-[11px] text-ha-muted"
                             >
-                                Search across titles, snippets, sources, and
-                                language.
+                                Search titles, summaries, and URLs. Tip: paste
+                                a URL to find captures of a specific page.
+                                Advanced: AND/OR/NOT, parentheses, -term, url:…
                             </p>
                         </div>
 
@@ -629,91 +634,109 @@ export default async function ArchivePage({
                             </form>
 
                             {usingBackend && (
-                                <form
-                                    className="flex flex-wrap items-center gap-2"
-                                    method="get"
-                                >
-                                    <input type="hidden" name="q" value={q} />
-                                    <input
-                                        type="hidden"
-                                        name="source"
-                                        value={source}
-                                    />
-                                    <input
-                                        type="hidden"
-                                        name="page"
-                                        value="1"
-                                    />
-                                    <label
-                                        htmlFor="view"
-                                        className="text-xs text-ha-muted"
+                                <div className="space-y-1">
+                                    <form
+                                        className="flex flex-wrap items-center gap-2"
+                                        method="get"
                                     >
-                                        Show
-                                    </label>
-                                    <select
-                                        id="view"
-                                        name="view"
-                                        defaultValue={view}
-                                        className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
-                                    >
-                                        <option value="snapshots">
-                                            All snapshots
-                                        </option>
-                                        <option value="pages">
-                                            Pages (latest)
-                                        </option>
-                                    </select>
-                                    <label
-                                        htmlFor="sort"
-                                        className="text-xs text-ha-muted"
-                                    >
-                                        Sort
-                                    </label>
-                                    <select
-                                        id="sort"
-                                        name="sort"
-                                        defaultValue={sort}
-                                        className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
-                                    >
-                                        <option value="relevance">
-                                            Relevance
-                                        </option>
-                                        <option value="newest">Newest</option>
-                                    </select>
-                                    <label
-                                        htmlFor="pageSize"
-                                        className="text-xs text-ha-muted"
-                                    >
-                                        Results per page
-                                    </label>
-                                    <select
-                                        id="pageSize"
-                                        name="pageSize"
-                                        defaultValue={String(pageSize)}
-                                        className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
-                                    >
-                                        {[10, 20, 50].map((size) => (
-                                            <option key={size} value={size}>
-                                                {size}
-                                            </option>
-                                        ))}
-                                    </select>
-                                    <label className="flex items-center gap-1 text-xs text-ha-muted">
                                         <input
-                                            type="checkbox"
-                                            name="includeNon2xx"
-                                            value="true"
-                                            defaultChecked={includeNon2xx}
+                                            type="hidden"
+                                            name="q"
+                                            value={q}
                                         />
-                                        Include error pages
-                                    </label>
-                                    <button
-                                        type="submit"
-                                        className="ha-btn-secondary text-xs"
-                                    >
-                                        Apply
-                                    </button>
-                                </form>
+                                        <input
+                                            type="hidden"
+                                            name="source"
+                                            value={source}
+                                        />
+                                        <input
+                                            type="hidden"
+                                            name="page"
+                                            value="1"
+                                        />
+                                        <label
+                                            htmlFor="view"
+                                            className="text-xs text-ha-muted"
+                                        >
+                                            Show
+                                        </label>
+                                        <select
+                                            id="view"
+                                            name="view"
+                                            defaultValue={view}
+                                            className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                        >
+                                            <option value="snapshots">
+                                                All snapshots
+                                            </option>
+                                            <option value="pages">
+                                                Pages (latest)
+                                            </option>
+                                        </select>
+                                        <label
+                                            htmlFor="sort"
+                                            className="text-xs text-ha-muted"
+                                        >
+                                            Sort
+                                        </label>
+                                        <select
+                                            id="sort"
+                                            name="sort"
+                                            defaultValue={sort}
+                                            className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                        >
+                                            <option value="relevance">
+                                                Relevance
+                                            </option>
+                                            <option value="newest">
+                                                Newest
+                                            </option>
+                                        </select>
+                                        <label
+                                            htmlFor="pageSize"
+                                            className="text-xs text-ha-muted"
+                                        >
+                                            Results per page
+                                        </label>
+                                        <select
+                                            id="pageSize"
+                                            name="pageSize"
+                                            defaultValue={String(pageSize)}
+                                            className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                        >
+                                            {[10, 20, 50].map((size) => (
+                                                <option
+                                                    key={size}
+                                                    value={size}
+                                                >
+                                                    {size}
+                                                </option>
+                                            ))}
+                                        </select>
+                                        <label className="flex items-center gap-1 text-xs text-ha-muted">
+                                            <input
+                                                type="checkbox"
+                                                name="includeNon2xx"
+                                                value="true"
+                                                defaultChecked={includeNon2xx}
+                                            />
+                                            Include error pages
+                                        </label>
+                                        <button
+                                            type="submit"
+                                            className="ha-btn-secondary text-xs"
+                                        >
+                                            Apply
+                                        </button>
+                                    </form>
+                                    {view === "pages" && (
+                                        <p className="text-[11px] text-ha-muted">
+                                            Showing the latest capture per
+                                            page. Switch to “All snapshots” to
+                                            see every capture.
+                                        </p>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </div>
