@@ -466,12 +466,12 @@ export default async function ArchivePage({
 	                                            {browseId ? (
 	                                                <Link
 	                                                    href={`/browse/${browseId}`}
-	                                                    className="inline-block text-sm font-semibold text-slate-900 hover:underline"
+	                                                    className="block text-[13px] font-semibold tracking-tight text-slate-900 hover:underline"
 	                                                >
                                                     {summary.sourceName}
                                                 </Link>
                                             ) : (
-                                                <h3 className="text-sm font-semibold text-slate-900">
+                                                <h3 className="text-[13px] font-semibold tracking-tight text-slate-900">
                                                     {summary.sourceName}
                                                 </h3>
                                             )}
