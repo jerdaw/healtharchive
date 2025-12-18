@@ -147,6 +147,8 @@ export const demoRecords: DemoRecord[] = [
 export type SearchParams = {
   q?: string;
   source?: string;
+  from?: string; // YYYY-MM-DD (inclusive)
+  to?: string; // YYYY-MM-DD (inclusive)
 };
 
 function normalize(str: string): string {
@@ -156,12 +158,16 @@ function normalize(str: string): string {
 export function searchDemoRecords(params: SearchParams): DemoRecord[] {
   const q = params.q?.trim();
   const source = params.source?.trim();
+  const from = params.from?.trim();
+  const to = params.to?.trim();
   const tokens =
     q?.match(/[a-z0-9]+/gi)?.map((t) => t.toLowerCase()).filter((t) => t.length >= 3) ??
     [];
 
   return demoRecords.filter((record) => {
     if (source && record.sourceCode !== source) return false;
+    if (from && record.captureDate < from) return false;
+    if (to && record.captureDate > to) return false;
 
     if (!q) return true;
 

@@ -32,6 +32,7 @@ export type SnapshotSummary = {
   jobId: number | null;
   originalUrl: string;
   snippet: string | null;
+  pageSnapshotsCount?: number | null;
   rawSnapshotUrl: string | null;
   browseUrl: string | null;
 };
@@ -81,6 +82,24 @@ export type ReplayResolveResponse = {
   browseUrl: string | null;
 };
 
+export class ApiError extends Error {
+  status: number;
+  detail: unknown;
+
+  constructor(args: { status: number; statusText: string; detail?: unknown }) {
+    const detailText =
+      typeof args.detail === "string"
+        ? `: ${args.detail}`
+        : args.detail != null
+          ? `: ${JSON.stringify(args.detail)}`
+          : "";
+    super(`Backend request failed: ${args.status} ${args.statusText}${detailText}`);
+    this.name = "ApiError";
+    this.status = args.status;
+    this.detail = args.detail ?? null;
+  }
+}
+
 const API_BASE_ENV =
   process.env.NEXT_PUBLIC_API_BASE_URL ?? process.env.NEXT_PUBLIC_BACKEND_URL;
 
@@ -115,7 +134,28 @@ async function fetchJson<T>(
   );
 
   if (!res.ok) {
-    throw new Error(`Backend request failed: ${res.status} ${res.statusText}`);
+    let detail: unknown = null;
+    const contentType = res.headers.get("content-type") ?? "";
+    if (contentType.includes("application/json")) {
+      try {
+        const data: unknown = await res.json();
+        if (
+          typeof data === "object" &&
+          data !== null &&
+          "detail" in data
+        ) {
+          detail = (data as { detail?: unknown }).detail ?? null;
+        }
+      } catch {
+        detail = null;
+      }
+    }
+
+    throw new ApiError({
+      status: res.status,
+      statusText: res.statusText,
+      detail,
+    });
   }
 
   return (await res.json()) as T;
@@ -144,6 +184,8 @@ export type SearchParams = {
   sort?: "relevance" | "newest";
   view?: "snapshots" | "pages";
   includeNon2xx?: boolean;
+  from?: string; // YYYY-MM-DD
+  to?: string; // YYYY-MM-DD
 };
 
 export async function searchSnapshots(params: SearchParams): Promise<SearchResponse> {
@@ -154,6 +196,8 @@ export async function searchSnapshots(params: SearchParams): Promise<SearchRespo
   if (params.sort) query.set("sort", params.sort);
   if (params.view) query.set("view", params.view);
   if (params.includeNon2xx) query.set("includeNon2xx", "true");
+  if (params.from?.trim()) query.set("from", params.from.trim());
+  if (params.to?.trim()) query.set("to", params.to.trim());
   if (params.page && params.page > 1) query.set("page", String(params.page));
   if (params.pageSize) query.set("pageSize", String(params.pageSize));
 

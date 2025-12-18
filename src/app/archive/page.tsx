@@ -16,6 +16,8 @@ import Link from "next/link";
 type ArchiveSearchParams = {
     q?: string;
     source?: string;
+    from?: string;
+    to?: string;
     sort?: string;
     view?: string;
     includeNon2xx?: string;
@@ -28,6 +30,7 @@ const MAX_PAGE_SIZE = 50;
 
 type ArchiveListRecord = Omit<DemoRecord, "snapshotPath" | "sourceCode"> & {
     sourceCode: string;
+    pageSnapshotsCount?: number | null;
 };
 
 type SourceBrowseSummary = {
@@ -97,6 +100,8 @@ export default async function ArchivePage({
     const params = await searchParams;
     const q = params.q?.trim() ?? "";
     const source = params.source?.trim() ?? "";
+    const fromDate = params.from?.trim() ?? "";
+    const toDate = params.to?.trim() ?? "";
     const includeNon2xx = parseBoolean(params.includeNon2xx);
     const requestedSort = params.sort?.trim().toLowerCase() ?? "";
     const sort =
@@ -128,9 +133,12 @@ export default async function ArchivePage({
     let results: ArchiveListRecord[] = searchDemoRecords({
         q,
         source,
+        from: fromDate || undefined,
+        to: toDate || undefined,
     });
     let totalResults = results.length;
     let usingBackend = false;
+    let backendError: string | null = null;
 
     try {
         const apiSources = await fetchSources();
@@ -179,15 +187,36 @@ export default async function ArchivePage({
     // Attempt to use the backend search API; fall back to the bundled offline
     // sample dataset on any error.
     try {
-        const backend = await searchSnapshots({
+        const baseBackendParams = {
             q: q || undefined,
             source: source || undefined,
             sort: sort === "relevance" || sort === "newest" ? sort : undefined,
             view: view === "pages" || view === "snapshots" ? view : undefined,
             includeNon2xx: includeNon2xx || undefined,
+            from: fromDate || undefined,
+            to: toDate || undefined,
             page,
             pageSize,
-        } as ApiSearchParams);
+        } as ApiSearchParams;
+
+        const first = await searchSnapshots(baseBackendParams);
+        let backend = first;
+
+        // If the user requested a page beyond the end (common when filters
+        // tighten results), refetch the last page so results and pagination
+        // stay consistent.
+        const backendPageCount = Math.max(
+            1,
+            Math.ceil(backend.total / pageSize)
+        );
+        const clampedPage = Math.min(page, backendPageCount);
+        if (clampedPage !== page) {
+            backend = await searchSnapshots({
+                ...baseBackendParams,
+                page: clampedPage,
+            } as ApiSearchParams);
+        }
+
         results = backend.results.map((r) => ({
             id: String(r.id),
             title: r.title ?? "",
@@ -197,12 +226,44 @@ export default async function ArchivePage({
             captureDate: r.captureDate,
             originalUrl: r.originalUrl,
             snippet: r.snippet ?? "",
+            pageSnapshotsCount: r.pageSnapshotsCount ?? null,
         }));
         totalResults = backend.total;
         usingBackend = true;
-    } catch {
-        usingBackend = false;
-        totalResults = results.length;
+    } catch (err) {
+        const status =
+            typeof err === "object" && err !== null && "status" in err
+                ? Number((err as { status?: unknown }).status)
+                : null;
+        const detail =
+            typeof err === "object" && err !== null && "detail" in err
+                ? (err as { detail?: unknown }).detail
+                : null;
+
+        if (status === 422) {
+            let detailText: string | null = null;
+            if (typeof detail === "string" && detail.trim()) {
+                detailText = detail.trim();
+            } else if (Array.isArray(detail) && detail.length > 0) {
+                const first = detail[0];
+                if (typeof first === "object" && first !== null && "msg" in first) {
+                    const msg = (first as { msg?: unknown }).msg;
+                    if (typeof msg === "string" && msg.trim()) {
+                        detailText = msg.trim();
+                    }
+                }
+            }
+
+            backendError =
+                detailText ??
+                "Invalid search filters. Please check your date range.";
+            usingBackend = true;
+            results = [];
+            totalResults = 0;
+        } else {
+            usingBackend = false;
+            totalResults = results.length;
+        }
     }
 
     // Apply simple pagination in fallback mode (demo data).
@@ -231,6 +292,8 @@ export default async function ArchivePage({
         const qs = new URLSearchParams();
         if (q) qs.set("q", q);
         if (source) qs.set("source", source);
+        if (fromDate) qs.set("from", fromDate);
+        if (toDate) qs.set("to", toDate);
         if (sort !== defaultSort) qs.set("sort", sort);
         if (view !== defaultView) qs.set("view", view);
         if (includeNon2xx) qs.set("includeNon2xx", "true");
@@ -273,7 +336,7 @@ export default async function ArchivePage({
                         </Link>
                     </div>
 
-                    <div className="overflow-x-auto px-0 pb-4 pt-0">
+                    <div className="overflow-x-auto px-1 pb-4 pt-0">
                         <div className="flex gap-3">
                             {orderedSourceSummaries.map((summary) => {
                                 const entryId = summary.entryRecordId;
@@ -435,12 +498,11 @@ export default async function ArchivePage({
                     </h2>
                     <p className="text-sm leading-relaxed text-ha-muted">
                         Adjust these filters and re-run the search on the right.
-                        In the full archive, more granular options such as date
-                        ranges and jurisdictions would be available.
+                        Filter by keyword, source, and capture date range.
                     </p>
 
                     <form
-                        key={`archive-filters:${q}:${source}:${sort}:${view}:${
+                        key={`archive-filters:${q}:${source}:${fromDate}:${toDate}:${sort}:${view}:${
                             includeNon2xx ? "1" : "0"
                         }:${pageSize}`}
                         className="space-y-4"
@@ -491,8 +553,8 @@ export default async function ArchivePage({
                                 id="archive-keywords-help"
                                 className="text-[11px] text-ha-muted"
                             >
-                                Search titles, summaries, and URLs. Tip: paste
-                                a URL to find captures of a specific page.
+                                Search titles, summaries, and URLs. Tip: paste a
+                                URL to find captures of a specific page.
                                 Advanced: AND/OR/NOT, parentheses, -term, url:…
                             </p>
                         </div>
@@ -519,6 +581,54 @@ export default async function ArchivePage({
                                 ))}
                             </select>
                         </div>
+
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="space-y-1">
+                                <label
+                                    htmlFor="from"
+                                    className="text-xs font-medium text-slate-800"
+                                >
+                                    From
+                                </label>
+                                <input
+                                    id="from"
+                                    name="from"
+                                    type="date"
+                                    defaultValue={fromDate}
+                                    className="w-full rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                />
+                            </div>
+                            <div className="space-y-1">
+                                <label
+                                    htmlFor="to"
+                                    className="text-xs font-medium text-slate-800"
+                                >
+                                    To
+                                </label>
+                                <input
+                                    id="to"
+                                    name="to"
+                                    type="date"
+                                    defaultValue={toDate}
+                                    className="w-full rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                />
+                            </div>
+                        </div>
+                        <p className="text-[11px] text-ha-muted">
+                            Date filters use UTC capture dates.
+                        </p>
+
+                        {backendError && (
+                            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                {backendError}{" "}
+                                <Link
+                                    href="/archive"
+                                    className="font-medium underline underline-offset-2 hover:text-amber-900"
+                                >
+                                    Clear filters
+                                </Link>
+                            </div>
+                        )}
 
                         <div className="flex items-center justify-between gap-2 pt-1">
                             <HoverGlowButton
@@ -554,6 +664,17 @@ export default async function ArchivePage({
                                             <span className="font-medium">
                                                 “{q}”
                                             </span>
+                                        </>
+                                    )}
+                                    {(fromDate || toDate) && (
+                                        <>
+                                            {" "}
+                                            · Date:{" "}
+                                            {fromDate
+                                                ? formatDate(fromDate)
+                                                : "Any"}{" "}
+                                            –{" "}
+                                            {toDate ? formatDate(toDate) : "Any"}
                                         </>
                                     )}
                                 </p>
@@ -594,6 +715,20 @@ export default async function ArchivePage({
                                     name="source"
                                     value={source}
                                 />
+                                {fromDate && (
+                                    <input
+                                        type="hidden"
+                                        name="from"
+                                        value={fromDate}
+                                    />
+                                )}
+                                {toDate && (
+                                    <input
+                                        type="hidden"
+                                        name="to"
+                                        value={toDate}
+                                    />
+                                )}
                                 {sort !== defaultSort && (
                                     <input
                                         type="hidden"
@@ -649,6 +784,20 @@ export default async function ArchivePage({
                                             name="source"
                                             value={source}
                                         />
+                                        {fromDate && (
+                                            <input
+                                                type="hidden"
+                                                name="from"
+                                                value={fromDate}
+                                            />
+                                        )}
+                                        {toDate && (
+                                            <input
+                                                type="hidden"
+                                                name="to"
+                                                value={toDate}
+                                            />
+                                        )}
                                         <input
                                             type="hidden"
                                             name="page"
@@ -705,10 +854,7 @@ export default async function ArchivePage({
                                             className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
                                         >
                                             {[10, 20, 50].map((size) => (
-                                                <option
-                                                    key={size}
-                                                    value={size}
-                                                >
+                                                <option key={size} value={size}>
                                                     {size}
                                                 </option>
                                             ))}
@@ -731,9 +877,9 @@ export default async function ArchivePage({
                                     </form>
                                     {view === "pages" && (
                                         <p className="text-[11px] text-ha-muted">
-                                            Showing the latest capture per
-                                            page. Switch to “All snapshots” to
-                                            see every capture.
+                                            Showing the latest capture per page.
+                                            Switch to “All snapshots” to see
+                                            every capture.
                                         </p>
                                     )}
                                 </div>

@@ -188,6 +188,68 @@ describe("/archive", () => {
     expect(args.source).toBe("phac");
   });
 
+  it("passes date range through to backend search", async () => {
+    mockFetchSources.mockResolvedValue([
+      {
+        sourceCode: "phac",
+        sourceName: "PHAC",
+        baseUrl: "https://www.canada.ca/en/public-health.html",
+        description: "PHAC",
+        recordCount: 1,
+        firstCapture: "2024-01-01",
+        lastCapture: "2024-01-01",
+        latestRecordId: 1,
+        entryRecordId: 1,
+        entryBrowseUrl: null,
+      },
+    ]);
+    mockSearchSnapshots.mockResolvedValue({
+      results: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+    });
+
+    const ui = await ArchivePage({
+      searchParams: Promise.resolve({
+        from: "2024-01-01",
+        to: "2024-01-31",
+      }),
+    });
+    render(ui);
+
+    expect(mockSearchSnapshots).toHaveBeenCalledTimes(1);
+    const args = mockSearchSnapshots.mock.calls[0][0];
+    expect(args.from).toBe("2024-01-01");
+    expect(args.to).toBe("2024-01-31");
+
+    expect(screen.getByLabelText("From")).toHaveValue("2024-01-01");
+    expect(screen.getByLabelText("To")).toHaveValue("2024-01-31");
+  });
+
+  it("shows a validation message when backend rejects filters", async () => {
+    mockFetchSources.mockResolvedValue([]);
+    mockSearchSnapshots.mockRejectedValue({
+      status: 422,
+      detail: "Invalid date range: 'from' must be <= 'to'.",
+    });
+
+    const ui = await ArchivePage({
+      searchParams: Promise.resolve({
+        from: "2025-03-01",
+        to: "2025-02-01",
+      }),
+    });
+    render(ui);
+
+    expect(
+      screen.getByText("Invalid date range: 'from' must be <= 'to'."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Live API unavailable; showing a limited offline sample/i),
+    ).not.toBeInTheDocument();
+  });
+
   it("falls back to offline sample when backend search fails", async () => {
     mockFetchSources.mockRejectedValue(new Error("API down"));
     mockSearchSnapshots.mockRejectedValue(new Error("API down"));

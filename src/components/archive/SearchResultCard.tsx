@@ -14,6 +14,7 @@ export type SearchResultCardRecord = {
     captureDate?: string | null;
     originalUrl: string;
     snippet?: string | null;
+    pageSnapshotsCount?: number | null;
 };
 
 function formatDate(iso: string | undefined | null): string {
@@ -184,6 +185,16 @@ export function SearchResultCard({
                         <span className="ha-result-badge ha-result-badge--source">
                             {record.sourceName}
                         </span>
+                        {view === "pages" &&
+                            typeof record.pageSnapshotsCount === "number" &&
+                            record.pageSnapshotsCount > 1 && (
+                                <span className="ha-result-meta-item">
+                                    <span className="ha-result-meta-label">
+                                        Captures
+                                    </span>{" "}
+                                    {record.pageSnapshotsCount}
+                                </span>
+                            )}
                         {record.captureDate && (
                             <span className="ha-result-meta-item">
                                 <ResultIcon>
@@ -211,6 +222,16 @@ export function SearchResultCard({
                     >
                         Browse
                     </Link>
+                    {view === "pages" && (
+                        <Link
+                            href={`/archive?view=snapshots&source=${encodeURIComponent(
+                                record.sourceCode
+                            )}&q=${encodeURIComponent(record.originalUrl)}`}
+                            className="ha-btn-secondary text-xs"
+                        >
+                            All captures
+                        </Link>
+                    )}
                     <Link
                         href={`/snapshot/${record.id}`}
                         className="ha-btn-secondary text-xs"
