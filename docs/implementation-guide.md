@@ -705,6 +705,7 @@ All in `src/data/demo-records.ts`:
     -   Optional date range:
         -   From (`input type="date" name="from"`, UTC date)
         -   To (`input type="date" name="to"`, UTC date)
+    -   On submit, the page auto-scrolls to the search panel (skipping the top “Browse archived sites” carousel).
 
 -   Optional “Search within results” affordance that reveals a secondary keyword
     field (`within`) which is combined with the main keywords query using `AND`

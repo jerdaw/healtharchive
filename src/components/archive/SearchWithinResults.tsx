@@ -86,6 +86,7 @@ export function SearchWithinResults({
       </div>
 
       <input type="hidden" name="q" value={q} />
+      <input type="hidden" name="focus" value="filters" />
 
       {/* Keep filters in sync */}
       <input type="hidden" name="source" value={source} />
