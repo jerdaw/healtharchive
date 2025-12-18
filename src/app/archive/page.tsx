@@ -671,7 +671,7 @@ export default async function ArchivePage({
                                         </select>
                                     </div>
 
-                                    <div className="inline-flex items-center gap-1">
+                                    <div className="inline-flex items-center gap-1 sm:ml-2">
                                         <label
                                             htmlFor="sort"
                                             className="text-xs font-medium text-ha-muted"
@@ -691,7 +691,7 @@ export default async function ArchivePage({
                                         </select>
                                     </div>
 
-                                    <div className="inline-flex items-center gap-1">
+                                    <div className="inline-flex items-center gap-1 sm:ml-2">
                                         <label
                                             htmlFor="pageSize"
                                             className="text-xs font-medium text-ha-muted"
@@ -712,7 +712,7 @@ export default async function ArchivePage({
                                         </select>
                                     </div>
 
-                                    <label className="inline-flex items-center gap-1 text-xs font-medium text-ha-muted">
+                                    <label className="inline-flex items-center gap-1 text-xs font-medium text-ha-muted sm:ml-2">
                                         <input
                                             type="checkbox"
                                             name="includeNon2xx"
@@ -724,7 +724,7 @@ export default async function ArchivePage({
 
                                     <button
                                         type="submit"
-                                        className="ha-btn-secondary text-xs !rounded-lg !px-3 !py-1.5"
+                                        className="ha-btn-secondary text-xs !rounded-lg !px-3 !py-1.5 sm:ml-2"
                                     >
                                         Apply
                                     </button>
