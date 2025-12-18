@@ -11,6 +11,7 @@ import { ApiHealthBanner } from "@/components/ApiHealthBanner";
 import { HoverGlowButton } from "@/components/home/HoverGlowButton";
 import { SearchResultCard } from "@/components/archive/SearchResultCard";
 import { ArchiveFiltersAutoscroll } from "@/components/archive/ArchiveFiltersAutoscroll";
+import { SearchWithinResults } from "@/components/archive/SearchWithinResults";
 import Link from "next/link";
 
 type ArchiveSearchParams = {
@@ -493,9 +494,14 @@ export default async function ArchivePage({
                     id="archive-filters"
                     className="ha-card ha-home-panel p-4 sm:p-5 space-y-3"
                 >
-                    <h2 className="text-sm font-semibold text-slate-900">
-                        Filters
-                    </h2>
+                    <div className="flex items-baseline justify-between gap-3">
+                        <h2 className="text-sm font-semibold text-slate-900">
+                            Search
+                        </h2>
+                        <span className="text-xs text-ha-muted">
+                            {resultCountText}
+                        </span>
+                    </div>
 
                     <form
                         key={`archive-filters:${q}:${source}:${fromDate}:${toDate}:${sort}:${view}:${
@@ -557,12 +563,20 @@ export default async function ArchivePage({
                         {/* Source select */}
                         <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
                             <div className="space-y-1 sm:col-span-2">
-                                <label
-                                    htmlFor="source"
-                                    className="text-xs font-medium text-slate-800"
-                                >
-                                    Source
-                                </label>
+                                <div className="flex items-baseline justify-between gap-2">
+                                    <label
+                                        htmlFor="source"
+                                        className="text-xs font-medium text-slate-800"
+                                    >
+                                        Source
+                                    </label>
+                                    <Link
+                                        href="/archive/browse-by-source"
+                                        className="text-[11px] font-medium text-ha-accent hover:text-blue-700"
+                                    >
+                                        (browse by source →)
+                                    </Link>
+                                </div>
                                 <select
                                     id="source"
                                     name="source"
@@ -622,80 +636,18 @@ export default async function ArchivePage({
                         </div>
                     )}
 
-                    <details className="group rounded-lg border border-ha-border bg-white/60 px-3 py-2">
-                        <summary className="cursor-pointer list-none text-xs font-medium text-slate-800 [&::-webkit-details-marker]:hidden">
-                            <div className="flex items-center justify-between gap-3">
-                                <span>Search within results</span>
-                                <span className="text-[11px] font-normal text-ha-muted group-open:hidden">
-                                    Show
-                                </span>
-                                <span className="text-[11px] font-normal text-ha-muted hidden group-open:inline">
-                                    Hide
-                                </span>
-                            </div>
-                        </summary>
-
-                        <form
-                            className="mt-3 flex flex-col gap-2 sm:flex-row"
-                            method="get"
-                        >
-                            <label className="sr-only" htmlFor="q-within">
-                                Search within results
-                            </label>
-                            <input
-                                id="q-within"
-                                name="q"
-                                type="search"
-                                defaultValue={q}
-                                placeholder="Add keywords to narrow the current list…"
-                                className="flex-1 rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
-                            />
-
-                            {/* Keep filters in sync */}
-                            <input type="hidden" name="source" value={source} />
-                            {fromDate && (
-                                <input type="hidden" name="from" value={fromDate} />
-                            )}
-                            {toDate && (
-                                <input type="hidden" name="to" value={toDate} />
-                            )}
-                            {sort !== defaultSort && (
-                                <input type="hidden" name="sort" value={sort} />
-                            )}
-                            {view !== defaultView && (
-                                <input type="hidden" name="view" value={view} />
-                            )}
-                            {includeNon2xx && (
-                                <input
-                                    type="hidden"
-                                    name="includeNon2xx"
-                                    value="true"
-                                />
-                            )}
-                            <input type="hidden" name="page" value="1" />
-                            <input
-                                type="hidden"
-                                name="pageSize"
-                                value={String(pageSize)}
-                            />
-
-                            <HoverGlowButton
-                                type="submit"
-                                className="ha-btn-secondary text-xs whitespace-nowrap"
-                            >
-                                Refine
-                            </HoverGlowButton>
-                        </form>
-                    </details>
-
-                    <div className="flex items-center justify-end pt-1">
-                        <Link
-                            href="/archive"
-                            className="text-xs font-medium text-ha-muted hover:text-slate-900"
-                        >
-                            Clear
-                        </Link>
-                    </div>
+                    <SearchWithinResults
+                        q={q}
+                        source={source}
+                        fromDate={fromDate}
+                        toDate={toDate}
+                        sort={sort}
+                        view={view}
+                        includeNon2xx={includeNon2xx}
+                        pageSize={pageSize}
+                        defaultSort={defaultSort}
+                        defaultView={defaultView}
+                    />
                 </aside>
 
                 {/* Search & results */}
@@ -707,14 +659,10 @@ export default async function ArchivePage({
                                     Search results
                                 </h2>
                                 <p className="text-xs text-ha-muted">
-                                    {resultCountText}
                                     {q && (
                                         <>
-                                            {" "}
-                                            matching{" "}
-                                            <span className="font-medium">
-                                                “{q}”
-                                            </span>
+                                            Matching{" "}
+                                            <span className="font-medium">“{q}”</span>
                                         </>
                                     )}
                                     {(fromDate || toDate) && (
@@ -736,17 +684,12 @@ export default async function ArchivePage({
                                     </p>
                                 )}
                             </div>
-                            <Link
-                                href="/archive/browse-by-source"
-                                className="text-xs font-medium text-ha-accent hover:text-blue-700"
-                            >
-                                Browse by source instead →
-                            </Link>
                         </div>
 
                         <div className="mt-4 space-y-3">
-                            {usingBackend && (
-                                <div className="space-y-1">
+                            <div className="space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    {usingBackend && (
                                     <form
                                         className="flex flex-wrap items-center gap-2"
                                         method="get"
@@ -780,12 +723,26 @@ export default async function ArchivePage({
                                             name="page"
                                             value="1"
                                         />
-                                        <label
-                                            htmlFor="view"
-                                            className="text-xs text-ha-muted"
-                                        >
-                                            Show
-                                        </label>
+                                        <div className="relative inline-flex items-center gap-1">
+                                            <label
+                                                htmlFor="view"
+                                                className="text-xs text-ha-muted"
+                                            >
+                                                Show
+                                            </label>
+                                            <span className="group relative inline-flex">
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-ha-border bg-white text-[10px] font-semibold text-ha-muted shadow-sm transition-colors hover:border-[#11588f] hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#11588f]"
+                                                    aria-label="Info about page grouping"
+                                                >
+                                                    i
+                                                </button>
+                                                <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 w-56 -translate-x-1/2 rounded-lg border border-ha-border bg-white px-3 py-2 text-[11px] leading-relaxed text-slate-700 shadow-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                                                    Pages shows the latest capture per page. All snapshots shows every capture.
+                                                </span>
+                                            </span>
+                                        </div>
                                         <select
                                             id="view"
                                             name="view"
@@ -852,15 +809,15 @@ export default async function ArchivePage({
                                             Apply
                                         </button>
                                     </form>
-                                    {view === "pages" && (
-                                        <p className="text-[11px] text-ha-muted">
-                                            Showing the latest capture per page.
-                                            Switch to “All snapshots” to see
-                                            every capture.
-                                        </p>
                                     )}
+                                    <Link
+                                        href="/archive"
+                                        className="ml-auto text-xs font-medium text-ha-muted hover:text-slate-900"
+                                    >
+                                        Clear
+                                    </Link>
                                 </div>
-                            )}
+                            </div>
                         </div>
                     </div>
 

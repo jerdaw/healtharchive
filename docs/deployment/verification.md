@@ -159,7 +159,7 @@ available as a fallback/debug path.
    - On `https://www.healtharchive.ca/archive`, click **Search** on one of the “Browse archived sites” cards.
    - Confirm:
      - the Source filter updates to that source (not “All sources”), and
-     - the page scrolls to the Filters card without the fixed header covering its title.
+     - the page scrolls to the Search card without the fixed header covering its title.
 
 ---
 

@@ -693,39 +693,34 @@ All in `src/data/demo-records.ts`:
 
     -   `grid` with two columns on large screens:
 
-        1. Left: **Filters panel** (inside `.ha-card`).
-        2. Right: **Search box + results list**.
+        1. Left: **Search panel** (inside `.ha-card`).
+        2. Right: **Results + view controls**.
 
-#### Filters panel
+#### Search panel
 
 -   Filter form (`method="get"`) with controls:
 
-    -   Keywords (`input name="q"`).
-    -   Source (`select name="source"` with values `""`, `"phac"`, `"hc"`).
+    -   Keywords (`input name="q"`) + “Search” submit button.
+    -   Source (`select name="source"`) with a “(browse by source →)” shortcut link.
     -   Optional date range:
         -   From (`input type="date" name="from"`, UTC date)
         -   To (`input type="date" name="to"`, UTC date)
 
--   “Apply filters” button (`type="submit"`).
+-   Optional “Search within results” affordance that reveals a secondary keyword
+    field (still uses `q`) for quick refinement without re-scrolling.
 
--   “Clear” link resets to `/archive`.
-
-#### Search box & results
+#### Results & view controls
 
 -   Top card shows:
 
     -   “Search results” header.
-    -   Summary text: “X snapshot(s) matching “q””.
-
-    -   Secondary search form that:
-        -   Reuses `q` but preserves `source` via hidden inputs.
-        -   Preserves `from`/`to` when present via hidden inputs.
-        -   Allows user to quickly adjust keywords without re-choosing filters.
-        -   Live API mode controls:
-            -   Show toggle (`all snapshots` vs `pages (latest)`).
-            -   Sort toggle (`relevance` vs `newest`).
-            -   “Include error pages” toggle (includes non‑2xx captures).
-            -   Results-per-page selector.
+    -   Summary text: “Matching “q”” and optional date range.
+    -   Live API mode controls:
+        -   Show toggle (`pages (latest)` vs `all snapshots`), with an `i` tooltip explaining page grouping.
+        -   Sort toggle (`relevance` vs `newest`).
+        -   “Include error pages” toggle (includes non‑2xx captures).
+        -   Results-per-page selector.
+        -   “Clear” link resets to `/archive`.
 
 	    -   Results list:
 
@@ -970,7 +965,7 @@ We followed an 8-phase plan. Status:
 -   **Phase 5 – Archive UI**
 
     -   ✅ `/archive` implemented with server-side filtering via URL `searchParams`.
-    -   ✅ Filters panel + search box + results list.
+    -   ✅ Search panel + results list.
     -   ✅ `/archive/browse-by-source` implemented using `getSourcesSummary`.
 
 -   **Phase 6 – Snapshot demo pages**
