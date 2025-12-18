@@ -608,28 +608,94 @@ export default async function ArchivePage({
                                 />
                             </div>
                         </div>
+                    </form>
 
-                        {backendError && (
-                            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                                {backendError}{" "}
-                                <Link
-                                    href="/archive"
-                                    className="font-medium underline underline-offset-2 hover:text-amber-900"
-                                >
-                                    Clear filters
-                                </Link>
-                            </div>
-                        )}
-
-                        <div className="flex items-center justify-end gap-2 pt-1">
+                    {backendError && (
+                        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                            {backendError}{" "}
                             <Link
                                 href="/archive"
-                                className="text-xs font-medium text-ha-muted hover:text-slate-900"
+                                className="font-medium underline underline-offset-2 hover:text-amber-900"
                             >
-                                Clear
+                                Clear filters
                             </Link>
                         </div>
-                    </form>
+                    )}
+
+                    <details className="group rounded-lg border border-ha-border bg-white/60 px-3 py-2">
+                        <summary className="cursor-pointer list-none text-xs font-medium text-slate-800 [&::-webkit-details-marker]:hidden">
+                            <div className="flex items-center justify-between gap-3">
+                                <span>Search within results</span>
+                                <span className="text-[11px] font-normal text-ha-muted group-open:hidden">
+                                    Show
+                                </span>
+                                <span className="text-[11px] font-normal text-ha-muted hidden group-open:inline">
+                                    Hide
+                                </span>
+                            </div>
+                        </summary>
+
+                        <form
+                            className="mt-3 flex flex-col gap-2 sm:flex-row"
+                            method="get"
+                        >
+                            <label className="sr-only" htmlFor="q-within">
+                                Search within results
+                            </label>
+                            <input
+                                id="q-within"
+                                name="q"
+                                type="search"
+                                defaultValue={q}
+                                placeholder="Add keywords to narrow the current list…"
+                                className="flex-1 rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                            />
+
+                            {/* Keep filters in sync */}
+                            <input type="hidden" name="source" value={source} />
+                            {fromDate && (
+                                <input type="hidden" name="from" value={fromDate} />
+                            )}
+                            {toDate && (
+                                <input type="hidden" name="to" value={toDate} />
+                            )}
+                            {sort !== defaultSort && (
+                                <input type="hidden" name="sort" value={sort} />
+                            )}
+                            {view !== defaultView && (
+                                <input type="hidden" name="view" value={view} />
+                            )}
+                            {includeNon2xx && (
+                                <input
+                                    type="hidden"
+                                    name="includeNon2xx"
+                                    value="true"
+                                />
+                            )}
+                            <input type="hidden" name="page" value="1" />
+                            <input
+                                type="hidden"
+                                name="pageSize"
+                                value={String(pageSize)}
+                            />
+
+                            <HoverGlowButton
+                                type="submit"
+                                className="ha-btn-secondary text-xs whitespace-nowrap"
+                            >
+                                Refine
+                            </HoverGlowButton>
+                        </form>
+                    </details>
+
+                    <div className="flex items-center justify-end pt-1">
+                        <Link
+                            href="/archive"
+                            className="text-xs font-medium text-ha-muted hover:text-slate-900"
+                        >
+                            Clear
+                        </Link>
+                    </div>
                 </aside>
 
                 {/* Search & results */}
@@ -679,80 +745,6 @@ export default async function ArchivePage({
                         </div>
 
                         <div className="mt-4 space-y-3">
-                            <form
-                                className="flex flex-col gap-2 sm:flex-row"
-                                method="get"
-                            >
-                                <label className="sr-only" htmlFor="q2">
-                                    Search keywords
-                                </label>
-                                <input
-                                    id="q2"
-                                    name="q"
-                                    type="search"
-                                    defaultValue={q}
-                                    placeholder="Search within results…"
-                                    className="flex-1 rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
-                                />
-                                {/* Keep filters in sync */}
-                                <input
-                                    type="hidden"
-                                    name="source"
-                                    value={source}
-                                />
-                                {fromDate && (
-                                    <input
-                                        type="hidden"
-                                        name="from"
-                                        value={fromDate}
-                                    />
-                                )}
-                                {toDate && (
-                                    <input
-                                        type="hidden"
-                                        name="to"
-                                        value={toDate}
-                                    />
-                                )}
-                                {sort !== defaultSort && (
-                                    <input
-                                        type="hidden"
-                                        name="sort"
-                                        value={sort}
-                                    />
-                                )}
-                                {view !== defaultView && (
-                                    <input
-                                        type="hidden"
-                                        name="view"
-                                        value={view}
-                                    />
-                                )}
-                                {includeNon2xx && (
-                                    <input
-                                        type="hidden"
-                                        name="includeNon2xx"
-                                        value="true"
-                                    />
-                                )}
-                                <input
-                                    type="hidden"
-                                    name="page"
-                                    value={String(effectivePage)}
-                                />
-                                <input
-                                    type="hidden"
-                                    name="pageSize"
-                                    value={String(pageSize)}
-                                />
-                                <HoverGlowButton
-                                    type="submit"
-                                    className="ha-btn-primary text-xs"
-                                >
-                                    Refine
-                                </HoverGlowButton>
-                            </form>
-
                             {usingBackend && (
                                 <div className="space-y-1">
                                     <form
