@@ -514,20 +514,22 @@ export default async function ArchivePage({
                         <input
                             type="hidden"
                             name="page"
-                            value={String(effectivePage)}
+                            value="1"
                         />
-                        <input
-                            type="hidden"
-                            name="pageSize"
-                            value={String(pageSize)}
-                        />
-                        {sort !== defaultSort && (
+                        {!usingBackend && (
+                            <input
+                                type="hidden"
+                                name="pageSize"
+                                value={String(pageSize)}
+                            />
+                        )}
+                        {!usingBackend && sort !== defaultSort && (
                             <input type="hidden" name="sort" value={sort} />
                         )}
-                        {view !== defaultView && (
+                        {!usingBackend && view !== defaultView && (
                             <input type="hidden" name="view" value={view} />
                         )}
-                        {includeNon2xx && (
+                        {!usingBackend && includeNon2xx && (
                             <input
                                 type="hidden"
                                 name="includeNon2xx"
@@ -622,6 +624,106 @@ export default async function ArchivePage({
                                 />
                             </div>
                         </div>
+
+                        {usingBackend && (
+                            <div className="space-y-1">
+                                <div className="flex flex-wrap items-center gap-2">
+                                    <div className="relative inline-flex items-center gap-1">
+                                        <label
+                                            htmlFor="view"
+                                            className="text-xs text-ha-muted"
+                                        >
+                                            Show
+                                        </label>
+                                        <sup className="relative -top-[1px]">
+                                            <span className="group relative inline-flex">
+                                                <button
+                                                    type="button"
+                                                    className="inline-flex h-3.5 w-3.5 items-center justify-center rounded-full border border-ha-border bg-white text-[9px] font-semibold text-ha-muted shadow-sm transition-colors hover:border-[#11588f] hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#11588f]"
+                                                    aria-label="Info about page grouping"
+                                                >
+                                                    i
+                                                </button>
+                                                <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 w-56 -translate-x-1/2 rounded-lg border border-ha-border bg-white px-3 py-2 text-[11px] leading-relaxed text-slate-700 shadow-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
+                                                    Pages shows the latest capture per page. All snapshots shows every capture.
+                                                </span>
+                                            </span>
+                                        </sup>
+                                    </div>
+                                    <select
+                                        id="view"
+                                        name="view"
+                                        defaultValue={view}
+                                        className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                    >
+                                        <option value="pages">
+                                            Pages (latest)
+                                        </option>
+                                        <option value="snapshots">
+                                            All snapshots
+                                        </option>
+                                    </select>
+                                    <label
+                                        htmlFor="sort"
+                                        className="text-xs text-ha-muted"
+                                    >
+                                        Sort
+                                    </label>
+                                    <select
+                                        id="sort"
+                                        name="sort"
+                                        defaultValue={sort}
+                                        className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                    >
+                                        <option value="relevance">
+                                            Relevance
+                                        </option>
+                                        <option value="newest">
+                                            Newest
+                                        </option>
+                                    </select>
+                                    <label
+                                        htmlFor="pageSize"
+                                        className="text-xs text-ha-muted"
+                                    >
+                                        Results per page
+                                    </label>
+                                    <select
+                                        id="pageSize"
+                                        name="pageSize"
+                                        defaultValue={String(pageSize)}
+                                        className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                    >
+                                        {[10, 20, 50].map((size) => (
+                                            <option key={size} value={size}>
+                                                {size}
+                                            </option>
+                                        ))}
+                                    </select>
+                                    <label className="flex items-center gap-1 text-xs text-ha-muted">
+                                        <input
+                                            type="checkbox"
+                                            name="includeNon2xx"
+                                            value="true"
+                                            defaultChecked={includeNon2xx}
+                                        />
+                                        Include error pages
+                                    </label>
+                                    <button
+                                        type="submit"
+                                        className="ha-btn-secondary text-xs"
+                                    >
+                                        Apply
+                                    </button>
+                                    <Link
+                                        href="/archive"
+                                        className="ml-auto text-xs font-medium text-ha-muted hover:text-slate-900"
+                                    >
+                                        Clear
+                                    </Link>
+                                </div>
+                            </div>
+                        )}
                     </form>
 
                     {backendError && (
@@ -683,140 +785,6 @@ export default async function ArchivePage({
                                         offline sample.
                                     </p>
                                 )}
-                            </div>
-                        </div>
-
-                        <div className="mt-4 space-y-3">
-                            <div className="space-y-1">
-                                <div className="flex flex-wrap items-center gap-2">
-                                    {usingBackend && (
-                                    <form
-                                        className="flex flex-wrap items-center gap-2"
-                                        method="get"
-                                    >
-                                        <input
-                                            type="hidden"
-                                            name="q"
-                                            value={q}
-                                        />
-                                        <input
-                                            type="hidden"
-                                            name="source"
-                                            value={source}
-                                        />
-                                        {fromDate && (
-                                            <input
-                                                type="hidden"
-                                                name="from"
-                                                value={fromDate}
-                                            />
-                                        )}
-                                        {toDate && (
-                                            <input
-                                                type="hidden"
-                                                name="to"
-                                                value={toDate}
-                                            />
-                                        )}
-                                        <input
-                                            type="hidden"
-                                            name="page"
-                                            value="1"
-                                        />
-                                        <div className="relative inline-flex items-center gap-1">
-                                            <label
-                                                htmlFor="view"
-                                                className="text-xs text-ha-muted"
-                                            >
-                                                Show
-                                            </label>
-                                            <span className="group relative inline-flex">
-                                                <button
-                                                    type="button"
-                                                    className="inline-flex h-4 w-4 items-center justify-center rounded-full border border-ha-border bg-white text-[10px] font-semibold text-ha-muted shadow-sm transition-colors hover:border-[#11588f] hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#11588f]"
-                                                    aria-label="Info about page grouping"
-                                                >
-                                                    i
-                                                </button>
-                                                <span className="pointer-events-none absolute left-1/2 top-full z-10 mt-2 w-56 -translate-x-1/2 rounded-lg border border-ha-border bg-white px-3 py-2 text-[11px] leading-relaxed text-slate-700 shadow-lg opacity-0 transition-opacity duration-150 group-hover:opacity-100 group-focus-within:opacity-100">
-                                                    Pages shows the latest capture per page. All snapshots shows every capture.
-                                                </span>
-                                            </span>
-                                        </div>
-                                        <select
-                                            id="view"
-                                            name="view"
-                                            defaultValue={view}
-                                            className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
-                                        >
-                                            <option value="pages">
-                                                Pages (latest)
-                                            </option>
-                                            <option value="snapshots">
-                                                All snapshots
-                                            </option>
-                                        </select>
-                                        <label
-                                            htmlFor="sort"
-                                            className="text-xs text-ha-muted"
-                                        >
-                                            Sort
-                                        </label>
-                                        <select
-                                            id="sort"
-                                            name="sort"
-                                            defaultValue={sort}
-                                            className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
-                                        >
-                                            <option value="relevance">
-                                                Relevance
-                                            </option>
-                                            <option value="newest">
-                                                Newest
-                                            </option>
-                                        </select>
-                                        <label
-                                            htmlFor="pageSize"
-                                            className="text-xs text-ha-muted"
-                                        >
-                                            Results per page
-                                        </label>
-                                        <select
-                                            id="pageSize"
-                                            name="pageSize"
-                                            defaultValue={String(pageSize)}
-                                            className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
-                                        >
-                                            {[10, 20, 50].map((size) => (
-                                                <option key={size} value={size}>
-                                                    {size}
-                                                </option>
-                                            ))}
-                                        </select>
-                                        <label className="flex items-center gap-1 text-xs text-ha-muted">
-                                            <input
-                                                type="checkbox"
-                                                name="includeNon2xx"
-                                                value="true"
-                                                defaultChecked={includeNon2xx}
-                                            />
-                                            Include error pages
-                                        </label>
-                                        <button
-                                            type="submit"
-                                            className="ha-btn-secondary text-xs"
-                                        >
-                                            Apply
-                                        </button>
-                                    </form>
-                                    )}
-                                    <Link
-                                        href="/archive"
-                                        className="ml-auto text-xs font-medium text-ha-muted hover:text-slate-900"
-                                    >
-                                        Clear
-                                    </Link>
-                                </div>
                             </div>
                         </div>
                     </div>
