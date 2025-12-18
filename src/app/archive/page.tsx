@@ -284,10 +284,13 @@ export default async function ArchivePage({
             ? "page"
             : "snapshot"
         : "snapshot";
+    const formattedTotalResults = new Intl.NumberFormat(undefined).format(
+        totalResults
+    );
     const resultCountText =
         totalResults === 1
             ? `1 ${resultNoun}`
-            : `${totalResults} ${resultNoun}s`;
+            : `${formattedTotalResults} ${resultNoun}s`;
 
     const buildPageHref = (targetPage: number) => {
         const qs = new URLSearchParams();
@@ -503,7 +506,7 @@ export default async function ArchivePage({
                             {q && (
                                 <>
                                     {" "}
-                                    · Matching{" "}
+                                    matching{" "}
                                     <span className="font-medium">“{q}”</span>
                                 </>
                             )}
@@ -587,12 +590,6 @@ export default async function ArchivePage({
                                     >
                                         Source
                                     </label>
-                                    <Link
-                                        href="/archive/browse-by-source"
-                                        className="text-[11px] font-medium text-ha-accent hover:text-blue-700"
-                                    >
-                                        (browse by source →)
-                                    </Link>
                                 </div>
                                 <select
                                     id="source"
@@ -639,9 +636,17 @@ export default async function ArchivePage({
                                 />
                             </div>
                         </div>
+                        <div className="flex justify-end">
+                            <Link
+                                href="/archive/browse-by-source"
+                                className="text-[11px] font-medium text-ha-accent hover:text-blue-700"
+                            >
+                                Browse by source →
+                            </Link>
+                        </div>
 
                         {usingBackend && (
-                            <div className="rounded-lg border border-ha-border bg-white/60 px-3 py-2">
+                            <div className="rounded-lg bg-white/60 px-3 py-2">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <div className="inline-flex items-center gap-1">
                                         <label
@@ -653,7 +658,7 @@ export default async function ArchivePage({
                                         <span className="group relative inline-flex">
                                             <button
                                                 type="button"
-                                                className="inline-flex h-3 w-3 items-center justify-center rounded-full border border-ha-border bg-white text-[8px] font-semibold leading-none text-ha-muted transition-colors hover:border-[#11588f] hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#11588f]"
+                                                className="relative -top-[1px] text-[10px] font-semibold leading-none text-ha-muted transition-colors hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#11588f] focus-visible:ring-offset-2 focus-visible:ring-offset-transparent"
                                                 aria-label="Info about page grouping"
                                             >
                                                 i
@@ -666,7 +671,7 @@ export default async function ArchivePage({
                                             id="view"
                                             name="view"
                                             defaultValue={view}
-                                            className="ha-select ha-select-sm"
+                                            className="ha-select ha-select-sm !border-transparent !bg-white/70 !shadow-none focus:!border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
                                         >
                                             <option value="pages">
                                                 Pages (latest)
@@ -688,7 +693,7 @@ export default async function ArchivePage({
                                             id="sort"
                                             name="sort"
                                             defaultValue={sort}
-                                            className="ha-select ha-select-sm"
+                                            className="ha-select ha-select-sm !border-transparent !bg-white/70 !shadow-none focus:!border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
                                         >
                                             <option value="relevance">
                                                 Relevance
@@ -708,7 +713,7 @@ export default async function ArchivePage({
                                             id="pageSize"
                                             name="pageSize"
                                             defaultValue={String(pageSize)}
-                                            className="ha-select ha-select-sm"
+                                            className="ha-select ha-select-sm !border-transparent !bg-white/70 !shadow-none focus:!border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
                                         >
                                             {[10, 20, 50].map((size) => (
                                                 <option key={size} value={size}>
@@ -730,7 +735,7 @@ export default async function ArchivePage({
 
                                     <button
                                         type="submit"
-                                        className="ha-btn-secondary text-xs !rounded-lg !px-3 !py-1.5"
+                                        className="ha-btn-secondary text-xs !rounded-lg !border-transparent !bg-white/70 !px-3 !py-1.5 !shadow-none hover:!bg-white/80"
                                     >
                                         Apply
                                     </button>
@@ -774,21 +779,14 @@ export default async function ArchivePage({
 
                 {/* Search & results */}
                 <section className="space-y-4">
-                    <div className="ha-card ha-home-panel p-4 sm:p-5 space-y-3">
-                        <div className="flex flex-wrap items-baseline justify-between gap-3">
-                            <div>
-                                <h2 className="text-sm font-semibold text-slate-900">
-                                    Search results
-                                </h2>
-                                {!usingBackend && (
-                                    <p className="text-[11px] font-medium text-amber-800">
-                                        Live API unavailable; showing a limited
-                                        offline sample.
-                                    </p>
-                                )}
-                            </div>
+                    {!usingBackend && (
+                        <div className="ha-card ha-home-panel p-4 sm:p-5">
+                            <p className="text-[11px] font-medium text-amber-800">
+                                Live API unavailable; showing a limited offline
+                                sample.
+                            </p>
                         </div>
-                    </div>
+                    )}
 
                     <div className="space-y-3">
                         {totalResults === 0 ? (

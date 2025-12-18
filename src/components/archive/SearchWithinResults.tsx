@@ -71,7 +71,7 @@ export function SearchWithinResults({
             type="search"
             defaultValue={q}
             placeholder="Add keywords to narrow the current list…"
-            className="h-10 w-full rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+            className="w-full rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
           />
         </div>
       </div>
@@ -95,7 +95,7 @@ export function SearchWithinResults({
           onClick={handleToggle}
           aria-hidden={open}
           tabIndex={open ? -1 : 0}
-          className={`col-start-1 row-start-1 py-2 text-xs font-medium text-ha-accent hover:text-blue-700 transition-all duration-300 ${
+          className={`col-start-1 row-start-1 text-xs font-medium text-ha-accent hover:text-blue-700 transition-all duration-300 ${
             open
               ? "pointer-events-none opacity-0 translate-x-2"
               : "opacity-100 translate-x-0"
@@ -109,7 +109,7 @@ export function SearchWithinResults({
           aria-hidden={!open}
           tabIndex={open ? 0 : -1}
           disabled={!open}
-          className={`col-start-1 row-start-1 ha-btn-primary h-10 text-xs whitespace-nowrap transition-all duration-300 !px-4 !py-2 ${
+          className={`col-start-1 row-start-1 ha-btn-primary text-xs whitespace-nowrap transition-all duration-300 !px-4 !py-2 ${
             open
               ? "opacity-100 translate-x-0 pointer-events-auto"
               : "opacity-0 -translate-x-2 pointer-events-none"
