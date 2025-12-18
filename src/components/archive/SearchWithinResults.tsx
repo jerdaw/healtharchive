@@ -47,14 +47,16 @@ export function SearchWithinResults({
     <form
       id={formId}
       method="get"
-      className={`flex w-full items-center ${
+      className={`flex w-full items-start ${
         open ? "gap-2" : "gap-0"
       }`}
       aria-label="Search within results"
     >
       <div
-        className={`min-w-0 flex-1 overflow-hidden transition-[max-width] duration-300 ease-out ${
-          open ? "max-w-[640px]" : "max-w-0"
+        className={`min-w-0 flex-1 transition-[max-width,max-height] duration-300 ease-out ${
+          open
+            ? "max-w-[640px] max-h-12 overflow-visible"
+            : "max-w-0 max-h-0 overflow-hidden"
         }`}
         aria-hidden={!open}
       >
@@ -73,7 +75,7 @@ export function SearchWithinResults({
             type="search"
             defaultValue={q}
             placeholder="Add keywords to narrow the current list…"
-            className="min-w-0 w-full rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+            className="min-w-0 w-full rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:z-10 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
           />
         </div>
       </div>
@@ -97,7 +99,7 @@ export function SearchWithinResults({
           onClick={handleToggle}
           aria-hidden={open}
           tabIndex={open ? -1 : 0}
-          className={`col-start-1 row-start-1 text-xs font-medium text-ha-accent hover:text-blue-700 hover:underline underline-offset-2 transition-all duration-300 ${
+          className={`col-start-1 row-start-1 text-left text-xs font-medium text-ha-accent hover:text-blue-700 hover:underline underline-offset-2 transition-all duration-300 ${
             open
               ? "pointer-events-none opacity-0 translate-x-2"
               : "opacity-100 translate-x-0"

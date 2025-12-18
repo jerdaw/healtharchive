@@ -501,7 +501,7 @@ export default async function ArchivePage({
                         <h2 className="text-sm font-semibold text-slate-900">
                             Search
                         </h2>
-                        <span className="text-xs text-ha-muted">
+                        <span className="ml-auto text-right text-xs text-ha-muted">
                             {resultCountText}
                             {q && (
                                 <>
@@ -642,7 +642,7 @@ export default async function ArchivePage({
                                     <div className="inline-flex items-center gap-1">
                                         <label
                                             htmlFor="view"
-                                            className="text-[11px] font-medium text-ha-muted"
+                                            className="text-xs font-medium text-ha-muted"
                                         >
                                             Show
                                         </label>
@@ -676,7 +676,7 @@ export default async function ArchivePage({
                                     <div className="inline-flex items-center gap-1">
                                         <label
                                             htmlFor="sort"
-                                            className="text-[11px] font-medium text-ha-muted"
+                                            className="text-xs font-medium text-ha-muted"
                                         >
                                             Sort
                                         </label>
@@ -696,7 +696,7 @@ export default async function ArchivePage({
                                     <div className="inline-flex items-center gap-1">
                                         <label
                                             htmlFor="pageSize"
-                                            className="text-[11px] font-medium text-ha-muted"
+                                            className="text-xs font-medium text-ha-muted"
                                         >
                                             Per page
                                         </label>
@@ -714,7 +714,7 @@ export default async function ArchivePage({
                                         </select>
                                     </div>
 
-                                    <label className="inline-flex items-center gap-1 text-[11px] font-medium text-ha-muted">
+                                    <label className="inline-flex items-center gap-1 text-xs font-medium text-ha-muted">
                                         <input
                                             type="checkbox"
                                             name="includeNon2xx"
