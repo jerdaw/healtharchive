@@ -549,7 +549,7 @@ export default async function ArchivePage({
                                     type="submit"
                                     className="ha-btn-primary text-xs whitespace-nowrap"
                                 >
-                                    Apply
+                                    Search
                                 </HoverGlowButton>
                             </div>
                         </div>
@@ -692,7 +692,7 @@ export default async function ArchivePage({
                                     type="search"
                                     defaultValue={q}
                                     placeholder="Search within results…"
-                                    className="flex-1 rounded-full border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                    className="flex-1 rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
                                 />
                                 {/* Keep filters in sync */}
                                 <input
@@ -749,7 +749,7 @@ export default async function ArchivePage({
                                     type="submit"
                                     className="ha-btn-primary text-xs"
                                 >
-                                    Search
+                                    Refine
                                 </HoverGlowButton>
                             </form>
 
@@ -800,11 +800,11 @@ export default async function ArchivePage({
                                             defaultValue={view}
                                             className="rounded-lg border border-ha-border bg-white px-2 py-1 text-xs text-slate-900 shadow-sm outline-none focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
                                         >
-                                            <option value="snapshots">
-                                                All snapshots
-                                            </option>
                                             <option value="pages">
                                                 Pages (latest)
+                                            </option>
+                                            <option value="snapshots">
+                                                All snapshots
                                             </option>
                                         </select>
                                         <label
