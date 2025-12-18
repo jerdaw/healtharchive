@@ -105,12 +105,12 @@ export default async function ArchivePage({
     const toDate = params.to?.trim() ?? "";
     const includeNon2xx = parseBoolean(params.includeNon2xx);
     const requestedSort = params.sort?.trim().toLowerCase() ?? "";
-    const sort =
+    const requestedSortValid =
         requestedSort === "newest" || requestedSort === "relevance"
             ? requestedSort
-            : q
-            ? "relevance"
-            : "newest";
+            : "";
+    const sortUi = requestedSortValid || "relevance";
+    const sort = q ? requestedSortValid || "relevance" : "newest";
     const defaultSort = q ? "relevance" : "newest";
     const requestedView = params.view?.trim().toLowerCase() ?? "";
     const view =
@@ -678,10 +678,10 @@ export default async function ArchivePage({
                                         >
                                             Sort
                                         </label>
-                                        <select
+                                    <select
                                             id="sort"
                                             name="sort"
-                                            defaultValue={sort}
+                                            defaultValue={sortUi}
                                             className="ha-select ha-select-sm"
                                         >
                                             <option value="relevance">
