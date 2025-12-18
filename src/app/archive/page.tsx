@@ -462,17 +462,25 @@ export default async function ArchivePage({
 	                                            </div>
 	                                        )}
 
-	                                        <div className="pt-2.5 pb-1.5 sm:pt-3 sm:pb-2">
+	                                        <div className="pt-2.5 pb-1 sm:pt-3 sm:pb-1">
 	                                            {browseId ? (
 	                                                <Link
 	                                                    href={`/browse/${browseId}`}
 	                                                    className="block text-[13px] font-semibold tracking-tight text-slate-900 hover:underline"
+	                                                    title={summary.sourceName}
 	                                                >
-                                                    {summary.sourceName}
+                                                    {summary.sourceCode === "cihr"
+                                                        ? "CIHR"
+                                                        : summary.sourceName}
                                                 </Link>
                                             ) : (
-                                                <h3 className="text-[13px] font-semibold tracking-tight text-slate-900">
-                                                    {summary.sourceName}
+                                                <h3
+	                                                className="text-[13px] font-semibold tracking-tight text-slate-900"
+	                                                title={summary.sourceName}
+	                                            >
+                                                    {summary.sourceCode === "cihr"
+                                                        ? "CIHR"
+                                                        : summary.sourceName}
                                                 </h3>
                                             )}
 	                                            <p className="mt-1 text-xs text-ha-muted whitespace-nowrap">
@@ -514,7 +522,7 @@ export default async function ArchivePage({
                                                 </div>
                                             )}
 
-	                                            <div className="mt-2.5 grid grid-cols-3 items-center text-xs font-medium">
+	                                            <div className="mt-3 grid grid-cols-3 items-center text-xs font-medium">
 	                                                <div className="text-left">
 	                                                    {browseId && (
 	                                                        <Link
