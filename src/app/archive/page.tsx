@@ -466,21 +466,17 @@ export default async function ArchivePage({
 	                                            {browseId ? (
 	                                                <Link
 	                                                    href={`/browse/${browseId}`}
-	                                                    className="block text-[13px] font-semibold tracking-tight text-slate-900 hover:underline"
+	                                                    className="block truncate text-[13px] font-semibold tracking-tight text-slate-900 hover:underline"
 	                                                    title={summary.sourceName}
 	                                                >
-                                                    {summary.sourceCode === "cihr"
-                                                        ? "CIHR"
-                                                        : summary.sourceName}
+                                                    {summary.sourceName}
                                                 </Link>
                                             ) : (
                                                 <h3
-	                                                className="text-[13px] font-semibold tracking-tight text-slate-900"
+	                                                className="truncate text-[13px] font-semibold tracking-tight text-slate-900"
 	                                                title={summary.sourceName}
 	                                            >
-                                                    {summary.sourceCode === "cihr"
-                                                        ? "CIHR"
-                                                        : summary.sourceName}
+                                                    {summary.sourceName}
                                                 </h3>
                                             )}
 	                                            <p className="mt-1 text-xs text-ha-muted whitespace-nowrap">
