@@ -462,7 +462,7 @@ export default async function ArchivePage({
 	                                            </div>
 	                                        )}
 
-	                                        <div className="p-2.5 pb-2 sm:p-3 sm:pb-2.5">
+	                                        <div className="p-2.5 pb-1.5 sm:p-3 sm:pb-2">
 	                                            {browseId ? (
 	                                                <Link
 	                                                    href={`/browse/${browseId}`}
@@ -514,7 +514,7 @@ export default async function ArchivePage({
                                                 </div>
                                             )}
 
-	                                            <div className="mt-2 grid grid-cols-3 items-center text-xs font-medium">
+	                                            <div className="mt-2.5 grid grid-cols-3 items-center text-xs font-medium">
 	                                                <div className="text-left">
 	                                                    {browseId && (
 	                                                        <Link
