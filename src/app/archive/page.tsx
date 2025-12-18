@@ -417,7 +417,7 @@ export default async function ArchivePage({
 	                                return (
 	                                    <article
 	                                        key={summary.sourceCode}
-	                                        className="ha-card ha-card-tight-shadow w-[min(270px,86vw)] flex-shrink-0 overflow-hidden p-0"
+	                                        className="ha-card ha-card-tight-shadow w-[min(320px,86vw)] flex-shrink-0 overflow-hidden p-0"
 	                                        data-testid={`archive-source-${summary.sourceCode}`}
 	                                    >
 	                                        {previewSrc ? (
