@@ -514,38 +514,38 @@ export default async function ArchivePage({
                                                 </div>
                                             )}
 
-	                                            <div className="mt-2.5 flex flex-nowrap gap-1.5">
+	                                            <div className="mt-2.5 flex flex-nowrap items-center gap-3 text-xs font-medium">
 	                                                {browseId && (
 	                                                    <Link
 	                                                        href={`/browse/${browseId}`}
-	                                                        className="ha-btn-primary !px-4 !py-1.5"
-                                                    >
-                                                        View
-                                                    </Link>
-                                                )}
-                                                {summary.entryBrowseUrl && (
-                                                    <a
-                                                        href={
-                                                            summary.entryBrowseUrl
-                                                        }
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                        className="ha-btn-secondary !px-4 !py-1.5"
-                                                        title="Open this source homepage in the replay service (new tab)"
-                                                    >
-                                                        Replay ↗
-                                                    </a>
-                                                )}
-                                                <Link
-                                                    href={`/archive?source=${encodeURIComponent(
-                                                        summary.sourceCode
-                                                    )}&focus=filters`}
-                                                    scroll={false}
-                                                    className="ha-btn-secondary !px-4 !py-1.5"
-                                                >
-                                                    Search
-                                                </Link>
-                                            </div>
+	                                                        className="text-ha-accent hover:text-blue-700"
+	                                                    >
+	                                                        View
+	                                                    </Link>
+	                                                )}
+	                                                {summary.entryBrowseUrl && (
+	                                                    <a
+	                                                        href={
+	                                                            summary.entryBrowseUrl
+	                                                        }
+	                                                        target="_blank"
+	                                                        rel="noreferrer"
+	                                                        className="text-ha-accent hover:text-blue-700"
+	                                                        title="Open this source homepage in the replay service (new tab)"
+	                                                    >
+	                                                        Replay ↗
+	                                                    </a>
+	                                                )}
+	                                                <Link
+	                                                    href={`/archive?source=${encodeURIComponent(
+	                                                        summary.sourceCode
+	                                                    )}&focus=filters`}
+	                                                    scroll={false}
+	                                                    className="text-ha-accent hover:text-blue-700"
+	                                                >
+	                                                    Search
+	                                                </Link>
+	                                            </div>
                                         </div>
                                     </article>
                                 );
@@ -849,7 +849,7 @@ export default async function ArchivePage({
 
                                     <button
                                         type="submit"
-                                        className="ha-btn-secondary text-xs !rounded-lg !px-3 !py-1.5 sm:ml-2"
+                                        className="ha-btn-secondary text-xs sm:ml-2"
                                     >
                                         Apply
                                     </button>
