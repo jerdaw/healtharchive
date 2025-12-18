@@ -701,7 +701,7 @@ All in `src/data/demo-records.ts`:
 -   Filter form (`method="get"`) with controls:
 
     -   Keywords (`input name="q"`) + “Search” submit button.
-    -   Source (`select name="source"`) with a “(browse by source →)” shortcut link.
+    -   Source (`select name="source"`).
     -   Optional date range:
         -   From (`input type="date" name="from"`, UTC date)
         -   To (`input type="date" name="to"`, UTC date)

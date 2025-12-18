@@ -636,15 +636,6 @@ export default async function ArchivePage({
                                 />
                             </div>
                         </div>
-                        <div className="flex justify-end">
-                            <Link
-                                href="/archive/browse-by-source"
-                                className="text-[11px] font-medium text-ha-accent hover:text-blue-700"
-                            >
-                                Browse by source →
-                            </Link>
-                        </div>
-
                         {usingBackend && (
                             <div className="rounded-lg bg-white/60 px-3 py-2">
                                 <div className="flex flex-wrap items-center gap-2">
@@ -671,7 +662,7 @@ export default async function ArchivePage({
                                             id="view"
                                             name="view"
                                             defaultValue={view}
-                                            className="ha-select ha-select-sm !border-transparent !bg-white/70 !shadow-none focus:!border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                            className="ha-select ha-select-sm"
                                         >
                                             <option value="pages">
                                                 Pages (latest)
@@ -693,7 +684,7 @@ export default async function ArchivePage({
                                             id="sort"
                                             name="sort"
                                             defaultValue={sort}
-                                            className="ha-select ha-select-sm !border-transparent !bg-white/70 !shadow-none focus:!border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                            className="ha-select ha-select-sm"
                                         >
                                             <option value="relevance">
                                                 Relevance
@@ -713,7 +704,7 @@ export default async function ArchivePage({
                                             id="pageSize"
                                             name="pageSize"
                                             defaultValue={String(pageSize)}
-                                            className="ha-select ha-select-sm !border-transparent !bg-white/70 !shadow-none focus:!border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+                                            className="ha-select ha-select-sm"
                                         >
                                             {[10, 20, 50].map((size) => (
                                                 <option key={size} value={size}>
@@ -735,7 +726,7 @@ export default async function ArchivePage({
 
                                     <button
                                         type="submit"
-                                        className="ha-btn-secondary text-xs !rounded-lg !border-transparent !bg-white/70 !px-3 !py-1.5 !shadow-none hover:!bg-white/80"
+                                        className="ha-btn-secondary text-xs !rounded-lg !px-3 !py-1.5"
                                     >
                                         Apply
                                     </button>

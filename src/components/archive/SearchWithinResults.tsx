@@ -35,7 +35,7 @@ export function SearchWithinResults({
   useEffect(() => {
     if (!open) return;
     // Let layout settle before focusing so the input is reliably visible.
-    const handle = window.setTimeout(() => inputRef.current?.focus(), 50);
+    const handle = window.setTimeout(() => inputRef.current?.focus(), 220);
     return () => window.clearTimeout(handle);
   }, [open]);
 
@@ -47,7 +47,9 @@ export function SearchWithinResults({
     <form
       id={formId}
       method="get"
-      className="flex items-center gap-2"
+      className={`flex w-full items-center ${
+        open ? "gap-2" : "gap-0"
+      }`}
       aria-label="Search within results"
     >
       <div
@@ -71,7 +73,7 @@ export function SearchWithinResults({
             type="search"
             defaultValue={q}
             placeholder="Add keywords to narrow the current list…"
-            className="w-full rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
+            className="min-w-0 w-full rounded-lg border border-ha-border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none ring-0 placeholder:text-slate-400 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
           />
         </div>
       </div>
@@ -95,7 +97,7 @@ export function SearchWithinResults({
           onClick={handleToggle}
           aria-hidden={open}
           tabIndex={open ? -1 : 0}
-          className={`col-start-1 row-start-1 text-xs font-medium text-ha-accent hover:text-blue-700 transition-all duration-300 ${
+          className={`col-start-1 row-start-1 text-xs font-medium text-ha-accent hover:text-blue-700 hover:underline underline-offset-2 transition-all duration-300 ${
             open
               ? "pointer-events-none opacity-0 translate-x-2"
               : "opacity-100 translate-x-0"
