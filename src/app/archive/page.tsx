@@ -761,7 +761,7 @@ export default async function ArchivePage({
                             </div>
                         </div>
                         {usingBackend && (
-                            <div className="rounded-lg bg-white/60 py-2">
+                            <div className="rounded-lg bg-[var(--surface-bg-soft)] py-2">
                                 <div className="flex flex-wrap items-center gap-2">
                                     <div className="inline-flex items-center gap-1">
                                         <label
