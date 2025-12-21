@@ -214,6 +214,10 @@ export default async function StatusPage() {
             capture time (UTC), not source update time.
           </li>
           <li>
+            Annual editions are captured on Jan 01 (UTC). Ad-hoc captures are
+            labeled when they occur.
+          </li>
+          <li>
             Usage counts are aggregated daily totals (search requests, snapshot
             views, report submissions).
           </li>

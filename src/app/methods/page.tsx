@@ -38,7 +38,8 @@ export default function MethodsPage() {
           The default capture cadence is an annual “edition” captured on{" "}
           <span className="font-medium">Jan 01 (UTC)</span> for each source, with
           occasional ad-hoc captures when major events or operational needs
-          justify it.
+          justify it. Ad-hoc captures are explicitly labeled so readers can
+          distinguish them from the annual edition.
         </p>
       </section>
 

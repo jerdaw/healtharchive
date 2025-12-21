@@ -142,7 +142,9 @@ export default async function ChangesPage({
           </div>
           <p className="text-xs text-ha-muted">
             The default view is edition-aware and reflects changes between
-            archived captures, not real-time source updates.
+            archived captures, not real-time source updates. Annual editions
+            are captured on Jan 01 (UTC), and ad-hoc captures are labeled when
+            they occur.
           </p>
         </form>
       </section>

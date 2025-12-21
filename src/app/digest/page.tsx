@@ -26,6 +26,11 @@ export default async function DigestPage() {
             It is descriptive only and does not interpret meaning or provide
             guidance. {siteCopy.whatThisSiteIs.forCurrent}
           </p>
+          <p className="mt-2 text-xs leading-relaxed sm:text-sm">
+            Digests reflect edition-to-edition changes. Annual editions are
+            captured on Jan 01 (UTC), and any ad-hoc captures are labeled when
+            they occur. This does not imply real-time monitoring.
+          </p>
           <p className="mt-3 text-xs leading-relaxed sm:text-sm">
             For citation guidance, see{" "}
             <Link

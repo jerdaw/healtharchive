@@ -64,6 +64,25 @@ export default function GovernancePage() {
       </section>
 
       <section className="ha-home-hero ha-home-hero-plain space-y-5">
+        <h2 className="ha-section-heading" id="cadence">Capture cadence policy</h2>
+        <p className="ha-section-subtitle ha-section-lede leading-relaxed">
+          HealthArchive publishes annual capture editions by default and labels
+          any ad-hoc captures explicitly.
+        </p>
+        <ul className="list-disc pl-5 text-sm sm:text-base text-ha-muted leading-relaxed space-y-1">
+          <li>Annual editions are captured on Jan 01 (UTC) for each source.</li>
+          <li>
+            Ad-hoc captures may occur after major events or operational needs
+            and are labeled as such.
+          </li>
+          <li>
+            Change feeds and digests are edition-aware and should not be read as
+            real-time monitoring.
+          </li>
+        </ul>
+      </section>
+
+      <section className="ha-home-hero ha-home-hero-plain space-y-5">
         <h2 className="ha-section-heading" id="provenance">Provenance commitments</h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           Each snapshot is labeled and stored so that readers can verify what
