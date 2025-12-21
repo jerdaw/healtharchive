@@ -39,6 +39,7 @@ You’re joining after:
     -   A snapshot viewer route (`/snapshot/[id]`).
     -   Policy and governance routes (`/governance`, `/terms`, `/privacy`, `/changelog`, `/report`).
     -   Service reporting routes (`/status`, `/impact`).
+    -   Change tracking routes (`/changes`, `/compare`, `/digest`).
 
 -   Deployment is live on **Vercel**, with **Namecheap DNS** pointing at Vercel.
 
@@ -95,9 +96,13 @@ npm test
     -   `GET /api/sources` (per-source summaries)
     -   `GET /api/snapshot/{id}` (snapshot detail)
     -   `GET /api/snapshots/raw/{id}` (raw HTML for the viewer)
+    -   `GET /api/snapshots/{id}/timeline` (timeline of captures for a page group)
     -   `GET /api/stats` (lightweight archive totals used on the homepage)
     -   `GET /api/health` (health check)
     -   `GET /api/usage` (aggregated usage metrics)
+    -   `GET /api/changes` (edition-aware change feed)
+    -   `GET /api/changes/compare` (precomputed diff between adjacent captures)
+    -   `GET /api/changes/rss` (RSS feed for change events)
 -   The frontend does **not** call admin or observability endpoints such as
     `/api/admin/**` or `/metrics`; those are reserved for backend operators and
     monitoring systems.
@@ -105,6 +110,9 @@ npm test
     -   `/archive`: prefers backend search results with pagination; falls back to the bundled offline sample dataset with a fallback notice when the API is unreachable.
     -   `/archive/browse-by-source`: prefers backend source summaries; falls back to bundled offline sample summaries with a notice.
     -   `/snapshot/[id]`: fetches backend snapshot detail first; prefers a replay `browseUrl` when configured (full-fidelity CSS/JS/images) and falls back to raw HTML (`/api/snapshots/raw/{id}`) or the offline sample record/static snapshot when needed.
+    -   `/changes`: edition-aware change feed (defaults to the latest edition for a selected source).
+    -   `/compare`: compare view for two adjacent captures (diff is precomputed).
+    -   `/digest`: digest overview + RSS feed links.
     -   `/browse/[id]`: full-screen “browse archived site” mode with a persistent HealthArchive banner/controls above the replay iframe.
 -   Fallback behavior keeps the UI usable when the backend is unreachable or not configured.
 
@@ -833,7 +841,18 @@ All text is stable, but can be refined later.
 -   Both pages are server components that tolerate backend failures by showing
     a fallback callout instead of crashing.
 
-### 8.10 Snapshot viewer `/snapshot/[id]` – `src/app/snapshot/[id]/page.tsx`
+### 8.10 Change tracking (`/changes`, `/compare`, `/digest`)
+
+-   Routes:
+
+    -   `/changes` – edition-aware change feed (uses `/api/changes`, `/api/sources`, `/api/sources/{source}/editions`).
+    -   `/compare` – compare two adjacent captures (uses `/api/changes/compare`).
+    -   `/digest` – digest overview + RSS links (uses `/api/changes/rss`).
+
+-   Guardrail copy is required on all three pages:
+    -   “Descriptive only”, “not medical advice”, and “archived capture” messaging.
+
+### 8.11 Snapshot viewer `/snapshot/[id]` – `src/app/snapshot/[id]/page.tsx`
 
 -   Async server component with `params` as **Promise** (Next 16 dynamic API).
 
@@ -896,7 +915,7 @@ All text is stable, but can be refined later.
 
 -   **Important**: the offline sample `snapshotPath` is relative to `/public`, but used as an absolute path in `href`/`src` (e.g., `/demo-archive/hc/2024-11-01-covid-vaccines.html`).
 
-### 8.11 Full-screen browse `/browse/[id]` – `src/app/browse/[id]/page.tsx`
+### 8.12 Full-screen browse `/browse/[id]` – `src/app/browse/[id]/page.tsx`
 
 -   Async server component that prefers backend `GET /api/snapshot/{id}` (via `fetchSnapshotDetail()`).
 -   Uses `browseUrl` (replay) when available and falls back to raw HTML when replay is not configured.
@@ -982,7 +1001,7 @@ We followed an 8-phase plan. Status:
 
 -   **Phase 3 – Page skeletons & content migration**
 
-    -   ✅ Routes `/`, `/archive`, `/archive/browse-by-source`, `/methods`, `/researchers`, `/about`, `/contact`, `/governance`, `/terms`, `/privacy`, `/changelog`, `/report`, `/status`, `/impact` created.
+    -   ✅ Routes `/`, `/archive`, `/archive/browse-by-source`, `/methods`, `/researchers`, `/about`, `/contact`, `/governance`, `/terms`, `/privacy`, `/changelog`, `/report`, `/status`, `/impact`, `/changes`, `/compare`, `/digest` created.
     -   ✅ Original single-page content split and restructured into these routes.
 
 -   **Phase 4 – Data model & demo API**

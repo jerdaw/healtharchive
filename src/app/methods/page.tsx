@@ -100,6 +100,26 @@ export default function MethodsPage() {
         </p>
       </section>
 
+      <section className="ha-home-hero ha-home-hero-plain space-y-5">
+        <h2 className="ha-section-heading">Change tracking</h2>
+        <p className="ha-section-subtitle ha-section-lede leading-relaxed">
+          HealthArchive.ca compares archived captures to highlight text changes
+          between editions. This is designed for auditability and citation, not
+          interpretation.
+        </p>
+        <ul className="list-disc pl-5 text-sm sm:text-base text-ha-muted leading-relaxed space-y-1">
+          <li>Changes are computed from archived HTML captures.</li>
+          <li>
+            Comparisons are descriptive only (for example: sections added,
+            removed, or updated) and do not provide guidance.
+          </li>
+          <li>
+            Change feeds are edition-aware by default, reflecting the archive’s
+            annual capture cadence.
+          </li>
+        </ul>
+      </section>
+
       <section className="ha-home-hero ha-home-hero-plain space-y-4">
         <div className="ha-callout">
           <h3 className="ha-callout-title">Limitations and interpretation</h3>

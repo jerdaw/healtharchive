@@ -914,6 +914,51 @@ a:focus-visible {
     outline-offset: 2px;
 }
 
+/* ====================================
+   Diff viewer
+   ==================================== */
+
+.ha-diff {
+    border: 1px solid var(--border);
+    border-radius: 0.75rem;
+    background: var(--card-bg);
+    padding: 0.75rem;
+    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+        "Courier New", monospace;
+    font-size: 0.75rem;
+    line-height: 1.5;
+    color: var(--text);
+    max-height: 460px;
+    overflow: auto;
+}
+
+.ha-diff-line {
+    padding: 0.1rem 0.35rem;
+    border-radius: 0.35rem;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.ha-diff-context {
+    color: var(--text-muted);
+}
+
+.ha-diff-add {
+    background: rgba(34, 197, 94, 0.12);
+    color: #166534;
+}
+
+.ha-diff-del {
+    background: rgba(239, 68, 68, 0.12);
+    color: #991b1b;
+}
+
+.ha-diff-hunk {
+    background: rgba(14, 116, 144, 0.12);
+    color: #155e75;
+    font-weight: 600;
+}
+
 /* Legacy button names kept for safety */
 .ha-button-primary {
     composes: ha-btn-primary;

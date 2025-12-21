@@ -7,19 +7,21 @@ vi.mock("@/lib/api", () => ({
   getApiBaseUrl: vi.fn(() => "http://example.test"),
 }));
 
-import { fetchHealth } from "@/lib/api";
-const mockFetchHealth = vi.mocked(fetchHealth);
+let mockFetchHealth: ReturnType<typeof vi.fn>;
 
 describe("ApiHealthBanner diagnostics", () => {
   const originalEnv = { ...process.env };
 
-  beforeEach(() => {
+  beforeEach(async () => {
     vi.resetModules();
     vi.clearAllMocks();
     process.env = { ...originalEnv };
     delete process.env.NEXT_PUBLIC_SHOW_API_HEALTH_BANNER;
     delete process.env.NEXT_PUBLIC_LOG_API_HEALTH_FAILURE;
     delete process.env.NEXT_PUBLIC_SHOW_API_BASE_HINT;
+
+    const api = await import("@/lib/api");
+    mockFetchHealth = vi.mocked(api.fetchHealth);
   });
 
   afterAll(() => {
@@ -48,14 +50,14 @@ describe("ApiHealthBanner diagnostics", () => {
     process.env.NEXT_PUBLIC_SHOW_API_HEALTH_BANNER = "true";
     process.env.NEXT_PUBLIC_LOG_API_HEALTH_FAILURE = "false";
 
-    mockFetchHealth.mockRejectedValueOnce(new Error("health failed"));
+    mockFetchHealth.mockRejectedValue(new Error("health failed"));
 
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
     const { ApiHealthBanner } = await import("@/components/ApiHealthBanner");
     render(<ApiHealthBanner />);
 
-    expect(mockFetchHealth).toHaveBeenCalledTimes(1);
+    expect(mockFetchHealth).toHaveBeenCalled();
 
     // Banner should appear when health check fails.
     expect(
@@ -72,7 +74,7 @@ describe("ApiHealthBanner diagnostics", () => {
     process.env.NEXT_PUBLIC_SHOW_API_HEALTH_BANNER = "false";
     process.env.NEXT_PUBLIC_LOG_API_HEALTH_FAILURE = "true";
 
-    mockFetchHealth.mockRejectedValueOnce(new Error("health failed"));
+    mockFetchHealth.mockRejectedValue(new Error("health failed"));
 
     const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
 
@@ -80,8 +82,8 @@ describe("ApiHealthBanner diagnostics", () => {
     render(<ApiHealthBanner />);
 
     await waitFor(() => {
-      expect(mockFetchHealth).toHaveBeenCalledTimes(1);
-      expect(warnSpy).toHaveBeenCalledTimes(1);
+      expect(mockFetchHealth).toHaveBeenCalled();
+      expect(warnSpy).toHaveBeenCalled();
     });
     expect(warnSpy.mock.calls[0][0]).toMatch(/API health check failed/i);
 

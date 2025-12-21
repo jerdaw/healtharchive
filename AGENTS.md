@@ -56,6 +56,10 @@ From the repo root:
   - `GET /api/snapshot/{id}`
   - `GET /api/snapshots/raw/{id}`
   - `GET /api/usage`
+  - `GET /api/changes`
+  - `GET /api/changes/compare`
+  - `GET /api/changes/rss`
+  - `GET /api/snapshots/{id}/timeline`
 - **Never call admin or observability endpoints** (`/api/admin/**`, `/metrics`) from the frontend.
 
 Environment variables (for local dev):
@@ -82,6 +86,7 @@ When wiring new API calls, keep the **public-only** contract and reuse `src/lib/
   - Snapshot viewer: `src/app/snapshot/[id]/page.tsx`
   - Static content pages: `/methods`, `/researchers`, `/about`, `/contact`
   - Reporting pages: `/status`, `/impact`
+  - Change tracking pages: `/changes`, `/compare`, `/digest`
 - Layout:
   - Shared layout & shell:
     - `src/components/layout/Header.tsx`

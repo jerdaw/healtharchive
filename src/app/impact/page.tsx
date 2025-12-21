@@ -70,9 +70,9 @@ export default async function ImpactPage() {
       <section className="ha-home-hero ha-home-hero-plain space-y-4">
         <h2 className="ha-section-heading">What changed this month</h2>
         <ul className="list-disc pl-5 text-sm text-ha-muted leading-relaxed space-y-1">
-          <li>Launched the public status & metrics page.</li>
-          <li>Added aggregate usage metrics for search, snapshots, and reports.</li>
-          <li>Published a repeatable impact report template.</li>
+          <li>Launched edition-aware change tracking and comparison views.</li>
+          <li>Added a public digest page with RSS feeds for change events.</li>
+          <li>Exposed snapshot timelines to support capture-to-capture auditing.</li>
         </ul>
       </section>
 

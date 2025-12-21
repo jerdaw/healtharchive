@@ -2,7 +2,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { getRecordById } from "@/data/demo-records";
-import { fetchSnapshotDetail, fetchSourceEditions, getApiBaseUrl } from "@/lib/api";
+import {
+  fetchSnapshotDetail,
+  fetchSnapshotTimeline,
+  fetchSourceEditions,
+  getApiBaseUrl,
+} from "@/lib/api";
 import { siteCopy } from "@/lib/siteCopy";
 import { SnapshotReplayClient } from "@/components/replay/SnapshotReplayClient";
 
@@ -121,6 +126,15 @@ export default async function SnapshotPage({
     }
   }
 
+  let timeline: Awaited<ReturnType<typeof fetchSnapshotTimeline>> | null = null;
+  if (usingBackend && snapshotMeta?.id) {
+    try {
+      timeline = await fetchSnapshotTimeline(snapshotMeta.id);
+    } catch {
+      timeline = null;
+    }
+  }
+
   return (
     <PageShell
       eyebrow="Archived snapshot"
@@ -217,6 +231,61 @@ export default async function SnapshotPage({
               .
             </p>
           </div>
+
+          {timeline?.snapshots && timeline.snapshots.length > 1 && (
+            <div className="ha-card p-4 sm:p-5">
+              <h3 className="text-sm font-semibold text-slate-900">
+                Other captures of this page
+              </h3>
+              <p className="mt-1 text-xs text-ha-muted">
+                Compare captures to see descriptive text changes between editions.
+              </p>
+              <ul className="mt-3 space-y-2 text-xs text-slate-800 sm:text-sm">
+                {timeline.snapshots.map((item) => {
+                  const isCurrent = Number(id) === item.snapshotId;
+                  const compareHref =
+                    item.compareFromSnapshotId != null
+                      ? `/compare?from=${item.compareFromSnapshotId}&to=${item.snapshotId}`
+                      : null;
+                  return (
+                    <li
+                      key={item.snapshotId}
+                      className="flex flex-wrap items-center justify-between gap-2 border-b border-ha-border pb-2 last:border-b-0 last:pb-0"
+                    >
+                      <div>
+                        <p className="font-medium text-slate-900">
+                          {formatDate(item.captureDate)}
+                        </p>
+                        <p className="text-xs text-ha-muted">
+                          {item.jobName ? item.jobName : "Edition capture"}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {isCurrent ? (
+                          <span className="ha-tag">This capture</span>
+                        ) : (
+                          <Link
+                            href={`/snapshot/${item.snapshotId}`}
+                            className="ha-btn-secondary text-xs"
+                          >
+                            View snapshot
+                          </Link>
+                        )}
+                        {compareHref ? (
+                          <Link
+                            href={compareHref}
+                            className="ha-btn-secondary text-xs"
+                          >
+                            Compare
+                          </Link>
+                        ) : null}
+                      </div>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
+          )}
         </div>
 
         {/* Embedded snapshot */}

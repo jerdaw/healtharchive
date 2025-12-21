@@ -55,6 +55,10 @@ export default function ResearchersPage() {
             Snapshot detail pages with capture metadata and the archived HTML
             when available.
           </li>
+          <li>
+            Change tracking and compare views that highlight descriptive text
+            differences between archived captures.
+          </li>
         </ul>
         <p className="text-sm sm:text-base leading-relaxed text-ha-muted">
           If you need bulk access, reproducible exports, or specific capture
@@ -88,6 +92,10 @@ export default function ResearchersPage() {
           the example above). When citing, use the exact snapshot URL and
           capture date/time shown on the snapshot detail page you accessed.
         </p>
+        <p className="text-sm sm:text-base leading-relaxed text-ha-muted">
+          When citing a comparison, include both snapshot URLs (A and B), their
+          capture dates, and the HealthArchive compare URL.
+        </p>
       </section>
 
       <section className="ha-home-hero ha-home-hero-plain space-y-4">
@@ -97,14 +105,6 @@ export default function ResearchersPage() {
           </h3>
           <ul className="mt-2 list-disc space-y-1 pl-5 text-xs leading-relaxed sm:text-sm">
             <li>
-              Snapshot-level version history for individual URLs, exposing a
-              timeline of captures for each page.
-            </li>
-            <li>
-              Side-by-side comparison views to highlight textual changes between
-              two archived snapshots.
-            </li>
-            <li>
               Machine-readable exports describing changes over time for selected
               URLs or search queries.
             </li>
@@ -113,7 +113,7 @@ export default function ResearchersPage() {
               with rate limits and sustainability in mind.
             </li>
           </ul>
-          {/* TODO: implement diff generation, comparison UI, and version tracking once the underlying archive is wired up. */}
+          {/* TODO: add exports + research APIs once change tracking data is stable. */}
         </div>
       </section>
     </PageShell>

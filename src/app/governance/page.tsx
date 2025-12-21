@@ -82,6 +82,29 @@ export default function GovernancePage() {
       </section>
 
       <section className="ha-home-hero ha-home-hero-plain space-y-5">
+        <h2 className="ha-section-heading" id="change-tracking">Change tracking policy</h2>
+        <p className="ha-section-subtitle ha-section-lede leading-relaxed">
+          Change tracking highlights text differences between archived captures
+          so researchers and journalists can audit how guidance evolved over
+          time.
+        </p>
+        <ul className="list-disc pl-5 text-sm sm:text-base text-ha-muted leading-relaxed space-y-1">
+          <li>
+            Change summaries are descriptive (for example: sections added or
+            removed) and never interpret meaning.
+          </li>
+          <li>
+            High-noise changes (layout shifts or boilerplate updates) are
+            labeled explicitly.
+          </li>
+          <li>
+            Default feeds are edition-aware, reflecting the archive’s annual
+            capture cadence rather than implying “real-time” updates.
+          </li>
+        </ul>
+      </section>
+
+      <section className="ha-home-hero ha-home-hero-plain space-y-5">
         <h2 className="ha-section-heading" id="corrections">Corrections policy</h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           We correct factual errors in metadata, labeling, and replay access when

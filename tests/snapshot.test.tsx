@@ -16,6 +16,7 @@ vi.mock("next/navigation", () => ({
 
 vi.mock("@/lib/api", () => ({
   fetchSnapshotDetail: vi.fn(),
+  fetchSnapshotTimeline: vi.fn(),
   fetchSourceEditions: vi.fn(),
   resolveReplayUrl: vi.fn(),
   getApiBaseUrl: () => "https://api.example.test",
@@ -53,13 +54,20 @@ vi.mock("@/components/SnapshotFrame", () => ({
   ),
 }));
 
-import { fetchSnapshotDetail, fetchSourceEditions } from "@/lib/api";
+import { fetchSnapshotDetail, fetchSourceEditions, fetchSnapshotTimeline } from "@/lib/api";
 const mockFetchSnapshotDetail = vi.mocked(fetchSnapshotDetail);
 const mockFetchSourceEditions = vi.mocked(fetchSourceEditions);
+const mockFetchSnapshotTimeline = vi.mocked(fetchSnapshotTimeline);
 
 describe("/snapshot/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockFetchSnapshotTimeline.mockResolvedValue({
+      sourceCode: "phac",
+      sourceName: "PHAC",
+      normalizedUrlGroup: "https://example.com",
+      snapshots: [],
+    });
   });
 
   it("renders backend snapshot and iframe", async () => {

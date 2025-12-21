@@ -92,6 +92,76 @@ export type UsageMetrics = {
   daily: UsageMetricsDay[];
 };
 
+export type ChangeEvent = {
+  changeId: number;
+  changeType: string;
+  summary: string | null;
+  highNoise: boolean;
+  diffAvailable: boolean;
+  sourceCode: string | null;
+  sourceName: string | null;
+  normalizedUrlGroup: string | null;
+  fromSnapshotId: number | null;
+  toSnapshotId: number;
+  fromCaptureTimestamp: string | null;
+  toCaptureTimestamp: string | null;
+  fromJobId: number | null;
+  toJobId: number | null;
+  addedSections: number | null;
+  removedSections: number | null;
+  changedSections: number | null;
+  addedLines: number | null;
+  removedLines: number | null;
+  changeRatio: number | null;
+};
+
+export type ChangeFeed = {
+  enabled: boolean;
+  total: number;
+  page: number;
+  pageSize: number;
+  results: ChangeEvent[];
+};
+
+export type ChangeCompareSnapshot = {
+  snapshotId: number;
+  title: string | null;
+  captureDate: string;
+  captureTimestamp: string | null;
+  originalUrl: string;
+  jobId: number | null;
+  jobName: string | null;
+};
+
+export type ChangeCompare = {
+  event: ChangeEvent;
+  fromSnapshot: ChangeCompareSnapshot | null;
+  toSnapshot: ChangeCompareSnapshot;
+  diffFormat: string | null;
+  diffHtml: string | null;
+  diffTruncated: boolean;
+  diffVersion: string | null;
+  normalizationVersion: string | null;
+};
+
+export type SnapshotTimelineItem = {
+  snapshotId: number;
+  captureDate: string;
+  captureTimestamp: string | null;
+  jobId: number | null;
+  jobName: string | null;
+  title: string | null;
+  statusCode: number | null;
+  compareFromSnapshotId: number | null;
+};
+
+export type SnapshotTimeline = {
+  sourceCode: string | null;
+  sourceName: string | null;
+  normalizedUrlGroup: string | null;
+  snapshots: SnapshotTimelineItem[];
+};
+
 export type ReplayResolveResponse = {
   found: boolean;
   snapshotId: number | null;
@@ -241,6 +311,49 @@ export async function fetchArchiveStats(): Promise<ArchiveStats> {
 
 export async function fetchUsageMetrics(): Promise<UsageMetrics> {
   return fetchJson<UsageMetrics>("/api/usage");
+}
+
+export type ChangeQueryParams = {
+  source?: string;
+  jobId?: number;
+  latest?: boolean;
+  includeUnchanged?: boolean;
+  from?: string;
+  to?: string;
+  page?: number;
+  pageSize?: number;
+};
+
+export async function fetchChanges(params: ChangeQueryParams): Promise<ChangeFeed> {
+  const query = new URLSearchParams();
+  if (params.source) query.set("source", params.source);
+  if (params.jobId) query.set("jobId", String(params.jobId));
+  if (params.latest) query.set("latest", "true");
+  if (params.includeUnchanged) query.set("includeUnchanged", "true");
+  if (params.from) query.set("from", params.from);
+  if (params.to) query.set("to", params.to);
+  if (params.page && params.page > 1) query.set("page", String(params.page));
+  if (params.pageSize) query.set("pageSize", String(params.pageSize));
+
+  return fetchJson<ChangeFeed>("/api/changes", query);
+}
+
+export async function fetchChangeCompare(params: {
+  toSnapshotId: number;
+  fromSnapshotId?: number | null;
+}): Promise<ChangeCompare> {
+  const query = new URLSearchParams();
+  query.set("toSnapshotId", String(params.toSnapshotId));
+  if (params.fromSnapshotId) {
+    query.set("fromSnapshotId", String(params.fromSnapshotId));
+  }
+  return fetchJson<ChangeCompare>("/api/changes/compare", query);
+}
+
+export async function fetchSnapshotTimeline(
+  snapshotId: number,
+): Promise<SnapshotTimeline> {
+  return fetchJson<SnapshotTimeline>(`/api/snapshots/${snapshotId}/timeline`);
 }
 
 export async function resolveReplayUrl(params: {

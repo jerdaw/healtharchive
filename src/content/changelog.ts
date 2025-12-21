@@ -6,6 +6,15 @@ export type ChangelogEntry = {
 
 export const changelogEntries: ChangelogEntry[] = [
   {
+    date: "2025-12-22",
+    title: "Change tracking and comparison",
+    items: [
+      "Launched edition-aware change tracking feeds and comparison views.",
+      "Added snapshot timelines to support capture-to-capture comparisons.",
+      "Published a public digest page with RSS feeds for change events.",
+    ],
+  },
+  {
     date: "2025-12-21",
     title: "Status metrics and impact reporting",
     items: [

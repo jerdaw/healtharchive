@@ -48,6 +48,10 @@ are centralized in `src/lib/siteCopy.ts`.
 -   Public reporting surfaces:
     -   `/status` shares coverage, freshness, and operational status.
     -   `/impact` provides a lightweight monthly impact report (fed by `/api/usage`).
+-   Change tracking surfaces:
+    -   `/changes` for edition-aware change feeds.
+    -   `/compare` for side-by-side diff views.
+    -   `/digest` for RSS links and digest context.
 
 ---
 
