@@ -5,7 +5,7 @@ export default function AboutPage() {
     <PageShell
       eyebrow="About the project"
       title="Why HealthArchive.ca exists"
-      intro="This project grew out of concern that critical public health information can quietly change or disappear online. The goal is to create an independent, transparent record of what was published, when."
+      intro="This project grew out of concern that critical public health information can quietly change or disappear online. The goal is to create an independent, transparent, citable record of what was published and when."
     >
       <section className="ha-home-hero space-y-5">
         <h2 className="ha-section-heading">Motivation</h2>
@@ -19,7 +19,8 @@ export default function AboutPage() {
         <p className="text-sm sm:text-base leading-relaxed text-ha-muted">
           HealthArchive.ca is an attempt to address that problem for Canadian
           public health information by creating a stable, independently managed
-          record of key pages and documents.
+          record of key pages and documents that can be referenced in research,
+          journalism, and public communication.
         </p>
       </section>
 

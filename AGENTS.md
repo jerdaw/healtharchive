@@ -17,6 +17,7 @@
 - Primary documentation for humans and agents:
   - `docs/implementation-guide.md` → architecture, routes, styling system, deployment details.
   - `docs/deployment/verification.md` → Preview/Production CSP/CORS/snapshot viewer verification.
+- Canonical public-facing copy (mission + workflow disclaimers) lives in `src/lib/siteCopy.ts` and should be reused rather than duplicated across pages.
 
 When you’re unsure about architecture, routes, or design decisions, **read `docs/implementation-guide.md` first instead of guessing**.
 

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { SnapshotFrame } from "@/components/SnapshotFrame";
 import { resolveReplayUrl } from "@/lib/api";
+import { buildBrowseDisclaimer, siteCopy } from "@/lib/siteCopy";
 
 import type { ReplayEdition } from "./replayUtils";
 import {
@@ -211,6 +212,10 @@ export function BrowseReplayClient({
                     · backup <span className="font-medium">job-{activeJobId}</span>
                   </>
                 )}
+              </p>
+              <p className="mt-2 text-[11px] font-medium text-amber-800">
+                {buildBrowseDisclaimer({ captureLabel: displayedCapture })}{" "}
+                {siteCopy.whatThisSiteIs.forCurrent}.
               </p>
 
               {showEditionSelect && (

@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { PageShell } from "@/components/layout/PageShell";
 import { getRecordById } from "@/data/demo-records";
 import { fetchSnapshotDetail, fetchSourceEditions, getApiBaseUrl } from "@/lib/api";
+import { siteCopy } from "@/lib/siteCopy";
 import { SnapshotReplayClient } from "@/components/replay/SnapshotReplayClient";
 
 function formatDate(iso: string | undefined | null): string {
@@ -189,16 +190,15 @@ export default async function SnapshotPage({
             </div>
           </div>
 
-          <div className="ha-callout">
-            <h3 className="ha-callout-title">Important note</h3>
-            <p className="text-xs leading-relaxed sm:text-sm">
-              Archived content reflects what public websites displayed at the
-              time of capture. It may be incomplete, outdated, or superseded.
-              Nothing in this viewer should be treated as current clinical
-              guidance or official policy. For up-to-date recommendations,
-              always refer to the relevant official websites.
-            </p>
-          </div>
+	          <div className="ha-callout">
+	            <h3 className="ha-callout-title">Important note</h3>
+	            <p className="text-xs leading-relaxed sm:text-sm">
+	              Archived content reflects what public websites displayed at the
+	              time of capture. {siteCopy.whatThisSiteIs.limitations} This is
+	              not medical advice and should not be treated as current guidance
+	              or official policy. {siteCopy.whatThisSiteIs.forCurrent}.
+	            </p>
+	          </div>
         </div>
 
         {/* Embedded snapshot */}

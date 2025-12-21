@@ -85,6 +85,8 @@ describe("/snapshot/[id]", () => {
 
     expect(screen.getAllByText(/Snapshot Title/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Browse full screen/i).length).toBeGreaterThan(0);
+    expect(screen.getByText(/Important note/i)).toBeInTheDocument();
+    expect(screen.getByText(/not medical advice/i)).toBeInTheDocument();
   });
 
   it("shows error overlay and links when iframe fails", async () => {

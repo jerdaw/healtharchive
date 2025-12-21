@@ -43,6 +43,11 @@ describe("/archive/browse-by-source", () => {
     const ui = await BrowseBySourcePage();
     render(ui);
 
+    expect(screen.getByText(/Important note/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/not current guidance or medical advice/i),
+    ).toBeInTheDocument();
+
     expect(screen.getByText("PHAC")).toBeInTheDocument();
     expect(screen.getByText(/2 snapshot/i)).toBeInTheDocument();
   });

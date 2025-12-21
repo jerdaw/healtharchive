@@ -70,9 +70,9 @@ export default function ResearchersPage() {
         </p>
         <div className="ha-card ha-home-panel p-4 sm:p-5 text-xs text-slate-800 sm:text-sm space-y-1">
           HealthArchive.ca Project. “&lt;Page title&gt;” (snapshot from &lt;
-          capture date&gt;). Archived copy of &lt;original agency&gt; web page
-          (&lt;original URL&gt;). Accessed &lt;access date&gt;. Available from:
-          &lt;HealthArchive.ca archived URL&gt;.
+          capture date/time&gt;). Archived copy of &lt;original agency&gt; web
+          page (&lt;original URL&gt;). Accessed &lt;access date&gt;. Available
+          from: &lt;HealthArchive.ca snapshot URL&gt;.
         </div>
         <p className="text-sm sm:text-base leading-relaxed text-ha-muted">
           For example, for a COVID-19 epidemiology update snapshot:
@@ -81,8 +81,13 @@ export default function ResearchersPage() {
           HealthArchive.ca Project. “COVID-19 epidemiology update: Canada”
           (snapshot from 15 Feb 2025). Archived copy of Public Health Agency of
           Canada web page (https://www.canada.ca/...). Accessed 3 Dec 2025.
-          Available from: https://healtharchive.ca/snapshot/phac-2025-02-15-covid-epi.
+          Available from: https://healtharchive.ca/snapshot/12345.
         </div>
+        <p className="text-sm sm:text-base leading-relaxed text-ha-muted">
+          Snapshot URLs in the live archive typically use a numeric ID (as in
+          the example above). When citing, use the exact snapshot URL and
+          capture date/time shown on the snapshot detail page you accessed.
+        </p>
       </section>
 
       <section className="ha-home-hero ha-home-hero-plain space-y-4">

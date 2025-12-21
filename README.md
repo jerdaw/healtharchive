@@ -13,6 +13,9 @@ This repository contains the **Next.js frontend** for the public site at:
 > (configured via `NEXT_PUBLIC_API_BASE_URL`), and gracefully falls back to the
 > bundled offline sample dataset when the API is unreachable.
 
+Public-facing narrative and workflow disclaimers (used across Home/Archive/Snapshot/Browse)
+are centralized in `src/lib/siteCopy.ts`.
+
 ---
 
 ## Tech stack

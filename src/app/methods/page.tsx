@@ -5,7 +5,7 @@ export default function MethodsPage() {
     <PageShell
       eyebrow="Methods & coverage"
       title="How HealthArchive.ca is being built"
-      intro="This page outlines the emerging approach for capturing, preserving, and replaying public health web content. It reflects an early-stage design and will be expanded as the infrastructure matures."
+      intro="This page outlines how HealthArchive.ca captures, preserves, indexes, and replays snapshots of public health web content. The project is in development and coverage is still expanding, but the core archive pipeline is already in place."
     >
       <section className="ha-home-hero space-y-5">
         <h2 className="ha-section-heading">Scope of the archive (early phase)</h2>
@@ -29,14 +29,25 @@ export default function MethodsPage() {
           selected international comparators where appropriate, but the backbone
           will remain Canadian public health information.
         </p>
+        <p className="text-sm sm:text-base leading-relaxed text-ha-muted">
+          Scope is intentionally constrained and defined with explicit inclusion
+          and exclusion rules per source so the project can prioritize reliable
+          provenance over breadth.
+        </p>
+        <p className="text-sm sm:text-base leading-relaxed text-ha-muted">
+          The default capture cadence is an annual “edition” captured on{" "}
+          <span className="font-medium">Jan 01 (UTC)</span> for each source, with
+          occasional ad-hoc captures when major events or operational needs
+          justify it.
+        </p>
       </section>
 
       <section className="ha-home-hero ha-home-hero-plain space-y-5">
         <h2 className="ha-section-heading">Capture methods</h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
-          The live system is intended to use browser-based crawlers and
-          standards-based web archive formats. Conceptually, each capture works
-          as follows:
+          HealthArchive.ca uses browser-based crawling and standards-based web
+          archive formats (WARCs). At a high level, each capture works as
+          follows:
         </p>
         <ol className="list-decimal pl-5 text-sm sm:text-base text-ha-muted leading-relaxed space-y-1">
           <li>
@@ -44,9 +55,8 @@ export default function MethodsPage() {
             rules about what to include or exclude.
           </li>
           <li>
-            A browser-based crawler (for example, one compatible with WARC
-            output) visits each page, executing JavaScript and recording
-            responses.
+            A browser-based crawler visits in-scope pages, executes JavaScript
+            where needed, and records responses into web archive files.
           </li>
           <li>
             Responses are stored in archive files alongside metadata such as
@@ -54,10 +64,10 @@ export default function MethodsPage() {
           </li>
         </ol>
         <p className="text-sm sm:text-base leading-relaxed text-ha-muted">
-          HealthArchive.ca stores captures in standards-based web archive formats
-          (such as WARCs) and indexes them into a searchable database. The public
-          site replays archived HTML via the backend; replay fidelity varies by
-          site and content type.
+          Captures are stored in WARCs and indexed into a searchable database.
+          The public site replays archived HTML via the backend and, when
+          available, can also offer higher-fidelity browsing through a replay
+          service. Replay fidelity varies by site and content type.
         </p>
         <p className="text-sm sm:text-base leading-relaxed text-ha-muted">
           Date range filters in the archive explorer use UTC capture dates.
@@ -67,9 +77,9 @@ export default function MethodsPage() {
       <section className="ha-home-hero ha-home-hero-plain space-y-5">
         <h2 className="ha-section-heading">Storage & replay</h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
-          In a full deployment, the archive would rely on dedicated storage for
-          WARC files and a replay engine such as pywb to render historical
-          snapshots in a browser. The goals for replay are:
+          The archive relies on dedicated storage for WARC files. When replay is
+          enabled, a replay engine such as pywb can render higher-fidelity
+          historical snapshots in a browser. The goals for replay are:
         </p>
         <ul className="list-disc pl-5 text-sm sm:text-base text-ha-muted leading-relaxed space-y-1">
           <li>Preserve the original URL structure where possible.</li>
@@ -98,7 +108,7 @@ export default function MethodsPage() {
               <strong>Not official guidance:</strong> Archived content reflects
               what public sites showed at the time of capture. It may be
               incomplete, outdated, or superseded, and should not be treated as
-              current clinical guidance.
+              current clinical guidance or medical advice.
             </li>
             <li>
               <strong>Sampling and coverage:</strong> Early phases focus on

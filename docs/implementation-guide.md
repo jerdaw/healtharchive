@@ -649,6 +649,9 @@ All in `src/data/demo-records.ts`:
     5. **Callout: “What this site is (and isn’t)”**
 
         - Bullet list clarifying scope and limitations.
+        - Core public-facing narrative + disclaimers are centralized in
+          `src/lib/siteCopy.ts` so changes stay consistent across Home, Archive,
+          Snapshot, and Browse workflows.
 
 ### 8.2 Archive search `/archive` – `src/app/archive/page.tsx`
 

@@ -88,6 +88,9 @@ describe("/browse/[id]", () => {
     render(ui);
 
     expect(screen.getByText(/Browsing archived site/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/not current guidance or medical advice/i),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Health Canada/i)).toBeInTheDocument();
     expect(screen.getByLabelText(/Switch backup/i)).toBeInTheDocument();
     expect(screen.getByText(/Open in replay/i)).toBeInTheDocument();

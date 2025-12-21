@@ -144,6 +144,11 @@ describe("/archive", () => {
     });
     render(ui);
 
+    expect(screen.getByText(/Important note/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/not current guidance or medical advice/i),
+    ).toBeInTheDocument();
+
     const img = screen.getByAltText("Health Canada preview");
     expect(img).toHaveAttribute(
       "src",
@@ -192,6 +197,11 @@ describe("/archive", () => {
       searchParams: Promise.resolve({ q: "test", source: "phac" }),
     });
     render(ui);
+
+    expect(screen.getByText(/Important note/i)).toBeInTheDocument();
+    expect(
+      screen.getByText(/not current guidance or medical advice/i),
+    ).toBeInTheDocument();
 
     expect(
       screen.getByRole("link", { name: /test snapshot/i }),

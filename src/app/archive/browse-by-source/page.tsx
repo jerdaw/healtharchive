@@ -6,6 +6,7 @@ import {
   getApiBaseUrl,
   type SourceSummary as ApiSourceSummary,
 } from "@/lib/api";
+import { siteCopy } from "@/lib/siteCopy";
 
 function formatDate(iso: string | undefined | null): string {
   if (!iso) return "Unknown";
@@ -98,6 +99,13 @@ export default async function BrowseBySourcePage() {
         "This view summarizes which snapshots are available for each source. Coverage and features are still expanding."
       }
     >
+      <div className="ha-callout mb-6">
+        <h2 className="ha-callout-title">Important note</h2>
+        <p className="mt-2 text-xs leading-relaxed sm:text-sm">
+          {siteCopy.workflow.archiveSummary} {siteCopy.whatThisSiteIs.limitations}{" "}
+          {siteCopy.whatThisSiteIs.forCurrent}.
+        </p>
+      </div>
       {!usingBackend && (
         <div className="ha-callout mb-6">
           <h3 className="ha-callout-title">Live API unavailable</h3>

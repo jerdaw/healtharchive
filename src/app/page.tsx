@@ -5,6 +5,7 @@ import { AnimatedMetric } from "@/components/home/AnimatedMetric";
 import { HoverGlowLink } from "@/components/home/HoverGlowLink";
 import { ProjectSnapshotOrchestrator } from "@/components/home/ProjectSnapshotOrchestrator";
 import { fetchArchiveStats } from "@/lib/api";
+import { siteCopy } from "@/lib/siteCopy";
 
 export default async function HomePage() {
     const fallbackRecordCount = demoRecords.length;
@@ -34,11 +35,11 @@ export default async function HomePage() {
                         </h1>
                         <p className="text-sm leading-relaxed text-ha-muted sm:text-base ha-home-hero-lede">
                             HealthArchive.ca is a volunteer-led project
-                            preserving snapshots of key Canadian public health
-                            websites, so clinicians, researchers, journalists,
-                            and the public can see what was published at
-                            specific points in time—even if pages move, are
-                            updated, or disappear.
+                            preserving time-stamped snapshots of selected
+                            Canadian public health web pages, so researchers,
+                            journalists, educators, clinicians, and the public
+                            can cite what was published at specific points in
+                            time—even if pages move, are updated, or disappear.
                         </p>
                         <div className="ha-home-hero-meta text-xs text-ha-muted pt-1">
                             <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-1 text-[11px] font-semibold uppercase tracking-wide text-amber-800">
@@ -106,9 +107,11 @@ export default async function HomePage() {
                 <div className="ha-home-hero space-y-7">
                     <h2 className="ha-section-heading">Who is this for?</h2>
                     <p className="ha-section-subtitle ha-section-lede leading-relaxed">
-                        The archive serves clinicians, researchers, journalists,
-                        and the public who need past public health guidance to
-                        stay citable and discoverable as websites shift over time.
+                        The archive is designed first for researchers,
+                        journalists, and educators, and is also useful for
+                        clinicians and the public who need past public health
+                        guidance to stay citable and discoverable as websites
+                        shift over time.
                     </p>
                     <div className="ha-grid-3 gap-4 md:gap-5 pt-5 md:pt-6">
                         <div className="ha-card ha-audience-card p-4 sm:p-5">
@@ -226,22 +229,19 @@ export default async function HomePage() {
                         </h3>
                         <ul className="list-disc space-y-2 pl-5 text-xs leading-relaxed sm:text-sm text-ha-muted">
                             <li>
-                                <strong>Is:</strong> an independent archive of
-                                snapshots from Canadian public health websites,
-                                captured at specific points in time.
+                                <strong>Is:</strong>{" "}
+                                {siteCopy.whatThisSiteIs.is}
                             </li>
                             <li>
-                                <strong>Is not:</strong> an official government
-                                website, and it should not be used as
-                                up-to-date clinical guidance.
+                                <strong>Is not:</strong>{" "}
+                                {siteCopy.whatThisSiteIs.isNot}
                             </li>
                             <li>
                                 Coverage is still expanding. If you can&apos;t
                                 find a page, it may not have been captured yet.
                             </li>
                             <li>
-                                For current guidance, always refer to the
-                                relevant official websites (e.g.,{" "}
+                                {siteCopy.whatThisSiteIs.forCurrent} (e.g.,{" "}
                                 <span className="font-medium">
                                     canada.ca/public-health
                                 </span>

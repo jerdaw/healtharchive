@@ -7,6 +7,7 @@ import {
     searchSnapshots,
     type SearchParams as ApiSearchParams,
 } from "@/lib/api";
+import { siteCopy } from "@/lib/siteCopy";
 import { ApiHealthBanner } from "@/components/ApiHealthBanner";
 import { HoverGlowButton } from "@/components/home/HoverGlowButton";
 import { SearchResultCard } from "@/components/archive/SearchResultCard";
@@ -387,6 +388,26 @@ export default async function ArchivePage({
             hideHeaderVisually
         >
             <ApiHealthBanner />
+            <section className="mb-4">
+                <div className="ha-callout">
+                    <h2 className="ha-callout-title">Important note</h2>
+                    <p className="mt-2 text-xs leading-relaxed sm:text-sm">
+                        {siteCopy.workflow.archiveSummary}{" "}
+                        {siteCopy.whatThisSiteIs.limitations}{" "}
+                        {siteCopy.whatThisSiteIs.forCurrent}.
+                    </p>
+                    <p className="mt-3 text-xs leading-relaxed sm:text-sm">
+                        For background on coverage and capture methods, see{" "}
+                        <Link
+                            href="/methods"
+                            className="font-medium text-ha-accent hover:text-blue-700"
+                        >
+                            Methods &amp; coverage
+                        </Link>
+                        .
+                    </p>
+                </div>
+            </section>
             {sourceSummaries.length > 0 && (
                 <section className="ha-home-panel-gradient ha-home-panel-gradient-compact mb-4 space-y-3">
                     <div className="flex flex-wrap items-baseline justify-between gap-3">
