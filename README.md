@@ -45,6 +45,9 @@ are centralized in `src/lib/siteCopy.ts`.
     -   Hero animation orchestration:
         -   `TrackChangesPhrase` dispatches `ha-trackchanges-finished` when the “before → after” typing sequence completes.
         -   The homepage “Project snapshot” metrics start on that event and then dispatch `ha-project-snapshot-finished` after all metric animations complete, which triggers the final “before” removal.
+-   Public reporting surfaces:
+    -   `/status` shares coverage, freshness, and operational status.
+    -   `/impact` provides a lightweight monthly impact report (fed by `/api/usage`).
 
 ---
 
@@ -163,6 +166,7 @@ Vitest + Testing Library with mocked fetch; no live backend needed.
     -   `/archive/browse-by-source`: uses backend source summaries; falls back to offline sample summaries with a notice.
     -   `/snapshot/[id]`: fetches backend snapshot detail first; prefers a replay `browseUrl` when configured (full-fidelity CSS/JS/images) and falls back to raw HTML (`/api/snapshots/raw/{id}`) or offline sample HTML when needed.
     -   Policy pages: `/governance`, `/terms`, `/privacy`, `/changelog`, `/report`.
+    -   Service reporting: `/status` (metrics) and `/impact` (monthly report).
     -   `/browse/[id]`: full-screen “browse archived site” mode with a persistent HealthArchive banner/controls above the replay iframe.
 -   Health diagnostics (optional): set `NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=true` to surface a small banner when the backend health check fails (useful in dev/staging).
     -   If the health banner is off, you can still log failures by setting `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true` (dev-only).

@@ -74,6 +74,24 @@ export type ArchiveStats = {
   latestCaptureAgeDays: number | null;
 };
 
+export type UsageMetricsCounts = {
+  searchRequests: number;
+  snapshotDetailViews: number;
+  rawSnapshotViews: number;
+  reportSubmissions: number;
+};
+
+export type UsageMetricsDay = UsageMetricsCounts & {
+  date: string;
+};
+
+export type UsageMetrics = {
+  enabled: boolean;
+  windowDays: number;
+  totals: UsageMetricsCounts;
+  daily: UsageMetricsDay[];
+};
+
 export type ReplayResolveResponse = {
   found: boolean;
   snapshotId: number | null;
@@ -219,6 +237,10 @@ export async function fetchArchiveStats(): Promise<ArchiveStats> {
     cache: "force-cache",
     next: { revalidate: 300 },
   });
+}
+
+export async function fetchUsageMetrics(): Promise<UsageMetrics> {
+  return fetchJson<UsageMetrics>("/api/usage");
 }
 
 export async function resolveReplayUrl(params: {

@@ -17,6 +17,10 @@ export default function PrivacyPage() {
             agent) may be retained for security and operational monitoring.
           </li>
           <li>
+            Aggregate usage counts (for example: daily search requests and
+            snapshot views) may be recorded without personal identifiers.
+          </li>
+          <li>
             When you submit a report, we store the details you provide so we can
             investigate and respond.
           </li>

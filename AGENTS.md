@@ -55,6 +55,7 @@ From the repo root:
   - `GET /api/sources`
   - `GET /api/snapshot/{id}`
   - `GET /api/snapshots/raw/{id}`
+  - `GET /api/usage`
 - **Never call admin or observability endpoints** (`/api/admin/**`, `/metrics`) from the frontend.
 
 Environment variables (for local dev):
@@ -80,6 +81,7 @@ When wiring new API calls, keep the **public-only** contract and reuse `src/lib/
   - Archive/search/browse: under `src/app/archive/**`
   - Snapshot viewer: `src/app/snapshot/[id]/page.tsx`
   - Static content pages: `/methods`, `/researchers`, `/about`, `/contact`
+  - Reporting pages: `/status`, `/impact`
 - Layout:
   - Shared layout & shell:
     - `src/components/layout/Header.tsx`

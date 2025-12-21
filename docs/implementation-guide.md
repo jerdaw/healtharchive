@@ -38,6 +38,7 @@ You’re joining after:
     -   A search UI (`/archive`) and browse-by-source UI (`/archive/browse-by-source`).
     -   A snapshot viewer route (`/snapshot/[id]`).
     -   Policy and governance routes (`/governance`, `/terms`, `/privacy`, `/changelog`, `/report`).
+    -   Service reporting routes (`/status`, `/impact`).
 
 -   Deployment is live on **Vercel**, with **Namecheap DNS** pointing at Vercel.
 
@@ -96,6 +97,7 @@ npm test
     -   `GET /api/snapshots/raw/{id}` (raw HTML for the viewer)
     -   `GET /api/stats` (lightweight archive totals used on the homepage)
     -   `GET /api/health` (health check)
+    -   `GET /api/usage` (aggregated usage metrics)
 -   The frontend does **not** call admin or observability endpoints such as
     `/api/admin/**` or `/metrics`; those are reserved for backend operators and
     monitoring systems.
@@ -821,7 +823,17 @@ All text is stable, but can be refined later.
     -   `/report` uses `src/components/report/ReportIssueForm.tsx` and posts to
       the backend issue intake endpoint via `src/app/api/report/route.ts`.
 
-### 8.9 Snapshot viewer `/snapshot/[id]` – `src/app/snapshot/[id]/page.tsx`
+### 8.9 Status & impact reporting
+
+-   Routes:
+
+    -   `/status` – public status and metrics page (uses `/api/health`, `/api/stats`, `/api/sources`, `/api/usage`).
+    -   `/impact` – monthly impact report baseline (uses `/api/stats` and `/api/usage`).
+
+-   Both pages are server components that tolerate backend failures by showing
+    a fallback callout instead of crashing.
+
+### 8.10 Snapshot viewer `/snapshot/[id]` – `src/app/snapshot/[id]/page.tsx`
 
 -   Async server component with `params` as **Promise** (Next 16 dynamic API).
 
@@ -884,7 +896,7 @@ All text is stable, but can be refined later.
 
 -   **Important**: the offline sample `snapshotPath` is relative to `/public`, but used as an absolute path in `href`/`src` (e.g., `/demo-archive/hc/2024-11-01-covid-vaccines.html`).
 
-### 8.10 Full-screen browse `/browse/[id]` – `src/app/browse/[id]/page.tsx`
+### 8.11 Full-screen browse `/browse/[id]` – `src/app/browse/[id]/page.tsx`
 
 -   Async server component that prefers backend `GET /api/snapshot/{id}` (via `fetchSnapshotDetail()`).
 -   Uses `browseUrl` (replay) when available and falls back to raw HTML when replay is not configured.
@@ -970,7 +982,7 @@ We followed an 8-phase plan. Status:
 
 -   **Phase 3 – Page skeletons & content migration**
 
-    -   ✅ Routes `/`, `/archive`, `/archive/browse-by-source`, `/methods`, `/researchers`, `/about`, `/contact`, `/governance`, `/terms`, `/privacy`, `/changelog`, `/report` created.
+    -   ✅ Routes `/`, `/archive`, `/archive/browse-by-source`, `/methods`, `/researchers`, `/about`, `/contact`, `/governance`, `/terms`, `/privacy`, `/changelog`, `/report`, `/status`, `/impact` created.
     -   ✅ Original single-page content split and restructured into these routes.
 
 -   **Phase 4 – Data model & demo API**

@@ -28,6 +28,12 @@ export function Footer() {
           <Link className="font-medium text-ha-accent hover:text-blue-700" href="/governance">
             Governance
           </Link>
+          <Link className="font-medium text-ha-accent hover:text-blue-700" href="/status">
+            Status
+          </Link>
+          <Link className="font-medium text-ha-accent hover:text-blue-700" href="/impact">
+            Impact
+          </Link>
           <Link className="font-medium text-ha-accent hover:text-blue-700" href="/terms">
             Terms
           </Link>
