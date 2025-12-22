@@ -7,6 +7,8 @@ This folder contains documentation for the **HealthArchive frontend**
 
 - Main guide (architecture, design system, routes, deployment notes):
   - `implementation-guide.md`
+- Documentation guidelines (canonical, cross-repo):
+  - `healtharchive-backend/docs/documentation-guidelines.md`
 
 ## Deployment
 
