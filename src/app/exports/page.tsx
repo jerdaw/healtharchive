@@ -6,6 +6,7 @@ import { getApiBaseUrl } from "@/lib/api";
 export default function ExportsPage() {
   const apiBase = getApiBaseUrl();
   const manifestUrl = `${apiBase}/api/exports`;
+  const datasetReleasesUrl = "https://github.com/jerdaw/healtharchive-datasets/releases";
 
   return (
     <PageShell
@@ -26,6 +27,21 @@ export default function ExportsPage() {
           >
             {manifestUrl}
           </a>
+        </div>
+        <div className="ha-callout">
+          <h3 className="ha-callout-title">Dataset releases</h3>
+          <p className="mt-2 text-xs leading-relaxed sm:text-sm">
+            Quarterly metadata-only dataset releases are published on GitHub with
+            checksums.
+          </p>
+          <p className="mt-3 text-xs leading-relaxed sm:text-sm">
+            <Link
+              className="font-medium text-ha-accent hover:text-blue-700"
+              href={datasetReleasesUrl}
+            >
+              HealthArchive dataset releases
+            </Link>
+          </p>
         </div>
         <div className="ha-callout">
           <h3 className="ha-callout-title">Download / print</h3>
@@ -123,4 +139,3 @@ export default function ExportsPage() {
     </PageShell>
   );
 }
-

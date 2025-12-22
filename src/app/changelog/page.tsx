@@ -47,6 +47,13 @@ export default function ChangelogPage() {
             >
               backend repository
             </Link>
+            {" "}and{" "}
+            <Link
+              href="https://github.com/jerdaw/healtharchive-datasets/releases"
+              className="font-medium text-ha-accent hover:text-blue-700"
+            >
+              dataset releases
+            </Link>
             .
           </p>
         </div>
