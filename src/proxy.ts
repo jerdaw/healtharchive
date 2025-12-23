@@ -7,7 +7,7 @@ function stripLeadingLocale(pathname: string): string {
   return pathname.replace(/^\/(en|fr)(?=\/|$)/, "");
 }
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Redirect default-locale URLs that include the `/en` prefix to the canonical
