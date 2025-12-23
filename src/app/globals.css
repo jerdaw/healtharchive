@@ -186,9 +186,13 @@ a:focus-visible {
 .ha-utility-switch-item--locale {
   padding: 0 0.55rem;
   font-size: 0.72rem;
-  font-weight: 550;
+  font-weight: 500;
   letter-spacing: 0.07em;
   text-transform: uppercase;
+}
+
+.ha-utility-switch-item--locale:hover {
+  font-weight: 650;
 }
 
 .ha-utility-switch-item--locale::before {
@@ -205,7 +209,7 @@ a:focus-visible {
     color-mix(in srgb, var(--muted) 55%, transparent) 55%,
     transparent 100%
   );
-  opacity: 0.5;
+  opacity: 0.375;
   pointer-events: none;
 }
 
