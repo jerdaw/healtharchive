@@ -187,14 +187,20 @@ a:focus-visible {
 }
 
 .ha-locale-toggle {
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   height: 2rem;
-  padding: 0.15rem;
+  padding: 0 0.85rem;
   border-radius: 999px;
   border: 1px solid var(--border);
   background-color: color-mix(in srgb, var(--surface-bg-soft) 75%, transparent);
   box-shadow: 0 6px 14px rgba(15, 23, 42, 0.06);
+  font-size: 0.72rem;
+  font-weight: 650;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--text);
   text-decoration: none;
   transition:
     background-color 140ms ease-out,
@@ -212,33 +218,8 @@ a:focus-visible {
   outline-offset: 2px;
 }
 
-.ha-locale-toggle-code {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  height: 1.7rem;
-  min-width: 2.05rem;
-  padding: 0 0.55rem;
-  border-radius: 999px;
-  font-size: 0.72rem;
-  font-weight: 650;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  background-color: color-mix(in srgb, var(--card-bg) 92%, transparent);
-  color: var(--text);
-  box-shadow:
-    0 1px 2px rgba(15, 23, 42, 0.12),
-    inset 0 0 0 1px rgba(148, 163, 184, 0.22);
-  transition:
-    background-color 140ms ease-out,
-    box-shadow 140ms ease-out;
-}
-
-.ha-locale-toggle:hover .ha-locale-toggle-code {
-  background-color: color-mix(in srgb, var(--card-bg) 96%, transparent);
-  box-shadow:
-    0 2px 8px rgba(15, 23, 42, 0.14),
-    inset 0 0 0 1px rgba(148, 163, 184, 0.22);
+.ha-locale-toggle-label {
+  line-height: 1;
 }
 
 .ha-typing-caret {

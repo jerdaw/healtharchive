@@ -273,7 +273,7 @@ export function Header() {
             aria-label={languageSwitchAriaLabel}
             className="ha-locale-toggle hidden md:inline-flex"
           >
-            <span className="ha-locale-toggle-code" aria-hidden="true">
+            <span className="ha-locale-toggle-label" aria-hidden="true">
               {languageSwitchLabel}
             </span>
             <span className="sr-only">{languageSwitchAriaLabel}</span>
@@ -398,7 +398,7 @@ export function Header() {
                 className="ha-locale-toggle inline-flex"
                 onClick={() => setMobileOpen(false)}
               >
-                <span className="ha-locale-toggle-code" aria-hidden="true">
+                <span className="ha-locale-toggle-label" aria-hidden="true">
                   {languageSwitchLabel}
                 </span>
                 <span className="sr-only">{languageSwitchAriaLabel}</span>
