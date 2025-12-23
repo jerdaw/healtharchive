@@ -39,20 +39,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Format check
-        run: npm run format:check
-
-      - name: Lint
-        run: npm run lint
-
-      - name: Typecheck
-        run: npm run typecheck
-
-      - name: Test
-        run: npm test
-
-      - name: Build
-        run: npm run build
+      - name: Check
+        run: npm run check
 
       - name: Security audit (npm)
         run: npm audit --audit-level=high || true
