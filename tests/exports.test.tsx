@@ -1,10 +1,11 @@
 import { render, screen } from "@testing-library/react";
 
-import ExportsPage from "@/app/exports/page";
+import ExportsPage from "@/app/[locale]/exports/page";
 
 describe("/exports", () => {
-  it("renders the exports data dictionary link", () => {
-    render(<ExportsPage />);
+  it("renders the exports data dictionary link", async () => {
+    const ui = await ExportsPage();
+    render(ui);
 
     expect(
       screen.getByRole("heading", {

@@ -1,11 +1,12 @@
 "use client";
 
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/i18n/LocalizedLink";
 import { useEffect, useMemo, useState } from "react";
 
 import { SnapshotFrame } from "@/components/SnapshotFrame";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resolveReplayUrl } from "@/lib/api";
-import { buildBrowseDisclaimer, siteCopy } from "@/lib/siteCopy";
+import { buildBrowseDisclaimer, getSiteCopy } from "@/lib/siteCopy";
 
 import type { ReplayEdition } from "./replayUtils";
 import {
@@ -34,7 +35,7 @@ type BrowseReplayClientProps = {
   captureDate: string;
   captureTimestamp: string | null;
   jobId: number | null;
-  originalUrl: string;
+  originalUrl: string | null;
   browseUrl: string | null;
   rawHtmlUrl: string | null;
   apiLink?: string;
@@ -55,12 +56,14 @@ export function BrowseReplayClient({
   apiLink,
   editions,
 }: BrowseReplayClientProps) {
+  const locale = useLocale();
+  const siteCopy = getSiteCopy(locale);
   const initialViewerUrl = browseUrl ?? rawHtmlUrl ?? null;
 
   const [iframeSrc, setIframeSrc] = useState<string | null>(initialViewerUrl);
   const [activeJobId, setActiveJobId] = useState<number | null>(jobId);
   const [currentOriginalUrl, setCurrentOriginalUrl] = useState<string>(
-    stripUrlFragment(originalUrl) || originalUrl,
+    originalUrl ? stripUrlFragment(originalUrl) || originalUrl : "",
   );
   const [currentTimestamp14, setCurrentTimestamp14] = useState<string | null>(
     isoToTimestamp14(captureTimestamp),
@@ -110,11 +113,12 @@ export function BrowseReplayClient({
     Boolean(browseUrl && replayOrigin) && activeJobId != null && editionOptions.length > 1;
 
   const displayedCapture =
-    timestamp14ToDateLabel(currentTimestamp14) ?? dateIsoToLabel(captureDate);
+    timestamp14ToDateLabel(currentTimestamp14, locale) ?? dateIsoToLabel(captureDate, locale);
+  const unknownUrlLabel = locale === "fr" ? "URL inconnue" : "Unknown URL";
   const reportHref = useMemo(() => {
     const params = new URLSearchParams();
     if (snapshotId) params.set("snapshot", snapshotId);
-    if (currentOriginalUrl && currentOriginalUrl !== "Unknown URL") {
+    if (currentOriginalUrl) {
       params.set("url", currentOriginalUrl);
     }
     params.set("page", `/browse/${snapshotId}`);
@@ -159,7 +163,9 @@ export function BrowseReplayClient({
         setActiveJobId(nextJobId);
         setCurrentReplayUrl(edition.entryBrowseUrl);
         setEditionNotice(
-          "This page was not captured in the selected backup; showing its entry page instead.",
+          locale === "fr"
+            ? "Cette page n’a pas été capturée dans l’édition sélectionnée; affichage de la page d’entrée de l’édition à la place."
+            : "This page was not captured in the selected edition; showing the edition’s entry page instead.",
         );
         return;
       }
@@ -169,7 +175,9 @@ export function BrowseReplayClient({
       setActiveJobId(nextJobId);
       setCurrentReplayUrl(timegateUrl);
       setEditionNotice(
-        "Could not find an exact capture for this page in that backup; showing the closest capture if available.",
+        locale === "fr"
+          ? "Aucune capture exacte trouvée pour cette page dans cette édition; affichage de la capture la plus proche disponible."
+          : "No exact capture found for this page in that edition; showing the closest available capture.",
       );
     } catch {
       const nextSrc = buildReplayUrl(
@@ -182,7 +190,9 @@ export function BrowseReplayClient({
       setActiveJobId(nextJobId);
       setCurrentReplayUrl(nextSrc);
       setEditionNotice(
-        "Could not confirm capture availability; attempting to open this page in the selected backup.",
+        locale === "fr"
+          ? "Impossible de confirmer la disponibilité de la capture; tentative d’ouverture de cette page dans l’édition sélectionnée."
+          : "Could not confirm capture availability; attempting to open this page in the selected edition.",
       );
     } finally {
       setIsResolvingEdition(false);
@@ -198,21 +208,27 @@ export function BrowseReplayClient({
         <header className="ha-card ha-home-panel space-y-3 p-4 sm:p-5">
           <div className="flex flex-wrap items-start justify-between gap-3">
             <div className="min-w-0">
-              <p className="text-ha-muted text-xs font-medium">Browsing archived site</p>
+              <p className="text-ha-muted text-xs font-medium">
+                {locale === "fr" ? "Navigation dans le site archivé" : "Browsing archived site"}
+              </p>
               <h1 className="mt-1 text-base font-semibold text-slate-900 sm:text-lg">
                 {sourceName}
               </h1>
               <p className="text-ha-muted mt-1 text-xs">
-                Capture: {displayedCapture}
+                {locale === "fr" ? "Capture" : "Capture"}: {displayedCapture}
                 {activeJobId != null && (
                   <>
                     {" "}
-                    · backup <span className="font-medium">job-{activeJobId}</span>
+                    · {locale === "fr" ? "édition" : "edition"}{" "}
+                    <span className="font-medium">#{activeJobId}</span>
                   </>
                 )}
               </p>
               <p className="mt-2 text-[11px] font-medium text-amber-800">
-                {buildBrowseDisclaimer({ captureLabel: displayedCapture })}{" "}
+                {locale === "fr"
+                  ? "Archive indépendante · Pas un site gouvernemental officiel."
+                  : "Independent archive · Not an official government website."}{" "}
+                {buildBrowseDisclaimer(locale, { captureLabel: displayedCapture })}{" "}
                 {siteCopy.whatThisSiteIs.forCurrent}.
               </p>
 
@@ -222,7 +238,7 @@ export function BrowseReplayClient({
                     htmlFor="ha-edition-select"
                     className="text-[11px] font-medium text-slate-800"
                   >
-                    Switch backup
+                    {locale === "fr" ? "Changer d’édition" : "Switch edition"}
                   </label>
                   <select
                     id="ha-edition-select"
@@ -233,7 +249,7 @@ export function BrowseReplayClient({
                   >
                     {editionOptions.map((edition) => (
                       <option key={edition.jobId} value={edition.jobId}>
-                        {formatEditionLabel(edition)}
+                        {formatEditionLabel(edition, locale)}
                       </option>
                     ))}
                   </select>
@@ -241,32 +257,40 @@ export function BrowseReplayClient({
               )}
 
               {isResolvingEdition && (
-                <p className="text-ha-muted mt-2 text-[11px] font-medium">Switching backup…</p>
+                <p className="text-ha-muted mt-2 text-[11px] font-medium">
+                  {locale === "fr" ? "Changement d’édition…" : "Switching edition…"}
+                </p>
               )}
               {editionNotice && (
                 <p className="mt-2 text-[11px] font-medium text-amber-800">{editionNotice}</p>
               )}
 
               <p className="text-ha-muted mt-2 text-[11px] break-all">
-                <span className="font-medium text-slate-800">Original URL:</span>{" "}
-                {currentOriginalUrl}
+                <span className="font-medium text-slate-800">
+                  {locale === "fr" ? "URL d’origine :" : "Original URL:"}
+                </span>{" "}
+                {currentOriginalUrl || unknownUrlLabel}
               </p>
               <p className="text-ha-muted mt-2 text-[11px]">
                 <Link href={reportHref} className="text-ha-accent font-medium hover:text-blue-700">
-                  Report an issue with this capture
+                  {locale === "fr"
+                    ? "Signaler un problème avec cette capture"
+                    : "Report an issue with this capture"}
                 </Link>
               </p>
 
               {!browseUrl && (
                 <p className="mt-2 text-[11px] font-medium text-amber-800">
-                  Replay browsing is not available for this record; showing raw HTML instead.
+                  {locale === "fr"
+                    ? "La navigation en mode relecture n’est pas disponible pour cet enregistrement; affichage du HTML brut à la place."
+                    : "Replay browsing is not available for this record; showing raw HTML instead."}
                 </p>
               )}
             </div>
 
             <div className="flex flex-wrap items-center justify-end gap-2">
               <Link href="/archive" className="ha-btn-secondary text-xs">
-                ← Back to archive
+                {locale === "fr" ? "← Retour à l’archive" : "← Back to archive"}
               </Link>
               {sourceCode && (
                 <Link
@@ -274,11 +298,11 @@ export function BrowseReplayClient({
                   scroll={false}
                   className="ha-btn-secondary text-xs"
                 >
-                  Search this source
+                  {locale === "fr" ? "Rechercher cette source" : "Search this source"}
                 </Link>
               )}
               <Link href={`/snapshot/${snapshotId}`} className="ha-btn-secondary text-xs">
-                Snapshot details
+                {locale === "fr" ? "Détails de la capture" : "Snapshot details"}
               </Link>
               {browseLink && (
                 <a
@@ -287,7 +311,7 @@ export function BrowseReplayClient({
                   rel="noreferrer"
                   className="ha-btn-primary text-xs"
                 >
-                  Open in replay ↗
+                  {locale === "fr" ? "Ouvrir dans le lecteur ↗" : "Open in replay ↗"}
                 </a>
               )}
               {rawHtmlUrl && (
@@ -297,7 +321,7 @@ export function BrowseReplayClient({
                   rel="noreferrer"
                   className="ha-btn-secondary text-xs"
                 >
-                  Raw HTML ↗
+                  {locale === "fr" ? "HTML brut ↗" : "Raw HTML ↗"}
                 </a>
               )}
               {apiLink && (
@@ -307,7 +331,7 @@ export function BrowseReplayClient({
                   rel="noreferrer"
                   className="ha-btn-secondary text-xs"
                 >
-                  Metadata JSON ↗
+                  {locale === "fr" ? "Métadonnées (JSON) ↗" : "Metadata JSON ↗"}
                 </a>
               )}
             </div>
@@ -327,7 +351,9 @@ export function BrowseReplayClient({
             />
           ) : (
             <div className="text-ha-muted flex h-[320px] items-center justify-center px-4 text-center text-sm">
-              Archived HTML content for this snapshot is not currently available.
+              {locale === "fr"
+                ? "Le contenu HTML archivé pour cette capture n’est pas disponible pour le moment."
+                : "Archived HTML content for this snapshot is not currently available."}
             </div>
           )}
         </div>

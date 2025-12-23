@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
-import ComparePage from "@/app/compare/page";
+import ComparePage from "@/app/[locale]/compare/page";
 
 vi.mock("@/lib/api", () => ({
   fetchChangeCompare: vi.fn(),

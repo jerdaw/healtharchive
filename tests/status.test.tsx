@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
-import StatusPage from "@/app/status/page";
+import StatusPage from "@/app/[locale]/status/page";
 
 vi.mock("@/lib/api", () => ({
   fetchHealth: vi.fn(),

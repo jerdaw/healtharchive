@@ -18,6 +18,13 @@ are centralized in `src/lib/siteCopy.ts`.
 
 ---
 
+## Localization (EN/FR)
+
+- English is the default (canonical URLs are unprefixed, e.g. `/archive`).
+- French lives under `/fr/...` and is explicitly labeled as an **alpha, automated translation**.
+- If there is any inconsistency, the **English version governs**.
+- Archived snapshots are never translated (they remain as-captured).
+
 ## Tech stack
 
 - **Framework:** Next.js 16 (App Router)
@@ -182,7 +189,7 @@ This runs formatting checks, lint, typecheck, tests (mocked; no backend required
 - Search (`/archive`): keywords + source filter, pagination (First/Prev/Next/Last), page-size selector.
 - Browse by source (`/archive/browse-by-source`): cards load with record counts.
 - Snapshot (`/snapshot/[id]`): metadata present; iframe loads or shows error overlay with raw/API links; missing ID returns notFound.
-- Browse full-screen (`/browse/[id]`): banner renders; iframe loads replay content and lets you click around within the archived backup.
+- Browse full-screen (`/browse/[id]`): banner renders; iframe loads replay content and lets you click around within the archived edition.
 - Some API calls happen server-side in Next.js; if you don’t see requests in the browser Network tab, tail backend logs or call the API directly to confirm connectivity.
 
 This runs the Next.js/ESLint config for the app.
@@ -195,7 +202,8 @@ This runs the Next.js/ESLint config for the app.
 .
 ├── README.md
 ├── docs/
-│   └── documentation.md       # Deep-dive architecture, design, and project state
+│   ├── implementation-guide.md # Deep-dive architecture, design system, routes
+│   └── i18n.md                 # Localization strategy + English-governs policy
 ├── package.json
 ├── next.config.ts
 ├── tailwind.config.mjs
@@ -205,21 +213,14 @@ This runs the Next.js/ESLint config for the app.
 │   ├── healtharchive-logo.webp  # Primary logo used in header/hero
 │   └── demo-archive/            # Static HTML stubs used by the snapshot viewer
 └── src/
-    ├── app/                   # Next.js App Router routes
-    │   ├── favicon.ico        # Favicon wired via Next metadata
-    │   ├── page.tsx           # Home
-    │   ├── archive/           # Search & browse
-    │   ├── browse/[id]/       # Full-screen browse wrapper (replay iframe)
-    │   ├── methods/           # Methods & scope
-    │   ├── researchers/       # For researchers
-    │   ├── about/             # About the project
-    │   ├── contact/           # Contact info
-    │   ├── brief/             # Partner-friendly one-page brief
-    │   ├── cite/              # Citation guidance handout
-    │   ├── exports/           # Research exports + data dictionary
-    │   └── snapshot/[id]/     # Snapshot viewer
+    ├── middleware.ts           # Locale routing (English canonical; French /fr)
+    ├── app/                    # Next.js App Router
+    │   ├── [locale]/           # Locale-aware routes (see middleware)
+    │   └── api/report/         # Same-origin report intake → backend forward
     ├── components/
-    │   └── layout/            # Header, Footer, PageShell
+    │   ├── i18n/               # LocaleProvider, LocalizedLink, FR banner
+    │   ├── layout/             # Header, Footer, PageShell
+    │   └── policy/             # English-governs notice for policy pages
     └── data/
         └── demo-records.ts    # Demo dataset + search helpers
 ```
@@ -246,4 +247,4 @@ Any push to `main` triggers a new Vercel deployment.
 - **Architecture & project state:**
   See [`docs/implementation-guide.md`](docs/implementation-guide.md) for a detailed overview
   of the data model, routes, design system, accessibility primitives, and
-  planned future phases.
+  planned milestones.

@@ -18,12 +18,10 @@ Core ideas:
 
 - Preserve **snapshots** of Canadian public health pages (e.g., PHAC, Health Canada).
 - Allow users to:
-
-      -   Browse/search snapshots by **keywords** and **source**.
-      -   Open a **snapshot viewer** that:
-
-          -   Shows clear metadata: source, capture date, original URL.
-          -   Embeds the captured page (with an offline sample fallback in `/public/demo-archive`).
+  - Browse/search snapshots by **keywords** and **source**.
+  - Open a **snapshot viewer** that:
+    - Shows clear metadata: source, capture date, original URL.
+    - Embeds the captured page (with an offline sample fallback in `/public/demo-archive`).
 
 - Be **explicitly non-governmental** and **non-authoritative**:
   - Repeated disclaimers.
@@ -136,7 +134,7 @@ npm run check
 - `/archive`: search with and without filters; verify pagination/Next/Prev/First/Last and page-size selector; see fallback notice if API is down.
 - `/archive/browse-by-source`: cards load with counts; fallback notice if API is down.
 - `/snapshot/[id]`: loads metadata and iframe; iframe shows loading overlay, then content; error overlay when iframe fails; notFound on missing ID.
-- `/browse/[id]`: full-screen browse view loads banner + iframe and supports clicking around within the archived backup.
+- `/browse/[id]`: full-screen browse view loads banner + iframe and supports clicking around within the archived edition.
 - Dev-only debug: when iframe fails, “Raw HTML” and optional “View metadata JSON” links remain available.
 
 ### CI expectations
@@ -233,37 +231,44 @@ From the repo root:
 │   ├── vercel.svg
 │   └── styles.css                 # Basic CSS used by the stock Next starter (not heavily used)
 └── src/
+    ├── middleware.ts               # Locale routing (English canonical; French /fr)
     ├── app/
-    │   ├── layout.tsx
     │   ├── globals.css
-    │   ├── favicon.ico
-    │   ├── page.tsx
-    │   ├── archive/
+    │   ├── [locale]/               # Locale-aware routes (see middleware)
+    │   │   ├── layout.tsx
     │   │   ├── page.tsx
-    │   │   └── browse-by-source/
-    │   │       └── page.tsx
-    │   ├── methods/
-    │   │   └── page.tsx
-    │   ├── researchers/
-    │   │   └── page.tsx
-    │   ├── about/
-    │   │   └── page.tsx
-    │   ├── contact/
-    │   │   └── page.tsx
-    │   └── snapshot/
-    │       └── [id]/
-    │           └── page.tsx
+    │   │   ├── archive/
+    │   │   ├── browse/[id]/
+    │   │   ├── snapshot/[id]/
+    │   │   ├── changes/
+    │   │   ├── compare/
+    │   │   ├── digest/
+    │   │   ├── exports/
+    │   │   ├── status/
+    │   │   ├── impact/
+    │   │   ├── governance/
+    │   │   ├── privacy/
+    │   │   ├── terms/
+    │   │   ├── report/
+    │   │   └── changelog/
+    │   └── api/
+    │       └── report/
+    │           └── route.ts        # Same-origin report intake → backend forward
     ├── components/
-    │   └── layout/
-    │       ├── Header.tsx
-    │       ├── Footer.tsx
-    │       └── PageShell.tsx
+    │   ├── i18n/                   # LocaleProvider, LocalizedLink, FR banner
+    │   ├── layout/                 # Header, Footer, PageShell
+    │   ├── archive/                # Search results, filters, actions
+    │   ├── replay/                 # Browse/snapshot replay UI
+    │   ├── policy/                 # English-governs notice (policy pages)
+    │   └── report/                 # ReportIssueForm
+    ├── content/
+    │   └── changelog.ts
     ├── data/
     │   └── demo-records.ts
+    ├── lib/                        # API client, i18n helpers, canonical copy
     └── assets/
-        ├── healtharchive-favicon.ico
-        ├── healtharchive-logo.webp
-        └── healtharchive-logo.xcf
+        ├── healtharchive-favicon.png
+        └── healtharchive-logo.webp
 ```
 
 ---
@@ -376,32 +381,48 @@ Accessibility-related helpers:
 
 ## 6. Core layout components
 
-### 6.1 Root layout: `src/app/layout.tsx`
+### 6.1 Root layout: `src/app/[locale]/layout.tsx`
 
 Responsibility:
 
 - Global `<html>` and `<body>`.
 - Apply base typography via `className="antialiased"`.
 - Render persistent **Header** and **Footer** around the route content.
+- Provide locale routing:
+  - English is the default, unprefixed locale.
+  - French lives under `/fr/...` (see `src/middleware.ts` for rewrite/redirect behavior).
+  - French UI is an automated alpha translation and is marked `noindex`; English governs on policy pages.
 
 Structure:
 
 ```tsx
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default async function RootLayout({
+  children,
+  params,
+}: {
+  children: React.ReactNode;
+  params: Promise<{ locale: string }>;
+}) {
+  const { locale } = await params;
+  if (!isLocale(locale)) notFound();
+
   return (
-    <html lang="en">
+    <html lang={localeToLanguageTag(locale)}>
       <body className="antialiased">
         <a
           href="#main-content"
           className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-4 focus:z-50 focus:rounded-full focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:text-slate-900 focus:shadow-lg"
         >
-          Skip to main content
+          {locale === "fr" ? "Passer au contenu principal" : "Skip to main content"}
         </a>
-        <Header />
-        <main id="main-content" className="pb-10 pt-20 sm:pb-12 sm:pt-24">
-          {children}
-        </main>
-        <Footer />
+        <LocaleProvider locale={locale}>
+          <Header />
+          <main id="main-content" className="pb-10 pt-20 sm:pb-12 sm:pt-24">
+            <FrenchTranslationBanner />
+            {children}
+          </main>
+          <Footer locale={locale} />
+        </LocaleProvider>
       </body>
     </html>
   );
@@ -426,6 +447,7 @@ Key features:
   - Active link styling vs inactive (blue background for active).
   - `aria-current="page"` set on the active link.
   - `aria-label="Primary"` on the `<nav>` for semantic clarity.
+- Includes an English/Français language switcher that preserves the current path and query string.
 
 - Mobile nav:
   - Compact button that toggles between hamburger and X icon.
@@ -448,11 +470,13 @@ Key features:
 ### 6.3 `<Footer />`: `src/components/layout/Footer.tsx`
 
 - Single component at the bottom of every page.
+- Locale-aware (`locale` prop) so global disclaimers and link labels can be shown in EN/FR.
 - Provides:
   - Long disclaimer about independence and non-affiliation with government.
   - Dynamic year.
   - Statement: “Not an official government website.”
   - Extra note that the project is in development.
+  - Footer navigation links to policy and workflow pages (terms/privacy/governance/report/etc).
 
 ### 6.4 `<PageShell />`: `src/components/layout/PageShell.tsx`
 
@@ -572,7 +596,7 @@ All in `src/data/demo-records.ts`:
 
 ## 8. Routes & pages
 
-### 8.1 Home page `/` – `src/app/page.tsx`
+### 8.1 Home page `/` – `src/app/[locale]/page.tsx`
 
 - Fetches lightweight archive totals from `GET /api/stats` (via `fetchArchiveStats()` in `src/lib/api.ts`).
 - If the backend API is unreachable, falls back to the bundled offline sample dataset (`demoRecords`).
@@ -608,7 +632,7 @@ All in `src/data/demo-records.ts`:
        `src/lib/siteCopy.ts` so changes stay consistent across Home, Archive,
        Snapshot, and Browse workflows.
 
-### 8.2 Archive search `/archive` – `src/app/archive/page.tsx`
+### 8.2 Archive search `/archive` – `src/app/[locale]/archive/page.tsx`
 
 - Async server component using App Router pattern where `searchParams` is a **Promise**:
 
@@ -689,7 +713,7 @@ All in `src/data/demo-records.ts`:
     - Original URL line (host + path) with a copy-to-clipboard button. - On success, the copy icon briefly switches to a checkmark. - In `view=pages`, result cards can show a “Captures N” badge and an “All captures”
       action that switches to snapshots view for that page.
 
-### 8.3 Browse by source `/archive/browse-by-source` – `src/app/archive/browse-by-source/page.tsx`
+### 8.3 Browse by source `/archive/browse-by-source` – `src/app/[locale]/archive/browse-by-source/page.tsx`
 
 - Server component that prefers backend `GET /api/sources` (via `fetchSources()`).
 - Falls back to `getSourcesSummary()` from the bundled offline sample dataset when the API is unreachable.
@@ -707,7 +731,7 @@ All in `src/data/demo-records.ts`:
         - “Browse records” → `/archive?source=${sourceCode}`
         - Optional: “Open in replay ↗” → `entryBrowseUrl` (when replay is configured in the backend).
 
-### 8.4 Methods `/methods` – `src/app/methods/page.tsx`
+### 8.4 Methods `/methods` – `src/app/[locale]/methods/page.tsx`
 
 - Explains:
   - Scope of the archive (early phase).
@@ -717,7 +741,7 @@ All in `src/data/demo-records.ts`:
 
 All text is stable, but can be refined later.
 
-### 8.5 Researchers `/researchers` – `src/app/researchers/page.tsx`
+### 8.5 Researchers `/researchers` – `src/app/[locale]/researchers/page.tsx`
 
 - Sections:
   - Use cases:
@@ -735,16 +759,16 @@ All text is stable, but can be refined later.
   - Planned future capabilities (callout):
     - Dataset release cadence and larger custom exports.
 
-### 8.6 Exports `/exports` – `src/app/exports/page.tsx`
+### 8.6 Exports `/exports` – `src/app/[locale]/exports/page.tsx`
 
 - Describes metadata-only exports and links to the export manifest.
 - Provides a public data dictionary for snapshot and change export fields.
 
-### 8.7 About `/about` – `src/app/about/page.tsx`
+### 8.7 About `/about` – `src/app/[locale]/about/page.tsx`
 
 - Explains motivations, independence/non-partisanship, and current project status.
 
-### 8.8 Contact `/contact` – `src/app/contact/page.tsx`
+### 8.8 Contact `/contact` – `src/app/[locale]/contact/page.tsx`
 
 - Two cards:
   - Email: `contact@healtharchive.ca` (forwarding to the maintainer).
@@ -783,7 +807,7 @@ All text is stable, but can be refined later.
 - Guardrail copy is required on all three pages:
   - “Descriptive only”, “not medical advice”, and “archived capture” messaging.
 
-### 8.12 Snapshot viewer `/snapshot/[id]` – `src/app/snapshot/[id]/page.tsx`
+### 8.12 Snapshot viewer `/snapshot/[id]` – `src/app/[locale]/snapshot/[id]/page.tsx`
 
 - Async server component with `params` as **Promise** (Next 16 dynamic API).
 
@@ -816,17 +840,17 @@ All text is stable, but can be refined later.
                   - Optional: “Open in replay ↗” (opens the replay `browseUrl` in a new tab when replay is configured).
                   - Optional: “Raw HTML ↗” (opens the backend `/api/snapshots/raw/{id}` when available; falls back to the offline sample HTML path).
 
-      - **Edition (“backup”) switching** (when multiple editions exist):
+      - **Edition switching** (when multiple editions exist):
         - The page fetches editions from the backend:
           - `GET /api/sources/{sourceCode}/editions`
-        - The “Backup” dropdown appears above the iframe (client-side component: `src/components/replay/SnapshotReplayClient.tsx`).
-        - Switching backups is **v2-style “preserve current page”**:
+        - The “Edition” dropdown appears above the iframe (client-side component: `src/components/replay/SnapshotReplayClient.tsx`).
+        - Switching editions is **v2-style “preserve current page”**:
           - While you browse within the iframe, the replay origin emits `postMessage` events (`type="haReplayNavigation"`) containing the current _original URL_ and current replay timestamp.
           - When you choose a different edition, the frontend calls:
             - `POST /api/replay/resolve`
               to ask “does this URL exist in job-N?” and returns a best replay URL for that job.
-          - If the page doesn’t exist in the selected backup:
-            - fallback to that backup’s `entryBrowseUrl` (source homepage within that job), or
+          - If the page doesn’t exist in the selected edition:
+            - fallback to that edition’s `entryBrowseUrl` (source homepage within that job), or
             - use the pywb timegate URL for “closest capture”.
 
       - **Important note callout**:
@@ -837,7 +861,7 @@ All text is stable, but can be refined later.
 
 - **Important**: the offline sample `snapshotPath` is relative to `/public`, but used as an absolute path in `href`/`src` (e.g., `/demo-archive/hc/2024-11-01-covid-vaccines.html`).
 
-### 8.12 Full-screen browse `/browse/[id]` – `src/app/browse/[id]/page.tsx`
+### 8.12 Full-screen browse `/browse/[id]` – `src/app/[locale]/browse/[id]/page.tsx`
 
 - Async server component that prefers backend `GET /api/snapshot/{id}` (via `fetchSnapshotDetail()`).
 - Uses `browseUrl` (replay) when available and falls back to raw HTML when replay is not configured.
@@ -845,13 +869,13 @@ All text is stable, but can be refined later.
   - confirm which source and capture time they are browsing, and
   - navigate back to the main HealthArchive UI quickly.
 
-- **Edition (“backup”) switching** (when multiple editions exist):
+- **Edition switching** (when multiple editions exist):
   - The wrapper fetches editions from:
     - `GET /api/sources/{sourceCode}/editions`
-  - The “Switch backup” dropdown preserves the **current page** when possible:
+  - The “Switch edition” dropdown preserves the **current page** when possible:
     - The iframe emits `postMessage` events from the replay origin (`type="haReplayNavigation"`).
     - The wrapper uses `POST /api/replay/resolve` to open the same original URL in the selected job if it exists.
-    - If not found, it falls back to the backup’s entry page and displays a short notice explaining the fallback.
+    - If not found, it falls back to the edition’s entry page and displays a short notice explaining the fallback.
 
 ---
 
@@ -1015,15 +1039,15 @@ files=(
   "tailwind.config.mjs"
   "postcss.config.mjs"
   "src/app/globals.css"
-  "src/app/layout.tsx"
-  "src/app/page.tsx"
-  "src/app/archive/page.tsx"
-  "src/app/archive/browse-by-source/page.tsx"
-  "src/app/methods/page.tsx"
-  "src/app/researchers/page.tsx"
-  "src/app/about/page.tsx"
-  "src/app/contact/page.tsx"
-  "src/app/snapshot/[id]/page.tsx"
+  "src/app/[locale]/layout.tsx"
+  "src/app/[locale]/page.tsx"
+  "src/app/[locale]/archive/page.tsx"
+  "src/app/[locale]/archive/browse-by-source/page.tsx"
+  "src/app/[locale]/methods/page.tsx"
+  "src/app/[locale]/researchers/page.tsx"
+  "src/app/[locale]/about/page.tsx"
+  "src/app/[locale]/contact/page.tsx"
+  "src/app/[locale]/snapshot/[id]/page.tsx"
   "src/components/layout/Header.tsx"
   "src/components/layout/Footer.tsx"
   "src/components/layout/PageShell.tsx"

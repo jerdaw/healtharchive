@@ -1,6 +1,7 @@
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/i18n/LocalizedLink";
+import type { Locale } from "@/lib/i18n";
 
-export function Footer() {
+export function Footer({ locale }: { locale: Locale }) {
   const year = new Date().getFullYear();
 
   return (
@@ -8,63 +9,85 @@ export function Footer() {
       <div className="ha-container text-ha-muted space-y-4 py-6 text-xs sm:flex sm:flex-col">
         <div className="space-y-1">
           <p className="leading-relaxed">
-            <span className="font-semibold text-slate-800">Independence and affiliation</span>:
-            HealthArchive.ca is an independent project and is not affiliated with, endorsed by, or
-            associated with the Public Health Agency of Canada, Health Canada, or any other
-            government agency.
+            <span className="font-semibold text-slate-800">
+              {locale === "fr"
+                ? "Indépendance et absence d’affiliation"
+                : "Independence and non-affiliation"}
+            </span>
+            :{" "}
+            {locale === "fr"
+              ? "HealthArchive.ca est un projet indépendant et n’est pas affilié à, endossé par, ni associé à l’Agence de la santé publique du Canada, à Santé Canada, ni à aucun organisme gouvernemental."
+              : "HealthArchive.ca is an independent project and is not affiliated with, endorsed by, or associated with the Public Health Agency of Canada, Health Canada, or any other government agency."}
           </p>
           <p className="leading-relaxed">
-            <span className="font-semibold text-slate-800">Interpretation and use</span>: Archived
-            content is provided for reference and research purposes only and may be incomplete,
-            outdated, or superseded. Nothing on this site should be interpreted as medical advice.
+            <span className="font-semibold text-slate-800">
+              {locale === "fr" ? "Interprétation et utilisation" : "Interpretation and use"}
+            </span>
+            :{" "}
+            {locale === "fr"
+              ? "Le contenu archivé est fourni à des fins de référence et de recherche uniquement. Il peut être incomplet, périmé ou remplacé. Rien sur ce site ne doit être interprété comme un avis médical ou des directives actuelles."
+              : "Archived content is provided for reference and research purposes only. It may be incomplete, outdated, or superseded. Nothing on this site should be interpreted as medical advice or current guidance."}
           </p>
         </div>
         <div className="flex flex-wrap items-center gap-3 text-[11px]">
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/governance">
-            Governance
+            {locale === "fr" ? "Gouvernance" : "Governance"}
           </Link>
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/status">
-            Status
+            {locale === "fr" ? "Statut" : "Status"}
           </Link>
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/impact">
-            Impact
+            {locale === "fr" ? "Impact" : "Impact"}
           </Link>
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/brief">
-            Brief
+            {locale === "fr" ? "Fiche" : "Brief"}
           </Link>
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/cite">
-            Cite
+            {locale === "fr" ? "Citer" : "Cite"}
           </Link>
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/exports">
-            Exports
+            {locale === "fr" ? "Exports" : "Exports"}
           </Link>
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/changes">
-            Changes
+            {locale === "fr" ? "Changements" : "Changes"}
           </Link>
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/digest">
-            Digest
+            {locale === "fr" ? "Bulletin" : "Digest"}
           </Link>
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/terms">
-            Terms
+            {locale === "fr" ? "Conditions" : "Terms"}
           </Link>
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/privacy">
-            Privacy
+            {locale === "fr" ? "Confidentialité" : "Privacy"}
           </Link>
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/changelog">
-            Changelog
+            {locale === "fr" ? "Journal des changements" : "Changelog"}
           </Link>
           <Link className="text-ha-accent font-medium hover:text-blue-700" href="/report">
-            Report an issue
+            {locale === "fr" ? "Signaler un problème" : "Report an issue"}
           </Link>
         </div>
         <div className="text-ha-muted flex flex-col gap-1 text-[11px] sm:flex-row sm:items-center sm:justify-between">
           <p>
             © {year} HealthArchive.ca Project.{" "}
-            <span className="font-medium text-slate-800">Not an official government website.</span>
+            <span className="font-medium text-slate-800">
+              {locale === "fr"
+                ? "Ce n’est pas un site gouvernemental officiel."
+                : "Not an official government website."}
+            </span>
           </p>
           <p className="text-[11px]">
-            This site is <span className="font-medium text-amber-800">in development</span>.{" "}
-            Coverage, data, and functionality are incomplete and subject to change.
+            {locale === "fr" ? (
+              <>
+                Ce site est <span className="font-medium text-amber-800">en développement</span>. La
+                couverture, les données et les fonctionnalités sont incomplètes et peuvent changer.
+              </>
+            ) : (
+              <>
+                This site is <span className="font-medium text-amber-800">in development</span>.{" "}
+                Coverage, data, and functionality are incomplete and subject to change.
+              </>
+            )}
           </p>
         </div>
       </div>

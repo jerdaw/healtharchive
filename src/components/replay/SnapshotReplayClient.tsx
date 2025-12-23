@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 
 import { SnapshotFrame } from "@/components/SnapshotFrame";
+import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resolveReplayUrl } from "@/lib/api";
 
 import type { ReplayEdition } from "./replayUtils";
@@ -31,7 +32,7 @@ type SnapshotReplayClientProps = {
   editions?: ReplayEdition[] | null;
   initialJobId: number | null;
   initialCaptureTimestamp: string | null;
-  initialOriginalUrl: string;
+  initialOriginalUrl: string | null;
   iframeClassName?: string;
 };
 
@@ -47,10 +48,11 @@ export function SnapshotReplayClient({
   initialOriginalUrl,
   iframeClassName,
 }: SnapshotReplayClientProps) {
+  const locale = useLocale();
   const [iframeSrc, setIframeSrc] = useState<string>(initialSrc);
   const [activeJobId, setActiveJobId] = useState<number | null>(initialJobId);
   const [currentOriginalUrl, setCurrentOriginalUrl] = useState<string>(
-    stripUrlFragment(initialOriginalUrl) || initialOriginalUrl,
+    initialOriginalUrl ? stripUrlFragment(initialOriginalUrl) || initialOriginalUrl : "",
   );
   const [currentTimestamp14, setCurrentTimestamp14] = useState<string | null>(
     isoToTimestamp14(initialCaptureTimestamp),
@@ -137,7 +139,9 @@ export function SnapshotReplayClient({
         setActiveJobId(nextJobId);
         setCurrentReplayUrl(edition.entryBrowseUrl);
         setEditionNotice(
-          "This page was not captured in the selected backup; showing its entry page instead.",
+          locale === "fr"
+            ? "Cette page n’a pas été capturée dans l’édition sélectionnée; affichage de la page d’entrée de l’édition à la place."
+            : "This page was not captured in the selected edition; showing the edition’s entry page instead.",
         );
         return;
       }
@@ -147,7 +151,9 @@ export function SnapshotReplayClient({
       setActiveJobId(nextJobId);
       setCurrentReplayUrl(timegateUrl);
       setEditionNotice(
-        "Could not find an exact capture for this page in that backup; showing the closest capture if available.",
+        locale === "fr"
+          ? "Aucune capture exacte trouvée pour cette page dans cette édition; affichage de la capture la plus proche disponible."
+          : "No exact capture found for this page in that edition; showing the closest available capture.",
       );
     } catch {
       const nextSrc = buildReplayUrl(
@@ -160,7 +166,9 @@ export function SnapshotReplayClient({
       setActiveJobId(nextJobId);
       setCurrentReplayUrl(nextSrc);
       setEditionNotice(
-        "Could not confirm capture availability; attempting to open this page in the selected backup.",
+        locale === "fr"
+          ? "Impossible de confirmer la disponibilité de la capture; tentative d’ouverture de cette page dans l’édition sélectionnée."
+          : "Could not confirm capture availability; attempting to open this page in the selected edition.",
       );
     } finally {
       setIsResolvingEdition(false);
@@ -179,7 +187,7 @@ export function SnapshotReplayClient({
               htmlFor="ha-snapshot-edition-select"
               className="text-[11px] font-medium text-slate-800"
             >
-              Backup
+              {locale === "fr" ? "Édition" : "Edition"}
             </label>
             <select
               id="ha-snapshot-edition-select"
@@ -190,7 +198,7 @@ export function SnapshotReplayClient({
             >
               {editionOptions.map((edition) => (
                 <option key={edition.jobId} value={edition.jobId}>
-                  {formatEditionLabel(edition)}
+                  {formatEditionLabel(edition, locale)}
                 </option>
               ))}
             </select>
@@ -203,7 +211,7 @@ export function SnapshotReplayClient({
               rel="noreferrer"
               className="text-ha-accent text-[11px] font-medium hover:text-blue-700"
             >
-              Open current page ↗
+              {locale === "fr" ? "Ouvrir la page actuelle ↗" : "Open current page ↗"}
             </a>
           )}
         </div>
@@ -217,7 +225,11 @@ export function SnapshotReplayClient({
               : "border-ha-border text-ha-muted border-b bg-white px-4 py-2 text-[11px] font-medium sm:px-5 dark:bg-[#0b0c0d]"
           }
         >
-          {isResolvingEdition ? "Switching backup…" : editionNotice}
+          {isResolvingEdition
+            ? locale === "fr"
+              ? "Changement d’édition…"
+              : "Switching edition…"
+            : editionNotice}
         </div>
       )}
 

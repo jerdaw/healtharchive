@@ -7,6 +7,12 @@ This folder contains documentation for the **HealthArchive frontend**
 
 - Main guide (architecture, design system, routes, deployment notes):
   - `implementation-guide.md`
+- Copy work (inventory, glossary, disclaimers):
+  - `copy-inventory.md`
+  - `disclaimer-matrix.md`
+  - `copy-glossary.md`
+- Localization and translation policy:
+  - `i18n.md`
 - Documentation guidelines (canonical, cross-repo):
   - `healtharchive-backend/docs/documentation-guidelines.md`
 

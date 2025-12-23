@@ -3,6 +3,9 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { localeToLanguageTag } from "@/lib/i18n";
+
 type AnimatedMetricProps = {
   id?: string;
   label: string;
@@ -30,6 +33,7 @@ export function AnimatedMetric({
   onComplete,
   completeEvent,
 }: AnimatedMetricProps) {
+  const locale = useLocale();
   const [displayValue, setDisplayValue] = useState(0);
   const [fillPercent, setFillPercent] = useState(0);
   const frameRef = useRef<number | null>(null);
@@ -106,7 +110,9 @@ export function AnimatedMetric({
     <div>
       <dt className="ha-metric-label">{label}</dt>
       <dd className="ha-metric-primary">
-        <span className="ha-metric-primary-value">{displayValue.toLocaleString()}</span>
+        <span className="ha-metric-primary-value">
+          {new Intl.NumberFormat(localeToLanguageTag(locale)).format(displayValue)}
+        </span>
         {unit ? <span className="ha-metric-primary-unit">{unit}</span> : null}
       </dd>
       <div className="ha-metric-bar">

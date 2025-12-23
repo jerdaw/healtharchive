@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
-import BrowseSnapshotPage from "@/app/browse/[id]/page";
+import BrowseSnapshotPage from "@/app/[locale]/browse/[id]/page";
 
 vi.mock("next/link", () => ({
   __esModule: true,
@@ -84,7 +84,7 @@ describe("/browse/[id]", () => {
     expect(screen.getByText(/Browsing archived site/i)).toBeInTheDocument();
     expect(screen.getByText(/not current guidance or medical advice/i)).toBeInTheDocument();
     expect(screen.getByText(/Health Canada/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Switch backup/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Switch edition/i)).toBeInTheDocument();
     expect(screen.getByText(/Open in replay/i)).toBeInTheDocument();
     expect(
       screen.getByText(/src: https:\/\/replay\.healtharchive\.ca\/job-1\/20240104123456\//i),

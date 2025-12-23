@@ -22,13 +22,14 @@ This is an archival record and change-tracking tool. It is not current guidance 
 - Not a source of current guidance.
 - Not medical advice.
 - Not an official government website.
-- Not affiliated with, endorsed by, or associated with PHAC, Health Canada, or any government agency.
+- Not affiliated with, endorsed by, or associated with the Public Health Agency of Canada (PHAC), Health Canada, or any government agency.
 
 ## Intended audiences
 
 - Researchers and trainees: reproducible citations and historical context.
 - Journalists and science communicators: timelines and wording changes.
 - Educators: teaching how evidence communication evolves.
+- Clinicians and public health practitioners: historical reference for how guidance has evolved (not current recommendations).
 
 ## Key links
 
@@ -36,8 +37,10 @@ This is an archival record and change-tracking tool. It is not current guidance 
 - Archive search: https://www.healtharchive.ca/archive
 - Changes feed: https://www.healtharchive.ca/changes
 - Digest + RSS: https://www.healtharchive.ca/digest
+- Citation guidance: https://www.healtharchive.ca/cite
 - Methods and scope: https://www.healtharchive.ca/methods
 - Governance and policies: https://www.healtharchive.ca/governance
+- Research exports: https://www.healtharchive.ca/exports
 - Status and metrics: https://www.healtharchive.ca/status
 - Monthly impact report: https://www.healtharchive.ca/impact
 

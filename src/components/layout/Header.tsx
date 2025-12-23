@@ -1,19 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import NextLink from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { LocalizedLink as Link } from "@/components/i18n/LocalizedLink";
+
 const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/archive", label: "Browse" },
-  { href: "/changes", label: "Changes" },
-  { href: "/methods", label: "Methods" },
-  { href: "/researchers", label: "Researchers" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: "/", label: { en: "Home", fr: "Accueil" } },
+  { href: "/archive", label: { en: "Browse", fr: "Parcourir" } },
+  { href: "/changes", label: { en: "Changes", fr: "Changements" } },
+  { href: "/methods", label: { en: "Methods", fr: "Méthodes" } },
+  { href: "/researchers", label: { en: "Researchers", fr: "Recherche" } },
+  { href: "/about", label: { en: "About", fr: "À propos" } },
+  { href: "/contact", label: { en: "Contact", fr: "Contact" } },
 ];
+
+function stripLocalePrefix(pathname: string): string {
+  const stripped = pathname.replace(/^\/(en|fr)(?=\/|$)/, "");
+  return stripped || "/";
+}
 
 function isActivePath(pathname: string, href: string): boolean {
   if (href === "/") {
@@ -23,7 +31,11 @@ function isActivePath(pathname: string, href: string): boolean {
 }
 
 export function Header() {
+  const locale = useLocale();
   const pathname = usePathname();
+  const normalizedPathname = stripLocalePrefix(pathname);
+  const searchParams = useSearchParams();
+  const queryString = searchParams.toString();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof document === "undefined") return "light";
@@ -39,6 +51,25 @@ export function Header() {
   const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const mobilePanelRef = useRef<HTMLDivElement | null>(null);
   const mobileToggleRef = useRef<HTMLButtonElement | null>(null);
+
+  const languageSwitchHref = (() => {
+    const canonicalPath = stripLocalePrefix(pathname);
+    const targetPath =
+      locale === "fr" ? canonicalPath : canonicalPath === "/" ? "/fr" : `/fr${canonicalPath}`;
+    return queryString ? `${targetPath}?${queryString}` : targetPath;
+  })();
+  const languageSwitchLabel = locale === "fr" ? "English" : "Français";
+  const languageSwitchAriaLabel = locale === "fr" ? "Switch to English" : "Passer au français";
+  const primaryNavAriaLabel = locale === "fr" ? "Navigation principale" : "Primary";
+  const themeToggleAriaLabel =
+    locale === "fr" ? "Changer le thème de couleurs" : "Toggle color theme";
+  const mobileNavAriaLabel = mobileOpen
+    ? locale === "fr"
+      ? "Fermer la navigation principale"
+      : "Close main navigation"
+    : locale === "fr"
+      ? "Ouvrir la navigation principale"
+      : "Open main navigation";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -58,7 +89,7 @@ export function Header() {
     if (!nav) return;
     const navRect = nav.getBoundingClientRect();
     if (navRect.width === 0) return;
-    const activeItem = navItems.find((item) => isActivePath(pathname, item.href));
+    const activeItem = navItems.find((item) => isActivePath(normalizedPathname, item.href));
     if (!activeItem) return;
     const link = linkRefs.current[activeItem.href];
     if (!link) return;
@@ -68,7 +99,7 @@ export function Header() {
       width: linkRect.width,
     });
     setIndicatorVisible(true);
-  }, [pathname]);
+  }, [normalizedPathname]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -77,7 +108,7 @@ export function Header() {
       if (!nav) return;
       const navRect = nav.getBoundingClientRect();
       if (navRect.width === 0) return;
-      const activeItem = navItems.find((item) => isActivePath(pathname, item.href));
+      const activeItem = navItems.find((item) => isActivePath(normalizedPathname, item.href));
       if (!activeItem) return;
       const link = linkRefs.current[activeItem.href];
       if (!link) return;
@@ -90,7 +121,7 @@ export function Header() {
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [pathname]);
+  }, [normalizedPathname]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -146,7 +177,7 @@ export function Header() {
           <Link href="/" className="group ha-header-link flex items-center gap-4">
             <Image
               src="/healtharchive-logo.webp"
-              alt="HealthArchive.ca logo"
+              alt={locale === "fr" ? "Logo de HealthArchive.ca" : "HealthArchive.ca logo"}
               width={72}
               height={60}
               className="ha-header-logo w-auto translate-y-[1px] transform transition-transform duration-150 ease-out group-hover:scale-105"
@@ -157,7 +188,9 @@ export function Header() {
                 HealthArchive.ca
               </span>
               <span className="ha-header-subtitle text-[11px] font-medium md:text-xs">
-                Independent archive of Canadian public health information
+                {locale === "fr"
+                  ? "Archive indépendante du contenu Web de santé publique au Canada"
+                  : "Independent archive of Canadian public health web content"}
               </span>
             </div>
           </Link>
@@ -168,9 +201,11 @@ export function Header() {
           <nav
             ref={navRef}
             className="text-ha-muted relative hidden items-center gap-2 text-xs font-semibold md:flex lg:gap-3 lg:text-sm"
-            aria-label="Primary"
+            aria-label={primaryNavAriaLabel}
             onMouseLeave={() => {
-              const activeItem = navItems.find((item) => isActivePath(pathname, item.href));
+              const activeItem = navItems.find((item) =>
+                isActivePath(normalizedPathname, item.href),
+              );
               if (activeItem) {
                 moveIndicatorToHref(activeItem.href);
               }
@@ -188,7 +223,7 @@ export function Header() {
               />
             )}
             {navItems.map((item) => {
-              const active = isActivePath(pathname, item.href);
+              const active = isActivePath(normalizedPathname, item.href);
               const isBrowse = item.href === "/archive";
               const baseClasses = ["ha-nav-link"];
               if (active) {
@@ -222,18 +257,25 @@ export function Header() {
                       </svg>
                     </span>
                   )}
-                  {item.label}
+                  {locale === "fr" ? item.label.fr : item.label.en}
                 </Link>
               );
             })}
           </nav>
 
           {/* Theme toggle */}
+          <NextLink
+            href={languageSwitchHref}
+            aria-label={languageSwitchAriaLabel}
+            className="ha-btn-secondary hidden text-xs md:inline-flex"
+          >
+            {languageSwitchLabel}
+          </NextLink>
           <button
             type="button"
             onClick={toggleTheme}
             className="ha-theme-toggle hidden focus-visible:ring-2 focus-visible:ring-[#11588f] focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none md:inline-flex"
-            aria-label="Toggle color theme"
+            aria-label={themeToggleAriaLabel}
           >
             <span className="ha-theme-toggle-track">
               {/* Sun icon (left) */}
@@ -270,13 +312,15 @@ export function Header() {
           <button
             type="button"
             className="border-ha-border inline-flex items-center justify-center rounded-full border bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#11588f] focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none md:hidden"
-            aria-label={mobileOpen ? "Close main navigation" : "Open main navigation"}
+            aria-label={mobileNavAriaLabel}
             aria-expanded={mobileOpen}
             aria-controls="primary-navigation"
             onClick={() => setMobileOpen((open) => !open)}
             ref={mobileToggleRef}
           >
-            <span className="sr-only">Toggle navigation</span>
+            <span className="sr-only">
+              {locale === "fr" ? "Basculer la navigation" : "Toggle navigation"}
+            </span>
             <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true" role="img">
               {mobileOpen ? (
                 <path
@@ -307,7 +351,7 @@ export function Header() {
           >
             <div className="flex flex-col gap-1">
               {navItems.map((item) => {
-                const active = isActivePath(pathname, item.href);
+                const active = isActivePath(normalizedPathname, item.href);
                 const isBrowse = item.href === "/archive";
                 const baseClasses = ["ha-nav-link"];
                 if (active) {
@@ -335,17 +379,27 @@ export function Header() {
                         </svg>
                       </span>
                     )}
-                    {item.label}
+                    {locale === "fr" ? item.label.fr : item.label.en}
                   </Link>
                 );
               })}
+            </div>
+            <div className="pt-2">
+              <NextLink
+                href={languageSwitchHref}
+                aria-label={languageSwitchAriaLabel}
+                className="ha-btn-secondary w-full justify-center text-xs"
+                onClick={() => setMobileOpen(false)}
+              >
+                {languageSwitchLabel}
+              </NextLink>
             </div>
             <div className="flex items-center justify-end pt-1">
               <button
                 type="button"
                 onClick={toggleTheme}
                 className="ha-theme-toggle inline-flex focus-visible:ring-2 focus-visible:ring-[#11588f] focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none lg:hidden"
-                aria-label="Toggle color theme"
+                aria-label={themeToggleAriaLabel}
               >
                 <span className="ha-theme-toggle-track">
                   {/* Sun icon (left) */}

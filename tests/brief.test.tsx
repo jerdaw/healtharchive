@@ -1,10 +1,11 @@
 import { render, screen } from "@testing-library/react";
 
-import BriefPage from "@/app/brief/page";
+import BriefPage from "@/app/[locale]/brief/page";
 
 describe("/brief", () => {
-  it("renders a one-page brief with a downloadable markdown link", () => {
-    render(<BriefPage />);
+  it("renders a one-page brief with a downloadable markdown link", async () => {
+    const ui = await BriefPage();
+    render(ui);
 
     expect(
       screen.getByRole("heading", { level: 1, name: "One-page project brief" }),

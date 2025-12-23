@@ -1,7 +1,8 @@
-import Link from "next/link";
+import { LocalizedLink as Link } from "@/components/i18n/LocalizedLink";
 import type { ReactElement, ReactNode } from "react";
 
 import { CopyButton } from "@/components/archive/CopyButton";
+import { localeToLanguageTag, type Locale } from "@/lib/i18n";
 
 type SearchView = "pages" | "snapshots";
 
@@ -17,8 +18,8 @@ export type SearchResultCardRecord = {
   pageSnapshotsCount?: number | null;
 };
 
-function formatDate(iso: string | undefined | null): string {
-  if (!iso) return "Unknown";
+function formatDate(locale: Locale, iso: string | undefined | null): string {
+  if (!iso) return locale === "fr" ? "Inconnu" : "Unknown";
 
   const parts = iso.split("-");
   if (parts.length === 3) {
@@ -29,7 +30,7 @@ function formatDate(iso: string | undefined | null): string {
     if (year && month && day) {
       const d = new Date(year, month - 1, day);
       if (!Number.isNaN(d.getTime())) {
-        return d.toLocaleDateString(undefined, {
+        return d.toLocaleDateString(localeToLanguageTag(locale), {
           year: "numeric",
           month: "short",
           day: "numeric",
@@ -40,7 +41,7 @@ function formatDate(iso: string | undefined | null): string {
 
   const parsed = new Date(iso);
   if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toLocaleDateString(undefined, {
+    return parsed.toLocaleDateString(localeToLanguageTag(locale), {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -153,14 +154,27 @@ export function SearchResultCard({
   record,
   view,
   query,
+  locale,
 }: {
   record: SearchResultCardRecord;
   view: SearchView;
   query: string;
+  locale: Locale;
 }) {
-  const label = view === "pages" ? "Latest capture" : "Captured";
+  const label =
+    locale === "fr"
+      ? view === "pages"
+        ? "Dernière capture"
+        : "Capturée"
+      : view === "pages"
+        ? "Latest capture"
+        : "Captured";
 
-  const snippetRaw = record.snippet?.trim() || "No summary available for this snapshot yet.";
+  const snippetRaw =
+    record.snippet?.trim() ||
+    (locale === "fr"
+      ? "Aucun résumé n’est encore disponible pour cette capture."
+      : "No summary is available for this snapshot yet.");
   const snippet = cleanSnippet(snippetRaw);
 
   const queryTokens = tokenizeQuery(query);
@@ -179,13 +193,19 @@ export function SearchResultCard({
             </Link>
           </h3>
 
-          <div className="ha-result-meta" aria-label="Result metadata">
+          <div
+            className="ha-result-meta"
+            aria-label={locale === "fr" ? "Métadonnées du résultat" : "Result metadata"}
+          >
             <span className="ha-result-badge ha-result-badge--source">{record.sourceName}</span>
             {view === "pages" &&
               typeof record.pageSnapshotsCount === "number" &&
               record.pageSnapshotsCount > 1 && (
                 <span className="ha-result-meta-item">
-                  <span className="ha-result-meta-label">Captures</span> {record.pageSnapshotsCount}
+                  <span className="ha-result-meta-label">
+                    {locale === "fr" ? "Captures" : "Captures"}
+                  </span>{" "}
+                  {record.pageSnapshotsCount}
                 </span>
               )}
             {record.captureDate && (
@@ -194,7 +214,7 @@ export function SearchResultCard({
                   <CalendarIcon />
                 </ResultIcon>
                 <span className="ha-result-meta-label">{label}</span>{" "}
-                {formatDate(record.captureDate)}
+                {formatDate(locale, record.captureDate)}
               </span>
             )}
             {record.language && (
@@ -210,7 +230,7 @@ export function SearchResultCard({
 
         <div className="ha-result-actions flex flex-wrap justify-end gap-2">
           <Link href={`/browse/${record.id}`} className="ha-btn-primary text-xs">
-            Browse
+            {locale === "fr" ? "Parcourir" : "Browse"}
           </Link>
           {view === "pages" && (
             <Link
@@ -219,11 +239,11 @@ export function SearchResultCard({
               )}&q=${encodeURIComponent(record.originalUrl)}`}
               className="ha-btn-secondary text-xs"
             >
-              All captures
+              {locale === "fr" ? "Toutes les captures" : "All captures"}
             </Link>
           )}
           <Link href={`/snapshot/${record.id}`} className="ha-btn-secondary text-xs">
-            Details
+            {locale === "fr" ? "Détails" : "Details"}
           </Link>
         </div>
       </div>
@@ -232,7 +252,9 @@ export function SearchResultCard({
 
       <div className="ha-result-url-row">
         <div className="ha-result-url">
-          <span className="ha-result-url-label">Original URL</span>
+          <span className="ha-result-url-label">
+            {locale === "fr" ? "URL d’origine" : "Original URL"}
+          </span>
           <a
             href={record.originalUrl}
             target="_blank"
@@ -243,7 +265,11 @@ export function SearchResultCard({
             <span className="ha-result-url-host">{urlParts.host}</span>
             {urlParts.rest && <span className="ha-result-url-rest">{urlParts.rest}</span>}
           </a>
-          <CopyButton text={record.originalUrl} label="Copy URL" className="ha-icon-btn">
+          <CopyButton
+            text={record.originalUrl}
+            label={locale === "fr" ? "Copier l’URL d’origine" : "Copy original URL"}
+            className="ha-icon-btn"
+          >
             <CopyIcon />
           </CopyButton>
         </div>

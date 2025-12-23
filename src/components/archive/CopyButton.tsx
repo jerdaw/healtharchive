@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 
+import { useLocale } from "@/components/i18n/LocaleProvider";
+
 type CopyButtonProps = {
   text: string;
   label: string;
@@ -48,6 +50,7 @@ function copyWithExecCommand(text: string): boolean {
 }
 
 export function CopyButton({ text, label, className, children }: CopyButtonProps) {
+  const locale = useLocale();
   const [state, setState] = useState<CopyState>("idle");
   const statusId = useId();
   const timeoutRef = useRef<number | null>(null);
@@ -119,12 +122,26 @@ export function CopyButton({ text, label, className, children }: CopyButtonProps
             state === "copied" ? "bg-slate-900 text-white" : "bg-rose-700 text-white"
           }`}
         >
-          {state === "copied" ? "Copied" : "Copy failed"}
+          {state === "copied"
+            ? locale === "fr"
+              ? "Copié"
+              : "Copied"
+            : locale === "fr"
+              ? "Échec de la copie"
+              : "Copy failed"}
         </span>
       )}
 
       <span id={statusId} className="sr-only" aria-live="polite">
-        {state === "copied" ? "Copied to clipboard." : state === "failed" ? "Copy failed." : ""}
+        {state === "copied"
+          ? locale === "fr"
+            ? "Copié dans le presse-papiers."
+            : "Copied to clipboard."
+          : state === "failed"
+            ? locale === "fr"
+              ? "Échec de la copie."
+              : "Copy failed."
+            : ""}
       </span>
     </span>
   );

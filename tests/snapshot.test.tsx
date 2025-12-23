@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
-import SnapshotPage from "@/app/snapshot/[id]/page";
+import SnapshotPage from "@/app/[locale]/snapshot/[id]/page";
 
 vi.mock("next/link", () => ({
   __esModule: true,
@@ -188,7 +188,7 @@ describe("/snapshot/[id]", () => {
     expect(screen.getAllByText(/Browse full screen/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Open in replay/i).length).toBeGreaterThan(0);
     expect(screen.getAllByText(/Raw HTML/i).length).toBeGreaterThan(0);
-    expect(screen.getByLabelText(/Backup/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/Edition/i)).toBeInTheDocument();
   });
 
   it("calls notFound when no snapshot exists", async () => {

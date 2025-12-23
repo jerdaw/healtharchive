@@ -142,12 +142,12 @@ available as a fallback/debug path.
    Confirm it loads the same replay content with a persistent HealthArchive
    banner/controls above the iframe.
 
-5. (Optional, if a source has multiple backups) Verify edition switching:
-   - In `/browse/<id>` (or `/snapshot/<id>`), look for a “Backup” / “Switch backup” dropdown.
+5. (Optional, if a source has multiple editions) Verify edition switching:
+   - In `/browse/<id>` (or `/snapshot/<id>`), look for an “Edition” / “Switch edition” dropdown.
    - Click a few links inside the replay iframe to navigate to a deeper page.
    - Switch the dropdown to another job/edition and confirm:
-     - the viewer attempts to keep you on the _same original URL_ in the selected backup, and
-     - if that page wasn’t captured in the selected backup, it falls back to the backup’s entry page with a short notice.
+     - the viewer attempts to keep you on the _same original URL_ in the selected edition, and
+     - if that page wasn’t captured in the selected edition, it falls back to the edition’s entry page with a short notice.
 
 6. Verify “Browse archived sites” search shortcuts:
    - On `https://www.healtharchive.ca/archive`, click **Search** on one of the “Browse archived sites” cards.
