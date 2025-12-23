@@ -28,21 +28,18 @@ When you’re unsure about architecture, routes, or design decisions, **read `do
 From the repo root:
 
 - Install deps:  
-  `npm install`
+  `npm ci`
 - Run dev server:  
   `npm run dev`
 - Build:  
   `npm run build`
-- Lint (ESLint):  
-  `npm run lint`
-- Tests (Vitest + React Testing Library, mocked fetch):  
-  `npm test`
+- Full checks (what CI runs):  
+  `npm run check`
 
 **Expectations when you change code:**
 
 - For non-trivial changes, run at least:
-  - `npm run lint`
-  - `npm test`
+  - `npm run check`
 - If you add new behavior (new route, new helpers, etc.), consider adding or updating tests under `src/**` or the existing test dirs in the same style as current tests.
 
 ---
@@ -135,8 +132,7 @@ When you touch anything that affects:
 CI (GitHub Actions) will run:
 
 - `npm ci`
-- `npm run lint`
-- `npm test`
+- `npm run check`
 
 Aim to keep those passing.
 

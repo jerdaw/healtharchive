@@ -65,8 +65,10 @@ are centralized in `src/lib/siteCopy.ts`.
 ### 1. Install dependencies
 
 ```bash
-npm install
+npm ci
 ```
+
+Node.js **20.19+** is required (enforced via `package.json` `engines` and CI).
 
 ### 2. Configure API base URL
 
@@ -120,19 +122,13 @@ npm start
 
 (In production, Vercel runs the build and serves the app.)
 
-### 5. Lint (recommended)
+### 5. Run checks (recommended)
 
 ```bash
-npm run lint
+npm run check
 ```
 
-### 6. Tests (mocked, no backend required)
-
-```bash
-npm test
-```
-
-Vitest + Testing Library with mocked fetch; no live backend needed.
+This runs formatting checks, lint, typecheck, tests (mocked; no backend required), and a build.
 
 ---
 
@@ -145,9 +141,8 @@ Vitest + Testing Library with mocked fetch; no live backend needed.
 - A GitHub Actions workflow (`.github/workflows/frontend-ci.yml`) runs on pushes
   to `main` and on pull requests:
   - Installs dependencies via `npm ci`.
-  - Runs `npm run lint`.
-  - Runs `npm test` (Vitest + Testing Library with mocked fetch; no live backend
-    required).
+  - Runs pre-commit checks on PR diffs (whitespace/EOF, YAML validation, detecting private keys).
+  - Runs `npm run check`.
   - Runs a lightweight dependency security audit:
 
     ```bash

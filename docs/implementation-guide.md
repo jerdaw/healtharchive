@@ -70,11 +70,8 @@ npm run build
 # Production start (typically handled by Vercel)
 npm start
 
-# Lint (ESLint)
-npm run lint
-
-# Tests (Vitest + RTL, mocked fetch)
-npm test
+# Full checks (what CI runs)
+npm run check
 ```
 
 ### Environment variables
@@ -146,8 +143,7 @@ npm test
 
 - GitHub Actions (`frontend-ci.yml`) runs on pushes to `main` and on pull requests:
   - `npm ci`
-  - `npm run lint`
-  - `npm test`
+  - `npm run check`
 
 - Tests mock network calls and do not require a live backend.
 - In CI, diagnostics env vars (`NEXT_PUBLIC_SHOW_API_HEALTH_BANNER`,
