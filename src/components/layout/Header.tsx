@@ -66,7 +66,13 @@ export function Header() {
   const languageSwitchAriaLabel = locale === "fr" ? "Passer à l'anglais" : "Switch to French";
   const primaryNavAriaLabel = locale === "fr" ? "Navigation principale" : "Primary";
   const themeToggleAriaLabel =
-    locale === "fr" ? "Changer le thème de couleurs" : "Toggle color theme";
+    locale === "fr"
+      ? theme === "dark"
+        ? "Passer au thème clair"
+        : "Passer au thème sombre"
+      : theme === "dark"
+        ? "Switch to light theme"
+        : "Switch to dark theme";
   const mobileNavAriaLabel = mobileOpen
     ? locale === "fr"
       ? "Fermer la navigation principale"
@@ -277,19 +283,19 @@ export function Header() {
             >
               {theme === "dark" ? (
                 <svg aria-hidden="true" viewBox="0 0 24 24">
-                  <path
-                    d="M21 12.79A9 9 0 0 1 12.21 3 7 7 0 0 0 12 17a7 7 0 0 0 9-4.21z"
-                    fill="currentColor"
-                  />
-                </svg>
-              ) : (
-                <svg aria-hidden="true" viewBox="0 0 24 24">
                   <circle cx="12" cy="12" r="4" fill="currentColor" />
                   <path
                     d="M12 2.5v2.5M12 19v2.5M4.22 4.22l1.77 1.77M17.99 17.99l1.77 1.77M2.5 12h2.5M19 12h2.5M4.22 19.78l1.77-1.77M17.99 6.01l1.77-1.77"
                     stroke="currentColor"
                     strokeWidth="1.4"
                     strokeLinecap="round"
+                  />
+                </svg>
+              ) : (
+                <svg aria-hidden="true" viewBox="0 0 24 24">
+                  <path
+                    d="M21 12.79A9 9 0 0 1 12.21 3 7 7 0 0 0 12 17a7 7 0 0 0 9-4.21z"
+                    fill="currentColor"
                   />
                 </svg>
               )}
@@ -395,19 +401,19 @@ export function Header() {
                 >
                   {theme === "dark" ? (
                     <svg aria-hidden="true" viewBox="0 0 24 24">
-                      <path
-                        d="M21 12.79A9 9 0 0 1 12.21 3 7 7 0 0 0 12 17a7 7 0 0 0 9-4.21z"
-                        fill="currentColor"
-                      />
-                    </svg>
-                  ) : (
-                    <svg aria-hidden="true" viewBox="0 0 24 24">
                       <circle cx="12" cy="12" r="4" fill="currentColor" />
                       <path
                         d="M12 2.5v2.5M12 19v2.5M4.22 4.22l1.77 1.77M17.99 17.99l1.77 1.77M2.5 12h2.5M19 12h2.5M4.22 19.78l1.77-1.77M17.99 6.01l1.77-1.77"
                         stroke="currentColor"
                         strokeWidth="1.4"
                         strokeLinecap="round"
+                      />
+                    </svg>
+                  ) : (
+                    <svg aria-hidden="true" viewBox="0 0 24 24">
+                      <path
+                        d="M21 12.79A9 9 0 0 1 12.21 3 7 7 0 0 0 12 17a7 7 0 0 0 9-4.21z"
+                        fill="currentColor"
                       />
                     </svg>
                   )}

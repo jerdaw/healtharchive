@@ -205,7 +205,7 @@ a:focus-visible {
     color-mix(in srgb, var(--muted) 55%, transparent) 55%,
     transparent 100%
   );
-  opacity: 0.65;
+  opacity: 0.5;
   pointer-events: none;
 }
 
