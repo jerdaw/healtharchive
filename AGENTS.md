@@ -27,14 +27,10 @@ When you’re unsure about architecture, routes, or design decisions, **read `do
 
 From the repo root:
 
-- Install deps:  
-  `npm ci`
-- Run dev server:  
-  `npm run dev`
-- Build:  
-  `npm run build`
-- Full checks (what CI runs):  
-  `npm run check`
+- Install deps: `npm ci`
+- Run dev server: `npm run dev`
+- Build: `npm run build`
+- Full checks (what CI runs): `npm run check`
 
 **Expectations when you change code:**
 

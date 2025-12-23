@@ -8,7 +8,7 @@ This repository contains the **Next.js frontend** for the public site at:
 - https://healtharchive.ca (production)
 - https://healtharchive.vercel.app (Vercel default domain)
 
-> **Status:** Production (active)  
+> **Status:** Production (active)
 > The UI now prefers live backend APIs for search, browse, and snapshot detail
 > (configured via `NEXT_PUBLIC_API_BASE_URL`), and gracefully falls back to the
 > bundled offline sample dataset when the API is unreachable.
