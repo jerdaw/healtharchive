@@ -17,6 +17,8 @@ This folder contains documentation for the **HealthArchive frontend**
   - `development/bilingual-maintenance.md`
 - Development guide:
   - `development/bilingual-dev-guide.md`
+- Testing guidelines:
+  - `development/testing-guidelines.md`
 - Documentation guidelines (canonical, cross-repo):
   - `healtharchive-backend/docs/documentation-guidelines.md`
 
