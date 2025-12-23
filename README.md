@@ -8,7 +8,7 @@ This repository contains the **Next.js frontend** for the public site at:
 - https://healtharchive.ca (production)
 - https://healtharchive.vercel.app (Vercel default domain)
 
-> **Status:** Production (active)  
+> **Status:** Production (active)
 > The UI now prefers live backend APIs for search, browse, and snapshot detail
 > (configured via `NEXT_PUBLIC_API_BASE_URL`), and gracefully falls back to the
 > bundled offline sample dataset when the API is unreachable.
@@ -17,6 +17,13 @@ Public-facing narrative and workflow disclaimers (used across Home/Archive/Snaps
 are centralized in `src/lib/siteCopy.ts`.
 
 ---
+
+## Localization (EN/FR)
+
+- English is the default (canonical URLs are unprefixed, e.g. `/archive`).
+- French lives under `/fr/...` and is explicitly labeled as an **alpha, automated translation**.
+- If there is any inconsistency, the **English version governs**.
+- Archived snapshots are never translated (they remain as-captured).
 
 ## Tech stack
 
@@ -65,8 +72,10 @@ are centralized in `src/lib/siteCopy.ts`.
 ### 1. Install dependencies
 
 ```bash
-npm install
+npm ci
 ```
+
+Node.js **20.19+** is required (enforced via `package.json` `engines` and CI).
 
 ### 2. Configure API base URL
 
@@ -120,19 +129,13 @@ npm start
 
 (In production, Vercel runs the build and serves the app.)
 
-### 5. Lint (recommended)
+### 5. Run checks (recommended)
 
 ```bash
-npm run lint
+npm run check
 ```
 
-### 6. Tests (mocked, no backend required)
-
-```bash
-npm test
-```
-
-Vitest + Testing Library with mocked fetch; no live backend needed.
+This runs formatting checks, lint, typecheck, tests (mocked; no backend required), and a build.
 
 ---
 
@@ -145,9 +148,8 @@ Vitest + Testing Library with mocked fetch; no live backend needed.
 - A GitHub Actions workflow (`.github/workflows/frontend-ci.yml`) runs on pushes
   to `main` and on pull requests:
   - Installs dependencies via `npm ci`.
-  - Runs `npm run lint`.
-  - Runs `npm test` (Vitest + Testing Library with mocked fetch; no live backend
-    required).
+  - Runs pre-commit checks on PR diffs (whitespace/EOF, YAML validation, detecting private keys).
+  - Runs `npm run check`.
   - Runs a lightweight dependency security audit:
 
     ```bash
@@ -187,7 +189,7 @@ Vitest + Testing Library with mocked fetch; no live backend needed.
 - Search (`/archive`): keywords + source filter, pagination (First/Prev/Next/Last), page-size selector.
 - Browse by source (`/archive/browse-by-source`): cards load with record counts.
 - Snapshot (`/snapshot/[id]`): metadata present; iframe loads or shows error overlay with raw/API links; missing ID returns notFound.
-- Browse full-screen (`/browse/[id]`): banner renders; iframe loads replay content and lets you click around within the archived backup.
+- Browse full-screen (`/browse/[id]`): banner renders; iframe loads replay content and lets you click around within the archived edition.
 - Some API calls happen server-side in Next.js; if you don’t see requests in the browser Network tab, tail backend logs or call the API directly to confirm connectivity.
 
 This runs the Next.js/ESLint config for the app.
@@ -200,7 +202,8 @@ This runs the Next.js/ESLint config for the app.
 .
 ├── README.md
 ├── docs/
-│   └── documentation.md       # Deep-dive architecture, design, and project state
+│   ├── implementation-guide.md # Deep-dive architecture, design system, routes
+│   └── i18n.md                 # Localization strategy + English-governs policy
 ├── package.json
 ├── next.config.ts
 ├── tailwind.config.mjs
@@ -210,21 +213,14 @@ This runs the Next.js/ESLint config for the app.
 │   ├── healtharchive-logo.webp  # Primary logo used in header/hero
 │   └── demo-archive/            # Static HTML stubs used by the snapshot viewer
 └── src/
-    ├── app/                   # Next.js App Router routes
-    │   ├── favicon.ico        # Favicon wired via Next metadata
-    │   ├── page.tsx           # Home
-    │   ├── archive/           # Search & browse
-    │   ├── browse/[id]/       # Full-screen browse wrapper (replay iframe)
-    │   ├── methods/           # Methods & scope
-    │   ├── researchers/       # For researchers
-    │   ├── about/             # About the project
-    │   ├── contact/           # Contact info
-    │   ├── brief/             # Partner-friendly one-page brief
-    │   ├── cite/              # Citation guidance handout
-    │   ├── exports/           # Research exports + data dictionary
-    │   └── snapshot/[id]/     # Snapshot viewer
+    ├── proxy.ts                # Locale routing (English canonical; French /fr)
+    ├── app/                    # Next.js App Router
+    │   ├── [locale]/           # Locale-aware routes (see middleware)
+    │   └── api/report/         # Same-origin report intake → backend forward
     ├── components/
-    │   └── layout/            # Header, Footer, PageShell
+    │   ├── i18n/               # LocaleProvider, LocalizedLink, FR banner
+    │   ├── layout/             # Header, Footer, PageShell
+    │   └── policy/             # English-governs notice for policy pages
     └── data/
         └── demo-records.ts    # Demo dataset + search helpers
 ```
@@ -251,4 +247,4 @@ Any push to `main` triggers a new Vercel deployment.
 - **Architecture & project state:**
   See [`docs/implementation-guide.md`](docs/implementation-guide.md) for a detailed overview
   of the data model, routes, design system, accessibility primitives, and
-  planned future phases.
+  planned milestones.

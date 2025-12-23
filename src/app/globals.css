@@ -136,54 +136,92 @@ a:focus-visible {
   background-color: var(--surface-bg);
 }
 
-/* Theme toggle slider */
-.ha-theme-toggle {
+/* Header utility cluster (theme + language) */
+.ha-utility-switch {
+  display: inline-flex;
   align-items: center;
-  justify-content: center;
-  padding: 0;
-  border-radius: 999px;
-  border: 1px solid var(--border);
-  background-color: transparent;
+  height: 1.85rem;
 }
 
-.ha-theme-toggle-track {
+.ha-utility-switch:focus-within {
+  outline: none;
+}
+
+.ha-utility-switch-item {
   position: relative;
   display: inline-flex;
   align-items: center;
-  width: 44px;
-  height: 22px;
+  justify-content: center;
+  height: 100%;
+  border: 0;
+  background-color: transparent;
+  color: var(--muted);
+  text-decoration: none;
+  cursor: pointer;
   border-radius: 999px;
-  background-color: rgba(148, 163, 184, 0.35);
-  transition: background-color 150ms ease-out;
+  transition:
+    background-color 140ms ease-out,
+    color 140ms ease-out;
 }
 
-.ha-theme-toggle-thumb {
-  position: absolute;
-  top: 3px;
-  left: 3px;
+.ha-utility-switch-item:focus-visible {
+  outline: none;
+}
+
+.ha-utility-switch-item:hover {
+  background-color: color-mix(in srgb, var(--surface-bg) 38%, transparent);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.ha-utility-switch-item--icon {
+  width: 1.9rem;
+}
+
+.ha-utility-switch-item--icon svg {
   width: 16px;
   height: 16px;
-  border-radius: 999px;
-  background-color: #ffffff;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.35);
-  transition:
-    transform 150ms ease-out,
-    background-color 150ms ease-out;
 }
 
-.ha-theme-toggle-icon {
+.ha-utility-switch-item--locale {
+  padding: 0 0.55rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+}
+
+.ha-utility-switch-item--locale:hover {
+  font-weight: 650;
+}
+
+.ha-utility-switch-item--locale::before {
+  content: "";
   position: absolute;
-  width: 14px;
-  height: 14px;
-  fill: #9ca3af;
+  left: -0.5px;
+  top: 12%;
+  bottom: 12%;
+  width: 1px;
+  background: linear-gradient(
+    to bottom,
+    transparent 0%,
+    color-mix(in srgb, var(--muted) 55%, transparent) 45%,
+    color-mix(in srgb, var(--muted) 55%, transparent) 55%,
+    transparent 100%
+  );
+  opacity: 0.375;
+  pointer-events: none;
 }
 
-.ha-theme-toggle-icon-sun {
-  left: 5px;
-}
+@supports selector(:has(*)) {
+  .ha-utility-switch:focus-within {
+    outline: none;
+  }
 
-.ha-theme-toggle-icon-moon {
-  right: 5px;
+  .ha-utility-switch:has(.ha-utility-switch-item:focus-visible) {
+    outline: 2px solid var(--brand);
+    outline-offset: 2px;
+  }
 }
 
 .ha-typing-caret {
@@ -1410,19 +1448,6 @@ html[data-theme="dark"] .hover\:text-blue-700:hover {
 
 html[data-theme="dark"] .ha-btn-secondary:hover {
   background-color: #1e2021;
-}
-
-html[data-theme="dark"] .ha-theme-toggle-track {
-  background-color: rgba(30, 64, 175, 0.45);
-}
-
-html[data-theme="dark"] .ha-theme-toggle-thumb {
-  background-color: #020617;
-  transform: translateX(22px);
-}
-
-html[data-theme="dark"] .ha-theme-toggle-icon {
-  fill: #e5e7eb;
 }
 
 html[data-theme="dark"] .ha-nav-link {

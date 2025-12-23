@@ -54,7 +54,7 @@ describe("Homepage hero animation orchestration", () => {
     });
 
     expect(screen.getByText("before")).toBeInTheDocument();
-    expect(screen.getByText("after")).toBeInTheDocument();
+    expect(screen.getByText("after", { selector: ".text-ha-accent" })).toBeInTheDocument();
 
     act(() => {
       window.dispatchEvent(new CustomEvent("ha-project-snapshot-finished"));
@@ -69,7 +69,7 @@ describe("Homepage hero animation orchestration", () => {
     });
 
     expect(screen.queryByText("before")).not.toBeInTheDocument();
-    expect(screen.getByText("after")).toBeInTheDocument();
+    expect(screen.getByText("after", { selector: ".text-ha-accent" })).toBeInTheDocument();
     expect(screen.getByText(/they change\./i)).toBeInTheDocument();
   });
 });

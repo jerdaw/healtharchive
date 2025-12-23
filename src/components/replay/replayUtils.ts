@@ -1,3 +1,6 @@
+import type { Locale } from "@/lib/i18n";
+import { localeToLanguageTag } from "@/lib/i18n";
+
 export type ReplayEdition = {
   jobId: number;
   jobName: string;
@@ -6,6 +9,10 @@ export type ReplayEdition = {
   lastCapture: string;
   entryBrowseUrl?: string | null;
 };
+
+function toLanguageTag(locale?: Locale): string | undefined {
+  return locale ? localeToLanguageTag(locale) : undefined;
+}
 
 export function stripUrlFragment(url: string): string {
   const trimmed = url.trim();
@@ -37,7 +44,10 @@ export function isoToTimestamp14(value: string | null | undefined): string | nul
   return `${year}${month}${day}${hour}${minute}${second}`;
 }
 
-export function timestamp14ToDateLabel(ts: string | null | undefined): string | null {
+export function timestamp14ToDateLabel(
+  ts: string | null | undefined,
+  locale?: Locale,
+): string | null {
   if (!ts || typeof ts !== "string" || ts.length < 8) return null;
   const year = Number(ts.slice(0, 4));
   const month = Number(ts.slice(4, 6));
@@ -45,14 +55,14 @@ export function timestamp14ToDateLabel(ts: string | null | undefined): string | 
   if (!year || !month || !day) return null;
   const date = new Date(Date.UTC(year, month - 1, day));
   if (Number.isNaN(date.getTime())) return null;
-  return date.toLocaleDateString(undefined, {
+  return date.toLocaleDateString(toLanguageTag(locale), {
     year: "numeric",
     month: "short",
     day: "numeric",
   });
 }
 
-export function dateIsoToLabel(dateIso: string): string {
+export function dateIsoToLabel(dateIso: string, locale?: Locale): string {
   const parts = dateIso.split("-");
   if (parts.length === 3) {
     const [yearStr, monthStr, dayStr] = parts;
@@ -63,7 +73,7 @@ export function dateIsoToLabel(dateIso: string): string {
     if (year && month && day) {
       const date = new Date(Date.UTC(year, month - 1, day));
       if (!Number.isNaN(date.getTime())) {
-        return date.toLocaleDateString(undefined, {
+        return date.toLocaleDateString(toLanguageTag(locale), {
           year: "numeric",
           month: "short",
           day: "numeric",
@@ -74,7 +84,7 @@ export function dateIsoToLabel(dateIso: string): string {
 
   const parsed = new Date(dateIso);
   if (!Number.isNaN(parsed.getTime())) {
-    return parsed.toLocaleDateString(undefined, {
+    return parsed.toLocaleDateString(toLanguageTag(locale), {
       year: "numeric",
       month: "short",
       day: "numeric",
@@ -84,9 +94,9 @@ export function dateIsoToLabel(dateIso: string): string {
   return dateIso;
 }
 
-export function formatEditionLabel(edition: ReplayEdition): string {
-  const first = dateIsoToLabel(edition.firstCapture);
-  const last = dateIsoToLabel(edition.lastCapture);
+export function formatEditionLabel(edition: ReplayEdition, locale?: Locale): string {
+  const first = dateIsoToLabel(edition.firstCapture, locale);
+  const last = dateIsoToLabel(edition.lastCapture, locale);
   const range = edition.firstCapture === edition.lastCapture ? first : `${first}–${last}`;
   return `${range} (job-${edition.jobId})`;
 }

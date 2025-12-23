@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
-import BrowseBySourcePage from "@/app/archive/browse-by-source/page";
+import BrowseBySourcePage from "@/app/[locale]/archive/browse-by-source/page";
 
 vi.mock("next/link", () => ({
   __esModule: true,

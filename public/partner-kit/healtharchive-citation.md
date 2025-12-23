@@ -1,8 +1,8 @@
 # HealthArchive.ca - Citation handout
 
-Purpose: A pragmatic, stable way to cite archived HealthArchive snapshots and compare views.
+Purpose: A consistent, citation-ready way to reference HealthArchive snapshots and compare views.
 
-These citations refer to archived content, not current guidance.
+These citations refer to archived content, not current guidance or medical advice.
 
 ---
 

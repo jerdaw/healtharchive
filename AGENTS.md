@@ -18,6 +18,11 @@
   - `docs/implementation-guide.md` → architecture, routes, styling system, deployment details.
   - `docs/deployment/verification.md` → Preview/Production CSP/CORS/snapshot viewer verification.
 - Canonical public-facing copy (mission + workflow disclaimers) lives in `src/lib/siteCopy.ts` and should be reused rather than duplicated across pages.
+- Localization:
+  - Locale-aware routes live under `src/app/[locale]/...`.
+  - English is canonical/unprefixed; French is under `/fr/...` (see `src/proxy.ts`).
+  - French is an automated alpha translation; English governs for any inconsistencies (see `src/components/i18n/FrenchTranslationBanner.tsx` and `src/components/policy/EnglishControlsNotice.tsx`).
+  - Prefer `getSiteCopy(locale)` and `pickLocalized(locale, { en, fr })` instead of sprinkling ad-hoc strings.
 
 When you’re unsure about architecture, routes, or design decisions, **read `docs/implementation-guide.md` first instead of guessing**.
 
@@ -27,22 +32,15 @@ When you’re unsure about architecture, routes, or design decisions, **read `do
 
 From the repo root:
 
-- Install deps:  
-  `npm install`
-- Run dev server:  
-  `npm run dev`
-- Build:  
-  `npm run build`
-- Lint (ESLint):  
-  `npm run lint`
-- Tests (Vitest + React Testing Library, mocked fetch):  
-  `npm test`
+- Install deps: `npm ci`
+- Run dev server: `npm run dev`
+- Build: `npm run build`
+- Full checks (what CI runs): `npm run check`
 
 **Expectations when you change code:**
 
 - For non-trivial changes, run at least:
-  - `npm run lint`
-  - `npm test`
+  - `npm run check`
 - If you add new behavior (new route, new helpers, etc.), consider adding or updating tests under `src/**` or the existing test dirs in the same style as current tests.
 
 ---
@@ -82,6 +80,7 @@ When wiring new API calls, keep the **public-only** contract and reuse `src/lib/
 - Use **TypeScript** with types that match existing patterns.
 - Use **Next.js 16 App Router** idioms:
   - `searchParams` and `params` are **Promises** in server components – don’t “fix” that back to the old Next 13 signature.
+  - Tests that render server route components should `await Page(...)` and then `render(ui)`.
 - Routing:
   - Archive/search/browse: under `src/app/archive/**`
   - Snapshot viewer: `src/app/snapshot/[id]/page.tsx`
@@ -135,8 +134,7 @@ When you touch anything that affects:
 CI (GitHub Actions) will run:
 
 - `npm ci`
-- `npm run lint`
-- `npm test`
+- `npm run check`
 
 Aim to keep those passing.
 

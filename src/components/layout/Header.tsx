@@ -1,19 +1,27 @@
 "use client";
 
-import Link from "next/link";
-import { usePathname } from "next/navigation";
+import NextLink from "next/link";
+import { usePathname, useSearchParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
+import { useLocale } from "@/components/i18n/LocaleProvider";
+import { LocalizedLink as Link } from "@/components/i18n/LocalizedLink";
+
 const navItems = [
-  { href: "/", label: "Home" },
-  { href: "/archive", label: "Browse" },
-  { href: "/changes", label: "Changes" },
-  { href: "/methods", label: "Methods" },
-  { href: "/researchers", label: "Researchers" },
-  { href: "/about", label: "About" },
-  { href: "/contact", label: "Contact" },
+  { href: "/", label: { en: "Home", fr: "Accueil" } },
+  { href: "/archive", label: { en: "Browse", fr: "Parcourir" } },
+  { href: "/changes", label: { en: "Changes", fr: "Changements" } },
+  { href: "/methods", label: { en: "Methods", fr: "Méthodes" } },
+  { href: "/researchers", label: { en: "Researchers", fr: "Recherche" } },
+  { href: "/about", label: { en: "About", fr: "À propos" } },
+  { href: "/contact", label: { en: "Contact", fr: "Contact" } },
 ];
+
+function stripLocalePrefix(pathname: string): string {
+  const stripped = pathname.replace(/^\/(en|fr)(?=\/|$)/, "");
+  return stripped || "/";
+}
 
 function isActivePath(pathname: string, href: string): boolean {
   if (href === "/") {
@@ -23,7 +31,11 @@ function isActivePath(pathname: string, href: string): boolean {
 }
 
 export function Header() {
+  const locale = useLocale();
   const pathname = usePathname();
+  const normalizedPathname = stripLocalePrefix(pathname);
+  const searchParams = useSearchParams();
+  const queryString = searchParams.toString();
   const [mobileOpen, setMobileOpen] = useState(false);
   const [theme, setTheme] = useState<"light" | "dark">(() => {
     if (typeof document === "undefined") return "light";
@@ -39,6 +51,35 @@ export function Header() {
   const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const mobilePanelRef = useRef<HTMLDivElement | null>(null);
   const mobileToggleRef = useRef<HTMLButtonElement | null>(null);
+
+  const { englishHref, frenchHref } = (() => {
+    const canonicalPath = stripLocalePrefix(pathname);
+    const englishPath = canonicalPath;
+    const frenchPath = canonicalPath === "/" ? "/fr" : `/fr${canonicalPath}`;
+    return {
+      englishHref: queryString ? `${englishPath}?${queryString}` : englishPath,
+      frenchHref: queryString ? `${frenchPath}?${queryString}` : frenchPath,
+    };
+  })();
+  const languageSwitchHref = locale === "fr" ? englishHref : frenchHref;
+  const languageSwitchLabel = locale === "fr" ? "EN" : "FR";
+  const languageSwitchAriaLabel = locale === "fr" ? "Passer à l'anglais" : "Switch to French";
+  const primaryNavAriaLabel = locale === "fr" ? "Navigation principale" : "Primary";
+  const themeToggleAriaLabel =
+    locale === "fr"
+      ? theme === "dark"
+        ? "Passer au thème clair"
+        : "Passer au thème sombre"
+      : theme === "dark"
+        ? "Switch to light theme"
+        : "Switch to dark theme";
+  const mobileNavAriaLabel = mobileOpen
+    ? locale === "fr"
+      ? "Fermer la navigation principale"
+      : "Close main navigation"
+    : locale === "fr"
+      ? "Ouvrir la navigation principale"
+      : "Open main navigation";
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -58,7 +99,7 @@ export function Header() {
     if (!nav) return;
     const navRect = nav.getBoundingClientRect();
     if (navRect.width === 0) return;
-    const activeItem = navItems.find((item) => isActivePath(pathname, item.href));
+    const activeItem = navItems.find((item) => isActivePath(normalizedPathname, item.href));
     if (!activeItem) return;
     const link = linkRefs.current[activeItem.href];
     if (!link) return;
@@ -68,7 +109,7 @@ export function Header() {
       width: linkRect.width,
     });
     setIndicatorVisible(true);
-  }, [pathname]);
+  }, [normalizedPathname]);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -77,7 +118,7 @@ export function Header() {
       if (!nav) return;
       const navRect = nav.getBoundingClientRect();
       if (navRect.width === 0) return;
-      const activeItem = navItems.find((item) => isActivePath(pathname, item.href));
+      const activeItem = navItems.find((item) => isActivePath(normalizedPathname, item.href));
       if (!activeItem) return;
       const link = linkRefs.current[activeItem.href];
       if (!link) return;
@@ -90,7 +131,7 @@ export function Header() {
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [pathname]);
+  }, [normalizedPathname]);
 
   useEffect(() => {
     if (!mobileOpen) return;
@@ -146,7 +187,7 @@ export function Header() {
           <Link href="/" className="group ha-header-link flex items-center gap-4">
             <Image
               src="/healtharchive-logo.webp"
-              alt="HealthArchive.ca logo"
+              alt={locale === "fr" ? "Logo de HealthArchive.ca" : "HealthArchive.ca logo"}
               width={72}
               height={60}
               className="ha-header-logo w-auto translate-y-[1px] transform transition-transform duration-150 ease-out group-hover:scale-105"
@@ -157,7 +198,9 @@ export function Header() {
                 HealthArchive.ca
               </span>
               <span className="ha-header-subtitle text-[11px] font-medium md:text-xs">
-                Independent archive of Canadian public health information
+                {locale === "fr"
+                  ? "Archive indépendante du contenu Web de santé publique au Canada"
+                  : "Independent archive of Canadian public health web content"}
               </span>
             </div>
           </Link>
@@ -168,9 +211,11 @@ export function Header() {
           <nav
             ref={navRef}
             className="text-ha-muted relative hidden items-center gap-2 text-xs font-semibold md:flex lg:gap-3 lg:text-sm"
-            aria-label="Primary"
+            aria-label={primaryNavAriaLabel}
             onMouseLeave={() => {
-              const activeItem = navItems.find((item) => isActivePath(pathname, item.href));
+              const activeItem = navItems.find((item) =>
+                isActivePath(normalizedPathname, item.href),
+              );
               if (activeItem) {
                 moveIndicatorToHref(activeItem.href);
               }
@@ -188,7 +233,7 @@ export function Header() {
               />
             )}
             {navItems.map((item) => {
-              const active = isActivePath(pathname, item.href);
+              const active = isActivePath(normalizedPathname, item.href);
               const isBrowse = item.href === "/archive";
               const baseClasses = ["ha-nav-link"];
               if (active) {
@@ -222,61 +267,66 @@ export function Header() {
                       </svg>
                     </span>
                   )}
-                  {item.label}
+                  {locale === "fr" ? item.label.fr : item.label.en}
                 </Link>
               );
             })}
           </nav>
 
-          {/* Theme toggle */}
-          <button
-            type="button"
-            onClick={toggleTheme}
-            className="ha-theme-toggle hidden focus-visible:ring-2 focus-visible:ring-[#11588f] focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none md:inline-flex"
-            aria-label="Toggle color theme"
-          >
-            <span className="ha-theme-toggle-track">
-              {/* Sun icon (left) */}
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="ha-theme-toggle-icon ha-theme-toggle-icon-sun"
-              >
-                <circle cx="12" cy="12" r="4" fill="currentColor" />
-                <path
-                  d="M12 2.5v2.5M12 19v2.5M4.22 4.22l1.77 1.77M17.99 17.99l1.77 1.77M2.5 12h2.5M19 12h2.5M4.22 19.78l1.77-1.77M17.99 6.01l1.77-1.77"
-                  stroke="currentColor"
-                  strokeWidth="1.4"
-                  strokeLinecap="round"
-                />
-              </svg>
-              {/* Moon icon (right) */}
-              <svg
-                aria-hidden="true"
-                viewBox="0 0 24 24"
-                className="ha-theme-toggle-icon ha-theme-toggle-icon-moon"
-              >
-                <path
-                  d="M21 12.79A9 9 0 0 1 12.21 3 7 7 0 0 0 12 17a7 7 0 0 0 9-4.21z"
-                  fill="currentColor"
-                />
-              </svg>
-              {/* Thumb */}
-              <span className="ha-theme-toggle-thumb" />
-            </span>
-          </button>
+          <div className="ha-utility-switch hidden md:inline-flex">
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="ha-utility-switch-item ha-utility-switch-item--icon"
+              aria-label={themeToggleAriaLabel}
+              aria-pressed={theme === "dark"}
+            >
+              {theme === "dark" ? (
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+                  <path
+                    d="M12 2.5v2.5M12 19v2.5M4.22 4.22l1.77 1.77M17.99 17.99l1.77 1.77M2.5 12h2.5M19 12h2.5M4.22 19.78l1.77-1.77M17.99 6.01l1.77-1.77"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ) : (
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M21 12.79A9 9 0 0 1 12.21 3 7 7 0 0 0 12 17a7 7 0 0 0 9-4.21z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+              <span className="sr-only">{themeToggleAriaLabel}</span>
+            </button>
+            <NextLink
+              href={languageSwitchHref}
+              aria-label={languageSwitchAriaLabel}
+              className="ha-utility-switch-item ha-utility-switch-item--locale"
+            >
+              <span aria-hidden="true">{languageSwitchLabel}</span>
+              <span className="sr-only">{languageSwitchAriaLabel}</span>
+            </NextLink>
+          </div>
 
           {/* Mobile menu button */}
           <button
             type="button"
             className="border-ha-border inline-flex items-center justify-center rounded-full border bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#11588f] focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none md:hidden"
-            aria-label={mobileOpen ? "Close main navigation" : "Open main navigation"}
+            aria-label={mobileNavAriaLabel}
             aria-expanded={mobileOpen}
             aria-controls="primary-navigation"
             onClick={() => setMobileOpen((open) => !open)}
             ref={mobileToggleRef}
           >
-            <span className="sr-only">Toggle navigation</span>
+            <span className="sr-only">
+              {locale === "fr" ? "Basculer la navigation" : "Toggle navigation"}
+            </span>
             <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true" role="img">
               {mobileOpen ? (
                 <path
@@ -307,7 +357,7 @@ export function Header() {
           >
             <div className="flex flex-col gap-1">
               {navItems.map((item) => {
-                const active = isActivePath(pathname, item.href);
+                const active = isActivePath(normalizedPathname, item.href);
                 const isBrowse = item.href === "/archive";
                 const baseClasses = ["ha-nav-link"];
                 if (active) {
@@ -335,48 +385,56 @@ export function Header() {
                         </svg>
                       </span>
                     )}
-                    {item.label}
+                    {locale === "fr" ? item.label.fr : item.label.en}
                   </Link>
                 );
               })}
             </div>
-            <div className="flex items-center justify-end pt-1">
-              <button
-                type="button"
-                onClick={toggleTheme}
-                className="ha-theme-toggle inline-flex focus-visible:ring-2 focus-visible:ring-[#11588f] focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none lg:hidden"
-                aria-label="Toggle color theme"
-              >
-                <span className="ha-theme-toggle-track">
-                  {/* Sun icon (left) */}
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="ha-theme-toggle-icon ha-theme-toggle-icon-sun"
-                  >
-                    <circle cx="12" cy="12" r="4" fill="currentColor" />
-                    <path
-                      d="M12 2.5v2.5M12 19v2.5M4.22 4.22l1.77 1.77M17.99 17.99l1.77 1.77M2.5 12h2.5M19 12h2.5M4.22 19.78l1.77-1.77M17.99 6.01l1.77-1.77"
-                      stroke="currentColor"
-                      strokeWidth="1.4"
-                      strokeLinecap="round"
-                    />
-                  </svg>
-                  {/* Moon icon (right) */}
-                  <svg
-                    aria-hidden="true"
-                    viewBox="0 0 24 24"
-                    className="ha-theme-toggle-icon ha-theme-toggle-icon-moon"
-                  >
-                    <path
-                      d="M21 12.79A9 9 0 0 1 12.21 3 7 7 0 0 0 12 17a7 7 0 0 0 9-4.21z"
-                      fill="currentColor"
-                    />
-                  </svg>
-                  {/* Thumb */}
-                  <span className="ha-theme-toggle-thumb" />
-                </span>
-              </button>
+            <div className="flex items-center justify-end gap-3 pt-2">
+              <div className="ha-utility-switch inline-flex">
+                <button
+                  type="button"
+                  onClick={() => {
+                    toggleTheme();
+                    setMobileOpen(false);
+                  }}
+                  className="ha-utility-switch-item ha-utility-switch-item--icon"
+                  aria-label={themeToggleAriaLabel}
+                  aria-pressed={theme === "dark"}
+                >
+                  {theme === "dark" ? (
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+                      <path
+                        d="M12 2.5v2.5M12 19v2.5M4.22 4.22l1.77 1.77M17.99 17.99l1.77 1.77M2.5 12h2.5M19 12h2.5M4.22 19.78l1.77-1.77M17.99 6.01l1.77-1.77"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                      />
+                    </svg>
+                  ) : (
+                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                      <path
+                        d="M21 12.79A9 9 0 0 1 12.21 3 7 7 0 0 0 12 17a7 7 0 0 0 9-4.21z"
+                        stroke="currentColor"
+                        strokeWidth="1.8"
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      />
+                    </svg>
+                  )}
+                  <span className="sr-only">{themeToggleAriaLabel}</span>
+                </button>
+                <NextLink
+                  href={languageSwitchHref}
+                  aria-label={languageSwitchAriaLabel}
+                  className="ha-utility-switch-item ha-utility-switch-item--locale"
+                  onClick={() => setMobileOpen(false)}
+                >
+                  <span aria-hidden="true">{languageSwitchLabel}</span>
+                  <span className="sr-only">{languageSwitchAriaLabel}</span>
+                </NextLink>
+              </div>
             </div>
           </nav>
         </div>

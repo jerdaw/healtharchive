@@ -3,6 +3,8 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { HoverGlowButton } from "@/components/home/HoverGlowButton";
 
+import { useLocale } from "@/components/i18n/LocaleProvider";
+
 type SearchWithinResultsProps = {
   q: string;
   within: string;
@@ -32,6 +34,12 @@ export function SearchWithinResults({
   defaultSort,
   defaultView,
 }: SearchWithinResultsProps) {
+  const locale = useLocale();
+  const label = locale === "fr" ? "Rechercher dans les résultats" : "Search within results";
+  const placeholder =
+    locale === "fr"
+      ? "Ajouter des mots-clés pour affiner la liste actuelle…"
+      : "Add keywords to narrow the current list…";
   const [open, setOpen] = useState(Boolean(within));
   const inputRef = useRef<HTMLInputElement>(null);
   const shouldFocusOnOpenRef = useRef(false);
@@ -57,7 +65,7 @@ export function SearchWithinResults({
       className={`flex w-full items-start transition-[padding] duration-300 ease-out ${
         open ? "gap-2 py-2" : "gap-0 py-0"
       }`}
-      aria-label="Search within results"
+      aria-label={label}
     >
       <div
         className={`min-w-0 flex-1 transition-[max-width,max-height] duration-300 ease-out ${
@@ -71,7 +79,7 @@ export function SearchWithinResults({
           }`}
         >
           <label className="sr-only" htmlFor={`${formId}-q-within`}>
-            Search within results
+            {label}
           </label>
           <input
             ref={inputRef}
@@ -79,7 +87,7 @@ export function SearchWithinResults({
             name="within"
             type="search"
             defaultValue={within}
-            placeholder="Add keywords to narrow the current list…"
+            placeholder={placeholder}
             className="border-ha-border w-full min-w-0 rounded-lg border bg-white px-3 py-2 text-sm text-slate-900 shadow-sm ring-0 outline-none placeholder:text-slate-400 focus:z-10 focus:border-[#11588f] focus:ring-2 focus:ring-[#11588f]"
           />
         </div>
@@ -110,7 +118,7 @@ export function SearchWithinResults({
             open ? "pointer-events-none translate-x-2 opacity-0" : "translate-x-0 opacity-100"
           }`}
         >
-          Search within results →
+          {label} →
         </button>
 
         <HoverGlowButton
@@ -124,7 +132,7 @@ export function SearchWithinResults({
               : "pointer-events-none max-h-0 -translate-x-2 !border-0 !px-0 !py-0 opacity-0"
           }`}
         >
-          Search within results
+          {label}
         </HoverGlowButton>
       </div>
     </form>

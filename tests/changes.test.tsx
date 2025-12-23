@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
-import ChangesPage from "@/app/changes/page";
+import ChangesPage from "@/app/[locale]/changes/page";
 
 vi.mock("@/lib/api", () => ({
   fetchSources: vi.fn(),

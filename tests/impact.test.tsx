@@ -1,7 +1,7 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 
-import ImpactPage from "@/app/impact/page";
+import ImpactPage from "@/app/[locale]/impact/page";
 
 vi.mock("@/lib/api", () => ({
   fetchArchiveStats: vi.fn(),

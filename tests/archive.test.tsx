@@ -1,6 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
-import ArchivePage from "@/app/archive/page";
+import ArchivePage from "@/app/[locale]/archive/page";
 
 vi.mock("next/link", () => ({
   __esModule: true,
@@ -48,7 +48,7 @@ describe("/archive", () => {
       });
     }).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(redirectMock).toHaveBeenCalledWith("/archive?q=covid&source=hc");
+    expect(redirectMock).toHaveBeenCalledWith("?q=covid&source=hc");
   });
 
   it("drops empty within param instead of persisting it", async () => {
@@ -66,7 +66,7 @@ describe("/archive", () => {
       });
     }).rejects.toThrow("NEXT_REDIRECT");
 
-    expect(redirectMock).toHaveBeenCalledWith("/archive?q=influenza");
+    expect(redirectMock).toHaveBeenCalledWith("?q=influenza");
   });
 
   it("orders browse source cards by snapshot count", async () => {

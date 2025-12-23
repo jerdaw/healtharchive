@@ -3,6 +3,8 @@
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 
+import { useLocale } from "@/components/i18n/LocaleProvider";
+
 type Phase = "initial" | "cursor" | "backspacing" | "jump" | "inserting" | "final";
 
 type BeforeVisibility = "visible" | "fading" | "hidden";
@@ -38,8 +40,9 @@ function usePrefersReducedMotion() {
 
 export function TrackChangesPhrase() {
   const prefersReducedMotion = usePrefersReducedMotion();
-  const beforeWord = "before";
-  const afterWord = "after";
+  const locale = useLocale();
+  const beforeWord = locale === "fr" ? "avant" : "before";
+  const afterWord = locale === "fr" ? "après" : "after";
   const beforeChars = beforeWord.split("");
   const beforeLength = beforeChars.length;
   const afterLength = afterWord.length;
@@ -302,9 +305,9 @@ export function TrackChangesPhrase() {
           </>
         )}
       </span>
-      <span className="sr-only">after they change</span>
+      <span className="sr-only">{afterWord}</span>
       <noscript>
-        <span className="text-ha-accent inline">after</span>
+        <span className="text-ha-accent inline">{afterWord}</span>
       </noscript>
     </span>
   );
