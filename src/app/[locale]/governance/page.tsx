@@ -335,7 +335,7 @@ export default async function GovernancePage({
         </section>
       )}
 
-      <div lang={locale === "fr" ? "en" : undefined}>
+      <div lang={locale === "fr" ? "en" : undefined} className="space-y-[1.125rem]">
         <GovernanceEnglishContent copy={siteCopyEn} />
       </div>
     </PageShell>

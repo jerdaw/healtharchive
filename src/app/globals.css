@@ -610,6 +610,26 @@ a:focus-visible {
 
 /* Homepage bands & homepage-specific styling */
 
+.ha-page-intro-card {
+  margin-top: 0;
+  padding: 2rem 1.5rem 2.4rem;
+  border-radius: 1rem;
+  border: 1px solid var(--border);
+  background: linear-gradient(0deg, #2563eb0b, #2563eb0b), var(--surface-bg);
+  box-shadow: 0 18px 45px rgba(15, 23, 42, 0.06);
+}
+
+.ha-page-intro-card-compact {
+  padding: 1.35rem 1.25rem 1.5rem;
+}
+
+html[data-theme="dark"] .ha-page-intro-card {
+  border-color: rgba(54, 59, 61, 0.9);
+  background:
+    linear-gradient(0deg, rgba(56, 143, 237, 0.22), rgba(56, 143, 237, 0.22)), var(--surface-bg);
+  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7);
+}
+
 .ha-home-hero {
   margin-top: 0;
   padding: 2rem 1.5rem 2.4rem;

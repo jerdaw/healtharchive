@@ -50,7 +50,7 @@ export default async function HomePage({
   const pageCount = stats?.pagesTotal ?? fallbackPageCount;
 
   return (
-    <div className="ha-container space-y-14 pt-3 sm:pt-4">
+    <div className="ha-container space-y-6 pt-3 sm:pt-4">
       {/* Hero */}
       <section>
         <div className="ha-home-hero grid gap-10 lg:grid-cols-[minmax(0,1.7fr),minmax(0,1fr)] lg:items-center">

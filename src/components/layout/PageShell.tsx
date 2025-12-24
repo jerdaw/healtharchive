@@ -24,8 +24,14 @@ export function PageShell({
     : compact
       ? "pt-4 pb-8"
       : "pt-6 pb-10";
-  const headerClassName = compact ? "mb-6 max-w-3xl space-y-2" : "mb-8 max-w-3xl space-y-3";
-  const contentClassName = compact ? "space-y-6" : "space-y-8";
+  const headerClassName = [
+    compact ? (intro ? "mb-4" : "mb-6") : intro ? "mb-5" : "mb-8",
+    compact ? "max-w-3xl space-y-2" : "max-w-3xl space-y-3",
+  ].join(" ");
+  const contentClassName = "space-y-[1.125rem]";
+  const introCardClassName = compact
+    ? "ha-page-intro-card ha-page-intro-card-compact"
+    : "ha-page-intro-card";
 
   return (
     <div className="ha-container">
@@ -35,9 +41,15 @@ export function PageShell({
           <h1 className="text-2xl font-semibold tracking-tight text-slate-900 sm:text-3xl">
             {title}
           </h1>
-          {intro && <p className="text-ha-muted text-sm leading-relaxed sm:text-base">{intro}</p>}
         </header>
-        <div className={contentClassName}>{children}</div>
+        <div className={contentClassName}>
+          {!hideHeaderVisually && intro && (
+            <section className={introCardClassName}>
+              <p className="text-ha-muted text-sm leading-relaxed sm:text-base">{intro}</p>
+            </section>
+          )}
+          {children}
+        </div>
       </section>
     </div>
   );

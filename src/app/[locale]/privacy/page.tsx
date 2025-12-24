@@ -155,7 +155,7 @@ export default async function PrivacyPage({
         </section>
       )}
 
-      <div lang={locale === "fr" ? "en" : undefined}>
+      <div lang={locale === "fr" ? "en" : undefined} className="space-y-[1.125rem]">
         <PrivacyEnglishContent />
       </div>
     </PageShell>

@@ -158,7 +158,7 @@ export default async function TermsPage({
         </section>
       )}
 
-      <div lang={locale === "fr" ? "en" : undefined}>
+      <div lang={locale === "fr" ? "en" : undefined} className="space-y-[1.125rem]">
         <TermsEnglishContent copy={siteCopyEn} />
       </div>
     </PageShell>
