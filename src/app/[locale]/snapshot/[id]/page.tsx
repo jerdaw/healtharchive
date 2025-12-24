@@ -382,8 +382,8 @@ export default async function SnapshotPage({
                     ? "le HTML archivé de cette capture n’est pas disponible pour le moment; les métadonnées restent accessibles ci-dessous."
                     : "archived HTML for this snapshot is not currently available; metadata remains accessible below."
                   : locale === "fr"
-                    ? "l’intégration du lecteur pour cette capture n’est pas encore disponible."
-                    : "viewer integration for this snapshot is not yet available."}
+                    ? "le lecteur n’est pas disponible pour cette capture dans ce mode."
+                    : "the viewer isn’t available for this snapshot in this mode."}
               </>
             )}
             <span className="sr-only">
