@@ -16,7 +16,12 @@
   - “Project snapshot” metrics start on that event and dispatch `ha-project-snapshot-finished` after all metric animations complete (used to trigger the final “before” fade-out).
 - Primary documentation for humans and agents:
   - `docs/implementation-guide.md` → architecture, routes, styling system, deployment details.
+  - `docs/development/bilingual-dev-guide.md` → bilingual UI rules and “English governs” policy (EN/FR parity).
   - `docs/deployment/verification.md` → Preview/Production CSP/CORS/snapshot viewer verification.
+  - Cross-repo wiring/backlog:
+    - `../healtharchive-backend/docs/deployment/environments-and-configuration.md`
+    - `../healtharchive-backend/docs/documentation-guidelines.md`
+    - `../healtharchive-backend/docs/roadmaps/future-roadmap.md`
 - Canonical public-facing copy (mission + workflow disclaimers) lives in `src/lib/siteCopy.ts` and should be reused rather than duplicated across pages.
 - Localization:
   - Locale-aware routes live under `src/app/[locale]/...`.
