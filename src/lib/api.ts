@@ -257,6 +257,17 @@ export async function fetchSources(): Promise<SourceSummary[]> {
   return fetchJson<SourceSummary[]>("/api/sources");
 }
 
+export async function fetchSourcesLocalized(args?: {
+  lang?: "en" | "fr";
+}): Promise<SourceSummary[]> {
+  const lang = args?.lang;
+  const query = new URLSearchParams();
+  if (lang === "en" || lang === "fr") {
+    query.set("lang", lang);
+  }
+  return fetchJson<SourceSummary[]>("/api/sources", query);
+}
+
 export async function fetchSourceEditions(sourceCode: string): Promise<SourceEdition[]> {
   const normalized = sourceCode.trim();
   if (!normalized) return [];

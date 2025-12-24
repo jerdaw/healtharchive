@@ -3,7 +3,13 @@ import type { Metadata } from "next";
 import { LocalizedLink as Link } from "@/components/i18n/LocalizedLink";
 
 import { PageShell } from "@/components/layout/PageShell";
-import { fetchArchiveStats, fetchHealth, fetchSources, fetchUsageMetrics } from "@/lib/api";
+import {
+  fetchArchiveStats,
+  fetchHealth,
+  fetchSources,
+  fetchSourcesLocalized,
+  fetchUsageMetrics,
+} from "@/lib/api";
 import { localeToLanguageTag, type Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
@@ -64,7 +70,7 @@ export default async function StatusPage({
   const [healthRes, statsRes, sourcesRes, usageRes] = await Promise.allSettled([
     fetchHealth(),
     fetchArchiveStats(),
-    fetchSources(),
+    locale === "fr" ? fetchSourcesLocalized({ lang: "fr" }) : fetchSources(),
     fetchUsageMetrics(),
   ]);
 

@@ -3,11 +3,17 @@ import type { Metadata } from "next";
 import { LocalizedLink as Link } from "@/components/i18n/LocalizedLink";
 import { PageShell } from "@/components/layout/PageShell";
 import { getSourcesSummary } from "@/data/demo-records";
-import { fetchSources, getApiBaseUrl, type SourceSummary as ApiSourceSummary } from "@/lib/api";
+import {
+  fetchSources,
+  fetchSourcesLocalized,
+  getApiBaseUrl,
+  type SourceSummary as ApiSourceSummary,
+} from "@/lib/api";
 import { localeToLanguageTag, type Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
 import { getSiteCopy } from "@/lib/siteCopy";
+import { getLocalizedSourceHomepage, getLocalizedSourceName } from "@/lib/sources";
 
 function formatDate(locale: Locale, iso: string | undefined | null): string {
   if (!iso) return locale === "fr" ? "Inconnu" : "Unknown";
@@ -92,6 +98,9 @@ export default async function BrowseBySourcePage({
 
   let summaries: SourceSummaryLike[] = getSourcesSummary().map((s) => ({
     ...s,
+    sourceName:
+      locale === "fr" ? getLocalizedSourceName(locale, s.sourceCode, s.sourceName) : s.sourceName,
+    baseUrl: locale === "fr" ? getLocalizedSourceHomepage(locale, s.sourceCode, null) : null,
     entryRecordId: s.latestRecordId,
     entryBrowseUrl: null,
     entryPreviewUrl: null,
@@ -100,11 +109,14 @@ export default async function BrowseBySourcePage({
 
   // Try backend /api/sources first; fall back to the demo summary on error.
   try {
-    const apiSummaries = await fetchSources();
+    const apiSummaries =
+      locale === "fr" ? await fetchSourcesLocalized({ lang: "fr" }) : await fetchSources();
     summaries = apiSummaries.map((s: ApiSourceSummary) => ({
       sourceCode: s.sourceCode,
-      sourceName: s.sourceName,
-      baseUrl: s.baseUrl,
+      sourceName:
+        locale === "fr" ? getLocalizedSourceName(locale, s.sourceCode, s.sourceName) : s.sourceName,
+      baseUrl:
+        locale === "fr" ? getLocalizedSourceHomepage(locale, s.sourceCode, s.baseUrl) : s.baseUrl,
       description: s.description,
       recordCount: s.recordCount,
       firstCapture: s.firstCapture,

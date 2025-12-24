@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { LocalizedLink as Link } from "@/components/i18n/LocalizedLink";
 
 import { PageShell } from "@/components/layout/PageShell";
-import { fetchSources, getApiBaseUrl } from "@/lib/api";
+import { fetchSources, fetchSourcesLocalized, getApiBaseUrl } from "@/lib/api";
 import type { Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
@@ -44,7 +44,9 @@ export default async function DigestPage({
   const copy = getDigestCopy(locale);
   const siteCopy = getSiteCopy(locale);
 
-  const sourcesRes = await Promise.allSettled([fetchSources()]);
+  const sourcesRes = await Promise.allSettled([
+    locale === "fr" ? fetchSourcesLocalized({ lang: "fr" }) : fetchSources(),
+  ]);
   const sources = sourcesRes[0].status === "fulfilled" ? sourcesRes[0].value : null;
 
   const apiBase = getApiBaseUrl();

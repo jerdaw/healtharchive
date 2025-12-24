@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import { LocalizedLink as Link } from "@/components/i18n/LocalizedLink";
 
 import { PageShell } from "@/components/layout/PageShell";
-import { fetchChanges, fetchSourceEditions, fetchSources } from "@/lib/api";
+import { fetchChanges, fetchSourceEditions, fetchSources, fetchSourcesLocalized } from "@/lib/api";
 import { localeToLanguageTag, type Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
@@ -68,7 +68,9 @@ export default async function ChangesPage({
   const page = Number.parseInt(requestedPage, 10);
   const currentPage = Number.isNaN(page) || page < 1 ? 1 : page;
 
-  const sourcesRes = await Promise.allSettled([fetchSources()]);
+  const sourcesRes = await Promise.allSettled([
+    locale === "fr" ? fetchSourcesLocalized({ lang: "fr" }) : fetchSources(),
+  ]);
   const sources = sourcesRes[0].status === "fulfilled" ? sourcesRes[0].value : null;
 
   const selectedSource =

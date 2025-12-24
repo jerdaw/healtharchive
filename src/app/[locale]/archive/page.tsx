@@ -5,6 +5,7 @@ import { searchDemoRecords, getSourcesSummary } from "@/data/demo-records";
 import type { DemoRecord } from "@/data/demo-records";
 import {
   fetchSources,
+  fetchSourcesLocalized,
   getApiBaseUrl,
   searchSnapshots,
   type SearchParams as ApiSearchParams,
@@ -13,6 +14,7 @@ import { localeToLanguageTag, type Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
 import { getSiteCopy } from "@/lib/siteCopy";
+import { getLocalizedSourceHomepage, getLocalizedSourceName } from "@/lib/sources";
 import { ApiHealthBanner } from "@/components/ApiHealthBanner";
 import { HoverGlowButton } from "@/components/home/HoverGlowButton";
 import { SearchResultCard } from "@/components/archive/SearchResultCard";
@@ -205,12 +207,32 @@ export default async function ArchivePage({
   let sourceOptions: { value: string; label: string }[] = [
     {
       value: "phac",
-      label:
+      label: getLocalizedSourceName(
+        locale,
+        "phac",
         locale === "fr"
           ? "Agence de la santé publique du Canada"
           : "Public Health Agency of Canada",
+      ),
     },
-    { value: "hc", label: locale === "fr" ? "Santé Canada" : "Health Canada" },
+    {
+      value: "hc",
+      label: getLocalizedSourceName(
+        locale,
+        "hc",
+        locale === "fr" ? "Santé Canada" : "Health Canada",
+      ),
+    },
+    {
+      value: "cihr",
+      label: getLocalizedSourceName(
+        locale,
+        "cihr",
+        locale === "fr"
+          ? "Instituts de recherche en santé du Canada"
+          : "Canadian Institutes of Health Research",
+      ),
+    },
   ];
   let sourceSummaries: SourceBrowseSummary[] = [];
 
@@ -227,18 +249,26 @@ export default async function ArchivePage({
   let backendError: string | null = null;
 
   try {
-    const apiSources = await fetchSources();
+    const apiSources =
+      locale === "fr" ? await fetchSourcesLocalized({ lang: "fr" }) : await fetchSources();
 
     if (apiSources.length > 0) {
       const filtered = apiSources.filter((s) => s.sourceCode !== "test");
       sourceOptions = filtered.map((s) => ({
         value: s.sourceCode,
-        label: s.sourceName,
+        label:
+          locale === "fr"
+            ? getLocalizedSourceName(locale, s.sourceCode, s.sourceName)
+            : s.sourceName,
       }));
       sourceSummaries = filtered.map((s) => ({
         sourceCode: s.sourceCode,
-        sourceName: s.sourceName,
-        baseUrl: s.baseUrl,
+        sourceName:
+          locale === "fr"
+            ? getLocalizedSourceName(locale, s.sourceCode, s.sourceName)
+            : s.sourceName,
+        baseUrl:
+          locale === "fr" ? getLocalizedSourceHomepage(locale, s.sourceCode, s.baseUrl) : s.baseUrl,
         description: s.description,
         recordCount: s.recordCount,
         firstCapture: s.firstCapture,
@@ -253,12 +283,14 @@ export default async function ArchivePage({
     const demoSources = getSourcesSummary();
     sourceOptions = demoSources.map((s) => ({
       value: s.sourceCode,
-      label: s.sourceName,
+      label:
+        locale === "fr" ? getLocalizedSourceName(locale, s.sourceCode, s.sourceName) : s.sourceName,
     }));
     sourceSummaries = demoSources.map((s) => ({
       sourceCode: s.sourceCode,
-      sourceName: s.sourceName,
-      baseUrl: null,
+      sourceName:
+        locale === "fr" ? getLocalizedSourceName(locale, s.sourceCode, s.sourceName) : s.sourceName,
+      baseUrl: locale === "fr" ? getLocalizedSourceHomepage(locale, s.sourceCode, null) : null,
       description: null,
       recordCount: s.recordCount,
       firstCapture: s.firstCapture,
