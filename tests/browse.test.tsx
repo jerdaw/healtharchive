@@ -91,6 +91,30 @@ describe("/browse/[id]", () => {
     ).toBeInTheDocument();
   });
 
+  it("hides compare-live link for non-HTML snapshots", async () => {
+    mockFetchSnapshotDetail.mockResolvedValue({
+      id: 46,
+      title: "PDF Snapshot",
+      sourceCode: "hc",
+      sourceName: "Health Canada",
+      language: "en",
+      captureDate: "2024-01-04",
+      captureTimestamp: "2024-01-04T12:34:56+00:00",
+      jobId: 1,
+      originalUrl: "https://example.org/file.pdf",
+      snippet: "Summary",
+      rawSnapshotUrl: "/api/snapshots/raw/46",
+      browseUrl: null,
+      mimeType: "application/pdf",
+      statusCode: 200,
+    });
+
+    const ui = await BrowseSnapshotPage({ params: Promise.resolve({ id: "46" }) });
+    render(ui);
+
+    expect(screen.queryByText(/Compare to the live page/i)).not.toBeInTheDocument();
+  });
+
   it("calls notFound when no snapshot exists", async () => {
     mockFetchSnapshotDetail.mockRejectedValue(new Error("not found"));
     const ui = await BrowseSnapshotPage({ params: Promise.resolve({ id: "9999" }) });

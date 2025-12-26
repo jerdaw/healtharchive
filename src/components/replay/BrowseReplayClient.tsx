@@ -6,6 +6,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SnapshotFrame } from "@/components/SnapshotFrame";
 import { useLocale } from "@/components/i18n/LocaleProvider";
 import { resolveReplayUrl } from "@/lib/api";
+import { isHtmlMimeType } from "@/lib/mime";
 import { buildBrowseDisclaimer, getSiteCopy } from "@/lib/siteCopy";
 
 import type { ReplayEdition } from "./replayUtils";
@@ -40,6 +41,7 @@ type BrowseReplayClientProps = {
   rawHtmlUrl: string | null;
   apiLink?: string;
   editions?: ReplayEdition[] | null;
+  canCompareLive?: boolean;
 };
 
 export function BrowseReplayClient({
@@ -55,6 +57,7 @@ export function BrowseReplayClient({
   rawHtmlUrl,
   apiLink,
   editions,
+  canCompareLive = false,
 }: BrowseReplayClientProps) {
   const locale = useLocale();
   const siteCopy = getSiteCopy(locale);
@@ -71,6 +74,9 @@ export function BrowseReplayClient({
   const [currentReplayUrl, setCurrentReplayUrl] = useState<string | null>(browseUrl);
   const [editionNotice, setEditionNotice] = useState<string | null>(null);
   const [isResolvingEdition, setIsResolvingEdition] = useState(false);
+  const [compareSnapshotId, setCompareSnapshotId] = useState<string | null>(
+    canCompareLive ? snapshotId : null,
+  );
 
   const replayOrigin = useMemo(() => {
     if (!browseUrl) return null;
@@ -124,6 +130,44 @@ export function BrowseReplayClient({
     params.set("page", `/browse/${snapshotId}`);
     return `/report?${params.toString()}`;
   }, [snapshotId, currentOriginalUrl]);
+
+  useEffect(() => {
+    if (!canCompareLive) {
+      setCompareSnapshotId(null);
+      return;
+    }
+    if (!currentOriginalUrl) return;
+    if (!activeJobId) return;
+
+    let cancelled = false;
+    const timeoutId = window.setTimeout(async () => {
+      try {
+        const resolved = await resolveReplayUrl({
+          jobId: activeJobId,
+          url: currentOriginalUrl,
+          timestamp14: currentTimestamp14,
+        });
+        if (cancelled) return;
+        if (resolved.snapshotId) {
+          const mimeType = resolved.mimeType;
+          if (mimeType === undefined || isHtmlMimeType(mimeType)) {
+            setCompareSnapshotId(String(resolved.snapshotId));
+            return;
+          }
+          setCompareSnapshotId(null);
+          return;
+        }
+        setCompareSnapshotId(snapshotId);
+      } catch {
+        if (!cancelled) setCompareSnapshotId(snapshotId);
+      }
+    }, 350);
+
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timeoutId);
+    };
+  }, [activeJobId, canCompareLive, currentOriginalUrl, currentTimestamp14, snapshotId]);
 
   async function handleEditionChange(nextJobId: number) {
     if (!replayOrigin) return;
@@ -201,6 +245,7 @@ export function BrowseReplayClient({
 
   const browseLink = browseUrl ? (currentReplayUrl ?? browseUrl) : undefined;
   const rawLink = rawHtmlUrl ?? undefined;
+  const compareLiveHref = compareSnapshotId ? `/compare-live?to=${compareSnapshotId}` : null;
 
   return (
     <div className="ha-container">
@@ -304,6 +349,11 @@ export function BrowseReplayClient({
               <Link href={`/snapshot/${snapshotId}`} className="ha-btn-secondary text-xs">
                 {locale === "fr" ? "Détails de la capture" : "Snapshot details"}
               </Link>
+              {compareLiveHref && (
+                <Link href={compareLiveHref} prefetch={false} className="ha-btn-secondary text-xs">
+                  {locale === "fr" ? "Comparer à la page en direct" : "Compare to the live page"}
+                </Link>
+              )}
               {browseLink && (
                 <a
                   href={browseLink}

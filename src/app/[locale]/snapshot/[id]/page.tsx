@@ -12,6 +12,7 @@ import {
 } from "@/lib/api";
 import { localeToLanguageTag, type Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
+import { isHtmlMimeType } from "@/lib/mime";
 import { resolveLocale } from "@/lib/resolveLocale";
 import { getSiteCopy } from "@/lib/siteCopy";
 import { SnapshotReplayClient } from "@/components/replay/SnapshotReplayClient";
@@ -48,12 +49,6 @@ function formatDate(locale: Locale, iso: string | undefined | null): string {
   }
 
   return iso;
-}
-
-function isHtmlMimeType(value: string | null | undefined): boolean {
-  if (!value) return false;
-  const normalized = value.split(";")[0]?.trim().toLowerCase();
-  return normalized === "text/html" || normalized === "application/xhtml+xml";
 }
 
 function getSnapshotMetadataCopy(locale: Locale) {

@@ -1018,6 +1018,73 @@ html[data-theme="dark"] .ha-page-intro-card {
   word-break: break-word;
 }
 
+.ha-diff-line-unchanged {
+  color: var(--text-muted);
+}
+
+.ha-diff-line-added {
+  background: rgba(34, 197, 94, 0.12);
+  color: #166534;
+}
+
+.ha-diff-line-removed {
+  background: rgba(239, 68, 68, 0.12);
+  color: #991b1b;
+}
+
+.ha-diff-word-common {
+  color: inherit;
+}
+
+.ha-diff-word-added {
+  color: #166534;
+  background: rgba(34, 197, 94, 0.22);
+  border-radius: 0.2rem;
+  padding: 0 0.1rem;
+}
+
+.ha-diff-word-removed {
+  color: #991b1b;
+  background: rgba(239, 68, 68, 0.2);
+  border-radius: 0.2rem;
+  padding: 0 0.1rem;
+}
+
+.ha-diff-high-contrast {
+  background: #0b1120;
+  border-color: #1e293b;
+  color: #f8fafc;
+}
+
+.ha-diff-high-contrast .ha-diff-line-unchanged {
+  color: #e2e8f0;
+}
+
+.ha-diff-high-contrast .ha-diff-line-added {
+  background: #0f2f1c;
+  color: #d1fae5;
+}
+
+.ha-diff-high-contrast .ha-diff-line-removed {
+  background: #3f0d0d;
+  color: #fecaca;
+}
+
+.ha-diff-high-contrast .ha-diff-word-common {
+  color: inherit;
+  background: transparent;
+}
+
+.ha-diff-high-contrast .ha-diff-word-added {
+  color: #bbf7d0;
+  background: #14532d;
+}
+
+.ha-diff-high-contrast .ha-diff-word-removed {
+  color: #fecaca;
+  background: #7f1d1d;
+}
+
 .ha-diff-context {
   color: var(--text-muted);
 }

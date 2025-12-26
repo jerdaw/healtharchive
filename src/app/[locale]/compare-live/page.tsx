@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 
 import { LocalizedLink as Link } from "@/components/i18n/LocalizedLink";
 import { PageShell } from "@/components/layout/PageShell";
-import { ApiError, fetchSnapshotCompareLive } from "@/lib/api";
+import { CompareLiveDiffPanel } from "@/components/diff/CompareLiveDiffPanel";
+import { ApiError, fetchSnapshotCompareLive, type CompareLiveTextMode } from "@/lib/api";
 import { type Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
@@ -67,9 +68,12 @@ export default async function CompareLivePage({
 
   const toParam = typeof params.to === "string" ? params.to : "";
   const runParam = typeof params.run === "string" ? params.run : "";
+  const modeParam = typeof params.mode === "string" ? params.mode : "";
 
   const toSnapshotId = Number.parseInt(toParam, 10);
   const shouldRun = runParam === "1";
+  const mode: CompareLiveTextMode = modeParam === "full" ? "full" : "main";
+  const modeQuery = mode === "full" ? "&mode=full" : "";
 
   if (!toSnapshotId || Number.isNaN(toSnapshotId)) {
     return (
@@ -100,7 +104,9 @@ export default async function CompareLivePage({
     );
   }
 
-  const runHref = `/compare-live?to=${toSnapshotId}&run=1`;
+  const runHref = `/compare-live?to=${toSnapshotId}&run=1${modeQuery}`;
+  const modeHrefMain = `/compare-live?to=${toSnapshotId}`;
+  const modeHrefFull = `/compare-live?to=${toSnapshotId}&mode=full`;
 
   if (!shouldRun) {
     return (
@@ -124,6 +130,27 @@ export default async function CompareLivePage({
                 : "The button below performs a fresh live fetch each time."}
             </p>
           </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-700">
+            <span className="text-ha-muted">
+              {locale === "fr" ? "Portée du texte:" : "Text scope:"}
+            </span>
+            <Link
+              href={modeHrefMain}
+              prefetch={false}
+              scroll={false}
+              className={`ha-tag ${mode === "main" ? "ring-1 ring-blue-700" : "opacity-70 hover:opacity-100"}`}
+            >
+              {locale === "fr" ? "Contenu principal" : "Main content"}
+            </Link>
+            <Link
+              href={modeHrefFull}
+              prefetch={false}
+              scroll={false}
+              className={`ha-tag ${mode === "full" ? "ring-1 ring-blue-700" : "opacity-70 hover:opacity-100"}`}
+            >
+              {locale === "fr" ? "Texte complet" : "Full-page text"}
+            </Link>
+          </div>
           <Link href={runHref} prefetch={false} className="ha-btn-secondary text-xs">
             {locale === "fr" ? "Charger le diff en direct" : "Fetch live diff"}
           </Link>
@@ -136,7 +163,7 @@ export default async function CompareLivePage({
   let errorMessage: string | null = null;
 
   try {
-    compare = await fetchSnapshotCompareLive(toSnapshotId);
+    compare = await fetchSnapshotCompareLive(toSnapshotId, { mode });
   } catch (error) {
     if (error instanceof ApiError && typeof error.detail === "string") {
       errorMessage = error.detail;
@@ -169,6 +196,20 @@ export default async function CompareLivePage({
 
       {compare && (
         <section className="space-y-6">
+          {compare.textModeFallback && (
+            <div className="ha-callout border-amber-300 bg-amber-50 text-amber-900">
+              <h2 className="ha-callout-title">
+                {locale === "fr"
+                  ? "Portée du texte élargie automatiquement"
+                  : "Text scope automatically expanded"}
+              </h2>
+              <p className="mt-2 text-xs leading-relaxed sm:text-sm">
+                {locale === "fr"
+                  ? "Le contenu principal n’a pas pu être extrait de façon fiable. La comparaison utilise le texte de la page complète (en-tête/navigation/pied de page inclus)."
+                  : "The main content could not be extracted reliably. This comparison uses full-page text (including header/navigation/footer)."}
+              </p>
+            </div>
+          )}
           <div className="ha-callout">
             <h2 className="ha-callout-title">
               {locale === "fr" ? "Changements descriptifs seulement" : "Descriptive changes only"}
@@ -287,6 +328,15 @@ export default async function CompareLivePage({
           <div className="ha-card space-y-3">
             <div className="text-ha-muted flex flex-wrap items-center gap-2 text-xs">
               <span className="ha-tag">{compare.stats.summary}</span>
+              <span className="ha-tag">
+                {compare.textModeUsed === "full"
+                  ? locale === "fr"
+                    ? "Texte complet"
+                    : "Full-page text"
+                  : locale === "fr"
+                    ? "Contenu principal"
+                    : "Main content"}
+              </span>
               <span>
                 {locale === "fr" ? "Variation" : "Change ratio"}:{" "}
                 {formatPercent(compare.stats.changeRatio)}
@@ -308,13 +358,22 @@ export default async function CompareLivePage({
                 {locale === "fr" ? "lignes" : "lines"}
               </span>
             </div>
-            <div className="ha-diff" dangerouslySetInnerHTML={{ __html: compare.diff.diffHtml }} />
-            {compare.diff.diffTruncated && (
-              <p className="text-ha-muted text-xs">
-                {locale === "fr"
-                  ? "La sortie du diff a été tronquée pour la lisibilité."
-                  : "Diff output was truncated for readability."}
-              </p>
+            {compare.render ? (
+              <CompareLiveDiffPanel locale={locale} render={compare.render} />
+            ) : (
+              <>
+                <div
+                  className="ha-diff"
+                  dangerouslySetInnerHTML={{ __html: compare.diff.diffHtml }}
+                />
+                {compare.diff.diffTruncated && (
+                  <p className="text-ha-muted text-xs">
+                    {locale === "fr"
+                      ? "La sortie du diff a été tronquée pour la lisibilité."
+                      : "Diff output was truncated for readability."}
+                  </p>
+                )}
+              </>
             )}
           </div>
         </section>

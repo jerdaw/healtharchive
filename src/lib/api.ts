@@ -172,11 +172,31 @@ export type CompareLiveDiff = {
   normalizationVersion: string;
 };
 
+export type CompareLiveRenderInstruction = {
+  type: "unchanged" | "added" | "removed" | "replace";
+  lineIndexA?: number | null;
+  lineIndexB?: number | null;
+};
+
+export type CompareLiveRender = {
+  archivedLines: string[];
+  liveLines: string[];
+  renderInstructions: CompareLiveRenderInstruction[];
+  renderTruncated: boolean;
+  renderLineLimit: number;
+};
+
+export type CompareLiveTextMode = "main" | "full";
+
 export type CompareLive = {
   archivedSnapshot: ChangeCompareSnapshot;
   liveFetch: CompareLiveFetch;
   stats: CompareLiveStats;
   diff: CompareLiveDiff;
+  render: CompareLiveRender;
+  textModeRequested: CompareLiveTextMode;
+  textModeUsed: CompareLiveTextMode;
+  textModeFallback: boolean;
 };
 
 export type SnapshotTimelineItem = {
@@ -203,6 +223,7 @@ export type ReplayResolveResponse = {
   captureTimestamp: string | null;
   resolvedUrl: string | null;
   browseUrl: string | null;
+  mimeType: string | null;
 };
 
 export class ApiError extends Error {
@@ -396,8 +417,18 @@ export async function fetchChangeCompare(params: {
   return fetchJson<ChangeCompare>("/api/changes/compare", query);
 }
 
-export async function fetchSnapshotCompareLive(snapshotId: number): Promise<CompareLive> {
-  return fetchJson<CompareLive>(`/api/snapshots/${snapshotId}/compare-live`);
+export async function fetchSnapshotCompareLive(
+  snapshotId: number,
+  params?: {
+    mode?: CompareLiveTextMode;
+  },
+): Promise<CompareLive> {
+  const query = new URLSearchParams();
+  if (params?.mode && params.mode !== "main") {
+    query.set("mode", params.mode);
+  }
+
+  return fetchJson<CompareLive>(`/api/snapshots/${snapshotId}/compare-live`, query);
 }
 
 export async function fetchSnapshotTimeline(snapshotId: number): Promise<SnapshotTimeline> {

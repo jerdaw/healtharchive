@@ -5,6 +5,7 @@ import { getRecordById } from "@/data/demo-records";
 import { fetchSnapshotDetail, fetchSourceEditions, getApiBaseUrl } from "@/lib/api";
 import type { Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
+import { isHtmlMimeType } from "@/lib/mime";
 import { resolveLocale } from "@/lib/resolveLocale";
 import { BrowseReplayClient } from "@/components/replay/BrowseReplayClient";
 
@@ -75,6 +76,9 @@ export default async function BrowseSnapshotPage({
   const captureTimestamp = snapshotMeta?.captureTimestamp ?? null;
   const jobId = snapshotMeta?.jobId ?? null;
   const originalUrl = snapshotMeta?.originalUrl ?? record?.originalUrl ?? null;
+  const canCompareLive = Boolean(
+    usingBackend && snapshotMeta?.id && isHtmlMimeType(snapshotMeta?.mimeType),
+  );
 
   const apiBaseUrl = getApiBaseUrl();
   const rawHtmlUrl =
@@ -110,6 +114,7 @@ export default async function BrowseSnapshotPage({
       rawHtmlUrl={rawHtmlUrl}
       apiLink={apiLink}
       editions={sourceEditions}
+      canCompareLive={canCompareLive}
     />
   );
 }
