@@ -242,9 +242,6 @@ export function SearchResultCard({
               {locale === "fr" ? "Toutes les captures" : "All captures"}
             </Link>
           )}
-          <Link href={`/snapshot/${record.id}?view=details`} className="ha-btn-secondary text-xs">
-            {locale === "fr" ? "Détails" : "Details"}
-          </Link>
         </div>
       </div>
 
