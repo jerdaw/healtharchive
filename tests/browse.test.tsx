@@ -1,136 +1,32 @@
-import { render, screen } from "@testing-library/react";
 import { vi } from "vitest";
 import BrowseSnapshotPage from "@/app/[locale]/browse/[id]/page";
 
-vi.mock("next/link", () => ({
-  __esModule: true,
-  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
-    <a href={href}>{children}</a>
-  ),
-}));
-
-const notFoundMock = vi.fn();
+const redirectMock = vi.fn();
 vi.mock("next/navigation", () => ({
-  notFound: () => notFoundMock(),
+  redirect: (url: string) => {
+    redirectMock(url);
+    throw new Error("NEXT_REDIRECT");
+  },
 }));
-
-vi.mock("@/lib/api", () => ({
-  fetchSnapshotDetail: vi.fn(),
-  fetchSnapshotLatest: vi.fn(),
-  fetchSourceEditions: vi.fn(),
-  resolveReplayUrl: vi.fn(),
-  getApiBaseUrl: () => "https://api.example.test",
-}));
-
-vi.mock("@/data/demo-records", () => ({
-  getRecordById: vi.fn().mockReturnValue(null),
-}));
-
-vi.mock("@/components/SnapshotFrame", () => ({
-  SnapshotFrame: ({ src, title }: { src: string; title: string }) => (
-    <div>
-      <div>SnapshotFrame mock: {title}</div>
-      <div>src: {src}</div>
-    </div>
-  ),
-}));
-
-import { fetchSnapshotDetail, fetchSnapshotLatest, fetchSourceEditions } from "@/lib/api";
-const mockFetchSnapshotDetail = vi.mocked(fetchSnapshotDetail);
-const mockFetchSnapshotLatest = vi.mocked(fetchSnapshotLatest);
-const mockFetchSourceEditions = vi.mocked(fetchSourceEditions);
 
 describe("/browse/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("renders browse view using replay browseUrl when available", async () => {
-    mockFetchSnapshotDetail.mockResolvedValue({
-      id: 45,
-      title: "Snapshot Replay",
-      sourceCode: "hc",
-      sourceName: "Health Canada",
-      language: "en",
-      captureDate: "2024-01-04",
-      captureTimestamp: "2024-01-04T12:34:56+00:00",
-      jobId: 1,
-      originalUrl: "https://canada.ca/en/health-canada.html",
-      snippet: "Summary",
-      rawSnapshotUrl: "/api/snapshots/raw/45",
-      browseUrl:
-        "https://replay.healtharchive.ca/job-1/20240104123456/https://canada.ca/en/health-canada.html",
-      mimeType: "text/html",
-      statusCode: 200,
-    });
-    mockFetchSnapshotLatest.mockResolvedValue({
-      found: true,
-      snapshotId: 46,
-      captureTimestamp: "2024-02-02T00:00:00+00:00",
-      mimeType: "text/html",
-    });
-    mockFetchSourceEditions.mockResolvedValue([
-      {
-        jobId: 1,
-        jobName: "legacy-hc-older",
-        recordCount: 123,
-        firstCapture: "2024-01-01",
-        lastCapture: "2024-01-02",
-      },
-      {
-        jobId: 2,
-        jobName: "legacy-hc-newer",
-        recordCount: 456,
-        firstCapture: "2024-02-01",
-        lastCapture: "2024-02-02",
-      },
-    ]);
+  it("redirects English browse URLs to the canonical snapshot route", async () => {
+    await expect(async () => {
+      await BrowseSnapshotPage({ params: Promise.resolve({ id: "45" }) });
+    }).rejects.toThrow("NEXT_REDIRECT");
 
-    const ui = await BrowseSnapshotPage({ params: Promise.resolve({ id: "45" }) });
-    render(ui);
-
-    expect(screen.getByText(/Browsing archived site/i)).toBeInTheDocument();
-    expect(screen.getByText(/not current guidance or medical advice/i)).toBeInTheDocument();
-    expect(screen.getByText(/Health Canada/i)).toBeInTheDocument();
-    expect(screen.getByLabelText(/Switch edition/i)).toBeInTheDocument();
-    expect(screen.getByText(/Open in replay/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Compare to the live page/i })).toHaveAttribute(
-      "href",
-      "/compare-live?to=46&run=1",
-    );
-    expect(
-      screen.getByText(/src: https:\/\/replay\.healtharchive\.ca\/job-1\/20240104123456\//i),
-    ).toBeInTheDocument();
+    expect(redirectMock).toHaveBeenCalledWith("/snapshot/45");
   });
 
-  it("hides compare-live link for non-HTML snapshots", async () => {
-    mockFetchSnapshotDetail.mockResolvedValue({
-      id: 46,
-      title: "PDF Snapshot",
-      sourceCode: "hc",
-      sourceName: "Health Canada",
-      language: "en",
-      captureDate: "2024-01-04",
-      captureTimestamp: "2024-01-04T12:34:56+00:00",
-      jobId: 1,
-      originalUrl: "https://example.org/file.pdf",
-      snippet: "Summary",
-      rawSnapshotUrl: "/api/snapshots/raw/46",
-      browseUrl: null,
-      mimeType: "application/pdf",
-      statusCode: 200,
-    });
+  it("redirects French browse URLs to the canonical snapshot route", async () => {
+    await expect(async () => {
+      await BrowseSnapshotPage({ params: Promise.resolve({ id: "45", locale: "fr" }) });
+    }).rejects.toThrow("NEXT_REDIRECT");
 
-    const ui = await BrowseSnapshotPage({ params: Promise.resolve({ id: "46" }) });
-    render(ui);
-
-    expect(screen.queryByText(/Compare to the live page/i)).not.toBeInTheDocument();
-  });
-
-  it("calls notFound when no snapshot exists", async () => {
-    mockFetchSnapshotDetail.mockRejectedValue(new Error("not found"));
-    const ui = await BrowseSnapshotPage({ params: Promise.resolve({ id: "9999" }) });
-    render(ui);
-    expect(notFoundMock).toHaveBeenCalled();
+    expect(redirectMock).toHaveBeenCalledWith("/fr/snapshot/45");
   });
 });

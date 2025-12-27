@@ -16,6 +16,7 @@ import { buildPageMetadata } from "@/lib/metadata";
 import { isHtmlMimeType } from "@/lib/mime";
 import { resolveLocale } from "@/lib/resolveLocale";
 import { getSiteCopy } from "@/lib/siteCopy";
+import { BrowseReplayClient } from "@/components/replay/BrowseReplayClient";
 import { SnapshotReplayClient } from "@/components/replay/SnapshotReplayClient";
 
 function formatDate(locale: Locale, iso: string | undefined | null): string {
@@ -81,13 +82,18 @@ export async function generateMetadata({
 
 export default async function SnapshotPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string; locale?: string }>;
+  searchParams?: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const routeParams = await params;
   const { id } = routeParams;
   const locale = await resolveLocale(Promise.resolve(routeParams));
-  const siteCopy = getSiteCopy(locale);
+  const routeSearchParams = await (searchParams ??
+    Promise.resolve<Record<string, string | string[] | undefined>>({}));
+  const viewParam = typeof routeSearchParams.view === "string" ? routeSearchParams.view : "";
+  const view = viewParam === "details" ? "details" : "browse";
 
   let snapshotMeta: Awaited<ReturnType<typeof fetchSnapshotDetail>> | null = null;
   let usingBackend = false;
@@ -164,17 +170,11 @@ export default async function SnapshotPage({
     }
   }
 
-  let timeline: Awaited<ReturnType<typeof fetchSnapshotTimeline>> | null = null;
-  if (usingBackend && snapshotMeta?.id) {
-    try {
-      timeline = await fetchSnapshotTimeline(snapshotMeta.id);
-    } catch {
-      timeline = null;
-    }
-  }
-
+  const canCompareLive = Boolean(
+    usingBackend && snapshotMeta?.id && isHtmlMimeType(snapshotMeta?.mimeType),
+  );
   let compareLiveSnapshotId: number | null = null;
-  if (usingBackend && snapshotMeta?.id && isHtmlMimeType(snapshotMeta.mimeType)) {
+  if (canCompareLive && snapshotMeta?.id) {
     compareLiveSnapshotId = snapshotMeta.id;
     try {
       const latest = await fetchSnapshotLatest(snapshotMeta.id);
@@ -189,6 +189,40 @@ export default async function SnapshotPage({
   const compareLiveHref = compareLiveSnapshotId
     ? `/compare-live?to=${compareLiveSnapshotId}&run=1`
     : null;
+
+  if (view === "browse") {
+    return (
+      <BrowseReplayClient
+        snapshotId={id}
+        title={title}
+        sourceCode={sourceCode}
+        sourceName={sourceName}
+        captureDate={captureDate}
+        captureTimestamp={captureTimestamp}
+        jobId={jobId}
+        originalUrl={originalUrl}
+        browseUrl={browseUrl}
+        rawHtmlUrl={rawHtmlUrl}
+        apiLink={apiLink}
+        editions={sourceEditions}
+        canCompareLive={canCompareLive}
+        initialCompareSnapshotId={
+          compareLiveSnapshotId != null ? String(compareLiveSnapshotId) : null
+        }
+      />
+    );
+  }
+
+  const siteCopy = getSiteCopy(locale);
+
+  let timeline: Awaited<ReturnType<typeof fetchSnapshotTimeline>> | null = null;
+  if (usingBackend && snapshotMeta?.id) {
+    try {
+      timeline = await fetchSnapshotTimeline(snapshotMeta.id);
+    } catch {
+      timeline = null;
+    }
+  }
 
   const displayedOriginalUrl = originalUrl ?? (locale === "fr" ? "URL inconnue" : "Unknown URL");
 
@@ -254,8 +288,8 @@ export default async function SnapshotPage({
                 </Link>
               )}
               {viewerUrl && (
-                <Link href={`/browse/${id}`} className="ha-btn-primary text-xs">
-                  {locale === "fr" ? "Parcourir en plein écran" : "Browse full screen"}
+                <Link href={`/snapshot/${id}`} className="ha-btn-primary text-xs">
+                  {locale === "fr" ? "Parcourir" : "Browse"}
                 </Link>
               )}
               {browseUrl && (

@@ -495,7 +495,7 @@ export default async function ArchivePage({
                     {previewSrc ? (
                       browseId ? (
                         <Link
-                          href={`/browse/${browseId}`}
+                          href={`/snapshot/${browseId}`}
                           className="border-ha-border relative block h-[4.5rem] overflow-hidden border-b bg-white"
                           aria-label={
                             locale === "fr"
@@ -534,7 +534,7 @@ export default async function ArchivePage({
                       )
                     ) : browseId ? (
                       <Link
-                        href={`/browse/${browseId}`}
+                        href={`/snapshot/${browseId}`}
                         className="border-ha-border text-ha-muted flex h-[4.5rem] items-center justify-center border-b bg-white px-4 text-xs dark:bg-[#0b0c0d]"
                         aria-label={
                           locale === "fr"
@@ -553,7 +553,7 @@ export default async function ArchivePage({
                     <div className="pt-2.5 pb-1 sm:pt-3 sm:pb-1">
                       {browseId ? (
                         <Link
-                          href={`/browse/${browseId}`}
+                          href={`/snapshot/${browseId}`}
                           className="block truncate text-[13px] font-semibold tracking-tight text-slate-900 hover:underline"
                           title={summary.sourceName}
                         >
@@ -589,7 +589,7 @@ export default async function ArchivePage({
                           </span>
                           {browseId ? (
                             <Link
-                              href={`/browse/${browseId}`}
+                              href={`/snapshot/${browseId}`}
                               className="min-w-0 truncate hover:underline"
                               title={summary.baseUrl}
                             >
@@ -607,7 +607,7 @@ export default async function ArchivePage({
                         <div className="text-left">
                           {browseId && (
                             <Link
-                              href={`/browse/${browseId}`}
+                              href={`/snapshot/${browseId}`}
                               className="text-ha-accent hover:text-blue-700"
                             >
                               {locale === "fr" ? "Voir" : "View"}

@@ -29,8 +29,8 @@ describe("locale metadata alternates", () => {
 
   it("sets canonical + hreflang for browse routes", async () => {
     const meta = await browseMetadata({ params: Promise.resolve({ locale: "fr", id: "456" }) });
-    expect(meta.alternates?.canonical).toBe("/fr/browse/456");
-    expect(meta.alternates?.languages?.["en-CA"]).toBe("/browse/456");
-    expect(meta.alternates?.languages?.["fr-CA"]).toBe("/fr/browse/456");
+    expect(meta.alternates?.canonical).toBe("/fr/snapshot/456");
+    expect(meta.alternates?.languages?.["en-CA"]).toBe("/snapshot/456");
+    expect(meta.alternates?.languages?.["fr-CA"]).toBe("/fr/snapshot/456");
   });
 });

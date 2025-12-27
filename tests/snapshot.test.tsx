@@ -75,93 +75,9 @@ describe("/snapshot/[id]", () => {
       normalizedUrlGroup: "https://example.com",
       snapshots: [],
     });
-    mockFetchSnapshotLatest.mockImplementation(async (snapshotId: number) => ({
-      found: true,
-      snapshotId,
-      captureTimestamp: "2025-01-01T00:00:00+00:00",
-      mimeType: "text/html",
-    }));
   });
 
-  it("renders backend snapshot and iframe", async () => {
-    mockFetchSnapshotDetail.mockResolvedValue({
-      id: 42,
-      title: "Snapshot Title",
-      sourceCode: "phac",
-      sourceName: "PHAC",
-      language: "en",
-      captureDate: "2024-01-02",
-      captureTimestamp: "2024-01-02T00:00:00+00:00",
-      jobId: 1,
-      originalUrl: "https://example.com",
-      snippet: "Summary",
-      rawSnapshotUrl: "/api/snapshots/raw/42",
-      browseUrl: null,
-      mimeType: "text/html",
-      statusCode: 200,
-    });
-
-    const ui = await SnapshotPage({ params: Promise.resolve({ id: "42" }) });
-    render(ui);
-
-    expect(screen.getAllByText(/Snapshot Title/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Browse full screen/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/Important note/i)).toBeInTheDocument();
-    expect(screen.getByText(/not medical advice/i)).toBeInTheDocument();
-  });
-
-  it("shows error overlay and links when iframe fails", async () => {
-    mockFetchSnapshotDetail.mockResolvedValue({
-      id: 43,
-      title: "Snapshot Error",
-      sourceCode: "phac",
-      sourceName: "PHAC",
-      language: "en",
-      captureDate: "2024-01-02",
-      captureTimestamp: "2024-01-02T00:00:00+00:00",
-      jobId: 1,
-      originalUrl: "https://example.com",
-      snippet: "Summary",
-      rawSnapshotUrl: "/api/snapshots/raw/43",
-      browseUrl: null,
-      mimeType: "text/html",
-      statusCode: 200,
-    });
-
-    const ui = await SnapshotPage({ params: Promise.resolve({ id: "43" }) });
-    render(ui);
-
-    expect(screen.getByText(/Archived content unavailable/i)).toBeInTheDocument();
-    expect(screen.getAllByText(/Browse full screen/i).length).toBeGreaterThan(0);
-    expect(screen.getByText(/View metadata JSON/i)).toBeInTheDocument();
-  });
-
-  it("handles backend metadata without raw snapshot URL", async () => {
-    mockFetchSnapshotDetail.mockResolvedValue({
-      id: 44,
-      title: "Snapshot No Raw",
-      sourceCode: "phac",
-      sourceName: "PHAC",
-      language: "en",
-      captureDate: "2024-01-03",
-      captureTimestamp: "2024-01-03T00:00:00+00:00",
-      jobId: 1,
-      originalUrl: "https://example.com",
-      snippet: "Summary",
-      rawSnapshotUrl: null,
-      browseUrl: null,
-      mimeType: "text/html",
-      statusCode: 200,
-    });
-
-    const ui = await SnapshotPage({ params: Promise.resolve({ id: "44" }) });
-    render(ui);
-
-    // Should render metadata title even when raw content is missing.
-    expect(screen.getAllByText(/Snapshot No Raw/i).length).toBeGreaterThan(0);
-  });
-
-  it("prefers browseUrl when available", async () => {
+  it("defaults to browse mode and links to details", async () => {
     mockFetchSnapshotDetail.mockResolvedValue({
       id: 45,
       title: "Snapshot Replay",
@@ -169,14 +85,21 @@ describe("/snapshot/[id]", () => {
       sourceName: "Health Canada",
       language: "en",
       captureDate: "2024-01-04",
-      captureTimestamp: "2024-01-04T00:00:00+00:00",
+      captureTimestamp: "2024-01-04T12:34:56+00:00",
       jobId: 1,
       originalUrl: "https://canada.ca/en/health-canada.html",
       snippet: "Summary",
       rawSnapshotUrl: "/api/snapshots/raw/45",
-      browseUrl: "https://replay.healtharchive.ca/job-1/https://canada.ca/en/health-canada.html",
+      browseUrl:
+        "https://replay.healtharchive.ca/job-1/20240104123456/https://canada.ca/en/health-canada.html",
       mimeType: "text/html",
       statusCode: 200,
+    });
+    mockFetchSnapshotLatest.mockResolvedValue({
+      found: true,
+      snapshotId: 46,
+      captureTimestamp: "2024-02-02T00:00:00+00:00",
+      mimeType: "text/html",
     });
     mockFetchSourceEditions.mockResolvedValue([
       {
@@ -198,10 +121,52 @@ describe("/snapshot/[id]", () => {
     const ui = await SnapshotPage({ params: Promise.resolve({ id: "45" }) });
     render(ui);
 
-    expect(screen.getAllByText(/Browse full screen/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Open in replay/i).length).toBeGreaterThan(0);
-    expect(screen.getAllByText(/Raw HTML/i).length).toBeGreaterThan(0);
-    expect(screen.getByLabelText(/Edition/i)).toBeInTheDocument();
+    expect(screen.getByText(/Browsing archived site/i)).toBeInTheDocument();
+    expect(screen.getByText(/Health Canada/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /Snapshot details/i })).toHaveAttribute(
+      "href",
+      "/snapshot/45?view=details",
+    );
+    expect(screen.getByRole("link", { name: /Compare to the live page/i })).toHaveAttribute(
+      "href",
+      "/compare-live?to=46&run=1",
+    );
+  });
+
+  it("renders details mode when view=details", async () => {
+    mockFetchSnapshotDetail.mockResolvedValue({
+      id: 43,
+      title: "Snapshot Error",
+      sourceCode: "phac",
+      sourceName: "PHAC",
+      language: "en",
+      captureDate: "2024-01-02",
+      captureTimestamp: "2024-01-02T00:00:00+00:00",
+      jobId: 1,
+      originalUrl: "https://example.com",
+      snippet: "Summary",
+      rawSnapshotUrl: "/api/snapshots/raw/43",
+      browseUrl: null,
+      mimeType: "text/html",
+      statusCode: 200,
+    });
+    mockFetchSnapshotLatest.mockResolvedValue({
+      found: true,
+      snapshotId: 43,
+      captureTimestamp: "2025-01-01T00:00:00+00:00",
+      mimeType: "text/html",
+    });
+
+    const ui = await SnapshotPage({
+      params: Promise.resolve({ id: "43" }),
+      searchParams: Promise.resolve({ view: "details" }),
+    });
+    render(ui);
+
+    expect(screen.getByText(/Archived content unavailable/i)).toBeInTheDocument();
+    expect(screen.getByText(/Important note/i)).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /^Browse$/i })).toHaveAttribute("href", "/snapshot/43");
+    expect(screen.getByText(/View metadata JSON/i)).toBeInTheDocument();
   });
 
   it("calls notFound when no snapshot exists", async () => {

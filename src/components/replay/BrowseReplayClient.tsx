@@ -142,7 +142,7 @@ export function BrowseReplayClient({
     if (currentOriginalUrl) {
       params.set("url", currentOriginalUrl);
     }
-    params.set("page", `/browse/${snapshotId}`);
+    params.set("page", `/snapshot/${snapshotId}`);
     return `/report?${params.toString()}`;
   }, [snapshotId, currentOriginalUrl]);
 
@@ -377,7 +377,10 @@ export function BrowseReplayClient({
                   {locale === "fr" ? "Rechercher cette source" : "Search this source"}
                 </Link>
               )}
-              <Link href={`/snapshot/${snapshotId}`} className="ha-btn-secondary text-xs">
+              <Link
+                href={`/snapshot/${snapshotId}?view=details`}
+                className="ha-btn-secondary text-xs"
+              >
                 {locale === "fr" ? "Détails de la capture" : "Snapshot details"}
               </Link>
               {compareLiveHref && (

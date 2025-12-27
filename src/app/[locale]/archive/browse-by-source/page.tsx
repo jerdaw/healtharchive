@@ -228,7 +228,7 @@ export default async function BrowseBySourcePage({
 
                 <div className="mt-4 flex flex-wrap gap-2">
                   {browseId && (
-                    <Link href={`/browse/${browseId}`} className="ha-btn-primary text-xs">
+                    <Link href={`/snapshot/${browseId}`} className="ha-btn-primary text-xs">
                       {browseLabel}
                     </Link>
                   )}

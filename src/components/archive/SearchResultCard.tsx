@@ -229,7 +229,7 @@ export function SearchResultCard({
         </div>
 
         <div className="ha-result-actions flex flex-wrap justify-start gap-2 sm:justify-end">
-          <Link href={`/browse/${record.id}`} className="ha-btn-primary text-xs">
+          <Link href={`/snapshot/${record.id}`} className="ha-btn-primary text-xs">
             {locale === "fr" ? "Parcourir" : "Browse"}
           </Link>
           {view === "pages" && (
@@ -242,7 +242,7 @@ export function SearchResultCard({
               {locale === "fr" ? "Toutes les captures" : "All captures"}
             </Link>
           )}
-          <Link href={`/snapshot/${record.id}`} className="ha-btn-secondary text-xs">
+          <Link href={`/snapshot/${record.id}?view=details`} className="ha-btn-secondary text-xs">
             {locale === "fr" ? "Détails" : "Details"}
           </Link>
         </div>
