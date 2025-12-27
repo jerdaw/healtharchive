@@ -17,6 +17,7 @@ vi.mock("@/components/SnapshotFrame", () => ({
 vi.mock("@/lib/api", () => ({
   resolveReplayUrl: vi.fn(),
   fetchSnapshotLatest: vi.fn(),
+  fetchSnapshotTimeline: vi.fn(),
 }));
 
 import { fetchSnapshotLatest, resolveReplayUrl } from "@/lib/api";
@@ -53,6 +54,7 @@ describe("BrowseReplayClient compare-live follow", () => {
       <BrowseReplayClient
         snapshotId="45"
         title="Snapshot Replay"
+        language="en"
         sourceCode="hc"
         sourceName="Health Canada"
         captureDate="2024-01-04"
@@ -96,6 +98,7 @@ describe("BrowseReplayClient compare-live follow", () => {
       <BrowseReplayClient
         snapshotId="45"
         title="Snapshot Replay"
+        language="en"
         sourceCode="hc"
         sourceName="Health Canada"
         captureDate="2024-01-04"

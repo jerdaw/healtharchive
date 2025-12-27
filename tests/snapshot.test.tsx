@@ -55,29 +55,17 @@ vi.mock("@/components/SnapshotFrame", () => ({
   ),
 }));
 
-import {
-  fetchSnapshotDetail,
-  fetchSnapshotLatest,
-  fetchSourceEditions,
-  fetchSnapshotTimeline,
-} from "@/lib/api";
+import { fetchSnapshotDetail, fetchSnapshotLatest, fetchSourceEditions } from "@/lib/api";
 const mockFetchSnapshotDetail = vi.mocked(fetchSnapshotDetail);
 const mockFetchSnapshotLatest = vi.mocked(fetchSnapshotLatest);
 const mockFetchSourceEditions = vi.mocked(fetchSourceEditions);
-const mockFetchSnapshotTimeline = vi.mocked(fetchSnapshotTimeline);
 
 describe("/snapshot/[id]", () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    mockFetchSnapshotTimeline.mockResolvedValue({
-      sourceCode: "phac",
-      sourceName: "PHAC",
-      normalizedUrlGroup: "https://example.com",
-      snapshots: [],
-    });
   });
 
-  it("defaults to browse mode and links to details", async () => {
+  it("defaults to browse mode with details collapsed", async () => {
     mockFetchSnapshotDetail.mockResolvedValue({
       id: 45,
       title: "Snapshot Replay",
@@ -123,17 +111,15 @@ describe("/snapshot/[id]", () => {
 
     expect(screen.getByText(/Browsing archived site/i)).toBeInTheDocument();
     expect(screen.getByText(/Health Canada/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /Snapshot details/i })).toHaveAttribute(
-      "href",
-      "/snapshot/45?view=details",
-    );
+    expect(screen.getByText(/Snapshot details/i)).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /How to cite/i })).not.toBeInTheDocument();
     expect(screen.getByRole("link", { name: /Compare to the live page/i })).toHaveAttribute(
       "href",
       "/compare-live?to=46&run=1",
     );
   });
 
-  it("renders details mode when view=details", async () => {
+  it("opens the details section when view=details", async () => {
     mockFetchSnapshotDetail.mockResolvedValue({
       id: 43,
       title: "Snapshot Error",
@@ -163,10 +149,9 @@ describe("/snapshot/[id]", () => {
     });
     render(ui);
 
-    expect(screen.getByText(/Archived content unavailable/i)).toBeInTheDocument();
-    expect(screen.getByText(/Important note/i)).toBeInTheDocument();
-    expect(screen.getByRole("link", { name: /^Browse$/i })).toHaveAttribute("href", "/snapshot/43");
-    expect(screen.getByText(/View metadata JSON/i)).toBeInTheDocument();
+    expect(screen.getByText(/Snapshot details/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Snapshot Error/i).length).toBeGreaterThan(0);
+    expect(screen.getByRole("link", { name: /How to cite/i })).toHaveAttribute("href", "/cite");
   });
 
   it("calls notFound when no snapshot exists", async () => {

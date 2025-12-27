@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 
 import { SnapshotFrame } from "@/components/SnapshotFrame";
 import { useLocale } from "@/components/i18n/LocaleProvider";
-import { fetchSnapshotLatest, resolveReplayUrl } from "@/lib/api";
+import { fetchSnapshotLatest, fetchSnapshotTimeline, resolveReplayUrl } from "@/lib/api";
 import { isHtmlMimeType } from "@/lib/mime";
 import { buildBrowseDisclaimer, getSiteCopy } from "@/lib/siteCopy";
 
@@ -31,6 +31,7 @@ type ReplayNavigationMessage = {
 type BrowseReplayClientProps = {
   snapshotId: string;
   title: string;
+  language: string;
   sourceCode: string | null;
   sourceName: string;
   captureDate: string;
@@ -43,11 +44,14 @@ type BrowseReplayClientProps = {
   editions?: ReplayEdition[] | null;
   canCompareLive?: boolean;
   initialCompareSnapshotId?: string | null;
+  initialDetailsOpen?: boolean;
+  timelineSnapshotId?: number | null;
 };
 
 export function BrowseReplayClient({
   snapshotId,
   title,
+  language,
   sourceCode,
   sourceName,
   captureDate,
@@ -60,6 +64,8 @@ export function BrowseReplayClient({
   editions,
   canCompareLive = false,
   initialCompareSnapshotId = null,
+  initialDetailsOpen = false,
+  timelineSnapshotId = null,
 }: BrowseReplayClientProps) {
   const locale = useLocale();
   const siteCopy = getSiteCopy(locale);
@@ -83,6 +89,13 @@ export function BrowseReplayClient({
   const [fallbackCompareSnapshotId, setFallbackCompareSnapshotId] = useState<string | null>(
     defaultCompareSnapshotId,
   );
+  const [detailsOpen, setDetailsOpen] = useState(initialDetailsOpen);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [timelineLoading, setTimelineLoading] = useState(false);
+  const [timelineError, setTimelineError] = useState<string | null>(null);
+  const [timeline, setTimeline] = useState<Awaited<
+    ReturnType<typeof fetchSnapshotTimeline>
+  > | null>(null);
 
   useEffect(() => {
     setFallbackCompareSnapshotId(defaultCompareSnapshotId);
@@ -145,6 +158,36 @@ export function BrowseReplayClient({
     params.set("page", `/snapshot/${snapshotId}`);
     return `/report?${params.toString()}`;
   }, [snapshotId, currentOriginalUrl]);
+
+  useEffect(() => {
+    if (!detailsOpen) return;
+    if (!historyOpen) return;
+    if (!timelineSnapshotId) return;
+    if (timeline || timelineLoading) return;
+
+    let cancelled = false;
+    setTimelineLoading(true);
+    setTimelineError(null);
+
+    fetchSnapshotTimeline(timelineSnapshotId)
+      .then((data) => {
+        if (cancelled) return;
+        setTimeline(data);
+      })
+      .catch((err: unknown) => {
+        if (cancelled) return;
+        const message = err instanceof Error ? err.message : "Failed to load timeline";
+        setTimelineError(message);
+        setTimeline(null);
+      })
+      .finally(() => {
+        if (!cancelled) setTimelineLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [detailsOpen, historyOpen, timeline, timelineLoading, timelineSnapshotId]);
 
   useEffect(() => {
     if (!canCompareLive) {
@@ -377,12 +420,6 @@ export function BrowseReplayClient({
                   {locale === "fr" ? "Rechercher cette source" : "Search this source"}
                 </Link>
               )}
-              <Link
-                href={`/snapshot/${snapshotId}?view=details`}
-                className="ha-btn-secondary text-xs"
-              >
-                {locale === "fr" ? "Détails de la capture" : "Snapshot details"}
-              </Link>
               {compareLiveHref && (
                 <Link href={compareLiveHref} prefetch={false} className="ha-btn-secondary text-xs">
                   {locale === "fr" ? "Comparer à la page en direct" : "Compare to the live page"}
@@ -421,6 +458,197 @@ export function BrowseReplayClient({
             </div>
           </div>
         </header>
+
+        <div className="ha-card ha-home-panel p-4 sm:p-5">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-ha-muted text-xs font-medium">
+                {locale === "fr" ? "Détails de la capture" : "Snapshot details"}
+              </p>
+              <p className="text-ha-muted mt-1 text-xs">
+                {locale === "fr"
+                  ? "Titre, langue, citation et autres captures."
+                  : "Title, language, citation, and other captures."}
+              </p>
+            </div>
+            <button
+              type="button"
+              className="ha-btn-secondary text-xs"
+              aria-expanded={detailsOpen}
+              onClick={() => setDetailsOpen((prev) => !prev)}
+            >
+              {detailsOpen
+                ? locale === "fr"
+                  ? "Masquer"
+                  : "Hide"
+                : locale === "fr"
+                  ? "Afficher"
+                  : "Show"}
+            </button>
+          </div>
+
+          {detailsOpen && (
+            <div className="mt-4 space-y-4">
+              <dl className="space-y-1 text-xs text-slate-800 sm:text-sm">
+                <div className="flex gap-2">
+                  <dt className="text-ha-muted w-28">{locale === "fr" ? "Titre" : "Title"}</dt>
+                  <dd className="min-w-0 flex-1 break-words">{title}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="text-ha-muted w-28">{locale === "fr" ? "Source" : "Source"}</dt>
+                  <dd>{sourceName}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="text-ha-muted w-28">
+                    {locale === "fr" ? "Date de capture" : "Capture date"}
+                  </dt>
+                  <dd>{dateIsoToLabel(captureDate, locale)}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="text-ha-muted w-28">{locale === "fr" ? "Langue" : "Language"}</dt>
+                  <dd>{language}</dd>
+                </div>
+                <div className="flex gap-2">
+                  <dt className="text-ha-muted w-28">
+                    {locale === "fr" ? "URL d’origine" : "Original URL"}
+                  </dt>
+                  <dd className="min-w-0 flex-1 break-all">
+                    {originalUrl ? (
+                      <a
+                        href={originalUrl}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-ha-accent font-medium hover:text-blue-700"
+                      >
+                        {originalUrl}
+                      </a>
+                    ) : (
+                      <span className="text-ha-muted">
+                        {locale === "fr" ? "Inconnue" : "Unknown"}
+                      </span>
+                    )}
+                  </dd>
+                </div>
+              </dl>
+
+              <div className="flex flex-wrap gap-2">
+                <Link href="/cite" className="ha-btn-secondary text-xs">
+                  {locale === "fr" ? "Comment citer" : "How to cite"}
+                </Link>
+              </div>
+
+              <div className="border-ha-border border-t pt-4">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <h2 className="text-sm font-semibold text-slate-900">
+                      {locale === "fr"
+                        ? "Autres captures de cette page"
+                        : "Other captures of this page"}
+                    </h2>
+                    <p className="text-ha-muted mt-1 text-xs">
+                      {locale === "fr"
+                        ? "Comparez les captures pour voir les changements descriptifs au fil du temps."
+                        : "Compare captures to see descriptive text changes over time."}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    className="ha-btn-secondary text-xs"
+                    aria-expanded={historyOpen}
+                    onClick={() => setHistoryOpen((prev) => !prev)}
+                    disabled={!timelineSnapshotId}
+                  >
+                    {historyOpen
+                      ? locale === "fr"
+                        ? "Masquer"
+                        : "Hide"
+                      : locale === "fr"
+                        ? "Afficher"
+                        : "Show"}
+                  </button>
+                </div>
+
+                {!timelineSnapshotId && (
+                  <p className="text-ha-muted mt-2 text-xs">
+                    {locale === "fr"
+                      ? "L’historique n’est pas disponible pour cette capture."
+                      : "History is not available for this snapshot."}
+                  </p>
+                )}
+
+                {historyOpen && (
+                  <div className="mt-3">
+                    {timelineLoading ? (
+                      <p className="text-ha-muted text-xs">
+                        {locale === "fr" ? "Chargement…" : "Loading…"}
+                      </p>
+                    ) : timelineError ? (
+                      <p className="text-ha-muted text-xs">
+                        {locale === "fr"
+                          ? "Impossible de charger l’historique."
+                          : "Could not load history."}
+                      </p>
+                    ) : timeline?.snapshots && timeline.snapshots.length > 1 ? (
+                      <ul className="space-y-2 text-xs text-slate-800 sm:text-sm">
+                        {timeline.snapshots.map((item) => {
+                          const isCurrent = item.snapshotId === timelineSnapshotId;
+                          const compareHref =
+                            item.compareFromSnapshotId != null
+                              ? `/compare?from=${item.compareFromSnapshotId}&to=${item.snapshotId}`
+                              : null;
+                          return (
+                            <li
+                              key={item.snapshotId}
+                              className="border-ha-border flex flex-wrap items-center justify-between gap-2 border-b pb-2 last:border-b-0 last:pb-0"
+                            >
+                              <div>
+                                <p className="font-medium text-slate-900">
+                                  {dateIsoToLabel(item.captureDate, locale)}
+                                </p>
+                                <p className="text-ha-muted text-xs">
+                                  {item.jobName
+                                    ? item.jobName
+                                    : locale === "fr"
+                                      ? "Capture d’édition"
+                                      : "Edition capture"}
+                                </p>
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {isCurrent ? (
+                                  <span className="ha-tag">
+                                    {locale === "fr" ? "Cette capture" : "This capture"}
+                                  </span>
+                                ) : (
+                                  <Link
+                                    href={`/snapshot/${item.snapshotId}`}
+                                    className="ha-btn-secondary text-xs"
+                                  >
+                                    {locale === "fr" ? "Voir la capture" : "View snapshot"}
+                                  </Link>
+                                )}
+                                {compareHref ? (
+                                  <Link href={compareHref} className="ha-btn-secondary text-xs">
+                                    {locale === "fr" ? "Comparer" : "Compare"}
+                                  </Link>
+                                ) : null}
+                              </div>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    ) : (
+                      <p className="text-ha-muted text-xs">
+                        {locale === "fr"
+                          ? "Aucune autre capture n’est disponible pour cette page."
+                          : "No other captures are available for this page."}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
 
         <div className="ha-card ha-card-elevated overflow-hidden">
           {iframeSrc ? (
