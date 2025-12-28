@@ -897,15 +897,36 @@ export default async function ArchivePage({
                     </select>
                   </div>
 
-                  <label className="text-ha-muted inline-flex items-center gap-1 text-xs font-medium sm:ml-2">
+                  <div className="inline-flex items-center gap-1 sm:ml-2">
                     <input
+                      id="includeNon2xx"
                       type="checkbox"
                       name="includeNon2xx"
                       value="true"
                       defaultChecked={includeNon2xx}
                     />
-                    {locale === "fr" ? "Inclure les erreurs" : "Include errors"}
-                  </label>
+                    <label htmlFor="includeNon2xx" className="text-ha-muted text-xs font-medium">
+                      {locale === "fr" ? "Inclure les erreurs" : "Include errors"}
+                    </label>
+                    <span className="group relative inline-flex">
+                      <button
+                        type="button"
+                        className="border-ha-border text-ha-muted inline-flex h-4 w-4 items-center justify-center rounded-full border bg-white text-[10px] leading-none font-semibold transition-colors hover:border-[#11588f] hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#11588f]"
+                        aria-label={
+                          locale === "fr"
+                            ? "Info sur l’inclusion des erreurs"
+                            : "Info about including errors"
+                        }
+                      >
+                        i
+                      </button>
+                      <span className="border-ha-border pointer-events-none absolute top-full left-1/2 z-10 mt-2 w-64 -translate-x-1/2 rounded-lg border bg-white px-3 py-2 text-[11px] leading-relaxed text-slate-700 opacity-0 shadow-lg transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100">
+                        {locale === "fr"
+                          ? "Inclut les captures dont le code HTTP n’est pas 2xx (ex. 404 ou 500)."
+                          : "Includes snapshots with non-2xx HTTP status codes (e.g. 404 or 500)."}
+                      </span>
+                    </span>
+                  </div>
                   {view === "snapshots" && (
                     <label className="text-ha-muted inline-flex items-center gap-1 text-xs font-medium sm:ml-2">
                       <input

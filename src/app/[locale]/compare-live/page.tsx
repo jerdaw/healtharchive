@@ -7,7 +7,6 @@ import { ApiError, fetchSnapshotCompareLive, type CompareLiveTextMode } from "@/
 import { type Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
-import { getSiteCopy } from "@/lib/siteCopy";
 
 export const dynamic = "force-dynamic";
 
@@ -63,7 +62,6 @@ export default async function CompareLivePage({
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const locale = await resolveLocale(routeParams);
-  const siteCopy = getSiteCopy(locale);
   const params = await searchParams;
 
   const toParam = typeof params.to === "string" ? params.to : "";
@@ -113,21 +111,18 @@ export default async function CompareLivePage({
       <PageShell
         eyebrow={locale === "fr" ? "Comparer" : "Compare"}
         title={locale === "fr" ? "Comparer à la page en direct" : "Compare to the live page"}
-        intro={
-          locale === "fr"
-            ? "Cette vue compare une capture archivée avec la page en direct à partir d’un chargement frais."
-            : "This view compares an archived capture with the live page using a fresh fetch."
-        }
+        compact
+        hideHeaderVisually
       >
-        <div className="ha-callout space-y-3">
+        <section className="ha-card ha-home-panel space-y-3 p-4 sm:p-5">
           <div>
-            <h2 className="ha-callout-title">
+            <h2 className="text-sm font-semibold text-slate-900">
               {locale === "fr" ? "Prêt à comparer" : "Ready to compare"}
             </h2>
-            <p className="mt-2 text-xs leading-relaxed sm:text-sm">
+            <p className="mt-2 text-xs text-ha-muted leading-relaxed">
               {locale === "fr"
-                ? "Le bouton ci-dessous effectue un chargement en direct à chaque exécution."
-                : "The button below performs a fresh live fetch each time."}
+                ? "Cette vue compare une capture archivée à la page en direct via un chargement frais."
+                : "This view compares an archived snapshot to the live page using a fresh fetch."}
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2 text-xs text-slate-700">
@@ -154,7 +149,12 @@ export default async function CompareLivePage({
           <Link href={runHref} prefetch={false} className="ha-btn-secondary text-xs">
             {locale === "fr" ? "Charger le diff en direct" : "Fetch live diff"}
           </Link>
-        </div>
+          <p className="text-[11px] font-medium text-amber-800">
+            {locale === "fr"
+              ? "Archive indépendante · Changements descriptifs seulement; la page en direct n’est pas archivée."
+              : "Independent archive · Descriptive changes only; the live page is not archived."}
+          </p>
+        </section>
       </PageShell>
     );
   }
@@ -179,11 +179,8 @@ export default async function CompareLivePage({
     <PageShell
       eyebrow={locale === "fr" ? "Comparer" : "Compare"}
       title={locale === "fr" ? "Comparer à la page en direct" : "Compare to the live page"}
-      intro={
-        locale === "fr"
-          ? "Cette vue compare une capture archivée avec la page en direct à partir d’un chargement frais."
-          : "This view compares an archived capture with the live page using a fresh fetch."
-      }
+      compact
+      hideHeaderVisually
     >
       {errorMessage && (
         <div className="ha-callout">
@@ -195,72 +192,24 @@ export default async function CompareLivePage({
       )}
 
       {compare && (
-        <section className="space-y-6">
-          {compare.textModeFallback && (
-            <div className="ha-callout border-amber-300 bg-amber-50 text-amber-900">
-              <h2 className="ha-callout-title">
-                {locale === "fr"
-                  ? "Portée du texte élargie automatiquement"
-                  : "Text scope automatically expanded"}
-              </h2>
-              <p className="mt-2 text-xs leading-relaxed sm:text-sm">
-                {locale === "fr"
-                  ? "Le contenu principal n’a pas pu être extrait de façon fiable. La comparaison utilise le texte de la page complète (en-tête/navigation/pied de page inclus)."
-                  : "The main content could not be extracted reliably. This comparison uses full-page text (including header/navigation/footer)."}
-              </p>
-            </div>
-          )}
-          <div className="ha-callout">
-            <h2 className="ha-callout-title">
-              {locale === "fr" ? "Changements descriptifs seulement" : "Descriptive changes only"}
-            </h2>
-            <p className="mt-2 text-xs leading-relaxed sm:text-sm">
-              {locale === "fr"
-                ? "Cette comparaison met en évidence des changements de texte entre une capture archivée et la page en direct. Elle n’interprète pas le changement et ne fournit pas d’avis médical. La page en direct n’est pas archivée et peut changer."
-                : "This comparison highlights text changes between an archived capture and the live page. It does not interpret the change or provide medical advice. The live page is not archived and may change."}{" "}
-              {siteCopy.whatThisSiteIs.forCurrent}.
-            </p>
-            <p className="mt-3 text-xs leading-relaxed sm:text-sm">
-              {locale === "fr"
-                ? "Besoin de citer? Citez plutôt la capture archivée. Voir"
-                : "Need to cite this? Cite the archived snapshot instead. See"}{" "}
-              <Link href="/cite" className="text-ha-accent font-medium hover:text-blue-700">
-                /cite
-              </Link>
-              .
-            </p>
-          </div>
-
-          <div className="flex flex-wrap gap-2">
-            <Link href={runHref} prefetch={false} className="ha-btn-secondary text-xs">
-              {locale === "fr" ? "Recharger le diff" : "Fetch live diff again"}
-            </Link>
-            <Link
-              href={`/snapshot/${compare.archivedSnapshot.snapshotId}`}
-              className="ha-btn-secondary text-xs"
-            >
-              {locale === "fr" ? "Voir la capture" : "View snapshot"}
-            </Link>
-          </div>
-
-          <div className="ha-grid-2">
-            <div className="ha-card space-y-2">
-              <p className="text-ha-muted text-xs">
-                {locale === "fr" ? "Capture archivée" : "Archived capture"}
-              </p>
-              <h3 className="text-sm font-semibold text-slate-900">
-                {compare.archivedSnapshot.title ??
-                  (locale === "fr" ? "Capture archivée" : "Archived snapshot")}
-              </h3>
-              <p className="text-ha-muted text-xs">
-                {formatUtcTimestamp(locale, compare.archivedSnapshot.captureTimestamp)}
-              </p>
-              <p className="text-ha-muted text-xs">
-                {compare.archivedSnapshot.jobName ??
-                  (locale === "fr" ? "Capture d’édition" : "Edition capture")}
-              </p>
-              <p className="text-ha-muted text-xs">ID {compare.archivedSnapshot.snapshotId}</p>
-              <div className="pt-2">
+        <section className="space-y-4">
+          <div className="ha-card ha-home-panel space-y-3 p-4 sm:p-5">
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-1">
+                <p className="text-ha-muted text-xs">
+                  {locale === "fr" ? "Capture archivée" : "Archived snapshot"}
+                </p>
+                <h2 className="text-sm font-semibold text-slate-900">
+                  {compare.archivedSnapshot.title ??
+                    (locale === "fr" ? "Capture archivée" : "Archived snapshot")}
+                </h2>
+                <p className="text-ha-muted text-xs">
+                  {formatUtcTimestamp(locale, compare.archivedSnapshot.captureTimestamp)}
+                  {compare.archivedSnapshot.jobName
+                    ? ` · ${compare.archivedSnapshot.jobName}`
+                    : ""}
+                </p>
+                <p className="text-ha-muted text-xs">ID {compare.archivedSnapshot.snapshotId}</p>
                 <a
                   href={compare.archivedSnapshot.originalUrl}
                   target="_blank"
@@ -270,62 +219,76 @@ export default async function CompareLivePage({
                   {locale === "fr" ? "URL originale ↗" : "Original URL ↗"}
                 </a>
               </div>
+
+              <div className="space-y-1">
+                <p className="text-ha-muted text-xs">
+                  {locale === "fr" ? "Page en direct" : "Live page"}
+                </p>
+                <h3 className="text-sm font-semibold text-slate-900">
+                  {locale === "fr" ? "Chargement en direct" : "Live fetch"}
+                </h3>
+                <p className="text-ha-muted text-xs">
+                  {formatUtcTimestamp(locale, compare.liveFetch.fetchedAt)}
+                </p>
+                <p className="text-ha-muted text-xs">
+                  {locale === "fr" ? "Statut" : "Status"}: {compare.liveFetch.statusCode} ·{" "}
+                  {locale === "fr" ? "Type" : "Type"}: {compare.liveFetch.contentType ?? "-"} ·{" "}
+                  {locale === "fr" ? "Octets" : "Bytes"}: {compare.liveFetch.bytesRead}
+                </p>
+                <div className="space-y-1 pt-1 text-xs">
+                  <p className="text-ha-muted">
+                    {locale === "fr" ? "URL finale" : "Final URL"}
+                  </p>
+                  <a
+                    href={compare.liveFetch.finalUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-ha-accent font-medium hover:text-blue-700"
+                  >
+                    {compare.liveFetch.finalUrl}
+                  </a>
+                  {compare.liveFetch.finalUrl !== compare.liveFetch.requestedUrl && (
+                    <p className="text-ha-muted">
+                      {locale === "fr" ? "(Redirection depuis" : "(Redirected from"}{" "}
+                      {compare.liveFetch.requestedUrl}
+                      {")"}
+                    </p>
+                  )}
+                </div>
+              </div>
             </div>
 
-            <div className="ha-card space-y-2">
-              <p className="text-ha-muted text-xs">
-                {locale === "fr" ? "Page en direct" : "Live page"}
+            {compare.textModeFallback && (
+              <p className="text-[11px] font-medium text-amber-800">
+                {locale === "fr"
+                  ? "Le contenu principal n’a pas pu être extrait; comparaison basée sur le texte complet."
+                  : "Main content could not be extracted; comparison uses full-page text."}
               </p>
-              <h3 className="text-sm font-semibold text-slate-900">
-                {locale === "fr" ? "Chargement en direct" : "Live fetch"}
-              </h3>
-              <p className="text-ha-muted text-xs">
-                {formatUtcTimestamp(locale, compare.liveFetch.fetchedAt)}
-              </p>
-              <p className="text-ha-muted text-xs">
-                {locale === "fr" ? "Statut" : "Status"}: {compare.liveFetch.statusCode}
-              </p>
-              <p className="text-ha-muted text-xs">
-                {locale === "fr" ? "Type" : "Type"}: {compare.liveFetch.contentType ?? "-"}
-              </p>
-              <p className="text-ha-muted text-xs">
-                {locale === "fr" ? "Octets" : "Bytes"}: {compare.liveFetch.bytesRead}
-              </p>
-              <div className="space-y-1 pt-2 text-xs">
-                <p className="text-ha-muted">{locale === "fr" ? "URL finale" : "Final URL"}</p>
-                <a
-                  href={compare.liveFetch.finalUrl}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-ha-accent font-medium hover:text-blue-700"
-                >
-                  {compare.liveFetch.finalUrl}
-                </a>
-                {compare.liveFetch.finalUrl !== compare.liveFetch.requestedUrl && (
-                  <p className="text-ha-muted">
-                    {locale === "fr" ? "(Redirection depuis" : "(Redirected from"}{" "}
-                    {compare.liveFetch.requestedUrl}
-                    {")"}
-                  </p>
-                )}
-              </div>
+            )}
+            <p className="text-[11px] font-medium text-amber-800">
+              {locale === "fr"
+                ? "Archive indépendante · Changements descriptifs seulement; la page en direct n’est pas archivée. Citez plutôt la capture ("
+                : "Independent archive · Descriptive changes only; the live page is not archived. Cite the snapshot ("}
+              <Link href="/cite" className="text-ha-accent font-medium hover:text-blue-700">
+                /cite
+              </Link>
+              {locale === "fr" ? ")." : ")."}
+            </p>
+
+            <div className="flex flex-wrap items-center gap-2 pt-1">
+              <Link href={runHref} prefetch={false} className="ha-btn-secondary text-xs">
+                {locale === "fr" ? "Recharger le diff" : "Fetch live diff again"}
+              </Link>
+              <Link
+                href={`/snapshot/${compare.archivedSnapshot.snapshotId}`}
+                className="ha-btn-secondary text-xs"
+              >
+                {locale === "fr" ? "Voir la capture" : "View snapshot"}
+              </Link>
             </div>
           </div>
 
-          {compare.stats.highNoise && (
-            <div className="ha-callout border-amber-300 bg-amber-50 text-amber-900">
-              <h3 className="ha-callout-title">
-                {locale === "fr" ? "Changement à bruit élevé" : "High-noise change"}
-              </h3>
-              <p className="mt-2 text-xs leading-relaxed sm:text-sm">
-                {locale === "fr"
-                  ? "Ce changement peut inclure des mises à jour de mise en page ou de gabarit (par exemple : navigation ou pied de page). Traitez le diff comme descriptif, et non définitif."
-                  : "This change may include layout or boilerplate updates (such as navigation or footer adjustments). Treat the diff as descriptive, not definitive."}
-              </p>
-            </div>
-          )}
-
-          <div className="ha-card space-y-3">
+          <div className="ha-card space-y-3 p-4 sm:p-5">
             <div className="text-ha-muted flex flex-wrap items-center gap-2 text-xs">
               <span className="ha-tag">{compare.stats.summary}</span>
               <span className="ha-tag">
@@ -341,23 +304,24 @@ export default async function CompareLivePage({
                 {locale === "fr" ? "Variation" : "Change ratio"}:{" "}
                 {formatPercent(compare.stats.changeRatio)}
               </span>
-            </div>
-            <div className="text-ha-muted flex flex-wrap items-center gap-2 text-xs">
-              <span>
-                {compare.stats.changedSections}{" "}
-                {locale === "fr" ? "sections modifiées" : "sections changed"}
-              </span>
-              <span>
-                {compare.stats.addedSections} {locale === "fr" ? "ajoutées" : "added"}
-              </span>
-              <span>
-                {compare.stats.removedSections} {locale === "fr" ? "retirées" : "removed"}
-              </span>
               <span>
                 +{compare.stats.addedLines} / -{compare.stats.removedLines}{" "}
                 {locale === "fr" ? "lignes" : "lines"}
               </span>
+              <span>
+                {compare.stats.changedSections}{" "}
+                {locale === "fr" ? "sections modifiées" : "sections changed"}
+              </span>
             </div>
+
+            {compare.stats.highNoise && (
+              <p className="text-[11px] font-medium text-amber-800">
+                {locale === "fr"
+                  ? "Changement à bruit élevé : peut inclure navigation/pied de page."
+                  : "High-noise change: may include navigation/footer updates."}
+              </p>
+            )}
+
             {compare.render ? (
               <CompareLiveDiffPanel locale={locale} render={compare.render} />
             ) : (

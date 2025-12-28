@@ -415,7 +415,7 @@ html[data-theme="dark"] {
 .ha-nav-link--primary {
   background-color: var(--accent);
   color: #ffffff;
-  box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+  box-shadow: 0 7.5px 18px rgba(37, 99, 235, 0.26);
 }
 
 .ha-nav-link--primary:hover {
@@ -905,7 +905,7 @@ html[data-theme="dark"] .ha-page-intro-card {
   .ha-btn-primary {
     background-color: var(--accent);
     color: #ffffff;
-    box-shadow: 0 10px 24px rgba(37, 99, 235, 0.35);
+    box-shadow: 0 7.5px 18px rgba(37, 99, 235, 0.26);
   }
 
   .ha-btn-primary:hover {

@@ -469,11 +469,6 @@ export function BrowseReplayClient({
           )}
 
           <div className="flex flex-wrap items-center gap-2 pt-1">
-            {compareLiveHref && (
-              <Link href={compareLiveHref} prefetch={false} className="ha-btn-primary text-xs">
-                {locale === "fr" ? "Voir diff" : "View diff"}
-              </Link>
-            )}
             {browseLink && (
               <a
                 href={browseLink}
@@ -483,6 +478,11 @@ export function BrowseReplayClient({
               >
                 {locale === "fr" ? "Relecture ↗" : "Replay ↗"}
               </a>
+            )}
+            {compareLiveHref && (
+              <Link href={compareLiveHref} prefetch={false} className="ha-btn-primary text-xs">
+                {locale === "fr" ? "Voir diff" : "View diff"}
+              </Link>
             )}
             {rawHtmlUrl && (
               <a
