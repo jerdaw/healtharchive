@@ -370,19 +370,6 @@ export default async function SnapshotPage({
         </div>
       </section>
 
-      {browseUrl || rawHtmlUrl ? (
-        <section className="ha-card ha-home-panel space-y-3 p-4 sm:p-5">
-          <h2 className="text-sm font-semibold text-slate-900">
-            {locale === "fr" ? "Aperçu de la page archivée" : "Archived page preview"}
-          </h2>
-          <SnapshotFrame
-            src={browseUrl ?? rawHtmlUrl ?? ""}
-            title={title}
-            iframeClassName="h-[90vh] w-full border-0 sm:h-[96vh]"
-          />
-        </section>
-      ) : null}
-
       <section id="other-snapshots" className="ha-card ha-home-panel space-y-3 p-4 sm:p-5">
         <h2 className="text-sm font-semibold text-slate-900">
           {locale === "fr" ? "Autres captures" : "Other snapshots"}
@@ -463,6 +450,19 @@ export default async function SnapshotPage({
           </p>
         )}
       </section>
+
+      {browseUrl || rawHtmlUrl ? (
+        <section className="ha-card ha-home-panel space-y-3 p-4 sm:p-5">
+          <h2 className="text-sm font-semibold text-slate-900">
+            {locale === "fr" ? "Aperçu de la page archivée" : "Archived page preview"}
+          </h2>
+          <SnapshotFrame
+            src={browseUrl ?? rawHtmlUrl ?? ""}
+            title={title}
+            iframeClassName="h-[90vh] w-full border-0 sm:h-[96vh]"
+          />
+        </section>
+      ) : null}
     </PageShell>
   );
 }
