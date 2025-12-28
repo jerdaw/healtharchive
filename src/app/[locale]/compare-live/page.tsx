@@ -119,7 +119,7 @@ export default async function CompareLivePage({
             <h2 className="text-sm font-semibold text-slate-900">
               {locale === "fr" ? "Prêt à comparer" : "Ready to compare"}
             </h2>
-            <p className="mt-2 text-xs text-ha-muted leading-relaxed">
+            <p className="text-ha-muted mt-2 text-xs leading-relaxed">
               {locale === "fr"
                 ? "Cette vue compare une capture archivée à la page en direct via un chargement frais."
                 : "This view compares an archived snapshot to the live page using a fresh fetch."}
@@ -205,9 +205,7 @@ export default async function CompareLivePage({
                 </h2>
                 <p className="text-ha-muted text-xs">
                   {formatUtcTimestamp(locale, compare.archivedSnapshot.captureTimestamp)}
-                  {compare.archivedSnapshot.jobName
-                    ? ` · ${compare.archivedSnapshot.jobName}`
-                    : ""}
+                  {compare.archivedSnapshot.jobName ? ` · ${compare.archivedSnapshot.jobName}` : ""}
                 </p>
                 <p className="text-ha-muted text-xs">ID {compare.archivedSnapshot.snapshotId}</p>
                 <a
@@ -236,9 +234,7 @@ export default async function CompareLivePage({
                   {locale === "fr" ? "Octets" : "Bytes"}: {compare.liveFetch.bytesRead}
                 </p>
                 <div className="space-y-1 pt-1 text-xs">
-                  <p className="text-ha-muted">
-                    {locale === "fr" ? "URL finale" : "Final URL"}
-                  </p>
+                  <p className="text-ha-muted">{locale === "fr" ? "URL finale" : "Final URL"}</p>
                   <a
                     href={compare.liveFetch.finalUrl}
                     target="_blank"
