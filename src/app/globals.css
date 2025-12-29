@@ -117,9 +117,9 @@ html[data-theme="dark"] {
 }
 
 @media (max-width: 768px) {
-  .ha-shell-header-inner {
-    /* On mobile, make the condensed header ~35% shorter vertically. */
-    padding-block: calc(1rem - 0.67rem * var(--ha-header-shrink, 0));
+  /* On mobile, reduce total condensed header height by shrinking the logo (not the padding). */
+  .ha-header-logo {
+    height: calc(3rem - 1.45rem * var(--ha-header-shrink, 0));
   }
 }
 
