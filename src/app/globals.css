@@ -112,9 +112,15 @@ html[data-theme="dark"] {
 }
 
 .ha-shell-header-inner {
-  /* Make the condensed header ~25% shorter vertically. */
-  padding-block: calc(1rem - 0.625rem * var(--ha-header-shrink, 0));
+  padding-block: calc(1rem - 0.5rem * var(--ha-header-shrink, 0));
   transition: padding-block 180ms ease-out;
+}
+
+@media (max-width: 768px) {
+  .ha-shell-header-inner {
+    /* On mobile, make the condensed header ~35% shorter vertically. */
+    padding-block: calc(1rem - 0.67rem * var(--ha-header-shrink, 0));
+  }
 }
 
 .ha-shell-header {
