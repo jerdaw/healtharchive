@@ -118,8 +118,13 @@ html[data-theme="dark"] {
 
 @media (max-width: 768px) {
   /* On mobile, reduce total condensed header height by shrinking the logo (not the padding). */
-  .ha-header-logo {
+  .ha-shell-header-inner .ha-header-logo {
     height: calc(3rem - 1.45rem * var(--ha-header-shrink, 0));
+  }
+
+  .ha-shell-header-inner .ha-mobile-menu-icon {
+    width: calc(1.25rem - 0.125rem * var(--ha-header-shrink, 0));
+    height: calc(1.25rem - 0.125rem * var(--ha-header-shrink, 0));
   }
 }
 
@@ -308,6 +313,15 @@ html[data-theme="dark"] {
   transition:
     height 200ms ease-out,
     transform 200ms ease-out;
+}
+
+.ha-mobile-menu-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  transition:
+    width 200ms ease-out,
+    height 200ms ease-out;
 }
 
 .ha-header-link {

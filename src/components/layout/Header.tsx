@@ -317,7 +317,7 @@ export function Header() {
           {/* Mobile menu button */}
           <button
             type="button"
-            className="border-ha-border inline-flex items-center justify-center rounded-full border bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#11588f] focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none md:hidden"
+            className="ha-mobile-menu-toggle border-ha-border inline-flex items-center justify-center rounded-full border bg-white p-2 text-slate-700 shadow-sm transition hover:bg-slate-50 focus-visible:ring-2 focus-visible:ring-[#11588f] focus-visible:ring-offset-2 focus-visible:ring-offset-white focus-visible:outline-none md:hidden"
             aria-label={mobileNavAriaLabel}
             aria-expanded={mobileOpen}
             aria-controls="primary-navigation"
@@ -327,7 +327,7 @@ export function Header() {
             <span className="sr-only">
               {locale === "fr" ? "Basculer la navigation" : "Toggle navigation"}
             </span>
-            <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden="true" role="img">
+            <svg className="ha-mobile-menu-icon" viewBox="0 0 24 24" aria-hidden="true" role="img">
               {mobileOpen ? (
                 <path
                   d="M6 6l12 12M18 6L6 18"
