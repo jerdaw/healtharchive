@@ -123,8 +123,9 @@ html[data-theme="dark"] {
   }
 
   .ha-shell-header-inner .ha-mobile-menu-icon {
-    width: calc(1.25rem - 0.125rem * var(--ha-header-shrink, 0));
-    height: calc(1.25rem - 0.125rem * var(--ha-header-shrink, 0));
+    /* 20px -> 15px (25% smaller) when fully condensed */
+    width: calc(1.25rem - 0.3125rem * var(--ha-header-shrink, 0));
+    height: calc(1.25rem - 0.3125rem * var(--ha-header-shrink, 0));
   }
 }
 
