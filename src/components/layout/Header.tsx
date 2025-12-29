@@ -81,7 +81,7 @@ export function Header() {
       ? "Ouvrir la navigation principale"
       : "Open main navigation";
 
-  const mobileMenuIconSizePx = `${Math.max(15, Math.min(20, 20 - 5 * shrink))}px`;
+  const mobileMenuIconSizePx = `${Math.max(11.25, Math.min(20, 20 - 8.75 * shrink))}px`;
 
   useEffect(() => {
     if (typeof window === "undefined") return;
