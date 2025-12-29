@@ -207,13 +207,8 @@ export function SearchResultCard({
 
   const viewUrl = buildViewUrl(record);
   const detailsUrl = `/snapshot/${record.id}`;
-  const primaryLabel = viewUrl
-    ? locale === "fr"
-      ? "Voir"
-      : "View"
-    : locale === "fr"
-      ? "Détails"
-      : "Details";
+  const viewLabel = locale === "fr" ? "Voir" : "View";
+  const detailsLabel = locale === "fr" ? "Détails" : "Details";
 
   return (
     <article className="ha-result-card">
@@ -269,11 +264,16 @@ export function SearchResultCard({
         <div className="ha-result-actions flex flex-wrap justify-start gap-2 sm:justify-end">
           {viewUrl ? (
             <a href={viewUrl} className="ha-btn-primary text-xs">
-              {primaryLabel}
+              {viewLabel}
             </a>
           ) : (
             <Link href={detailsUrl} className="ha-btn-primary text-xs">
-              {primaryLabel}
+              {detailsLabel}
+            </Link>
+          )}
+          {viewUrl && (
+            <Link href={detailsUrl} className="ha-btn-secondary text-xs">
+              {detailsLabel}
             </Link>
           )}
           {view === "pages" && (
