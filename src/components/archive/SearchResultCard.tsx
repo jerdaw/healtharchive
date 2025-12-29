@@ -161,15 +161,36 @@ function getReplayBaseUrl(): string {
   );
 }
 
-function buildViewUrl(record: SearchResultCardRecord): string | null {
+function appendReplayHashParam(urlStr: string, key: string, value: string): string {
+  try {
+    const url = new URL(urlStr);
+    const params = new URLSearchParams(url.hash.replace(/^#/, ""));
+    params.set(key, value);
+    url.hash = params.toString();
+    return url.toString();
+  } catch {
+    const encoded = encodeURIComponent(value);
+    if (!urlStr.includes("#")) return `${urlStr}#${encodeURIComponent(key)}=${encoded}`;
+    const hasTrailing = urlStr.endsWith("#") || urlStr.endsWith("&");
+    const sep = hasTrailing ? "" : "&";
+    return `${urlStr}${sep}${encodeURIComponent(key)}=${encoded}`;
+  }
+}
+
+function buildViewUrl(record: SearchResultCardRecord, returnPath: string | null): string | null {
   const direct = record.browseUrl?.trim();
-  if (direct) return direct;
+  if (direct) {
+    return returnPath ? appendReplayHashParam(direct, "ha_return", returnPath) : direct;
+  }
   if (!record.jobId || !record.captureTimestamp) return null;
 
   const ts14 = isoToTimestamp14(record.captureTimestamp);
   const replayUrl = buildReplayUrl(getReplayBaseUrl(), record.jobId, ts14, record.originalUrl);
   // Help the replay banner resolve the HealthArchive snapshot id.
-  return `${replayUrl}#ha_snapshot=${encodeURIComponent(record.id)}`;
+  const urlWithSnapshot = `${replayUrl}#ha_snapshot=${encodeURIComponent(record.id)}`;
+  return returnPath
+    ? appendReplayHashParam(urlWithSnapshot, "ha_return", returnPath)
+    : urlWithSnapshot;
 }
 
 export function SearchResultCard({
@@ -177,11 +198,13 @@ export function SearchResultCard({
   view,
   query,
   locale,
+  returnPath,
 }: {
   record: SearchResultCardRecord;
   view: SearchView;
   query: string;
   locale: Locale;
+  returnPath?: string | null;
 }) {
   const label =
     locale === "fr"
@@ -205,7 +228,7 @@ export function SearchResultCard({
 
   const urlParts = formatUrlParts(record.originalUrl);
 
-  const viewUrl = buildViewUrl(record);
+  const viewUrl = buildViewUrl(record, returnPath ?? null);
   const detailsUrl = `/snapshot/${record.id}`;
   const viewLabel = locale === "fr" ? "Voir" : "View";
   const detailsLabel = locale === "fr" ? "Détails" : "Details";

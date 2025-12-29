@@ -434,6 +434,20 @@ export default async function ArchivePage({
     return queryString ? `/archive?${queryString}` : "/archive";
   };
 
+  const replayReturnPath = (() => {
+    const raw = buildPageHref(effectivePage);
+    try {
+      const url = new URL(raw, "https://example.org");
+      url.searchParams.set("focus", "results");
+      const path = `${url.pathname}${url.search}`;
+      return locale === "fr" ? `/fr${path}` : path;
+    } catch {
+      const sep = raw.includes("?") ? "&" : "?";
+      const withFocus = `${raw}${sep}focus=results`;
+      return locale === "fr" ? `/fr${withFocus}` : withFocus;
+    }
+  })();
+
   const orderedSourceSummaries = [...sourceSummaries].sort((a, b) => {
     const diff = (b.recordCount ?? 0) - (a.recordCount ?? 0);
     if (diff !== 0) return diff;
@@ -1039,6 +1053,7 @@ export default async function ArchivePage({
                   view={view as "pages" | "snapshots"}
                   query={highlightQuery}
                   locale={locale}
+                  returnPath={replayReturnPath}
                 />
               ))
             )}
