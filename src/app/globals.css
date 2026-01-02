@@ -16,6 +16,7 @@
   --border: #e5e7eb;
   --text: #111827;
   --muted: #6b7280;
+  --muted-strong: #475569;
   --accent: #2563eb;
   --accent-hover: #1d4ed8;
   --brand: #1d6ae9;
@@ -35,6 +36,7 @@ html[data-theme="dark"] {
   /* Text and muted */
   --text: #e8e6e3;
   --muted: #b2aba1;
+  --muted-strong: #d6d1c9;
 
   /* Borders */
   --border: #363b3d;
@@ -487,7 +489,7 @@ html[data-theme="dark"] {
   letter-spacing: 0.08em;
   font-weight: 600;
   text-transform: uppercase;
-  color: var(--muted);
+  color: var(--muted-strong);
 }
 
 /* Section headings & subtitles */

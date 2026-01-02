@@ -9,6 +9,8 @@ type CopyButtonProps = {
   text: string;
   label: string;
   className?: string;
+  ariaLabel?: string;
+  title?: string;
   children?: ReactNode;
 };
 
@@ -49,7 +51,14 @@ function copyWithExecCommand(text: string): boolean {
   }
 }
 
-export function CopyButton({ text, label, className, children }: CopyButtonProps) {
+export function CopyButton({
+  text,
+  label,
+  className,
+  ariaLabel,
+  title,
+  children,
+}: CopyButtonProps) {
   const locale = useLocale();
   const [state, setState] = useState<CopyState>("idle");
   const statusId = useId();
@@ -103,14 +112,17 @@ export function CopyButton({ text, label, className, children }: CopyButtonProps
     }
   };
 
+  const buttonTitle = title ?? label;
+  const buttonAriaLabel = ariaLabel ?? label;
+
   return (
     <span className="relative inline-flex">
       <button
         type="button"
         className={className}
         onClick={onCopy}
-        title={label}
-        aria-label={label}
+        title={buttonTitle}
+        aria-label={buttonAriaLabel}
         aria-describedby={statusId}
       >
         {children ? state === "copied" ? <CheckIcon /> : children : label}

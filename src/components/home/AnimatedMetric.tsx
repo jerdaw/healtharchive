@@ -115,9 +115,9 @@ export function AnimatedMetric({
         </span>
         {unit ? <span className="ha-metric-primary-unit">{unit}</span> : null}
       </dd>
-      <div className="ha-metric-bar">
-        <div className="ha-metric-bar-fill" style={{ width: `${fillPercent}%` }} />
-      </div>
+      <dd className="ha-metric-bar" aria-hidden="true">
+        <span className="ha-metric-bar-fill" style={{ width: `${fillPercent}%` }} />
+      </dd>
     </div>
   );
 }

@@ -362,6 +362,7 @@ export default async function SnapshotPage({
             <CopyButton
               text={originalUrl}
               label={locale === "fr" ? "Copier l’URL d’origine" : "Copy original URL"}
+              ariaLabel={locale === "fr" ? "Copier l’URL (d’origine)" : "Copy URL (original)"}
               className="ha-btn-secondary text-xs"
             >
               {locale === "fr" ? "Copier l’URL" : "Copy URL"}

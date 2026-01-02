@@ -74,7 +74,12 @@ export default async function RootLayout({
         </a>
         <LocaleProvider locale={locale}>
           <Header />
-          <main id="main-content" className="pt-20 pb-10 sm:pt-24 sm:pb-12">
+          <main
+            id="main-content"
+            role="main"
+            tabIndex={-1}
+            className="pt-20 pb-10 sm:pt-24 sm:pb-12"
+          >
             <FrenchTranslationBanner />
             {children}
           </main>
