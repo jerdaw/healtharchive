@@ -51,8 +51,17 @@ jobs:
       - name: Security audit (npm)
         run: npm audit --audit-level=high || true
 
+      - name: Upload Next build artifact
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-next-build
+          path: .next
+          if-no-files-found: ignore
+
   e2e-smoke:
     runs-on: ubuntu-latest
+    needs: lint-and-test
     env:
       NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8001
       NEXT_PUBLIC_SHOW_API_HEALTH_BANNER: "false"
@@ -82,6 +91,12 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Download Next build artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-next-build
+          path: .
+
       - name: Set up Python
         uses: actions/setup-python@v6
         with:
@@ -95,4 +110,12 @@ jobs:
 
       - name: E2E smoke (backend + frontend)
         working-directory: healtharchive-backend
-        run: ./scripts/ci-e2e-smoke.sh --frontend-dir ..
+        run: ./scripts/ci-e2e-smoke.sh --frontend-dir .. --skip-frontend-build
+
+      - name: Upload e2e smoke artifacts (on failure)
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-e2e-smoke-artifacts
+          path: healtharchive-backend/.tmp/ci-e2e-smoke/
+          if-no-files-found: ignore
