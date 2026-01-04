@@ -71,6 +71,33 @@ describe("/archive", () => {
     expect(redirectMock).toHaveBeenCalledWith("?q=influenza");
   });
 
+  it("drops includeDuplicates when it has no effect (pages view)", async () => {
+    mockFetchSources.mockResolvedValue([]);
+    mockSearchSnapshots.mockResolvedValue({
+      results: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+    });
+
+    await expect(async () => {
+      await ArchivePage({
+        searchParams: Promise.resolve({
+          q: "test",
+          view: "pages",
+          includeNon2xx: "true",
+          includeDuplicates: "true",
+          page: "3",
+          pageSize: "20",
+        }),
+      });
+    }).rejects.toThrow("NEXT_REDIRECT");
+
+    expect(redirectMock).toHaveBeenCalledWith(
+      "?q=test&view=pages&includeNon2xx=true&page=3&pageSize=20",
+    );
+  });
+
   it("orders browse source cards by snapshot count", async () => {
     mockFetchSources.mockResolvedValue([
       {
@@ -311,6 +338,72 @@ describe("/archive", () => {
     expect(mockSearchSnapshots).toHaveBeenCalledTimes(1);
     const args = mockSearchSnapshots.mock.calls[0][0];
     expect(args.source).toBe("phac");
+  });
+
+  it("passes includeNon2xx through to backend search and pagination links", async () => {
+    mockFetchSources.mockResolvedValue([]);
+    mockSearchSnapshots.mockResolvedValue({
+      results: [
+        {
+          id: 101,
+          title: "Test Snapshot",
+          sourceCode: "phac",
+          sourceName: "PHAC",
+          language: "en",
+          captureDate: "2024-01-02",
+          captureTimestamp: null,
+          jobId: null,
+          originalUrl: "https://example.com",
+          snippet: "Summary",
+          rawSnapshotUrl: "/api/snapshots/raw/101",
+          browseUrl: null,
+        },
+      ],
+      total: 11,
+      page: 1,
+      pageSize: 10,
+    });
+
+    const ui = await ArchivePage({
+      searchParams: Promise.resolve({ q: "test", includeNon2xx: "true" }),
+    });
+    render(ui);
+
+    expect(mockSearchSnapshots).toHaveBeenCalledTimes(1);
+    const args = mockSearchSnapshots.mock.calls[0][0];
+    expect(args.includeNon2xx).toBe(true);
+    expect(args.includeDuplicates).toBeUndefined();
+
+    expect(screen.getByLabelText("Include errors")).toBeChecked();
+    expect(screen.getByRole("link", { name: "Next →" })).toHaveAttribute(
+      "href",
+      "/archive?q=test&includeNon2xx=true&page=2",
+    );
+  });
+
+  it("passes includeDuplicates only in snapshots view", async () => {
+    mockFetchSources.mockResolvedValue([]);
+    mockSearchSnapshots.mockResolvedValue({
+      results: [],
+      total: 0,
+      page: 1,
+      pageSize: 10,
+    });
+
+    const ui = await ArchivePage({
+      searchParams: Promise.resolve({ q: "test", view: "snapshots", includeDuplicates: "true" }),
+    });
+    render(ui);
+
+    expect(mockSearchSnapshots).toHaveBeenCalledTimes(1);
+    const args = mockSearchSnapshots.mock.calls[0][0];
+    expect(args.view).toBe("snapshots");
+    expect(args.includeDuplicates).toBe(true);
+
+    expect(screen.getByLabelText("Include duplicates")).toBeChecked();
+    expect(
+      screen.getByRole("button", { name: "Info about including duplicates" }),
+    ).toBeInTheDocument();
   });
 
   it("combines q and within into an AND query for backend search", async () => {

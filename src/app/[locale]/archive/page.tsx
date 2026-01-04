@@ -139,6 +139,7 @@ export default async function ArchivePage({
   const params = await searchParams;
   const qRaw = params.q?.trim() ?? "";
   const withinRaw = params.within?.trim() ?? "";
+  const requestedViewNormalized = params.view?.trim().toLowerCase() ?? "";
 
   // Canonicalize: if the user clears one box, treat the remaining keyword(s)
   // as the primary query (no lingering empty `within=` or `q=` in the URL).
@@ -151,8 +152,9 @@ export default async function ArchivePage({
     if (params.sort?.trim()) qs.set("sort", params.sort.trim());
     if (params.view?.trim()) qs.set("view", params.view.trim());
     if (params.includeNon2xx?.trim()) qs.set("includeNon2xx", params.includeNon2xx.trim());
-    if (params.includeDuplicates?.trim())
+    if (requestedViewNormalized === "snapshots" && params.includeDuplicates?.trim()) {
       qs.set("includeDuplicates", params.includeDuplicates.trim());
+    }
     if (params.pageSize?.trim()) qs.set("pageSize", params.pageSize.trim());
     // Reset page on meaningfully changed query.
     redirect(`?${qs.toString()}`);
@@ -166,8 +168,9 @@ export default async function ArchivePage({
     if (params.sort?.trim()) qs.set("sort", params.sort.trim());
     if (params.view?.trim()) qs.set("view", params.view.trim());
     if (params.includeNon2xx?.trim()) qs.set("includeNon2xx", params.includeNon2xx.trim());
-    if (params.includeDuplicates?.trim())
+    if (requestedViewNormalized === "snapshots" && params.includeDuplicates?.trim()) {
       qs.set("includeDuplicates", params.includeDuplicates.trim());
+    }
     if (params.pageSize?.trim()) qs.set("pageSize", params.pageSize.trim());
     redirect(`?${qs.toString()}`);
   }
@@ -192,6 +195,24 @@ export default async function ArchivePage({
   const view = requestedView === "pages" || requestedView === "snapshots" ? requestedView : "pages";
   const defaultView = "pages";
   const includeDuplicates = view === "snapshots" ? includeDuplicatesRaw : false;
+
+  // Canonicalize: drop `includeDuplicates` when it has no effect (pages view).
+  // This keeps share links honest and prevents "sticky" ineffective flags.
+  if (view !== "snapshots" && params.includeDuplicates?.trim()) {
+    const qs = new URLSearchParams();
+    if (params.q?.trim()) qs.set("q", params.q.trim());
+    if (params.within?.trim()) qs.set("within", params.within.trim());
+    if (params.source?.trim()) qs.set("source", params.source.trim());
+    if (params.from?.trim()) qs.set("from", params.from.trim());
+    if (params.to?.trim()) qs.set("to", params.to.trim());
+    if (params.sort?.trim()) qs.set("sort", params.sort.trim());
+    if (params.view?.trim()) qs.set("view", params.view.trim());
+    if (params.includeNon2xx?.trim()) qs.set("includeNon2xx", params.includeNon2xx.trim());
+    if (params.page?.trim()) qs.set("page", params.page.trim());
+    if (params.pageSize?.trim()) qs.set("pageSize", params.pageSize.trim());
+    redirect(`?${qs.toString()}`);
+  }
+
   const page = parsePositiveInt(params.page, 1);
   const rawPageSize = parsePositiveInt(params.pageSize, DEFAULT_PAGE_SIZE);
   const pageSize = Math.min(rawPageSize, MAX_PAGE_SIZE);
@@ -963,15 +984,39 @@ export default async function ArchivePage({
                     </span>
                   </div>
                   {view === "snapshots" && (
-                    <label className="text-ha-muted inline-flex items-center gap-1 text-xs font-medium sm:ml-2">
+                    <div className="inline-flex items-center gap-1 sm:ml-2">
                       <input
+                        id="includeDuplicates"
                         type="checkbox"
                         name="includeDuplicates"
                         value="true"
                         defaultChecked={includeDuplicates}
                       />
-                      {locale === "fr" ? "Inclure les doublons" : "Include duplicates"}
-                    </label>
+                      <label
+                        htmlFor="includeDuplicates"
+                        className="text-ha-muted text-xs font-medium"
+                      >
+                        {locale === "fr" ? "Inclure les doublons" : "Include duplicates"}
+                      </label>
+                      <span className="group relative inline-flex">
+                        <button
+                          type="button"
+                          className="border-ha-border text-ha-muted inline-flex h-4 w-4 items-center justify-center rounded-full border bg-white text-[10px] leading-none font-semibold transition-colors hover:border-[#11588f] hover:text-slate-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#11588f]"
+                          aria-label={
+                            locale === "fr"
+                              ? "Info sur l’inclusion des doublons"
+                              : "Info about including duplicates"
+                          }
+                        >
+                          i
+                        </button>
+                        <span className="border-ha-border pointer-events-none absolute top-full left-1/2 z-10 mt-2 w-64 -translate-x-1/2 rounded-lg border bg-white px-3 py-2 text-[11px] leading-relaxed text-slate-700 opacity-0 shadow-lg transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100">
+                          {locale === "fr"
+                            ? "Affiche aussi des captures identiques répétées (même URL + même contenu), souvent prises le même jour."
+                            : "Also shows repeated identical captures (same URL + same content), often taken on the same day."}
+                        </span>
+                      </span>
+                    </div>
                   )}
 
                   <button type="submit" className="ha-btn-secondary text-xs sm:ml-2">

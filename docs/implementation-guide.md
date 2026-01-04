@@ -639,10 +639,12 @@ All in `src/data/demo-records.ts`:
   ```ts
   type ArchiveSearchParams = {
     q?: string;
+    within?: string;
     source?: string;
     sort?: string;
     view?: string;
     includeNon2xx?: string;
+    includeDuplicates?: string;
     from?: string;
     to?: string;
     page?: string;
@@ -660,6 +662,20 @@ All in `src/data/demo-records.ts`:
     ...
   }
   ```
+
+- Stable `/archive` query params (shareable contract):
+  - `q`: primary keyword query.
+  - `within`: secondary “search within results” query, combined with `q` as `(q) AND (within)`.
+    - If the user clears `q` and leaves only `within`, the URL is canonicalized back to `q=...` (no dangling `within=`).
+  - `source`: source code filter (e.g. `hc`, `phac`, `cihr`).
+  - `from`, `to`: UTC date range filters (`YYYY-MM-DD`).
+  - `sort`: `relevance` or `newest` (defaults depend on whether there is a query).
+  - `view`: `pages` (latest capture per URL) or `snapshots` (every capture).
+  - `includeNon2xx`: boolean (`true`/`1`/`on`) to include non‑2xx captures.
+  - `includeDuplicates`: boolean, only meaningful in `view=snapshots`.
+    - Canonicalized away when `view=pages` so share links stay honest.
+  - `page`: 1-indexed page number.
+  - `pageSize`: results per page (clamped to `MAX_PAGE_SIZE`).
 
 - Uses `<PageShell>` with:
   - Eyebrow: “Archive explorer”

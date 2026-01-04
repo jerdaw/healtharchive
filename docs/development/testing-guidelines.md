@@ -39,6 +39,8 @@ Goals:
 ## Test stack and structure
 
 - Runner: `vitest`
+  - Local default: `npm test` (non-watch, exits)
+  - Watch mode: `npm run test:watch`
 - Rendering: React Testing Library (see existing tests in `tests/`)
 - Test files live in `tests/` and should follow the existing naming style:
   `feature.test.tsx` or `feature.test.ts`

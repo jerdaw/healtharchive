@@ -43,4 +43,40 @@ describe("SearchWithinResults", () => {
       screen.queryByRole("button", { name: "Search within results →" }),
     ).not.toBeInTheDocument();
   });
+
+  it("keeps enabled filters in sync via hidden inputs", () => {
+    const { container } = render(
+      <SearchWithinResults
+        q="influenza"
+        within=""
+        source="hc"
+        fromDate=""
+        toDate=""
+        sort="newest"
+        view="snapshots"
+        includeNon2xx={true}
+        includeDuplicates={true}
+        pageSize={20}
+        defaultSort="relevance"
+        defaultView="pages"
+      />,
+    );
+
+    expect(container.querySelector('input[type="hidden"][name="source"][value="hc"]')).toBeTruthy();
+    expect(
+      container.querySelector('input[type="hidden"][name="sort"][value="newest"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('input[type="hidden"][name="view"][value="snapshots"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('input[type="hidden"][name="includeNon2xx"][value="true"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('input[type="hidden"][name="includeDuplicates"][value="true"]'),
+    ).toBeTruthy();
+    expect(
+      container.querySelector('input[type="hidden"][name="pageSize"][value="20"]'),
+    ).toBeTruthy();
+  });
 });
