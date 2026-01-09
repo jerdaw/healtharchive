@@ -98,7 +98,7 @@ jobs:
         uses: actions/download-artifact@v6
         with:
           name: frontend-next-build
-          path: .
+          path: .next
 
       - name: Set up Python
         uses: actions/setup-python@v6
