@@ -56,8 +56,11 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: frontend-next-build
-          path: .next
-          if-no-files-found: ignore
+          path: |
+            .next
+            !.next/cache/**
+          include-hidden-files: true
+          if-no-files-found: error
 
   e2e-smoke:
     runs-on: ubuntu-latest
@@ -92,7 +95,7 @@ jobs:
         run: npm ci
 
       - name: Download Next build artifact
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v6
         with:
           name: frontend-next-build
           path: .
@@ -118,4 +121,5 @@ jobs:
         with:
           name: frontend-e2e-smoke-artifacts
           path: healtharchive-backend/.tmp/ci-e2e-smoke/
+          include-hidden-files: true
           if-no-files-found: ignore
