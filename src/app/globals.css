@@ -1661,7 +1661,7 @@ html[data-theme="dark"] .ha-nav-active-indicator {
 html[data-theme="dark"] .ha-home-hero {
   border-color: rgba(54, 59, 61, 0.9);
   background:
-    radial-gradient(160% 160% at 0% 0%, #007bff5c, transparent 55%),
+    radial-gradient(160% 160% at 0% 0%, #0071ea5c, transparent 55%),
     radial-gradient(160% 160% at 100% 0%, #1b89ff29, transparent 55%), var(--card-bg);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7);
 }
@@ -1688,7 +1688,7 @@ html[data-theme="dark"] .ha-home-panel {
 html[data-theme="dark"] .ha-home-panel-gradient {
   border-color: rgba(54, 59, 61, 0.9);
   background:
-    radial-gradient(160% 160% at 0% 0%, #007bff5c, transparent 55%),
+    radial-gradient(160% 160% at 0% 0%, #0071ea5c, transparent 55%),
     radial-gradient(160% 160% at 100% 0%, #1b89ff29, transparent 55%), var(--card-bg);
   box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7);
 }
