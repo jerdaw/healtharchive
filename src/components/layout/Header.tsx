@@ -50,6 +50,7 @@ export function Header() {
     const isActive = stored === "dark" || (!stored && prefersDark);
 
     if (isActive) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setTheme("dark");
       // Ensure DOM is in sync (in case hydration stripped the attribute)
       if (root.getAttribute("data-theme") !== "dark") {
