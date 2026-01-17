@@ -25,7 +25,7 @@ describe("AnimatedMetric", () => {
     // Initial state: 0 value, 0% width
     // Note: The text content might be "0" locally formatted.
     expect(screen.getByText("Test Metric")).toBeInTheDocument();
-    
+
     // Check for the bar
     // We can find it by class name if we add a data-testid or just query selector
     // But testing-library prefers accessible queries. The bar is aria-hidden.
@@ -52,7 +52,7 @@ describe("AnimatedMetric", () => {
         start={false}
         startEvent="my-start-event"
         durationMs={100}
-      />
+      />,
     );
 
     const barFill = document.querySelector(".ha-metric-bar-fill") as HTMLElement;
