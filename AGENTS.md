@@ -26,7 +26,7 @@
 - Central Documentation (Backend Repo):
   - `../healtharchive-backend/mkdocs.yml` (Navigation Source of Truth)
   - `../healtharchive-backend/docs/documentation-guidelines.md`
-  - `../healtharchive-backend/docs/roadmaps/future-roadmap.md`
+  - `../healtharchive-backend/docs/roadmaps/roadmap.md`
 - Canonical public-facing copy (mission + workflow disclaimers) lives in `src/lib/siteCopy.ts` and should be reused rather than duplicated across pages.
 - Localization:
   - Locale-aware routes live under `src/app/[locale]/...`.
