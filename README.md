@@ -140,6 +140,17 @@ npm run check
 
 This runs formatting checks, lint, typecheck, tests (mocked; no backend required), and a build.
 
+### 6. Set up Git hooks
+
+After cloning, enable Git hooks:
+
+```bash
+bash scripts/setup-hooks.sh
+```
+
+> [!NOTE]
+> Git hooks are managed by [pre-commit](https://pre-commit.com) and enforce code quality checks before commits. Requires pre-commit to be installed (`pipx install pre-commit` or `mise use -g pre-commit`).
+
 ---
 
 ## Contact
