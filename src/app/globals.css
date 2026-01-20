@@ -116,6 +116,12 @@ html[data-theme="dark"] {
   .text-ha-accent {
     color: var(--accent);
   }
+  .font-playfair {
+    font-family: var(--font-playfair), serif;
+  }
+  .font-libre-baskerville {
+    font-family: var(--font-libre-baskerville), serif;
+  }
 }
 
 /* ====================================

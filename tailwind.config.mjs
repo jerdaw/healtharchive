@@ -30,6 +30,10 @@ const config = {
       borderRadius: {
         "2xl": "1.25rem",
       },
+      fontFamily: {
+        playfair: ["var(--font-playfair)", "serif"],
+        merriweather: ["var(--font-merriweather)", "serif"],
+      },
     },
   },
   plugins: [],

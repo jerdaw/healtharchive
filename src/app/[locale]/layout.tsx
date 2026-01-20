@@ -44,6 +44,14 @@ export async function generateMetadata({
   };
 }
 
+import { Libre_Baskerville } from "next/font/google";
+
+const libreBaskerville = Libre_Baskerville({
+  weight: ["400", "700"],
+  subsets: ["latin"],
+  variable: "--font-libre-baskerville",
+});
+
 export default async function RootLayout({
   children,
   params,
@@ -58,7 +66,7 @@ export default async function RootLayout({
 
   return (
     <html lang={localeToLanguageTag(locale)} suppressHydrationWarning>
-      <body className="antialiased">
+      <body className={`antialiased ${libreBaskerville.variable}`}>
         <Script
           id="ha-theme-initializer"
           strategy="beforeInteractive"

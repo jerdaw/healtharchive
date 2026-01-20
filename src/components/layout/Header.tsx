@@ -224,7 +224,14 @@ export function Header() {
               priority
             />
             <div className="ha-header-text flex flex-col leading-tight">
-              <span className="ha-header-title text-2xl font-semibold tracking-tight md:text-3xl">
+              <span 
+                className="ha-header-title font-libre-baskerville text-2xl font-bold md:text-3xl"
+                style={{ 
+                  fontFamily: 'var(--font-libre-baskerville), serif',
+                  textShadow: '0.3px 0 0 currentColor',
+                  transform: 'translateY(calc(var(--ha-header-shrink, 0) * 2px))'
+                }}
+              >
                 HealthArchive.ca
               </span>
               <span className="ha-header-subtitle text-[11px] font-medium md:text-xs">
