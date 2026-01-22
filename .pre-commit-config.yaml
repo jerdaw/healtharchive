@@ -9,11 +9,3 @@ repos:
       - id: check-added-large-files
         args: ["--maxkb=500"]
       - id: detect-private-key
-
-  - repo: https://github.com/pre-commit/mirrors-prettier
-    rev: v4.0.0-alpha.8
-    hooks:
-      - id: prettier
-        additional_dependencies:
-          - prettier@3.8.0
-          - prettier-plugin-tailwindcss@0.6.11
