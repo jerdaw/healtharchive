@@ -16,3 +16,4 @@ repos:
       - id: prettier
         additional_dependencies:
           - prettier@3.8.0
+          - prettier-plugin-tailwindcss@0.6.11
