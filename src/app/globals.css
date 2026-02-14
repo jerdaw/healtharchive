@@ -28,6 +28,7 @@
   --brand-subtle: #153055;
   --callout-bg: #f5f7ff;
   --callout-border: #e0e7ff;
+  --ha-shell-header-height: 5.5rem;
   --font-sans: system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", sans-serif;
 }
 
@@ -141,13 +142,19 @@ html[data-theme="dark"] {
 }
 
 @media (max-width: 768px) {
-  /* On mobile, reduce total condensed header height by shrinking the logo (not the padding). */
+  .ha-container {
+    padding-inline: 1rem;
+  }
+
+  .ha-shell-header-inner {
+    padding-block: calc(0.82rem - 0.38rem * var(--ha-header-shrink, 0));
+  }
+
   .ha-shell-header-inner .ha-header-logo {
-    height: calc(3rem - 1.45rem * var(--ha-header-shrink, 0));
+    height: calc(2.6rem - 1rem * var(--ha-header-shrink, 0));
   }
 
   .ha-shell-header-inner .ha-mobile-menu-icon {
-    /* 20px -> 15px (25% smaller) when fully condensed */
     width: calc(1.25rem - 0.3125rem * var(--ha-header-shrink, 0));
     height: calc(1.25rem - 0.3125rem * var(--ha-header-shrink, 0));
   }
@@ -254,6 +261,20 @@ html[data-theme="dark"] {
     pointer-events: none;
   }
 
+  .ha-utility-switch--mobile {
+    height: 1.72rem;
+  }
+
+  .ha-utility-switch--mobile .ha-utility-switch-item--locale {
+    font-size: 0.68rem;
+    padding-inline: 0.45rem;
+    letter-spacing: 0.06em;
+  }
+
+  .ha-utility-switch--mobile .ha-utility-switch-item--icon {
+    width: 1.72rem;
+  }
+
   @supports selector(:has(*)) {
     .ha-utility-switch:focus-within {
       outline: none;
@@ -320,6 +341,7 @@ html[data-theme="dark"] {
 }
 
 .ha-header-text {
+  min-width: 0;
   justify-content: center;
 }
 
@@ -353,6 +375,7 @@ html[data-theme="dark"] {
 .ha-header-link {
   text-decoration: none;
   color: inherit;
+  min-width: 0;
 }
 
 .ha-header-link:hover {
@@ -1540,6 +1563,44 @@ html[data-theme="dark"] div.ha-callout {
    ==================================== */
 
 @media (max-width: 640px) {
+  .ha-header-title {
+    font-size: clamp(1.04rem, 0.98rem + 0.45vw, 1.2rem);
+    margin-bottom: 0;
+  }
+
+  .ha-header-subtitle {
+    display: none;
+  }
+
+  .ha-home-hero,
+  .ha-home-panel,
+  .ha-home-band-shell,
+  .ha-page-intro-card {
+    padding: 1.35rem 1rem 1.55rem;
+    border-radius: 0.92rem;
+  }
+
+  .ha-home-band-muted {
+    padding: 1.35rem 0 1.55rem;
+  }
+
+  .ha-home-panel-gradient {
+    padding: 1.1rem 0.9rem 1.2rem;
+    border-radius: 0.92rem;
+  }
+
+  .ha-home-panel-gradient.ha-home-panel-gradient-compact {
+    padding: 1rem 0.85rem 1.1rem;
+  }
+
+  .ha-home-hero-lede {
+    margin-bottom: 1.9rem !important;
+  }
+
+  .ha-callout {
+    padding: 0.95rem 1rem;
+  }
+
   .ha-header-inner {
     flex-direction: column;
     align-items: flex-start;
@@ -1562,6 +1623,15 @@ html[data-theme="dark"] div.ha-callout {
   .ha-result-row {
     flex-direction: column;
     align-items: stretch;
+  }
+}
+
+@media (max-width: 420px) {
+  .ha-header-title {
+    max-width: 9.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 }
 

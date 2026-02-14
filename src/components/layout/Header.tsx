@@ -72,6 +72,7 @@ export function Header() {
   const linkRefs = useRef<Record<string, HTMLAnchorElement | null>>({});
   const mobilePanelRef = useRef<HTMLDivElement | null>(null);
   const mobileToggleRef = useRef<HTMLButtonElement | null>(null);
+  const headerBarRef = useRef<HTMLDivElement | null>(null);
 
   const { englishHref, frenchHref } = (() => {
     const canonicalPath = stripLocalePrefix(pathname);
@@ -172,6 +173,32 @@ export function Header() {
     return () => document.removeEventListener("pointerdown", handlePointerDown, true);
   }, [mobileOpen]);
 
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const root = document.documentElement;
+    const headerBar = headerBarRef.current;
+    if (!headerBar) return;
+
+    const syncHeaderHeight = () => {
+      const { height } = headerBar.getBoundingClientRect();
+      if (height > 0) {
+        root.style.setProperty("--ha-shell-header-height", `${Math.ceil(height)}px`);
+      }
+    };
+
+    syncHeaderHeight();
+
+    const observer =
+      typeof ResizeObserver === "undefined" ? null : new ResizeObserver(syncHeaderHeight);
+    observer?.observe(headerBar);
+    window.addEventListener("resize", syncHeaderHeight);
+
+    return () => {
+      observer?.disconnect();
+      window.removeEventListener("resize", syncHeaderHeight);
+    };
+  }, [locale, theme]);
+
   function moveIndicatorToHref(href: string) {
     if (typeof window === "undefined") return;
     const nav = navRef.current;
@@ -210,11 +237,12 @@ export function Header() {
   return (
     <header className="ha-shell-header fixed inset-x-0 top-0 z-40">
       <div
+        ref={headerBarRef}
         className="ha-shell-header-inner ha-container flex items-center justify-between gap-4"
         style={{ ["--ha-header-shrink" as string]: shrink }}
       >
-        <div className="flex min-w-0 flex-1 items-center gap-3">
-          <Link href="/" className="group ha-header-link flex items-center gap-4">
+        <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
+          <Link href="/" className="group ha-header-link flex min-w-0 items-center gap-4">
             <Image
               src="/healtharchive-logo.webp"
               alt={locale === "fr" ? "Logo de HealthArchive.ca" : "HealthArchive.ca logo"}
@@ -223,7 +251,7 @@ export function Header() {
               className="ha-header-logo w-auto translate-y-[1px] transform transition-transform duration-150 ease-out group-hover:scale-105"
               priority
             />
-            <div className="ha-header-text flex flex-col leading-tight">
+            <div className="ha-header-text flex min-w-0 flex-col leading-tight">
               <span
                 className="ha-header-title font-libre-baskerville text-2xl font-bold md:text-3xl"
                 style={{
@@ -243,7 +271,7 @@ export function Header() {
           </Link>
         </div>
 
-        <div className="flex flex-shrink-0 items-center gap-2">
+        <div className="flex flex-shrink-0 items-center gap-1.5 sm:gap-2">
           {/* Desktop nav */}
           <nav
             ref={navRef}
@@ -351,6 +379,47 @@ export function Header() {
             </button>
           </div>
 
+          <div className="ha-utility-switch ha-utility-switch--mobile inline-flex md:hidden">
+            <NextLink
+              href={languageSwitchHref}
+              aria-label={languageSwitchAriaLabel}
+              className="ha-utility-switch-item ha-utility-switch-item--locale"
+            >
+              <span aria-hidden="true">{languageSwitchLabel}</span>
+              <span className="sr-only">{languageSwitchAriaLabel}</span>
+            </NextLink>
+            <button
+              type="button"
+              onClick={toggleTheme}
+              className="ha-utility-switch-item ha-utility-switch-item--icon"
+              aria-label={themeToggleAriaLabel}
+              aria-pressed={theme === "dark"}
+            >
+              {theme === "dark" ? (
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                  <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.8" />
+                  <path
+                    d="M12 2.5v2.5M12 19v2.5M4.22 4.22l1.77 1.77M17.99 17.99l1.77 1.77M2.5 12h2.5M19 12h2.5M4.22 19.78l1.77-1.77M17.99 6.01l1.77-1.77"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              ) : (
+                <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M21 12.79A9 9 0 0 1 12.21 3 7 7 0 0 0 12 17a7 7 0 0 0 9-4.21z"
+                    stroke="currentColor"
+                    strokeWidth="1.8"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              )}
+              <span className="sr-only">{themeToggleAriaLabel}</span>
+            </button>
+          </div>
+
           {/* Mobile menu button */}
           <button
             type="button"
@@ -397,6 +466,7 @@ export function Header() {
           <nav
             id="primary-navigation"
             className="ha-container text-ha-muted flex flex-col gap-3 py-3 text-sm font-semibold"
+            aria-label={primaryNavAriaLabel}
           >
             <div className="flex flex-col gap-1">
               {navItems.map((item) => {
@@ -432,52 +502,6 @@ export function Header() {
                   </Link>
                 );
               })}
-            </div>
-            <div className="flex items-center justify-end gap-3 pt-2">
-              <div className="ha-utility-switch inline-flex">
-                <NextLink
-                  href={languageSwitchHref}
-                  aria-label={languageSwitchAriaLabel}
-                  className="ha-utility-switch-item ha-utility-switch-item--locale"
-                  onClick={() => setMobileOpen(false)}
-                >
-                  <span aria-hidden="true">{languageSwitchLabel}</span>
-                  <span className="sr-only">{languageSwitchAriaLabel}</span>
-                </NextLink>
-                <button
-                  type="button"
-                  onClick={() => {
-                    toggleTheme();
-                    setMobileOpen(false);
-                  }}
-                  className="ha-utility-switch-item ha-utility-switch-item--icon"
-                  aria-label={themeToggleAriaLabel}
-                  aria-pressed={theme === "dark"}
-                >
-                  {theme === "dark" ? (
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-                      <circle cx="12" cy="12" r="3.5" stroke="currentColor" strokeWidth="1.8" />
-                      <path
-                        d="M12 2.5v2.5M12 19v2.5M4.22 4.22l1.77 1.77M17.99 17.99l1.77 1.77M2.5 12h2.5M19 12h2.5M4.22 19.78l1.77-1.77M17.99 6.01l1.77-1.77"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                      />
-                    </svg>
-                  ) : (
-                    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-                      <path
-                        d="M21 12.79A9 9 0 0 1 12.21 3 7 7 0 0 0 12 17a7 7 0 0 0 9-4.21z"
-                        stroke="currentColor"
-                        strokeWidth="1.8"
-                        strokeLinecap="round"
-                        strokeLinejoin="round"
-                      />
-                    </svg>
-                  )}
-                  <span className="sr-only">{themeToggleAriaLabel}</span>
-                </button>
-              </div>
             </div>
           </nav>
         </div>

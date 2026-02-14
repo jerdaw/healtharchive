@@ -100,7 +100,7 @@ export default async function RootLayout({
             id="main-content"
             role="main"
             tabIndex={-1}
-            className="pt-20 pb-10 sm:pt-24 sm:pb-12"
+            className="pt-[calc(var(--ha-shell-header-height,5.5rem)+0.75rem)] pb-10 sm:pb-12"
           >
             <Suspense fallback={null}>
               <FrenchTranslationBanner />
