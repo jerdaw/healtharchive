@@ -125,6 +125,10 @@
          <lastmod>2026-02-19</lastmod>
     </url>
     <url>
+         <loc>https://docs.healtharchive.ca/decisions/2026-02-19-alert-fatigue-reduction-for-crawl-alerting/</loc>
+         <lastmod>2026-02-19</lastmod>
+    </url>
+    <url>
          <loc>https://docs.healtharchive.ca/deployment/</loc>
          <lastmod>2026-02-19</lastmod>
     </url>
@@ -678,6 +682,10 @@
     </url>
     <url>
          <loc>https://docs.healtharchive.ca/planning/implemented/2026-02-12-governance-seo-and-security-foundations/</loc>
+         <lastmod>2026-02-19</lastmod>
+    </url>
+    <url>
+         <loc>https://docs.healtharchive.ca/planning/implemented/2026-02-19-alerting-noise-reduction-and-routing-tuning/</loc>
          <lastmod>2026-02-19</lastmod>
     </url>
     <url>
