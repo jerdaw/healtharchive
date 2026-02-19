@@ -19,6 +19,7 @@ coverage/**
 .idea/**
 .github/**
 .husky/**
+scripts/**
 *.log
 
 # Build artifacts

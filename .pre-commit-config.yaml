@@ -21,7 +21,7 @@ repos:
         args: [--fix, --max-warnings=0]
         additional_dependencies:
           - eslint@^9.19.0
-          - eslint-config-next@16.1.1
+          - eslint-config-next@16.1.6
           - typescript@^5.7.3
 
   # Code formatting with Prettier
@@ -31,3 +31,6 @@ repos:
       - id: prettier
         files: \.(js|jsx|ts|tsx|json|css|md|yaml|yml)$
         args: [--write, --ignore-unknown]
+        additional_dependencies:
+          - prettier@^3.8.1
+          - prettier-plugin-tailwindcss@^0.7.2

@@ -32,9 +32,16 @@ export async function POST(request: Request) {
       clearTimeout(timeoutHandle);
     }
 
-    const responseBody = await res.json();
+    const contentType = res.headers.get("content-type") ?? "application/json";
+    const responseHeaders = new Headers({
+      "Content-Type": contentType,
+      "Cache-Control": "no-store",
+    });
 
-    return NextResponse.json(responseBody, { status: res.status });
+    return new NextResponse(res.body, {
+      status: res.status,
+      headers: responseHeaders,
+    });
   } catch {
     return NextResponse.json(
       { error: "Unable to submit the report. Please try again." },
