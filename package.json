@@ -16,7 +16,8 @@
     "typecheck": "tsc --noEmit",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "postinstall": "patch-package"
   },
   "dependencies": {
     "diff": "^8.0.3",
@@ -26,19 +27,25 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10",
     "@testing-library/jest-dom": "^6",
     "@testing-library/react": "^16",
     "@types/node": "^25.3.0",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^9.39.2",
+    "eslint": "^10.0.1",
     "eslint-config-next": "^16.1.6",
+    "eslint-plugin-react": "^7.37.5",
     "jsdom": "^28",
+    "patch-package": "^8.0.0",
     "prettier": "^3.8.1",
     "prettier-plugin-tailwindcss": "^0.7.2",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^4",
     "vitest-axe": "^0.1.0"
+  },
+  "overrides": {
+    "eslint-plugin-react": "^7.37.5"
   }
 }
