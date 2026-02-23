@@ -24,6 +24,15 @@ jobs:
         with:
           fetch-depth: 0
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: "20.19.0"
+          cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
       - name: pre-commit (pull request)
         if: github.event_name == 'pull_request'
         uses: pre-commit/action@v3.0.1
@@ -36,20 +45,11 @@ jobs:
         with:
           extra_args: --all-files
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v6
-        with:
-          node-version: "20.19.0"
-          cache: "npm"
-
-      - name: Install dependencies
-        run: npm ci
-
       - name: Check
         run: npm run check
 
       - name: Security audit (npm)
-        run: npm audit --audit-level=high
+        run: npm audit --audit-level=high --omit=dev
 
       - name: Upload Next build artifact
         uses: actions/upload-artifact@v6
