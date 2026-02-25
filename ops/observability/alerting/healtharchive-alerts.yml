@@ -215,6 +215,28 @@ groups:
           description: "Worker auto-start automation is enabled, but its textfile metrics have not been updated in over 10 minutes. Check healtharchive-worker-auto-start.timer/service logs before assuming worker-down alerts are automation-aware."
           runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/validation/automation-maintenance.md"
 
+      - alert: HealthArchiveDeployLockPersistent
+        expr: healtharchive_crawl_auto_recover_deploy_lock_present == 1
+        for: 4h
+        labels:
+          severity: warning
+          service: healtharchive
+        annotations:
+          summary: "Deploy lock active for >4 hours"
+          description: "The deploy lock has been held for over 4 hours, blocking crawl auto-recover."
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/incident-response.md"
+
+      - alert: HealthArchiveCrawlTempDirsHigh
+        expr: healtharchive_crawl_running_job_temp_dirs_count > 100
+        for: 1h
+        labels:
+          severity: warning
+          service: healtharchive
+        annotations:
+          summary: "Crawl temp directory count > 100"
+          description: "Job {{ $labels.job_id }} ({{ $labels.source }}) has >100 temp dirs."
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/tutorials/debug-crawl.md"
+
       - alert: HealthArchiveCrawlAutoRecoverMetricsStale
         expr: |
           healtharchive_crawl_auto_recover_enabled == 1
