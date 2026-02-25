@@ -784,3 +784,82 @@ def test_auto_start_skips_when_max_starts_reached(tmp_path, monkeypatch, capsys)
         'healtharchive_crawl_auto_recover_last_result{result="skip",reason="max_starts"} 1'
         in metrics
     )
+
+
+# ---------------------------------------------------------------------------
+# Progress circuit breaker unit tests
+# ---------------------------------------------------------------------------
+
+
+def test_progress_circuit_opens_after_consecutive_low_progress() -> None:
+    """Circuit opens when the last ``window`` recoveries each produced <min_progress pages."""
+    module = _load_script_module()
+
+    state: dict = {
+        "recovery_progress": {
+            "42": [
+                {"timestamp": "2026-02-01T01:00:00+00:00", "crawled_count": 100},
+                {"timestamp": "2026-02-01T02:00:00+00:00", "crawled_count": 105},
+                {"timestamp": "2026-02-01T03:00:00+00:00", "crawled_count": 108},
+            ]
+        }
+    }
+    # current_crawled = 110; deltas are 5, 3, 2 — all < 10
+    assert module._is_progress_circuit_open(state, 42, 110, min_progress=10, window=3)
+
+
+def test_progress_circuit_stays_closed_when_one_recovery_was_productive() -> None:
+    """Circuit stays closed when at least one recovery produced >= min_progress pages."""
+    module = _load_script_module()
+
+    state: dict = {
+        "recovery_progress": {
+            "42": [
+                {"timestamp": "2026-02-01T01:00:00+00:00", "crawled_count": 100},
+                {"timestamp": "2026-02-01T02:00:00+00:00", "crawled_count": 120},  # +20
+                {"timestamp": "2026-02-01T03:00:00+00:00", "crawled_count": 125},
+            ]
+        }
+    }
+    # current_crawled = 128; deltas are 20, 5, 3 — the first delta is >= 10
+    assert not module._is_progress_circuit_open(state, 42, 128, min_progress=10, window=3)
+
+
+def test_progress_circuit_stays_closed_with_insufficient_history() -> None:
+    """Circuit stays closed when there are fewer than ``window`` recorded entries."""
+    module = _load_script_module()
+
+    state: dict = {
+        "recovery_progress": {
+            "42": [
+                {"timestamp": "2026-02-01T01:00:00+00:00", "crawled_count": 100},
+            ]
+        }
+    }
+    assert not module._is_progress_circuit_open(state, 42, 101, min_progress=10, window=3)
+
+
+def test_progress_circuit_stays_closed_with_no_history() -> None:
+    """Circuit stays closed when there is no history at all."""
+    module = _load_script_module()
+
+    assert not module._is_progress_circuit_open({}, 42, 50, min_progress=10, window=3)
+
+
+def test_record_recovery_progress_serialization_roundtrip() -> None:
+    """_record_recovery_progress stores data that _is_progress_circuit_open can read."""
+    module = _load_script_module()
+
+    state: dict = {}
+    ts = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
+    module._record_recovery_progress(state, 7, 100, when_utc=ts)
+    module._record_recovery_progress(state, 7, 105, when_utc=ts)
+    module._record_recovery_progress(state, 7, 108, when_utc=ts)
+
+    # Serialize and deserialize through JSON (as the real state file does).
+    roundtripped = json.loads(json.dumps(state))
+
+    # current_crawled = 110; deltas 5, 3, 2 — all < 10 → circuit open
+    assert module._is_progress_circuit_open(roundtripped, 7, 110, min_progress=10, window=3)
+    # current_crawled = 130; last delta 22 → circuit closed
+    assert not module._is_progress_circuit_open(roundtripped, 7, 130, min_progress=10, window=3)
