@@ -130,3 +130,21 @@ def test_watchdog_metrics_freshness_alerts_exist() -> None:
     assert "healtharchive_crawl_auto_recover_enabled == 1" in crawl
     assert "healtharchive_crawl_auto_recover_last_run_timestamp_seconds" in crawl
     assert re.search(r"^\s*for:\s*10m\s*$", crawl, re.MULTILINE)
+
+
+def test_deploy_lock_persistent_alert_semantics() -> None:
+    text = _rules_text()
+    body = _extract_alert_block(text, "HealthArchiveDeployLockPersistent")
+
+    assert "healtharchive_crawl_auto_recover_deploy_lock_present == 1" in body
+    assert re.search(r"^\s*for:\s*4h\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
+
+
+def test_crawl_temp_dirs_high_alert_semantics() -> None:
+    text = _rules_text()
+    body = _extract_alert_block(text, "HealthArchiveCrawlTempDirsHigh")
+
+    assert "healtharchive_crawl_running_job_temp_dirs_count > 100" in body
+    assert re.search(r"^\s*for:\s*1h\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)

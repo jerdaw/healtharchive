@@ -129,6 +129,8 @@ In practice this means:
 - **Meaning:** The crawler is running but hasn't archived a new page in over an hour, and the stall persisted long enough to warrant manual review even if crawl auto-recover is enabled.
 - **Action:** Check if the crawler is stuck on a massive PDF or looped trap. If crawl auto-recover is enabled, also inspect its watchdog state/metrics to confirm whether automation attempted recovery.
 
+**Note on state file mtime:** The `.archive_state.json` mtime may appear stale even during healthy crawls, because the state file is only written on certain lifecycle events (container restarts, phase changes), not on every progress update. Use `last_progress_age_seconds` (derived from crawlStatus log entries) for stall detection, not `state_mtime_age_seconds`.
+
 ### 5) Infrastructure Errors
 
 **Alert:** `HealthArchiveInfraErrorsHigh`
@@ -156,6 +158,22 @@ In practice this means:
 - **Threshold:** crawl auto-recover enabled and `(time() - last_run_timestamp) > 900` (for 10m).
 - **Meaning:** Crawl auto-recover automation is enabled, but its metrics are stale. Automation-first stall recovery may not be running.
 - **Action:** Check `healtharchive-crawl-auto-recover.timer` and `healtharchive-crawl-auto-recover.service` logs/state.
+
+### 7) Deploy Lock Persistence
+
+**Alert:** `HealthArchiveDeployLockPersistent`
+
+- **Threshold:** `healtharchive_crawl_auto_recover_deploy_lock_present == 1` (for 4h).
+- **Meaning:** The deploy lock file has been held for over 4 hours, preventing crawl auto-recover from taking any recovery actions.
+- **Action:** Check whether a deploy is genuinely in progress. If the lock is stale (leftover from a failed deploy), remove it manually: `rm /tmp/healtharchive-backend-deploy.lock`.
+
+### 8) Temp Directory Accumulation
+
+**Alert:** `HealthArchiveCrawlTempDirsHigh`
+
+- **Threshold:** `healtharchive_crawl_running_job_temp_dirs_count > 100` (for 1h).
+- **Meaning:** A running crawl job has accumulated over 100 temporary directories, typically from repeated container restarts without cleanup.
+- **Action:** Investigate the job's restart history and consider running `ha-backend cleanup-job --id <ID> --mode temp` if the job is in a terminal state. If still running, the temp dirs will accumulate until the crawl finishes or is recovered.
 
 ## Dashboard-only Crawl Performance Signals (no direct notifications)
 
