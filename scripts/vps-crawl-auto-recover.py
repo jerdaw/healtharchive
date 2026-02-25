@@ -300,6 +300,55 @@ def _count_recent_starts(state: dict, job_id: int, *, since_utc: datetime) -> in
     return n
 
 
+def _record_recovery_progress(
+    state: dict, job_id: int, crawled_count: int, *, when_utc: datetime
+) -> None:
+    """Record the crawled count at recovery time for progress circuit-breaker tracking."""
+    progress = state.setdefault("recovery_progress", {})
+    items = list(progress.get(str(job_id)) or [])
+    items.append(
+        {
+            "timestamp": when_utc.replace(microsecond=0).isoformat(),
+            "crawled_count": crawled_count,
+        }
+    )
+    progress[str(job_id)] = items
+
+
+def _is_progress_circuit_open(
+    state: dict,
+    job_id: int,
+    current_crawled: int,
+    *,
+    min_progress: int,
+    window: int,
+) -> bool:
+    """
+    Return True when the last ``window`` recovery intervals each produced fewer
+    than ``min_progress`` new pages, indicating the job is thrashing without
+    making forward progress.
+
+    Requires at least ``window`` recorded entries (so we have ``window`` deltas
+    including the delta to ``current_crawled``).  Returns False (circuit closed)
+    when there is insufficient history.
+    """
+    entries = list((state.get("recovery_progress") or {}).get(str(job_id)) or [])
+    if len(entries) < window:
+        return False
+
+    # Take the last ``window`` entries by recency.
+    recent = entries[-window:]
+    counts = [int(e["crawled_count"]) for e in recent]
+    counts.append(current_crawled)
+
+    # Check whether every delta is below the threshold.
+    for i in range(1, len(counts)):
+        delta = counts[i] - counts[i - 1]
+        if delta >= min_progress:
+            return False
+    return True
+
+
 def _disk_usage_percent(path: Path) -> int | None:
     try:
         stat = os.statvfs(str(path))
@@ -936,6 +985,18 @@ def main(argv: list[str] | None = None) -> int:
         type=int,
         default=3,
         help="Safety cap to avoid restart loops.",
+    )
+    parser.add_argument(
+        "--min-progress-per-recovery",
+        type=int,
+        default=10,
+        help="Minimum pages crawled between recoveries to consider them productive.",
+    )
+    parser.add_argument(
+        "--progress-circuit-window",
+        type=int,
+        default=3,
+        help="Consecutive low-progress recoveries before the progress circuit breaker opens.",
     )
     parser.add_argument(
         "--state-file",
@@ -1681,6 +1742,14 @@ def main(argv: list[str] | None = None) -> int:
         simulate_runner=getattr(args, "simulate_stalled_job_runner", None),
         simulate_runner_unit=getattr(args, "simulate_stalled_job_runner_unit", None),
     )
+
+    # Resolve current crawled count for progress circuit-breaker checks.
+    _recovery_log = _find_job_log(job)
+    _recovery_progress = parse_crawl_log_progress(_recovery_log) if _recovery_log else None
+    current_crawled: int | None = (
+        _recovery_progress.last_status.crawled if _recovery_progress else None
+    )
+
     guard_seconds = int(args.skip_if_any_job_progress_within_seconds or 0)
     if guard_seconds > 0:
         other_recent = [
@@ -1729,6 +1798,27 @@ def main(argv: list[str] | None = None) -> int:
                         stalled_jobs=len(stalled),
                         result="skip",
                         reason="dry_run_soft_recover",
+                        state=state,
+                    )
+                    return 0
+
+                if current_crawled is not None and _is_progress_circuit_open(
+                    state,
+                    job.job_id,
+                    current_crawled,
+                    min_progress=int(args.min_progress_per_recovery),
+                    window=int(args.progress_circuit_window),
+                ):
+                    print(
+                        f"SKIP job_id={job.job_id} source={job.source_code}: stalled for {age:.0f}s, "
+                        f"progress circuit open (last {int(args.progress_circuit_window)} recoveries each "
+                        f"produced <{int(args.min_progress_per_recovery)} new pages)."
+                    )
+                    write_metrics(
+                        running_jobs=len(running_jobs),
+                        stalled_jobs=len(stalled),
+                        result="skip",
+                        reason="progress_circuit_open",
                         state=state,
                     )
                     return 0
@@ -1785,6 +1875,8 @@ def main(argv: list[str] | None = None) -> int:
                 )
 
                 _record_recovery(state, job.job_id, when_utc=now)
+                if current_crawled is not None:
+                    _record_recovery_progress(state, job.job_id, current_crawled, when_utc=now)
                 _save_state(state_path, state)
                 write_metrics(
                     running_jobs=len(running_jobs),
@@ -1799,6 +1891,27 @@ def main(argv: list[str] | None = None) -> int:
                 f"NOTE: guard window is active (job_id={jid} progressed {a:.0f}s ago), but stalled job_id={job.job_id} "
                 f"appears to have an active runner ({runner.kind}); proceeding with recovery."
             )
+
+    if current_crawled is not None and _is_progress_circuit_open(
+        state,
+        job.job_id,
+        current_crawled,
+        min_progress=int(args.min_progress_per_recovery),
+        window=int(args.progress_circuit_window),
+    ):
+        print(
+            f"SKIP job_id={job.job_id} source={job.source_code}: stalled for {age:.0f}s, "
+            f"progress circuit open (last {int(args.progress_circuit_window)} recoveries each "
+            f"produced <{int(args.min_progress_per_recovery)} new pages)."
+        )
+        write_metrics(
+            running_jobs=len(running_jobs),
+            stalled_jobs=len(stalled),
+            result="skip",
+            reason="progress_circuit_open",
+            state=state,
+        )
+        return 0
 
     recent_n = _count_recent_recoveries(state, job.job_id, since_utc=recent_cutoff)
     if recent_n >= int(args.max_recoveries_per_job_per_day):
@@ -1911,6 +2024,8 @@ def main(argv: list[str] | None = None) -> int:
         _run(["systemctl", "start", "healtharchive-worker.service"])
 
     _record_recovery(state, job.job_id, when_utc=now)
+    if current_crawled is not None:
+        _record_recovery_progress(state, job.job_id, current_crawled, when_utc=now)
     _save_state(state_path, state)
     write_metrics(
         running_jobs=len(running_jobs),
