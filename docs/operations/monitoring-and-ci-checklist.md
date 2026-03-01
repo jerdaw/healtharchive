@@ -491,6 +491,12 @@ These are **examples**, not full rules, but can guide what you set up:
 
   - Alert if `healtharchive_crawl_running_job_stalled==1` for >30m.
 
+- Crawl degraded (slow but progressing):
+
+  - Alert if `healtharchive_crawl_running_job_crawl_rate_ppm{source=~"hc|phac"} < 2`
+    while `healtharchive_crawl_running_job_last_progress_age_seconds{source=~"hc|phac"} <= 300`
+    and `healtharchive_crawl_running_job_stalled{source=~"hc|phac"} == 0` for >45m.
+
 - Crawl completed but indexing not starting:
 
   - Alert if `healtharchive_indexing_pending_job_max_age_seconds` exceeds your SLA (e.g., >1h).
