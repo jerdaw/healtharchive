@@ -41,7 +41,7 @@ describe("/archive/browse-by-source", () => {
       },
     ]);
 
-    const ui = await BrowseBySourcePage();
+    const ui = await BrowseBySourcePage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     expect(screen.getByText(/Important note/i)).toBeInTheDocument();
@@ -69,7 +69,7 @@ describe("/archive/browse-by-source", () => {
       },
     ]);
 
-    const ui = await BrowseBySourcePage();
+    const ui = await BrowseBySourcePage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     const img = screen.getByAltText("Health Canada preview");
@@ -78,7 +78,7 @@ describe("/archive/browse-by-source", () => {
 
   it("shows fallback notice when backend fails", async () => {
     mockFetchSources.mockRejectedValue(new Error("API down"));
-    const ui = await BrowseBySourcePage();
+    const ui = await BrowseBySourcePage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     expect(screen.getByText(/Live API unavailable/i)).toBeInTheDocument();

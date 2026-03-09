@@ -4,7 +4,7 @@ import ContactPage from "@/app/[locale]/contact/page";
 
 describe("/contact", () => {
   it("shows the configured email addresses", async () => {
-    const ui = await ContactPage();
+    const ui = await ContactPage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     const primary = screen.getByRole("link", {

@@ -36,7 +36,7 @@ are centralized in `src/lib/siteCopy.ts`.
   - TailwindCSS for layout/spacing
   - Custom `.ha-*` utility classes in `src/app/globals.css` for the design system
 - **Package manager:** npm
-- **Hosting:** Vercel
+- **Hosting target:** Hetzner VPS frontend service (Coolify-managed container behind host Caddy)
 
 ### Key UI/UX features
 
@@ -98,14 +98,14 @@ Then edit `.env.local` and set:
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001
 ```
 
-On Vercel (Preview/Production), set `NEXT_PUBLIC_API_BASE_URL` via the Vercel
-UI under **Settings → Environment Variables**. Recommended values:
+Set `NEXT_PUBLIC_API_BASE_URL` in the frontend runtime environment. Recommended
+values:
 
 | Environment | Frontend URL                       | Backend URL                    | `NEXT_PUBLIC_API_BASE_URL`     |
 | ----------- | ---------------------------------- | ------------------------------ | ------------------------------ |
 | Local       | `http://localhost:3000`            | `http://127.0.0.1:8001`        | `http://127.0.0.1:8001`        |
 | Preview     | `https://healtharchive.vercel.app` | `https://api.healtharchive.ca` | `https://api.healtharchive.ca` |
-| Production  | `https://healtharchive.ca` / `www` | `https://api.healtharchive.ca` | `https://api.healtharchive.ca` |
+| Production  | `https://healtharchive.ca`         | `https://api.healtharchive.ca` | `https://api.healtharchive.ca` |
 
 > Expected limitation (by design): branch preview URLs like
 > `https://healtharchive-git-...vercel.app` may fall back to offline sample mode until we
@@ -130,7 +130,8 @@ npm run build
 npm start
 ```
 
-(In production, Vercel runs the build and serves the app.)
+For VPS/container deployments, the production image uses Next.js standalone
+output via the repo `Dockerfile`.
 
 ### 5. Run checks (recommended)
 
@@ -170,7 +171,8 @@ bash scripts/setup-hooks.sh
     npm audit --audit-level=high
     ```
 
-- Ensure `NEXT_PUBLIC_API_BASE_URL` is set per environment (Vercel Preview/Production).
+- Ensure `NEXT_PUBLIC_API_BASE_URL` is set for the active runtime.
+- If you need to override replay links, set `NEXT_PUBLIC_REPLAY_BASE_URL`.
 - Optional diagnostics envs (`NEXT_PUBLIC_SHOW_API_HEALTH_BANNER`,
   `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE`, `NEXT_PUBLIC_SHOW_API_BASE_HINT`) are
   normally disabled in CI and production to keep logs quiet.
@@ -243,16 +245,38 @@ This runs the Next.js/ESLint config for the app.
 
 ## Deployment
 
-Production is managed via Vercel:
+Current target production model:
 
 - GitHub repo: [https://github.com/jerdaw/healtharchive-frontend](https://github.com/jerdaw/healtharchive-frontend)
 - Production branch: `main`
+- Runtime: Coolify-managed container on the Hetzner VPS
+- Public ingress: host Caddy
 - Domains:
-  - `healtharchive.ca` (apex, A record → Vercel IP)
-  - `www.healtharchive.ca` (CNAME → Vercel DNS host)
-  - `healtharchive.vercel.app` (default Vercel URL)
+  - `healtharchive.ca` (canonical apex frontend)
+  - `www.healtharchive.ca` (redirect alias to apex)
+  - `api.healtharchive.ca` (backend API; unchanged)
+  - `replay.healtharchive.ca` (replay service; unchanged)
 
-Any push to `main` triggers a new Vercel deployment.
+Production image build:
+
+```bash
+docker build -t healtharchive-frontend:local .
+```
+
+Private VPS proof helper:
+
+```bash
+./scripts/deploy-vps-proof.sh /etc/projects-merge/env/healtharchive-frontend.env
+```
+
+Expected frontend env file:
+
+```env
+NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca
+NEXT_PUBLIC_REPLAY_BASE_URL=https://replay.healtharchive.ca
+PORT=3000
+HOSTNAME=0.0.0.0
+```
 
 ---
 

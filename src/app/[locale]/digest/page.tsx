@@ -28,18 +28,14 @@ function getDigestCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getDigestCopy(locale);
   return buildPageMetadata(locale, "/digest", copy.title, copy.intro);
 }
 
-export default async function DigestPage({
-  params,
-}: {
-  params?: Promise<{ locale?: string }>;
-} = {}) {
+export default async function DigestPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getDigestCopy(locale);
   const siteCopy = getSiteCopy(locale);

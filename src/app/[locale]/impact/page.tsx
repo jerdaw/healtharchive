@@ -35,18 +35,14 @@ function getImpactCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getImpactCopy(locale);
   return buildPageMetadata(locale, "/impact", copy.title, copy.intro);
 }
 
-export default async function ImpactPage({
-  params,
-}: {
-  params?: Promise<{ locale?: string }>;
-} = {}) {
+export default async function ImpactPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getImpactCopy(locale);
   const [statsRes, usageRes] = await Promise.allSettled([fetchArchiveStats(), fetchUsageMetrics()]);

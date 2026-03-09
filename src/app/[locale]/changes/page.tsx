@@ -31,7 +31,7 @@ function getChangesCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getChangesCopy(locale);
@@ -42,7 +42,7 @@ export default async function ChangesPage({
   params: routeParams,
   searchParams,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const locale = await resolveLocale(routeParams);

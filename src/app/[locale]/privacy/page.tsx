@@ -28,7 +28,7 @@ function getPrivacyCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getPrivacyCopy(locale);
@@ -99,11 +99,7 @@ function PrivacyEnglishContent() {
   );
 }
 
-export default async function PrivacyPage({
-  params,
-}: {
-  params?: Promise<{ locale: string }>;
-} = {}) {
+export default async function PrivacyPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getPrivacyCopy(locale);
 

@@ -46,6 +46,7 @@ describe("/archive", () => {
 
     await expect(async () => {
       await ArchivePage({
+        params: Promise.resolve({ locale: "en" }),
         searchParams: Promise.resolve({ q: "", within: "covid", source: "hc" }),
       });
     }).rejects.toThrow("NEXT_REDIRECT");
@@ -64,6 +65,7 @@ describe("/archive", () => {
 
     await expect(async () => {
       await ArchivePage({
+        params: Promise.resolve({ locale: "en" }),
         searchParams: Promise.resolve({ q: "influenza", within: "" }),
       });
     }).rejects.toThrow("NEXT_REDIRECT");
@@ -82,6 +84,7 @@ describe("/archive", () => {
 
     await expect(async () => {
       await ArchivePage({
+        params: Promise.resolve({ locale: "en" }),
         searchParams: Promise.resolve({
           q: "test",
           view: "pages",
@@ -134,6 +137,7 @@ describe("/archive", () => {
     });
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({}),
     });
     const { container } = render(ui);
@@ -171,6 +175,7 @@ describe("/archive", () => {
     });
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({}),
     });
     render(ui);
@@ -220,6 +225,7 @@ describe("/archive", () => {
     });
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({ q: "test", source: "phac" }),
     });
     render(ui);
@@ -257,6 +263,7 @@ describe("/archive", () => {
     });
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({ q: "test", view: "pages" }),
     });
     const { container } = render(ui);
@@ -331,6 +338,7 @@ describe("/archive", () => {
     });
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({ source: "phac" }),
     });
     render(ui);
@@ -365,6 +373,7 @@ describe("/archive", () => {
     });
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({ q: "test", includeNon2xx: "true" }),
     });
     render(ui);
@@ -391,6 +400,7 @@ describe("/archive", () => {
     });
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({ q: "test", view: "snapshots", includeDuplicates: "true" }),
     });
     render(ui);
@@ -431,6 +441,7 @@ describe("/archive", () => {
     });
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({ q: "influenza", within: "covid" }),
     });
     render(ui);
@@ -466,6 +477,7 @@ describe("/archive", () => {
     });
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({
         from: "2024-01-01",
         to: "2024-01-31",
@@ -490,6 +502,7 @@ describe("/archive", () => {
     });
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({
         from: "2025-03-01",
         to: "2025-02-01",
@@ -508,6 +521,7 @@ describe("/archive", () => {
     mockSearchSnapshots.mockRejectedValue(new Error("API down"));
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({ q: "naloxone" }),
     });
     render(ui);
@@ -524,6 +538,7 @@ describe("/archive", () => {
     mockSearchSnapshots.mockRejectedValue(new Error("API down"));
 
     const ui = await ArchivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({
         q: "https://www.canada.ca/en/public-health/services/diseases/monkeypox.html",
       }),

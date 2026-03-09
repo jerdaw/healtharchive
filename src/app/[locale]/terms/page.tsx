@@ -29,7 +29,7 @@ function getTermsCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getTermsCopy(locale);
@@ -106,11 +106,7 @@ function TermsEnglishContent({ copy }: { copy: SiteCopy }) {
   );
 }
 
-export default async function TermsPage({
-  params,
-}: {
-  params?: Promise<{ locale: string }>;
-} = {}) {
+export default async function TermsPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getTermsCopy(locale);
   const siteCopy = getSiteCopy(locale);

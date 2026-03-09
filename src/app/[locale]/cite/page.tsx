@@ -64,7 +64,7 @@ function buildPrefilledCitation(args: {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getCiteCopy(locale);
@@ -75,9 +75,9 @@ export default async function CitePage({
   params,
   searchParams,
 }: {
-  params?: Promise<{ locale?: string }>;
-  searchParams?: Promise<Record<string, string | string[] | undefined>>;
-} = {}) {
+  params: Promise<{ locale: string }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
   const locale = await resolveLocale(params);
   const copy = getCiteCopy(locale);
   const siteCopy = getSiteCopy(locale);
@@ -243,7 +243,7 @@ export default async function CitePage({
           HealthArchive.ca Project. “COVID-19 epidemiology update: Canada” (snapshot from 2025-02-15
           00:00 UTC). Archived copy of Public Health Agency of Canada web page
           (https://www.canada.ca/...). Accessed 2025-12-03. Available from:
-          https://www.healtharchive.ca/snapshot/12345.
+          https://healtharchive.ca/snapshot/12345.
         </div>
         <ul className="text-ha-muted list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
           <li>
@@ -277,7 +277,7 @@ export default async function CitePage({
           HealthArchive.ca Project. “Comparison of archived captures” (from snapshot &lt;ID A&gt; to
           snapshot &lt;ID B&gt;). Archived copies of &lt;source organization&gt; web page
           (&lt;original URL&gt;). Accessed &lt;access date&gt;. Available from:
-          https://www.healtharchive.ca/compare?from=&lt;ID A&gt;&amp;to=&lt;ID B&gt;.
+          https://healtharchive.ca/compare?from=&lt;ID A&gt;&amp;to=&lt;ID B&gt;.
         </div>
         <ul className="text-ha-muted list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
           <li>

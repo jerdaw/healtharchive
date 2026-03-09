@@ -78,7 +78,10 @@ describe("/changes", () => {
       ],
     });
 
-    const ui = await ChangesPage({ searchParams: Promise.resolve({}) });
+    const ui = await ChangesPage({
+      params: Promise.resolve({ locale: "en" }),
+      searchParams: Promise.resolve({}),
+    });
     render(ui);
 
     expect(screen.getByText(/Change tracking/i)).toBeInTheDocument();

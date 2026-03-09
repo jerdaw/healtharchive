@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 import type { Locale } from "@/lib/i18n";
 import { buildMetaDescription } from "@/lib/siteCopy";
 
-export const SITE_BASE_URL = "https://www.healtharchive.ca";
+export const SITE_BASE_URL = "https://healtharchive.ca";
 
 function normalizePath(path: string): string {
   if (!path) return "/";

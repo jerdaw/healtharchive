@@ -35,16 +35,16 @@ Il s’agit d’un dossier d’archives et d’un outil de suivi des changements
 
 ## Liens clés
 
-- Accueil : https://www.healtharchive.ca/
-- Recherche dans l’archive : https://www.healtharchive.ca/archive
-- Fil de changements : https://www.healtharchive.ca/changes
-- Synthèse + RSS : https://www.healtharchive.ca/digest
-- Conseils de citation : https://www.healtharchive.ca/cite
-- Méthodes et portée : https://www.healtharchive.ca/methods
-- Gouvernance et politiques : https://www.healtharchive.ca/governance
-- Exports de recherche : https://www.healtharchive.ca/exports
-- Statut et métriques : https://www.healtharchive.ca/status
-- Rapport d’impact mensuel : https://www.healtharchive.ca/impact
+- Accueil : https://healtharchive.ca/
+- Recherche dans l’archive : https://healtharchive.ca/archive
+- Fil de changements : https://healtharchive.ca/changes
+- Synthèse + RSS : https://healtharchive.ca/digest
+- Conseils de citation : https://healtharchive.ca/cite
+- Méthodes et portée : https://healtharchive.ca/methods
+- Gouvernance et politiques : https://healtharchive.ca/governance
+- Exports de recherche : https://healtharchive.ca/exports
+- Statut et métriques : https://healtharchive.ca/status
+- Rapport d’impact mensuel : https://healtharchive.ca/impact
 
 ## Posture de sécurité (langage clair)
 
@@ -54,5 +54,5 @@ Il s’agit d’un dossier d’archives et d’un outil de suivi des changements
 
 ## Contact
 
-- Contact et signalement : https://www.healtharchive.ca/contact
-- Formulaire de signalement : https://www.healtharchive.ca/report
+- Contact et signalement : https://healtharchive.ca/contact
+- Formulaire de signalement : https://healtharchive.ca/report

@@ -29,18 +29,14 @@ function getBriefCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getBriefCopy(locale);
   return buildPageMetadata(locale, "/brief", copy.title, copy.intro);
 }
 
-export default async function BriefPage({
-  params,
-}: {
-  params?: Promise<{ locale?: string }>;
-} = {}) {
+export default async function BriefPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getBriefCopy(locale);
   const siteCopy = getSiteCopy(locale);
@@ -170,8 +166,8 @@ export default async function BriefPage({
         <ul className="text-ha-muted list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
           <li>
             {locale === "fr" ? "Accueil" : "Home"}:{" "}
-            <a className="ha-link" href="https://www.healtharchive.ca/">
-              https://www.healtharchive.ca/
+            <a className="ha-link" href="https://healtharchive.ca/">
+              https://healtharchive.ca/
             </a>
           </li>
           <li>

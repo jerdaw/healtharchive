@@ -75,7 +75,7 @@ function getArchiveCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getArchiveCopy(locale);
@@ -100,7 +100,7 @@ export default async function ArchivePage({
   params: routeParams,
   searchParams,
 }: {
-  params?: Promise<{ locale: string }>;
+  params: Promise<{ locale: string }>;
   searchParams: Promise<ArchiveSearchParams>;
 }) {
   const locale = await resolveLocale(routeParams);

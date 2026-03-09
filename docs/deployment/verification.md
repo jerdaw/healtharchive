@@ -10,59 +10,41 @@ frontend + backend with a focus on:
 ## Current deployment model (important context)
 
 - **Single backend API:** `https://api.healtharchive.ca`
-  - Used by both Vercel **Preview** deployments and the **Production** site.
-- **Frontend domains:**
-  - Production: `https://healtharchive.ca` and `https://www.healtharchive.ca`
-  - Vercel project domain: `https://healtharchive.vercel.app`
+- **Canonical frontend domain:** `https://healtharchive.ca`
+- **Frontend alias:** `https://www.healtharchive.ca` (redirects to apex)
+- **Replay domain:** `https://replay.healtharchive.ca`
+- **Target frontend runtime:** VPS-hosted Next.js container behind host Caddy
 - **Strict backend CORS allowlist (current choice):**
   - `https://healtharchive.ca`
   - `https://www.healtharchive.ca`
-  - `https://healtharchive.vercel.app`
-  - `https://replay.healtharchive.ca` (for the optional replay banner and direct replay UX)
-
-Expected limitation (by design):
-
-- Branch preview URLs like `https://healtharchive-git-...vercel.app` may not be
-  allowed by CORS yet and can fall back to offline sample mode until we explicitly add
-  those origins.
+  - `https://replay.healtharchive.ca`
 
 ---
 
-## 1. Confirm environment variables (Vercel)
+## 1. Confirm frontend runtime environment
 
-In the Vercel dashboard for the `healtharchive-frontend` project:
+For the deployed frontend runtime, set:
 
-1. Go to **Settings → Environment Variables**.
-2. Under **Production**, set:
+```env
+NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca
+NEXT_PUBLIC_REPLAY_BASE_URL=https://replay.healtharchive.ca
+```
 
-   ```env
-   NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca
-   ```
+Optional diagnostics envs should normally remain disabled in production:
 
-3. Under **Preview**, set the same:
-
-   ```env
-   NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca
-   ```
-
-4. (Optional, recommended) Enable diagnostics in **Preview only**:
-
-   ```env
-   NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=true
-   NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true
-   NEXT_PUBLIC_SHOW_API_BASE_HINT=true
-   ```
-
-5. Save and redeploy.
+```env
+NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=true
+NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true
+NEXT_PUBLIC_SHOW_API_BASE_HINT=true
+```
 
 ---
 
 ## 2. Verify frontend security headers & CSP (report-only)
 
-Do these checks in **both** places:
+Do these checks on the production frontend:
 
-- Production: `https://www.healtharchive.ca/archive`
-- Vercel domain: `https://healtharchive.vercel.app/archive`
+- `https://healtharchive.ca/archive`
 
 In Chrome or Firefox DevTools:
 
@@ -87,7 +69,7 @@ In Chrome or Firefox DevTools:
 
 ### 3.1 Browser checks
 
-1. Open `https://www.healtharchive.ca/archive`.
+1. Open `https://healtharchive.ca/archive`.
 2. Confirm the page does not show the offline fallback notice (for example,
    “Live API unavailable”).
 3. (Optional, if previews are enabled) Confirm the “Browse archived sites” cards
@@ -110,11 +92,11 @@ your terminal:
 
 ```bash
 curl -i \
-  -H "Origin: https://www.healtharchive.ca" \
+  -H "Origin: https://healtharchive.ca" \
   https://api.healtharchive.ca/api/health | grep -iE "HTTP/|access-control|vary"
 ```
 
-You should see `HTTP/2 200`, `Access-Control-Allow-Origin: https://www.healtharchive.ca`,
+You should see `HTTP/2 200`, `Access-Control-Allow-Origin: https://healtharchive.ca`,
 and `Vary: Origin`.
 
 ---
@@ -128,7 +110,8 @@ available as a fallback/debug path.
 1. Pick a known snapshot ID that exists in the backend (at least one should
    exist in production).
 2. Open (metadata + embedded viewer):
-   - `https://www.healtharchive.ca/snapshot/<id>`
+
+- `https://healtharchive.ca/snapshot/<id>`
 
 3. Confirm:
    - The page loads snapshot metadata (title, capture date, source, URL).
@@ -138,10 +121,11 @@ available as a fallback/debug path.
    - The page still offers a “Raw HTML” link to `https://api.healtharchive.ca/api/snapshots/raw/<id>`.
 
 4. Open the full-screen browse view:
-   - `https://www.healtharchive.ca/browse/<id>`
 
-   Confirm it loads the same replay content with a persistent HealthArchive
-   banner/controls above the iframe.
+- `https://healtharchive.ca/browse/<id>`
+
+Confirm it loads the same replay content with a persistent HealthArchive
+banner/controls above the iframe.
 
 5. (Optional, if a source has multiple editions) Verify edition switching:
    - In `/browse/<id>` (or `/snapshot/<id>`), look for an “Edition” / “Switch edition” dropdown.
@@ -151,7 +135,7 @@ available as a fallback/debug path.
      - if that page wasn’t captured in the selected edition, it falls back to the edition’s entry page with a short notice.
 
 6. Verify “Browse archived sites” search shortcuts:
-   - On `https://www.healtharchive.ca/archive`, click **Search** on one of the “Browse archived sites” cards.
+   - On `https://healtharchive.ca/archive`, click **Search** on one of the “Browse archived sites” cards.
    - Confirm:
      - the Source filter updates to that source (not “All sources”), and
      - the page scrolls to the Search card without the fixed header covering its title.
@@ -165,12 +149,10 @@ available as a fallback/debug path.
 
 ---
 
-## 5. Optional: allow branch previews to use the live API
+## 5. Optional: allow additional preview origins
 
-If you decide you want `https://healtharchive-git-...vercel.app` preview URLs
-to call the API:
+If you later introduce a separate staging frontend origin:
 
-1. Add those preview origins to `HEALTHARCHIVE_CORS_ORIGINS` on the backend.
-2. If you enforce CSP (not report-only), ensure `connect-src` and `frame-src`
-   include the API host you are using.
+1. Add that origin to `HEALTHARCHIVE_CORS_ORIGINS` on the backend.
+2. Ensure `connect-src` and `frame-src` continue to allow the API and replay hosts.
 3. Redeploy backend + frontend and repeat the checks above.

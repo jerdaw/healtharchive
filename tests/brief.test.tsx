@@ -4,7 +4,7 @@ import BriefPage from "@/app/[locale]/brief/page";
 
 describe("/brief", () => {
   it("renders a one-page brief with a downloadable markdown link", async () => {
-    const ui = await BriefPage();
+    const ui = await BriefPage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     expect(

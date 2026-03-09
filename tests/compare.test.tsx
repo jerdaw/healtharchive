@@ -21,7 +21,10 @@ describe("/compare", () => {
   });
 
   it("shows a helpful message when no snapshot is selected", async () => {
-    const ui = await ComparePage({ searchParams: Promise.resolve({}) });
+    const ui = await ComparePage({
+      params: Promise.resolve({ locale: "en" }),
+      searchParams: Promise.resolve({}),
+    });
     render(ui);
 
     expect(screen.getByText(/Compare unavailable/i)).toBeInTheDocument();
@@ -83,6 +86,7 @@ describe("/compare", () => {
     });
 
     const ui = await ComparePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({ from: "10", to: "11" }),
     });
     render(ui);

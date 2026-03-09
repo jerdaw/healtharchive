@@ -44,13 +44,14 @@ describe("/cite prefill", () => {
     mockFetchSnapshotDetail.mockResolvedValue(detail);
 
     const ui = await CitePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({ snapshot: "123" }),
     });
     render(ui);
 
     expect(screen.getByRole("heading", { name: "Suggested citation" })).toBeInTheDocument();
     expect(
-      screen.getByText(/Available from: https:\/\/www\.healtharchive\.ca\/snapshot\/123\./),
+      screen.getByText(/Available from: https:\/\/healtharchive\.ca\/snapshot\/123\./),
     ).toBeInTheDocument();
 
     expect(screen.getByRole("button", { name: "Copy citation" })).toBeInTheDocument();

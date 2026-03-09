@@ -33,16 +33,16 @@ This is an archival record and change-tracking tool. It is not current guidance 
 
 ## Key links
 
-- Home: https://www.healtharchive.ca/
-- Archive search: https://www.healtharchive.ca/archive
-- Changes feed: https://www.healtharchive.ca/changes
-- Digest + RSS: https://www.healtharchive.ca/digest
-- Citation guidance: https://www.healtharchive.ca/cite
-- Methods and scope: https://www.healtharchive.ca/methods
-- Governance and policies: https://www.healtharchive.ca/governance
-- Research exports: https://www.healtharchive.ca/exports
-- Status and metrics: https://www.healtharchive.ca/status
-- Monthly impact report: https://www.healtharchive.ca/impact
+- Home: https://healtharchive.ca/
+- Archive search: https://healtharchive.ca/archive
+- Changes feed: https://healtharchive.ca/changes
+- Digest + RSS: https://healtharchive.ca/digest
+- Citation guidance: https://healtharchive.ca/cite
+- Methods and scope: https://healtharchive.ca/methods
+- Governance and policies: https://healtharchive.ca/governance
+- Research exports: https://healtharchive.ca/exports
+- Status and metrics: https://healtharchive.ca/status
+- Monthly impact report: https://healtharchive.ca/impact
 
 ## Safety posture (plain-language)
 
@@ -52,5 +52,5 @@ This is an archival record and change-tracking tool. It is not current guidance 
 
 ## Contact
 
-- Contact and reporting: https://www.healtharchive.ca/contact
-- Issue reporting form: https://www.healtharchive.ca/report
+- Contact and reporting: https://healtharchive.ca/contact
+- Issue reporting form: https://healtharchive.ca/report

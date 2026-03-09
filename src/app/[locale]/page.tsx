@@ -23,18 +23,14 @@ import { resolveLocale } from "@/lib/resolveLocale";
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getHomeCopy(locale);
   return buildPageMetadata(locale, "/", copy.meta.title);
 }
 
-export default async function HomePage({
-  params,
-}: {
-  params?: Promise<{ locale: string }>;
-} = {}) {
+export default async function HomePage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getHomeCopy(locale);
   const fallbackRecordCount = demoRecords.length;

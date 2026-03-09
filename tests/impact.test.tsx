@@ -40,7 +40,7 @@ describe("/impact", () => {
       daily: [],
     });
 
-    const ui = await ImpactPage();
+    const ui = await ImpactPage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     expect(
