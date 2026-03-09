@@ -33,7 +33,7 @@
     "@types/node": "^25.3.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "eslint": "^10.0.2",
+    "eslint": "^9.39.4",
     "eslint-config-next": "^16.1.6",
     "eslint-plugin-react": "^7.37.5",
     "jsdom": "^28",
