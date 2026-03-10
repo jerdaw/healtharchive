@@ -545,7 +545,7 @@ Created a minimal WARC + Snapshot for smoke checks:
 - WARC: `/srv/healtharchive/jobs/manual-warcs/viewer-test.warc.gz`
 - Snapshot ID: `1`
 - Raw: `https://api.healtharchive.ca/api/snapshots/raw/1`
-- Viewer: `https://www.healtharchive.ca/snapshot/1`
+- Viewer: `https://healtharchive.ca/snapshot/1`
 
 Use this to verify end-to-end viewer behavior after deploys.
 
@@ -572,7 +572,7 @@ Result: restore succeeded, `snapshots` contained 1 row (the synthetic test snaps
 
 Configure an external monitor (e.g., UptimeRobot) for:
 - `https://api.healtharchive.ca/api/health`
-- `https://www.healtharchive.ca/archive`
+- `https://healtharchive.ca/archive`
 - (Optional) `https://replay.healtharchive.ca/` (if replay is enabled/in use)
 
 Note: some providers use `HEAD` by default; the backend supports `HEAD /api/health`.

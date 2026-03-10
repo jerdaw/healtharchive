@@ -1,5 +1,10 @@
 # Production rollout checklist – backend + frontend
 
+> Status: Historical Vercel-era checklist. The implemented production path is
+> now the direct VPS + host Caddy baseline documented in
+> `production-single-vps.md`. Do not use this file as the current HealthArchive
+> production cutover runbook.
+
 This file is a **step‑by‑step checklist** for bringing the **production**
 environment online, based on the same patterns used for staging.
 
@@ -9,10 +14,10 @@ Assumptions:
 - Production frontend: `https://healtharchive.ca` and `https://www.healtharchive.ca`
 - Code from `main` in both repos is what you intend to deploy.
 
-Everything here happens on:
+Everything here happened on:
 
 - The production backend host (VM/container/PaaS).
-- Vercel (for the frontend).
+- The former Vercel frontend path.
 - GitHub (for CI/branch protection).
 
 Nothing in this file requires changes to your local dev environment.
@@ -158,7 +163,7 @@ curl -i "https://api.healtharchive.ca/api/snapshots/raw/<N_prod>"
 
 ---
 
-## 2. Frontend production configuration (Vercel)
+## 2. Frontend production configuration (historical Vercel path)
 
 ### 2.1 Production env vars (Vercel)
 
@@ -179,7 +184,7 @@ In the Vercel project for `healtharchive-frontend`:
 
 ### 2.2 Frontend domains
 
-In Vercel + DNS:
+In the old Vercel + DNS path:
 
 - Ensure:
   - `healtharchive.ca` and `www.healtharchive.ca` are pointed at Vercel.
