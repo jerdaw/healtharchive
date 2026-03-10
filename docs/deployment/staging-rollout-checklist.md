@@ -1,5 +1,10 @@
 # Staging rollout checklist – backend + frontend
 
+> Status: Historical Vercel-preview checklist. There is no active standalone
+> staging backend/frontend path for the current direct VPS production model. Use
+> this file only as historical reference if a separate staging environment is
+> intentionally reintroduced later.
+
 This file turns the higher‑level hosting notes into a **step‑by‑step checklist**
 for bringing a staging environment online. It assumes:
 
@@ -11,7 +16,7 @@ for bringing a staging environment online. It assumes:
 
 It does **not** require or describe changes on your local machine, beyond
 pushing commits; all steps here are meant to be performed on the staging host
-and in Vercel / GitHub.
+and the old Vercel / GitHub path.
 
 > Note: the current production deployment intentionally runs **without** a
 > separate staging backend. If you are following the single‑VPS production
