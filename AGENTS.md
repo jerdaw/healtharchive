@@ -23,6 +23,8 @@
   - `docs/development/bilingual-dev-guide.md` → bilingual UI rules.
   - `docs/deployment/verification.md` → Preview/Production verification.
   - `docs/changelog-process.md` → changelog updates.
+- Shared cross-project VPS ops:
+  - `/home/jer/repos/platform-ops` → shared inventory, roadmap, handoff, and runbooks
 - Central Documentation (Backend Repo):
   - `../healtharchive-backend/mkdocs.yml` (Navigation Source of Truth)
   - `../healtharchive-backend/docs/documentation-guidelines.md`
@@ -35,6 +37,8 @@
   - Prefer `getSiteCopy(locale)` and `pickLocalized(locale, { en, fr })` instead of sprinkling ad-hoc strings.
 
 When you’re unsure about architecture, routes, or design decisions, **read `docs/implementation-guide.md` first instead of guessing**.
+
+**Cross-project ops note:** Frontend behavior and frontend-facing docs belong in this repo. Shared VPS standards, live service inventory, and cross-project migration/operations state belong in `/home/jer/repos/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`). Host-side paths under `/etc/projects-merge/...` remain intentionally unchanged.
 
 ---
 

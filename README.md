@@ -17,6 +17,7 @@ are centralized in `src/lib/siteCopy.ts`.
 
 - Backend API + ops docs: https://github.com/jerdaw/healtharchive-backend
 - **Unified Documentation Site**: Documentation for both repositories is now hosted in the [backend repository](https://github.com/jerdaw/healtharchive-backend). Run `make docs-serve` in the backend root to view the searchable UI.
+- **Shared VPS ops workspace**: `/home/jer/repos/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`) contains the shared inventory, roadmap, handoff, and cross-project runbooks.
 
 ---
 
