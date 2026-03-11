@@ -52,7 +52,7 @@ docs are canonical in their repos and are linked-to from this site:
    - `deployment/replay-service-pywb.md` (pywb replay service for full-fidelity browsing)
    - `deployment/search-rollout.md` (enable v2 search + rollback)
    - `deployment/pages-table-rollout.md` (pages table backfill + browse fast path)
-   - `deployment/hosting-and-live-server-to-dos.md` (deployment checklist + Vercel wiring)
+  - `deployment/hosting-and-live-server-to-dos.md` (historical hosting notes + optional future staging ideas)
    - `deployment/environments-and-configuration.md` (cross‑repo env vars + host matrix)
    - `deployment/production-rollout-checklist.md` (generic production checklist)
    - `deployment/staging-rollout-checklist.md` (optional future staging)

@@ -16,7 +16,7 @@ For recovery from total failure, see the [Disaster Recovery Runbook](disaster-re
 
 - **Provider / size:** Hetzner Cloud, `cx33` (Cost-Optimized, 4 vCPU / 8GB RAM / 80GB SSD)
 - **Region:** Nuremberg (cost-optimized not available in US-East at the time)
-- **Public services:** `healtharchive.ca`, `www.healtharchive.ca`, and `api.healtharchive.ca` on 80/443 via Caddy
+- **Public services:** `healtharchive.ca` (canonical), `www.healtharchive.ca` (redirect alias), and `api.healtharchive.ca` on 80/443 via Caddy
 - **Replay (optional):** `replay.healtharchive.ca` via Caddy → pywb (see `deployment/replay-service-pywb.md`)
 - **Private-only:** SSH on Tailscale (`tailscale0`), no public port 22
 - **Storage:**
@@ -586,7 +586,7 @@ enforcement), see:
 
 ## 12) Current known defaults/assumptions (2026-03)
 
-- CORS allowlist: `https://healtharchive.ca`, `https://www.healtharchive.ca`, `https://replay.healtharchive.ca`
+- CORS allowlist: `https://healtharchive.ca`, `https://www.healtharchive.ca` (redirect alias compatibility), `https://replay.healtharchive.ca`
 - Frontend runtime: direct Docker container on the VPS behind host Caddy
 - No staging backend; Preview and Production frontends point to the same API
 - Public SSH closed; Tailscale required for admin/backup access
