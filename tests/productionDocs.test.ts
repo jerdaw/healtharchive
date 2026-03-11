@@ -15,6 +15,12 @@ describe("production docs alignment", () => {
     expect(readme).not.toContain("https://healtharchive.vercel.app (Vercel default domain)");
     expect(readme).not.toContain("Coolify-managed container behind host Caddy");
     expect(envExample).not.toContain("Vercel Preview example");
-    expect(implementationGuide).not.toContain("Cloudflare DNS");
+    expect(implementationGuide).not.toContain("Cloudflare remains the DNS provider.");
+    expect(implementationGuide).not.toContain(
+      "Public `healtharchive.ca` / `www.healtharchive.ca` cutover to VPS ingress is the active next step.",
+    );
+    expect(implementationGuide).toContain(
+      "Host Caddy remains the public ingress owner on the VPS.",
+    );
   });
 });

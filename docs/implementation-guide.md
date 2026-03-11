@@ -922,7 +922,7 @@ All text is stable, but can be refined later.
 
 Ingress ownership:
 
-- Cloudflare remains the DNS provider.
+- DNS remains with the existing provider/registrar.
 - Host Caddy remains the public ingress owner on the VPS.
 - The frontend app is proxied internally from host Caddy to `127.0.0.1:3200`.
 
@@ -984,7 +984,7 @@ We followed an 8-step build plan. Status:
 - **Deployment & DNS**
   - ✅ Next.js app migrated to a production standalone runtime path.
   - ✅ GitHub remains the source of truth for deployment builds.
-  - ⏳ Public `healtharchive.ca` / `www.healtharchive.ca` cutover to VPS ingress is the active next step.
+  - ✅ Public `healtharchive.ca` VPS cutover completed, with `www.healtharchive.ca` redirecting to apex.
 
 ---
 
@@ -1019,9 +1019,9 @@ We followed an 8-step build plan. Status:
 
 ---
 
-## 12. Suggested future directions (for the next LLM)
+## 12. Suggested future directions
 
-If you’re continuing dev, some clear next steps could be:
+If you’re continuing development, some clear next steps could be:
 
 1. **Introduce real API routes**:
    - `/api/search` and `/api/sources` reusing the logic in `demo-records.ts`.

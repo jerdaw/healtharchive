@@ -66,6 +66,12 @@ Guidelines:
 - Run the closest relevant local checks before pushing (usually `npm run check`).
 - Never commit secrets, `.env` files, or machine-specific artifacts.
 
+## Attribution and authorship policy
+
+- Commits, docs, code comments, release notes, and metadata must list only human contributors as authors.
+- Do not add AI-assistant attribution (for example: Codex, Claude, Gemini, Copilot, ChatGPT) in authored-by/co-authored-by lines, prose, or generated metadata.
+- If tooling is used, describe the technical change directly without attributing authorship to the tool.
+
 ---
 
 ## Common engineering best practices (as you go)
