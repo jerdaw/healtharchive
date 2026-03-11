@@ -31,8 +31,11 @@ Canonical docs to consult first:
 - `docs/planning/roadmap.md` – backlog of not-yet-implemented work.
 - `docs/planning/implemented/` – historical implementation plans (executed).
 - Frontend bilingual/dev architecture: `healtharchive-frontend/docs/development/bilingual-dev-guide.md`
+- `/home/jer/repos/platform-ops` – shared VPS inventory, roadmap, handoff, and cross-project runbooks
 
 When you're doing anything beyond tiny local changes, **open those docs and sync your mental model first**.
+
+**Cross-project ops note:** Backend behavior and backend-facing docs belong in this repo. Shared VPS standards, live service inventory, and cross-project migration/operations state belong in `/home/jer/repos/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`). Host-side paths under `/etc/projects-merge/...` remain intentionally unchanged.
 
 ---
 

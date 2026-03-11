@@ -23,6 +23,7 @@ Related repositories (project is multi-repo):
 
 - Frontend UI: https://github.com/jerdaw/healtharchive-frontend
 - **Documentation Site**: Run `make docs-serve` in the backend repo for a searchable web UI.
+- **Shared VPS ops workspace**: `/home/jer/repos/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`) contains the shared inventory, roadmap, handoff, and cross-project runbooks.
 
 Production entrypoints (VPS):
 
