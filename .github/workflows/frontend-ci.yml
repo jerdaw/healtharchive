@@ -52,7 +52,7 @@ jobs:
         run: npm audit --audit-level=high --omit=dev
 
       - name: Upload Next build artifact
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-next-build
           path: .next
@@ -113,7 +113,7 @@ jobs:
 
       - name: Upload e2e smoke artifacts (on failure)
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@v7
         with:
           name: frontend-e2e-smoke-artifacts
           path: healtharchive-backend/.tmp/ci-e2e-smoke/
