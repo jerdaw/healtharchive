@@ -10,6 +10,10 @@ def _rules_text() -> str:
     return rules_path.read_text(encoding="utf-8")
 
 
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
+
+
 def _extract_alert_block(text: str, alert_name: str) -> str:
     pattern = re.compile(
         rf"(?ms)^\s*-\s*alert:\s*{re.escape(alert_name)}\s*\n(?P<body>.*?)(?=^\s*-\s*alert:\s|\Z)"
@@ -93,6 +97,7 @@ def test_crawl_container_restarts_high_alert_semantics() -> None:
     )
     assert re.search(r"^\s*for:\s*30m\s*$", body, re.MULTILINE)
     assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
+    assert "docs/operations/runbooks/crawl-restart-budget-low.md" in body
 
 
 def test_worker_down_alert_is_automation_aware() -> None:
@@ -163,3 +168,17 @@ def test_crawl_rate_degraded_alert_semantics() -> None:
     assert 'healtharchive_crawl_running_job_stalled{source=~"hc|phac"} == 0' in body
     assert re.search(r"^\s*for:\s*45m\s*$", body, re.MULTILINE)
     assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
+
+
+def test_alert_runbook_urls_resolve_to_existing_docs_paths() -> None:
+    text = _rules_text()
+    repo_root = _repo_root()
+
+    urls = re.findall(
+        r'runbook_url:\s*"https://github.com/jerdaw/healtharchive-backend/blob/main/docs/([^"]+)"',
+        text,
+    )
+    assert urls, "no runbook URLs found"
+
+    missing = [rel for rel in urls if not (repo_root / "docs" / rel).is_file()]
+    assert not missing, f"missing runbook targets: {missing}"
