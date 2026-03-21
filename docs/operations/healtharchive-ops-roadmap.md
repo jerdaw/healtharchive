@@ -19,7 +19,7 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive-backend && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-02-23)
+## Current status (as of 2026-03-21)
 
 - 2026 annual crawl is actively running on the VPS (jobs: `hc`/`phac`/`cihr`; see `./scripts/vps-crawl-status.sh --year 2026`).
 - Deploy-lock suppression is cleared (the stale `/tmp/healtharchive-backend-deploy.lock` was removed; auto-recover apply actions are no longer skipped due to deploy lock).
@@ -29,6 +29,8 @@ Keep the two synced copies of this file aligned:
   - Maintenance-window restart of services is still required to pick up the env change.
 - Annual output-dir mount topology is currently **unexpected** (direct `sshfs` mounts instead of bind mounts) for the active 2026 jobs.
   - We are intentionally deferring conversion to bind mounts until a maintenance window to avoid interrupting in-progress crawls.
+- PHAC annual crawl job 7 is currently deferred to a maintenance window after a live HTTP/2 failure loop on `public-health-notices` URLs.
+  - Storage and worker health are intact; the current problem is crawler churn on that subtree, not mount instability.
 - Alerting noise-reduction tuning is deployed and verified:
   - Alertmanager routing is severity-aware (`critical` keeps resolved notifications, non-critical suppresses resolved and repeats less often).
   - Crawl alerting is now automation-first and dashboard-driven:
@@ -39,6 +41,19 @@ Keep the two synced copies of this file aligned:
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
+- Maintenance window: recover and relaunch the stuck 2026 PHAC annual crawl after the current safe-stop point.
+  - Context: as of 2026-03-21, job `7` (`phac-20260101`) is a live failure loop, not a storage incident.
+  - Observed symptom: `crawled` flat at `267` while `failed` keeps rising on `https://www.canada.ca/en/public-health/services/public-health-notices/...` URLs with repeated `net::ERR_HTTP2_PROTOCOL_ERROR`.
+  - Why defer: recovering PHAC still requires stopping `healtharchive-worker.service`, which can interrupt any other active crawl (notably CIHR if still running).
+  - During the maintenance window:
+    - Stop the worker.
+    - Recover PHAC without the extra no-progress guard:
+      - `/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 5 --apply --source phac --limit 1`
+    - Reconcile annual tool options so the PHAC retry picks up the current canonical scope/tuning:
+      - Dry-run: `/opt/healtharchive-backend/.venv/bin/ha-backend reconcile-annual-tool-options --year 2026 --sources phac`
+      - Apply: `/opt/healtharchive-backend/.venv/bin/ha-backend reconcile-annual-tool-options --year 2026 --sources phac --apply`
+    - Start the worker and re-check:
+      - `./scripts/vps-crawl-status.sh --year 2026 --job-id 7 --recent-lines 20000`
 - Post-scope-fix long-window reassessment (2026 annual campaign):
   - Context: HC/PHAC scopeIncludeRx was narrowed on 2026-02-28 to exclude binary-heavy DAM targets from the crawl queue (while still allowing embedded subresource capture).
   - Action: run a 6-24 hour observation window before any further restart decisions.

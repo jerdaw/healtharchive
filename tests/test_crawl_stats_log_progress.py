@@ -50,6 +50,38 @@ def test_parse_crawl_log_progress_finds_last_crawled_change(tmp_path: Path) -> N
     assert progress.last_crawled_change_timestamp_utc == _dt("2026-01-01T00:05:00.000Z")
 
 
+def test_parse_crawl_log_progress_uses_oldest_visible_event_when_crawled_is_flat(
+    tmp_path: Path,
+) -> None:
+    log_path = tmp_path / "archive_resume_crawl_123.combined.log"
+    events = [
+        ("2026-03-21T10:59:35.000Z", 267, 676),
+        ("2026-03-21T11:07:58.000Z", 267, 691),
+        ("2026-03-21T11:14:15.000Z", 267, 704),
+    ]
+    lines = []
+    for ts, crawled, failed in events:
+        lines.append(
+            json.dumps(
+                {
+                    "timestamp": ts,
+                    "logLevel": "info",
+                    "context": "crawlStatus",
+                    "message": "Crawl statistics",
+                    "details": {"crawled": crawled, "total": 2311, "pending": 1, "failed": failed},
+                }
+            )
+        )
+    log_path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    progress = parse_crawl_log_progress(log_path)
+    assert progress is not None
+    assert progress.last_status.crawled == 267
+    assert progress.last_status.failed == 704
+    assert progress.last_crawled_change_timestamp_utc == _dt("2026-03-21T10:59:35.000Z")
+    assert progress.crawl_rate_ppm == 0.0
+
+
 def test_count_new_crawl_phase_events_from_log_tail_counts_occurrences(tmp_path: Path) -> None:
     log_path = tmp_path / "archive_new_crawl_phase_1.combined.log"
     log_path.write_text(

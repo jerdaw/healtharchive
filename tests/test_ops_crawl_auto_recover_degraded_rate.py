@@ -129,3 +129,87 @@ def test_degraded_rate_streak_metrics_and_reason(tmp_path, monkeypatch) -> None:
         'healtharchive_crawl_auto_recover_last_result{result="skip",reason="degraded_observe"} 1'
         in metrics2
     )
+
+
+def test_flat_crawled_count_does_not_look_like_recent_progress(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    module = _load_script_module()
+    fixed_now = datetime(2026, 3, 1, 3, 0, 0, tzinfo=timezone.utc)
+    monkeypatch.setattr(module, "_utc_now", lambda: fixed_now)
+    monkeypatch.setattr(module, "_ps_snapshot", lambda: [])
+
+    log_path = tmp_path / "jobs" / "phac" / "archive_test.combined.log"
+    log_path.parent.mkdir(parents=True, exist_ok=True)
+    payloads = [
+        {
+            "timestamp": "2026-03-01T00:00:00Z",
+            "logLevel": "info",
+            "context": "crawlStatus",
+            "message": "Crawl statistics",
+            "details": {"crawled": 267, "total": 2311, "pending": 1, "failed": 676},
+        },
+        {
+            "timestamp": "2026-03-01T00:30:00Z",
+            "logLevel": "info",
+            "context": "crawlStatus",
+            "message": "Crawl statistics",
+            "details": {"crawled": 267, "total": 2311, "pending": 1, "failed": 690},
+        },
+    ]
+    log_path.write_text(
+        "\n".join(json.dumps(payload) for payload in payloads) + "\n",
+        encoding="utf-8",
+    )
+
+    with get_session() as session:
+        source = Source(code="phac", name="Public Health Agency of Canada")
+        session.add(source)
+        session.flush()
+        job = ArchiveJob(
+            source_id=int(source.id),
+            name="phac-20260101",
+            output_dir=str(log_path.parent),
+            status="running",
+            combined_log_path=str(log_path),
+            started_at=datetime(2026, 3, 1, 0, 0, 0, tzinfo=timezone.utc),
+            config={},
+        )
+        session.add(job)
+        session.commit()
+
+    sentinel = tmp_path / "enabled"
+    sentinel.write_text("", encoding="utf-8")
+    state_path = tmp_path / "state.json"
+    metrics_path = tmp_path / "metrics.prom"
+
+    rc = module.main(
+        [
+            "--sentinel-file",
+            str(sentinel),
+            "--deploy-lock-file",
+            str(tmp_path / "deploy.lock"),
+            "--state-file",
+            str(state_path),
+            "--lock-file",
+            str(tmp_path / "watchdog.lock"),
+            "--textfile-out-dir",
+            str(tmp_path),
+            "--textfile-out-file",
+            metrics_path.name,
+            "--degraded-rate-threshold-ppm",
+            "2.0",
+            "--degraded-min-consecutive-runs",
+            "2",
+            "--degraded-max-progress-age-seconds",
+            "300",
+            "--degraded-sources",
+            "hc,phac",
+        ]
+    )
+
+    assert rc == 0
+    metrics = metrics_path.read_text(encoding="utf-8")
+    assert "healtharchive_crawl_auto_recover_degraded_jobs 0" in metrics
+    assert (
+        'healtharchive_crawl_auto_recover_degraded_streak{job_id="1",source="phac"}' not in metrics
+    )

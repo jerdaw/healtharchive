@@ -113,6 +113,10 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 - WARC discovery consistency follow-through (deferred Phase 2-4 work; keep behavior coherent across status, indexing, and cleanup).
   - Historical context: `implemented/2026-01-29-warc-discovery-consistency.md`
   - Already implemented: `implemented/2026-01-29-warc-manifest-verification.md`
+- Replace the temporary PHAC `public-health-notices` crawl exclusion with a targeted crawler-compatibility fix.
+  - Context: the live 2026 PHAC annual crawl hit a sustained `net::ERR_HTTP2_PROTOCOL_ERROR` failure loop on `https://www.canada.ca/en/public-health/services/public-health-notices/...`, so that subtree is temporarily excluded from queueing.
+  - Goal: find a source-compatible browser/crawler mitigation that restores intended coverage without reintroducing failure churn.
+  - Related docs: `../operations/annual-campaign.md`, `../operations/healtharchive-ops-roadmap.md`
 - Continue crawl telemetry calibration from live annual-crawl runs, but use dashboard trends (crawl rate / phase churn / progress age) rather than direct throughput alerts.
   - Current focus: validate dashboard thresholds/visual cues and only promote a signal back into Alertmanager if it becomes clearly actionable.
   - Related docs: `../operations/monitoring-and-alerting.md`, `../operations/healtharchive-ops-roadmap.md`

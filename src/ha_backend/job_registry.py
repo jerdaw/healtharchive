@@ -51,12 +51,21 @@ PHAC_CANADA_CA_SCOPE_INCLUDE_RX = (
 # Exclude binary/document URLs from top-level page queueing. These files can
 # still be captured as subresources from crawled HTML pages, but avoiding direct
 # page navigation to them reduces timeout thrashing substantially.
-_CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX = (
-    r"^https://www[.]canada[.]ca/.*[.](?:pdf|mp4|zip|docx?|pptx?|xlsx?)(?:[?#].*)?$"
+_CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY = (
+    r"https://www[.]canada[.]ca/.*[.](?:pdf|mp4|zip|docx?|pptx?|xlsx?)(?:[?#].*)?"
+)
+_PHAC_PUBLIC_HEALTH_NOTICES_EXCLUDE_RX_BODY = (
+    r"https://www[.]canada[.]ca/en/public-health/services/public-health-notices"
+    r"(?:/[^?#]*)?(?:[?#].*)?"
 )
 
+_CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX = rf"^(?:{_CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY})$"
+
 HC_CANADA_CA_SCOPE_EXCLUDE_RX = _CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX
-PHAC_CANADA_CA_SCOPE_EXCLUDE_RX = _CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX
+PHAC_CANADA_CA_SCOPE_EXCLUDE_RX = (
+    rf"^(?:{_CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY}"
+    rf"|{_PHAC_PUBLIC_HEALTH_NOTICES_EXCLUDE_RX_BODY})$"
+)
 
 
 @dataclass
