@@ -117,6 +117,11 @@ Out of scope (examples):
 
 -   `https://www.canada.ca/en/services/`
 -   `https://www.canada.ca/en/government/`
+-   Temporary operational exclusion (2026-03-21): `https://www.canada.ca/en/public-health/services/public-health-notices/`
+    and descendants are excluded from the crawl queue because the live 2026 annual
+    PHAC run was repeatedly failing there with `net::ERR_HTTP2_PROTOCOL_ERROR`
+    and making no useful crawl progress. Revisit once we have a targeted crawler
+    compatibility fix for that subtree.
 -   Any other `https://www.canada.ca/<lang>/...` that is not the hub page or under
     the allowed prefixes above.
 

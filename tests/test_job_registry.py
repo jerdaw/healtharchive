@@ -212,6 +212,9 @@ def test_canada_ca_scope_regexes_match_expected_urls() -> None:
         "https://www.canada.ca/en/public-health/services/publications/example.docx"
     )
     assert phac_exclude_rx.match(
+        "https://www.canada.ca/en/public-health/services/public-health-notices/2015/public-health-notice-outbreak-e-coli-infections.html"
+    )
+    assert phac_exclude_rx.match(
         "https://www.canada.ca/fr/sante-publique/services/publications/example.mp4#section"
     )
     assert not phac_exclude_rx.match(

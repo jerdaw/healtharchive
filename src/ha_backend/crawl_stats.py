@@ -128,6 +128,11 @@ def parse_crawl_log_progress(
 
     Returns the most recent crawlStatus event plus the timestamp of the most
     recent *crawled count change* (useful for stall detection).
+
+    If no crawled-count change is visible within the inspected log window, the
+    returned timestamp falls back to the oldest crawlStatus event we saw. That
+    makes the derived age a lower bound on "time since useful crawl progress"
+    instead of incorrectly treating failed-page churn as fresh progress.
     """
     events = parse_crawl_status_events_from_log_tail(log_path, max_bytes=max_bytes)
     if not events:
@@ -135,7 +140,7 @@ def parse_crawl_log_progress(
 
     last_event = events[-1]
     last_crawled = last_event.crawled
-    last_change_timestamp = last_event.timestamp_utc
+    last_change_timestamp = events[0].timestamp_utc
 
     # Walk backwards until we find a different crawled count; then the change
     # happened at the next event forward.

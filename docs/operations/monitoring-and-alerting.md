@@ -1,6 +1,6 @@
 # Monitoring & Alerting Strategy - Annual Crawl Campaign
 
-**Last Updated:** 2026-03-01
+**Last Updated:** 2026-03-21
 
 ## Overview
 
@@ -44,7 +44,7 @@ Primary files (single-VPS annual campaign):
 | `healtharchive_crawl_auto_recover_degraded_streak{job_id,source}` | Gauge | Consecutive watchdog runs where a job has remained degraded. |
 | `healtharchive_crawl_running_job_state_file_ok` | Gauge | 1 = `.archive_state.json` is readable and valid. 0 = Probe failed (SSHFS/Permissions issue). |
 | `healtharchive_crawl_running_job_container_restarts_done` | Gauge | Cumulative count of Zimit container restarts for the current job. |
-| `healtharchive_crawl_running_job_last_progress_age_seconds` | Gauge | Time since the last "pages crawled" increment in the logs. |
+| `healtharchive_crawl_running_job_last_progress_age_seconds` | Gauge | Time since the last "pages crawled" increment in the logs (or, when no increment appears in the inspected log window, a lower bound based on the oldest visible crawlStatus event). |
 | `healtharchive_crawl_running_job_stalled` | Gauge | 1 = Progress stalled > 1 hour. |
 | `healtharchive_crawl_running_job_output_dir_ok` | Gauge | 1 = Output directory is accessible. |
 | `healtharchive_crawl_annual_pending_job_output_dir_writable{source,job_id,status,year}` | Gauge | 1 = Queued/retryable annual job output dir would be writable by the worker user (permission drift detection). |
@@ -134,7 +134,7 @@ In practice this means:
 - **Meaning:** The crawler is running but hasn't archived a new page in over an hour, and the stall persisted long enough to warrant manual review even if crawl auto-recover is enabled.
 - **Action:** Check if the crawler is stuck on a massive PDF or looped trap. If crawl auto-recover is enabled, also inspect its watchdog state/metrics to confirm whether automation attempted recovery.
 
-**Note on state file mtime:** The `.archive_state.json` mtime may appear stale even during healthy crawls, because the state file is only written on certain lifecycle events (container restarts, phase changes), not on every progress update. Use `last_progress_age_seconds` (derived from crawlStatus log entries) for stall detection, not `state_mtime_age_seconds`.
+**Note on state file mtime:** The `.archive_state.json` mtime may appear stale even during healthy crawls, because the state file is only written on certain lifecycle events (container restarts, phase changes), not on every progress update. Use `last_progress_age_seconds` (derived from crawlStatus log entries) for stall detection, not `state_mtime_age_seconds`. When the inspected log window shows repeated crawlStatus events with a flat `crawled` count, `last_progress_age_seconds` ages from the oldest visible crawlStatus event instead of resetting on every failed-page churn event.
 
 ### 4.1) Degraded Throughput (slow but progressing)
 
