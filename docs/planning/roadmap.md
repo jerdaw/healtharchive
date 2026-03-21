@@ -148,7 +148,6 @@ Completed items were removed from this backlog and archived in:
 
 ### Documentation and operations maturity
 
-25. **Generate and publish OpenAPI spec** (M: 1 day)
 26. **Create explicit data retention schedule table** (S: 2h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 1, item 1d
 27. **Add disaster recovery SLOs (RTO/RPO)** (S: 1-2h)
 28. **Write first-responder / on-call runbook** (S: 2-3h)

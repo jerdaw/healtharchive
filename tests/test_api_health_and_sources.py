@@ -452,6 +452,28 @@ def test_source_preview_endpoint_serves_jpeg_when_available(tmp_path, monkeypatc
     assert resp.headers.get("cache-control") is not None
 
 
+def test_source_preview_head_endpoint_returns_headers_without_body(tmp_path, monkeypatch) -> None:
+    preview_dir = tmp_path / "previews"
+    preview_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("HEALTHARCHIVE_REPLAY_PREVIEW_DIR", str(preview_dir))
+
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    with get_session() as session:
+        hc = Source(code="hc", name="Health Canada", enabled=True)
+        session.add(hc)
+        session.flush()
+
+    file_path = preview_dir / "source-hc-job-1.png"
+    file_path.write_bytes(b"\x89PNG\r\n\x1a\n")
+
+    resp = client.head("/api/sources/hc/preview", params={"jobId": 1})
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("image/png")
+    assert resp.headers.get("cache-control") is not None
+    assert resp.content == b""
+
+
 def test_source_editions_endpoint_lists_indexed_jobs_sorted_by_recency(
     tmp_path, monkeypatch
 ) -> None:

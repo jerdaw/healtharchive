@@ -74,9 +74,10 @@ Verification:
 Use stable workflow/job check names shown in GitHub’s UI. Avoid renaming workflow/job IDs after
 you start requiring them.
 
-As of 2026-03-17 (solo-dev profile), the checks are used as follows:
+As of 2026-03-21 (solo-dev profile), the checks are used as follows:
 
 - Backend repo (required on `main`): `Backend CI / test`, `Backend CI / api-health`
+- Backend repo (non-required, workflow-file changes only): `actionlint`
 - Backend repo (not required): `Backend CI / e2e-smoke` (push/manual only), `Backend CI (Full) / test-full` (nightly/manual)
 - Frontend repo (required on `main`): `lint-and-test`, `e2e-smoke`
 - Frontend repo (not required): `docker-build-smoke`, external `Vercel` status
@@ -572,7 +573,7 @@ As configured on 2026-02-06:
 - Bypass list: `Repository admin Role` (always allow)
 - Enabled rules:
   - `Restrict deletions`
-  - `Require status checks to pass` with required check `Backend CI / test`
+  - `Require status checks to pass` with required checks `Backend CI / test` and `Backend CI / api-health`
   - `Block force pushes`
 - Disabled rules (intentional for solo-dev speed):
   - `Require a pull request before merging`
@@ -584,11 +585,12 @@ Important check-selection notes:
 
 - Do not require `Backend CI / e2e-smoke` in branch protection (it does not run on pull requests).
 - Do not require `Backend CI (Full) / test-full` (nightly/manual workflow).
+- Do not require `actionlint`; it only runs when workflow files change.
 
 Verification ritual (operator, monthly or after workflow edits):
 
 1. Open **GitHub → Repository → Settings → Rules → Rulesets → `main-protection`**.
-2. Confirm required check list still contains only `Backend CI / test`.
+2. Confirm required check list contains `Backend CI / test` and `Backend CI / api-health`.
 3. Confirm `Block force pushes` and `Restrict deletions` remain enabled.
 4. Open **Actions** and confirm the latest `Backend CI` run on `main` is green.
 5. Log any changes in an ops report note (date + what changed + why).
@@ -598,8 +600,8 @@ Verification ritual (operator, monthly or after workflow edits):
 
 Latest evidence snapshot:
 
-- 2026-02-06: `main-protection` ruleset verified active with required check `Backend CI / test`,
-  `Restrict deletions` enabled, and `Block force pushes` enabled.
+- 2026-03-21: branch protection verified active with required checks `Backend CI / test`
+  and `Backend CI / api-health`, with `Restrict deletions` and `Block force pushes` enabled.
 
 Future tighten-up trigger:
 

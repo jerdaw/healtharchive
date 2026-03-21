@@ -3455,19 +3455,13 @@ def list_source_editions(
     return editions
 
 
-@router.api_route("/sources/{source_code}/preview", methods=["GET", "HEAD"])
-def get_source_preview(
+def _source_preview_response(
     source_code: str,
-    jobId: int = Query(..., ge=1),
-    lang: Optional[str] = Query(default=None, pattern=r"^(en|fr)$"),
-    db: Session = Depends(get_db),
+    *,
+    job_id: int,
+    lang: Optional[str],
+    db: Session,
 ) -> Response:
-    """
-    Return a cached preview image for a source's replay homepage.
-
-    These previews are generated out-of-band (e.g. via an operator script) and
-    stored on disk under HEALTHARCHIVE_REPLAY_PREVIEW_DIR.
-    """
     preview_dir = get_replay_preview_dir()
     if preview_dir is None:
         raise HTTPException(status_code=404, detail="Preview images not configured")
@@ -3481,7 +3475,7 @@ def get_source_preview(
     if not source:
         raise HTTPException(status_code=404, detail="Source not found")
 
-    resolved = _find_replay_preview_file(preview_dir, normalized_code, jobId, lang=lang)
+    resolved = _find_replay_preview_file(preview_dir, normalized_code, job_id, lang=lang)
     if resolved is None:
         raise HTTPException(status_code=404, detail="Preview not found")
 
@@ -3492,6 +3486,33 @@ def get_source_preview(
         "Cache-Control": "public, max-age=86400, stale-while-revalidate=604800",
     }
     return FileResponse(candidate, media_type=media_type, headers=headers)
+
+
+@router.get("/sources/{source_code}/preview")
+def get_source_preview(
+    source_code: str,
+    jobId: int = Query(..., ge=1),
+    lang: Optional[str] = Query(default=None, pattern=r"^(en|fr)$"),
+    db: Session = Depends(get_db),
+) -> Response:
+    """
+    Return a cached preview image for a source's replay homepage.
+
+    These previews are generated out-of-band (e.g. via an operator script) and
+    stored on disk under HEALTHARCHIVE_REPLAY_PREVIEW_DIR.
+    """
+    return _source_preview_response(source_code, job_id=jobId, lang=lang, db=db)
+
+
+@router.head("/sources/{source_code}/preview", include_in_schema=False)
+def head_source_preview(
+    source_code: str,
+    jobId: int = Query(..., ge=1),
+    lang: Optional[str] = Query(default=None, pattern=r"^(en|fr)$"),
+    db: Session = Depends(get_db),
+) -> Response:
+    resp = _source_preview_response(source_code, job_id=jobId, lang=lang, db=db)
+    return Response(status_code=resp.status_code, headers=dict(resp.headers))
 
 
 @router.get("/replay/resolve", response_model=ReplayResolveSchema)
