@@ -19,7 +19,8 @@ MIGRATION_GUARD_HEAD ?= HEAD
 
 venv:
 	$(PYTHON) -m venv $(VENV)
-	$(VENV_BIN)/pip install -e ".[dev,docs]"
+	$(VENV_BIN)/python -m ensurepip --upgrade
+	$(VENV_BIN)/python -m pip install -e ".[dev,docs]"
 
 format:
 	$(RUFF) format .

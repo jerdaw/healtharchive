@@ -127,8 +127,9 @@ Rollback or stop rollout if any of these are true:
 Use `production-single-vps.md` for the full rollback path.
   - Verify backend `main` protection still matches the solo-dev ruleset profile in
     `../operations/monitoring-and-ci-checklist.md` §3.2:
-    - required check: `Backend CI / test`
+    - required checks: `Backend CI / test`, `Backend CI / api-health`
     - keep `Backend CI / e2e-smoke` and `Backend CI (Full) / test-full` non-required
+    - keep `actionlint` non-required (workflow-file changes only)
     - keep `Restrict deletions` and `Block force pushes` enabled
 
 With this in place, `main` deploys cleanly to production, and you have health
