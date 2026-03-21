@@ -1,59 +1,136 @@
-# Runbook: CrawlRestartBudgetLow
+# Runbook: Crawl Restart Budget Low
 
-**Alert Name:** `CrawlRestartBudgetLow`
+**Alert Name:** `HealthArchiveCrawlContainerRestartsHigh`
 **Severity:** Warning
-**Trigger:** `healtharchive_crawl_running_job_container_restarts_done > 15` (limit is 20).
 
-## Description
+## Trigger
 
-The annual crawl job is restarting its zimit container frequently. Annual jobs are configured with `max_container_restarts=20` to survive occasional timeouts or memory leaks. Reaching 15 restarts means the job is consuming its budget faster than expected and risks failing completely.
+This alert fires when a running crawl has consumed most of its adaptive restart
+budget for at least 30 minutes:
 
-## Impact
+- `hc`: `container_restarts_done >= 19` (budget `24`)
+- `phac`: `container_restarts_done >= 24` (budget `30`)
+- `cihr`: `container_restarts_done >= 16` (budget `20`)
+- other sources: `container_restarts_done >= 16`
 
-- If restarts hit 20, the job enters `failed` state and crawling stops.
-- This protects the infrastructure from infinite loops but might leave the crawl incomplete.
+## Meaning
 
-## Diagnosis
+The crawl is at elevated risk of hard failure if restart churn continues. The
+usual root causes are:
 
-1. **Check Restart Rate**:
-   Is the job restarting every few minutes (thrashing) or once every few hours?
+- repeated navigation or HTTP timeout churn on the source site
+- storage instability on the job hot path (`Errno 107`, unreadable logs/state)
+- stale running state or stale metrics after the crawl stopped making progress
 
-   ```bash
-   # Check restart timestamps
-   /opt/healtharchive-backend/scripts/vps-crawl-status.sh
-   ```
+Treat this as a classification problem first, not a “raise the budget” problem.
 
-2. **Review Crash Reasons**:
-   Check the combined log for the reason *before* the restart.
+## Quick Diagnosis
 
-   ```bash
-   tail -n 500 /srv/healtharchive/jobs/<source>/archive_*.combined.log
-   ```
+Start with a read-only snapshot on the VPS:
 
-   - **TimeoutErrors**: Site is too slow.
-   - **HTTP 5xx**: Site is overloaded.
-   - **OOM / Killed**: Zimit is running out of RAM.
+```bash
+cd /opt/healtharchive-backend
 
-## Mitigation
+./scripts/vps-crawl-status.sh --year 2026 --job-id <JOB_ID> --recent-lines 20000
 
-1. **Increase Budget (If progress is good)**:
-   If the job is making good progress (thousands of pages) and just hitting occasional glitches, you can manually increase the budget in the database to keep it going.
+curl -s http://127.0.0.1:9100/metrics | rg 'healtharchive_crawl_running_job_(container_restarts_done|last_progress_age_seconds|stalled|crawl_rate_ppm|output_dir_ok|output_dir_errno|log_probe_ok|log_probe_errno|state_file_ok|state_parse_ok|temp_dirs_count|errors_timeout|errors_http|errors_other)\{job_id="<JOB_ID>"'
 
-   ```bash
-   ha-backend db-shell
-   # UPDATE archive_jobs SET tool_options = jsonb_set(tool_options, '{max_container_restarts}', '30') WHERE id=6;
-   ```
+set -a; source /etc/healtharchive/backend.env; set +a
+/opt/healtharchive-backend/.venv/bin/ha-backend show-job --id <JOB_ID>
+sudo journalctl -u healtharchive-worker.service -n 400 --no-pager
+docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}'
+```
 
-   Then restart the worker to pick up the new config:
+Classify the incident:
 
-   ```bash
-   sudo systemctl restart healtharchive-worker.service
-   ```
+- **Timeout churn**: logs show repeated `Navigation timeout`, `Page load timed out`, HTTP/network failures, or the same URL families before restart messages.
+- **Storage instability**: metrics or logs show `output_dir_errno=107`, `log_probe_errno=107`, unreadable state/log files, or permission errors.
+- **State/metrics drift**: DB still says `running`, but there is no active crawl container and no fresh `crawlStatus` or WARC activity.
 
-2. **Pause Job (If thrashing)**:
-   If restarts are happening rapidly with no progress, pause the job to save resources.
+## Confirm Progress Before Recovering
 
-   ```bash
-   ha-backend db-shell
-   # UPDATE archive_jobs SET status='paused' WHERE id=6;
-   ```
+Use the newest combined log and recent WARCs for the job:
+
+```bash
+JOBDIR="/srv/healtharchive/jobs/<source>/<JOB_DIR>"
+LOG="$(ls -t "${JOBDIR}"/archive_*.combined.log | head -n 1)"
+
+rg -n '"context":"crawlStatus"' "${LOG}" | tail -n 10
+rg -n 'Navigation timeout|Page load timed out|ERR_HTTP2_PROTOCOL_ERROR|Transport endpoint is not connected|Permission denied|No space left on device|Attempting adaptive container restart|Max restarts' "${LOG}" | tail -n 200
+find "${JOBDIR}" -name '*.warc.gz' -printf '%TY-%Tm-%Td %TT %p\n' 2>/dev/null | sort | tail -n 10
+```
+
+Interpretation:
+
+- If `crawlStatus` is still moving and recent WARCs are appearing, keep the job
+  running long enough to capture the repeated failing URL or pattern.
+- If progress is flat and the job is near or at budget exhaustion, recover it.
+
+## Recovery
+
+### Storage branch
+
+If the evidence shows hot-path storage failures (`Errno 107`, unreadable
+output/log/state paths), follow the canonical storage repair flow:
+
+1. `sudo systemctl stop healtharchive-worker.service`
+2. Repair the stale mount using:
+   `docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md`
+3. Recover the stale job row:
+
+```bash
+set -a; source /etc/healtharchive/backend.env; set +a
+/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 5 --apply --source <source> --limit 1
+sudo systemctl start healtharchive-worker.service
+```
+
+Do not increase restart budgets until storage is healthy.
+
+### Timeout / stalled crawl branch
+
+If storage is healthy but the crawl is churning on timeouts or no longer making
+progress:
+
+```bash
+sudo systemctl stop healtharchive-worker.service
+
+set -a; source /etc/healtharchive/backend.env; set +a
+/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs \
+  --older-than-minutes 5 \
+  --require-no-progress-seconds 3600 \
+  --apply \
+  --source <source> \
+  --limit 1
+
+sudo systemctl start healtharchive-worker.service
+```
+
+If the same URLs keep repeating across retries, capture them and consider scope
+or timeout tuning after the incident is stabilized.
+
+### State / metrics drift branch
+
+If the row is stale (`running` in DB, no live crawl process, no fresh progress),
+reconcile it before assuming the crawl is still active:
+
+```bash
+sudo systemctl stop healtharchive-worker.service
+
+set -a; source /etc/healtharchive/backend.env; set +a
+/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 5 --apply --source <source> --limit 1
+
+sudo systemctl start healtharchive-worker.service
+```
+
+Then confirm the per-job metrics no longer show the old running state.
+
+## Escalation Guidance
+
+Only increase `max_container_restarts` when all of these are true:
+
+- storage is healthy
+- the crawl is still producing fresh `crawlStatus` updates and recent WARCs
+- the restart churn looks intermittent rather than continuous thrash
+
+If those conditions are not met, raising the budget usually extends a broken run
+without improving completeness.

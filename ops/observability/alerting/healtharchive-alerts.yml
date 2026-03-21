@@ -10,7 +10,7 @@ groups:
         annotations:
           summary: "HealthArchive backend metrics scrape is down"
           description: "Prometheus cannot scrape /metrics from the backend for 5m. Check healtharchive-api.service and admin token config."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/incident-response.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/core/incident-response.md"
 
       - alert: HealthArchiveDiskUsageHigh
         expr: |
@@ -23,7 +23,7 @@ groups:
         annotations:
           summary: "Disk usage > 85% on __MOUNTPOINT__"
           description: "Disk usage has been > 85% for 30m on the filesystem backing __MOUNTPOINT__. Baseline is ~82% with automated cleanup; sustained usage above 85% indicates accumulation. Check Docker images, logs, and temp crawl dirs."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/incident-response.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/core/incident-response.md"
 
       - alert: HealthArchiveDiskUsageCritical
         expr: |
@@ -36,7 +36,7 @@ groups:
         annotations:
           summary: "Disk usage > 92% on __MOUNTPOINT__"
           description: "Disk usage has been > 92% for 10m on the filesystem backing __MOUNTPOINT__. Immediate action required: run docker-cleanup.sh, truncate container logs, or stop crawls to prevent disk-full failures."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/incident-response.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/core/incident-response.md"
 
       - alert: HealthArchiveSearchErrorsSustained
         expr: |
@@ -49,7 +49,7 @@ groups:
         annotations:
           summary: "Sustained /api/search errors"
           description: "At least 3 search errors over 15m with meaningful traffic (>=50 requests). Investigate recent deploys, DB health, and logs."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/incident-response.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/core/incident-response.md"
 
       - alert: HealthArchiveJobFailuresIncreased
         expr: |
@@ -61,7 +61,7 @@ groups:
         annotations:
           summary: "Job failures increased"
           description: "The number of jobs in failed/index_failed increased in the last 30m. Check admin jobs list for the most recent failures and error messages."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/incident-response.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/core/incident-response.md"
 
   - name: healtharchive.crawl
     rules:
@@ -99,7 +99,7 @@ groups:
         annotations:
           summary: "Worker is down while crawl jobs are pending"
           description: "There are pending crawl jobs (queued/retryable) and Storage Box appears readable, but healtharchive-worker.service is not active. When worker auto-start automation is enabled, this alert waits for repeated watchdog runs and suppresses while the deploy lock is active. Check worker logs, recent deploy activity, and watchdog state/metrics."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storagebox-sshfs-stale-mount-recovery.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
 
       - alert: HealthArchiveCrawlOutputDirUnreadable
         expr: |
@@ -112,7 +112,7 @@ groups:
         annotations:
           summary: "Running job output dir unreadable"
           description: "A running crawl job has an unreadable output_dir (non-Errno-107): source={{ $labels.source }} job_id={{ $labels.job_id }}. Stale sshfs/FUSE mount cases (Errno 107) are escalated via the storage hot-path watchdog alerts."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storagebox-sshfs-stale-mount-recovery.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
 
       - alert: HealthArchiveAnnualOutputDirNotWritable
         expr: |
@@ -139,7 +139,7 @@ groups:
         annotations:
           summary: "Running job state file unreadable/unparseable"
           description: "A running job has a .archive_state.json file but it is failing to parse. This can indicate partial writes, storage errors, or unexpected schema changes. job_id={{ $labels.job_id }} source={{ $labels.source }}."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/tutorials/debug-crawl.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/runbooks/crawl-state-file-probe-failure.md"
 
       - alert: HealthArchiveCrawlStalled
         expr: healtharchive_crawl_running_job_stalled == 1
@@ -150,7 +150,7 @@ groups:
         annotations:
           summary: "Crawl progress stalled (no crawled-count increase)"
           description: "A running crawl job appears stalled: source={{ $labels.source }} job_id={{ $labels.job_id }}. Check healtharchive-worker.service logs and the job's archive_*.combined.log; consider recovering the job if it remains stalled."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/crawl-stalls.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/crawl/crawl-stalls.md"
 
       - alert: HealthArchiveCrawlRateDegraded
         expr: |
@@ -165,7 +165,7 @@ groups:
         annotations:
           summary: "Crawl throughput degraded (slow but still progressing)"
           description: "A running crawl has sustained low crawl_rate_ppm while still making progress. source={{ $labels.source }} job_id={{ $labels.job_id }}. Investigate queue composition/timeouts and auto-recover scope reconciliation state before forcing restarts."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/crawl-stalls.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/crawl/crawl-stalls.md"
 
       - alert: HealthArchiveCrawlContainerRestartsHigh
         expr: |
@@ -182,7 +182,7 @@ groups:
         annotations:
           summary: "Container restart budget running low during crawl"
           description: "A running job has consumed most of its adaptive restart budget. job_id={{ $labels.job_id }} source={{ $labels.source }} restarts={{ $value }}. Investigate recurring timeout/storage instability before budget exhaustion."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/tutorials/debug-crawl.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/runbooks/crawl-restart-budget-low.md"
 
       - alert: HealthArchiveIndexingNotStarted
         expr: healtharchive_indexing_pending_job_max_age_seconds > 3600
@@ -193,7 +193,7 @@ groups:
         annotations:
           summary: "Crawl completed but indexing not starting"
           description: "At least one job has status=completed for over an hour (crawl done, indexing not done). Check healtharchive-worker.service and worker logs."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/annual-campaign.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/runbooks/indexing-not-started.md"
 
       - alert: HealthArchiveInfraErrorsHigh
         expr: healtharchive_jobs_infra_error_recent_total{window="10m"} >= 3
@@ -204,7 +204,7 @@ groups:
         annotations:
           summary: "High rate of infrastructure errors"
           description: "Multiple jobs (>=3) have failed with infra_error in the last 10 minutes. This typically indicates Storage Box mount issues, network problems, or storage capacity issues. Check mount health and storage connectivity."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storagebox-sshfs-stale-mount-recovery.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
 
       - alert: HealthArchiveCrawlMetricsStale
         expr: (time() - healtharchive_crawl_metrics_timestamp_seconds) > 600
@@ -239,7 +239,7 @@ groups:
         annotations:
           summary: "Deploy lock active for >4 hours"
           description: "The deploy lock has been held for over 4 hours, blocking crawl auto-recover."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/incident-response.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/core/incident-response.md"
 
       - alert: HealthArchiveCrawlTempDirsHigh
         expr: healtharchive_crawl_running_job_temp_dirs_count > 100
@@ -276,7 +276,7 @@ groups:
         annotations:
           summary: "Storage Box mount is down (cold WARC tier unavailable)"
           description: "The Storage Box mount is missing or unreadable. Replay and/or crawls that rely on cold WARCs may fail. Check healtharchive-storagebox-sshfs.service and the sshfs mount."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/warc-storage-tiering.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storage/warc-storage-tiering.md"
 
       - alert: HealthArchiveStorageHotpathStaleUnrecovered
         expr: |
@@ -289,7 +289,7 @@ groups:
         annotations:
           summary: "Storage hot path stale/unrecovered (Errno 107 likely)"
           description: "The Storage Box hot-path auto-recover script is enabled but still detects stale/unreadable hot paths (Errno 107) after 10m. Check /srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json and consider manual unmount + tiering re-apply."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storagebox-sshfs-stale-mount-recovery.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
 
       - alert: HealthArchiveStorageHotpathApplyFailedPersistent
         expr: |
@@ -304,7 +304,7 @@ groups:
         annotations:
           summary: "Storage hot-path auto-recover apply failed for >24h"
           description: "The last apply-mode hot-path recovery failed and no successful apply has replaced it for over 24 hours. Check /srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json (last_apply_errors, last_apply_warnings), then run stale-mount recovery playbook steps."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storagebox-sshfs-stale-mount-recovery.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
 
       - alert: HealthArchiveTieringHotPathUnreadable
         expr: healtharchive_tiering_hot_path_ok == 0
@@ -315,7 +315,7 @@ groups:
         annotations:
           summary: "Tiering hot path unreadable (stale sshfs mount?)"
           description: "A tiering hot path is unreadable: hot={{ $labels.hot }}. Check healtharchive_tiering_hot_path_errno (Errno 107 usually indicates a stale sshfs mount)."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storagebox-sshfs-stale-mount-recovery.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
 
       - alert: HealthArchiveWarcTieringFailed
         expr: healtharchive_systemd_unit_failed{unit="healtharchive-warc-tiering.service"} == 1
@@ -326,7 +326,7 @@ groups:
         annotations:
           summary: "WARC tiering bind mounts failed"
           description: "The tiering bind-mount service is in a failed state. Canonical WARC paths may not resolve after reboot. Check healtharchive-warc-tiering.service logs and /etc/healtharchive/warc-tiering.binds."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/warc-storage-tiering.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storage/warc-storage-tiering.md"
 
       - alert: HealthArchiveTieringStale
         expr: (time() - healtharchive_tiering_metrics_timestamp_seconds) > 7200
@@ -337,7 +337,7 @@ groups:
         annotations:
           summary: "HealthArchive tiering metrics are stale"
           description: "No successful tiering metrics update in over 2 hours. Timer may be failing."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/incident-response.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/core/incident-response.md"
 
   - name: healtharchive.campaign
     rules:
@@ -354,7 +354,7 @@ groups:
         annotations:
           summary: "Annual campaign sentinel failed (preflight/scheduling/tiering)"
           description: "The annual campaign sentinel reported failure. This usually means campaign preflight failed, annual jobs were not scheduled, or annual output dirs were not tiered onto the Storage Box."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/annual-campaign.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/crawl/annual-campaign.md"
 
       - alert: HealthArchiveAnnualCampaignSentinelMissing
         expr: |
@@ -375,7 +375,7 @@ groups:
         annotations:
           summary: "Annual campaign sentinel did not run"
           description: "No annual campaign sentinel metrics were observed on Jan 01. Check that healtharchive-annual-campaign-sentinel.timer is enabled and node_exporter textfile collector is working."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/annual-campaign.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/crawl/annual-campaign.md"
 
   - name: healtharchive.automation
     rules:
@@ -388,7 +388,7 @@ groups:
         annotations:
           summary: "Annual coverage regression detected"
           description: "Coverage ratio dropped below the configured threshold for source={{ $labels.source }} year={{ $labels.year }}. Review annual job logs and compare with prior year."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/coverage-guardrails.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/validation/coverage-guardrails.md"
 
       - alert: HealthArchiveCoverageMetricsMissing
         expr: healtharchive_coverage_metrics_ok == 0
@@ -399,7 +399,7 @@ groups:
         annotations:
           summary: "Coverage guardrails metrics missing"
           description: "Coverage guardrails metrics script failed. Check healtharchive-coverage-guardrails.service logs and configuration."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/coverage-guardrails.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/validation/coverage-guardrails.md"
 
       - alert: HealthArchiveReplaySmokeFailed
         expr: |
@@ -412,7 +412,7 @@ groups:
         annotations:
           summary: "Replay smoke test failed"
           description: "Replay smoke check failed for source={{ $labels.source }} job_id={{ $labels.job_id }}. Check replay health and replay-reconcile."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/replay-smoke-tests.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/validation/replay-smoke-tests.md"
 
       - alert: HealthArchiveReplaySmokeMetricsMissing
         expr: healtharchive_replay_smoke_metrics_ok == 0
@@ -423,7 +423,7 @@ groups:
         annotations:
           summary: "Replay smoke metrics missing"
           description: "Replay smoke metrics script failed. Check healtharchive-replay-smoke.service logs and configuration."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/replay-smoke-tests.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/validation/replay-smoke-tests.md"
 
       - alert: HealthArchiveCleanupAutomationErrors
         expr: healtharchive_cleanup_apply_errors_total > 0
@@ -434,7 +434,7 @@ groups:
         annotations:
           summary: "Cleanup automation encountered errors"
           description: "One or more cleanup-job runs failed. Check healtharchive-cleanup-automation.service logs and inspect the affected job IDs."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/cleanup-automation.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/crawl/cleanup-automation.md"
 
       - alert: HealthArchiveCleanupMetricsMissing
         expr: healtharchive_cleanup_metrics_ok == 0
@@ -445,7 +445,7 @@ groups:
         annotations:
           summary: "Cleanup automation metrics missing"
           description: "Cleanup automation metrics script failed. Check healtharchive-cleanup-automation.service logs and configuration."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/cleanup-automation.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/crawl/cleanup-automation.md"
 
   - name: healtharchive.drills
     rules:
@@ -458,4 +458,4 @@ groups:
         annotations:
           summary: "Drill: alert pipeline test"
           description: "This alert is intentionally triggered during operator drills to validate Prometheus→Alertmanager wiring. It should be routed to a null receiver by default."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storagebox-sshfs-stale-mount-drills.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-drills.md"

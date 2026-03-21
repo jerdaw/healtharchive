@@ -127,6 +127,7 @@ echo ""
 
 VENV_BIN="${REPO_DIR}/.venv/bin"
 HA_BIN="${VENV_BIN}/ha-backend"
+METRICS_URL="http://127.0.0.1:9100/metrics"
 
 if [[ -x "${HA_BIN}" ]]; then
   ok "ha-backend present: ${HA_BIN}"
@@ -202,11 +203,14 @@ if [[ -x "${HA_BIN}" ]]; then
 
         echo ""
         echo "[recent warc.gz]"
-        if have_cmd ha-backend; then
+        if [[ -x "${HA_BIN}" ]]; then
           # Use unified WARC discovery to show 5 most recent WARCs
-          ha-backend list-warcs --id "${JOBID}" --recent 5 2>/dev/null | while IFS= read -r warc_path; do
+          mapfile -t recent_warcs < <("${HA_BIN}" list-warcs --id "${JOB_ID}" --recent 5 2>/dev/null)
+          if [[ ${#recent_warcs[@]} -eq 0 ]]; then
+            echo "WARN no WARC files discovered for job ${JOB_ID}"
+          fi
+          for warc_path in "${recent_warcs[@]}"; do
             if [[ -f "$warc_path" ]]; then
-              local mtime size
               mtime=$(stat -c %Y "$warc_path" 2>/dev/null || echo "?")
               size=$(stat -c %s "$warc_path" 2>/dev/null || echo "?")
               echo "$mtime $size $warc_path"
@@ -214,7 +218,7 @@ if [[ -x "${HA_BIN}" ]]; then
           done
           echo "Note: mtime is UNIX seconds; newest should be last."
         else
-          warn "ha-backend command not available; skipping WARC listing"
+          warn "ha-backend CLI not executable at ${HA_BIN}; skipping WARC listing"
         fi
       else
         warn "no combined log found under job output dir: ${JOBDIR}"
@@ -228,11 +232,21 @@ fi
 echo ""
 echo "[crawl metrics]"
 if have_cmd curl && have_cmd rg; then
-  if curl -fsS http://127.0.0.1:9100/metrics >/dev/null 2>&1; then
-    ok "node_exporter reachable on 127.0.0.1:9100"
-    curl -s http://127.0.0.1:9100/metrics | rg '^healtharchive_crawl_' || true
+  if curl -fsS "${METRICS_URL}" >/dev/null 2>&1; then
+    ok "node_exporter reachable on ${METRICS_URL}"
+    curl -s "${METRICS_URL}" | rg '^healtharchive_crawl_' || true
+    if [[ -n "${JOB_ID}" ]]; then
+      echo ""
+      echo "[job ${JOB_ID} crawl metrics]"
+      job_metrics="$(curl -s "${METRICS_URL}" | rg "job_id=\"${JOB_ID}\"" || true)"
+      if [[ -n "${job_metrics}" ]]; then
+        echo "${job_metrics}"
+      else
+        echo "WARN no job-specific crawl metrics found for job ${JOB_ID}"
+      fi
+    fi
   else
-    fail "node_exporter not reachable on 127.0.0.1:9100"
+    fail "node_exporter not reachable on ${METRICS_URL}"
   fi
 else
   warn "missing curl/rg; skipping node_exporter metrics"
