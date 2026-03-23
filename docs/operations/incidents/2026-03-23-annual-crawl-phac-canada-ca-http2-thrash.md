@@ -120,9 +120,9 @@ Still required:
 - [x] Deploy the HC/PHAC Browsertrix compatibility change with a pinned ref and verify the VPS checkout contains `--disable-http2`. (priority=high)
 - [x] Reconcile annual HC/PHAC job configs in production and confirm `show-job --id 6/7` reflect the canonical passthrough args. (priority=high)
 - [x] Perform one controlled PHAC restart with the new compatibility config and record the outcome in this note. (priority=high)
+- [x] Improve ops visibility for repeated `Resume Crawl` churn without `crawlStatus` so this state is obvious in VPS snapshots and metrics. (priority=medium)
 - [ ] Decide whether the temporary PHAC `public-health-notices` exclusion can be removed after live verification. (priority=medium)
 - [ ] If PHAC still flatlines after the compatibility change, capture the current no-progress failure mode and design a follow-up mitigation. (priority=medium)
-- [ ] Improve ops visibility for repeated `Resume Crawl` churn without `crawlStatus` so this state is obvious in VPS snapshots and metrics. (priority=medium)
 
 ## Automation opportunities
 

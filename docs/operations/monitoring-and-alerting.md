@@ -1,6 +1,6 @@
 # Monitoring & Alerting Strategy - Annual Crawl Campaign
 
-**Last Updated:** 2026-03-21
+**Last Updated:** 2026-03-23
 
 ## Overview
 
@@ -51,6 +51,7 @@ Primary files (single-VPS annual campaign):
 | `healtharchive_crawl_running_job_log_probe_ok` | Gauge | 1 = Combined log file is readable. |
 | `healtharchive_crawl_running_job_crawl_rate_ppm` | Gauge | Pages per minute crawl rate (from crawlStatus log window). |
 | `healtharchive_crawl_running_job_new_crawl_phase_count` | Gauge | Count of `New Crawl Phase` stage starts seen in the current combined-log tail window. |
+| `healtharchive_crawl_running_job_resume_crawl_count` | Gauge | Count of `Resume Crawl` stage starts seen in the current combined-log tail window. |
 | `healtharchive_crawl_running_job_progress_known` | Gauge | 1 = Progress metrics parsed from crawlStatus logs. |
 | `healtharchive_crawl_metrics_timestamp_seconds` | Gauge | Unix timestamp when metrics were last written. |
 | `healtharchive_jobs_infra_error_recent_total{window="10m"}` | Gauge | Count of jobs with infra errors in rolling window. |
@@ -197,8 +198,13 @@ These remain monitored via Grafana trend panels. The only direct throughput aler
 
 - `healtharchive_crawl_running_job_crawl_rate_ppm`
 - `healtharchive_crawl_running_job_new_crawl_phase_count`
+- `healtharchive_crawl_running_job_resume_crawl_count`
 - `healtharchive_crawl_running_job_last_progress_age_seconds`
 - `healtharchive_crawl_running_job_container_restarts_done`
+
+If `progress_known == 0`, `crawl_rate_ppm == -1`, and `resume_crawl_count`
+keeps rising while the state file still updates, treat that as a likely
+no-progress resume loop even if the job still appears `running` in the DB.
 
 Use:
 

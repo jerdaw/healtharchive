@@ -24,9 +24,9 @@ Current known items:
 - Job lock-dir cutover: restart services that read `/etc/healtharchive/backend.env` after crawls are idle.
   - Plan: `2026-02-06-crawl-operability-locks-and-retry-controls.md` (Phase 4)
   - Hard requirement: do not restart the worker mid-crawl unless you explicitly accept interrupting crawls.
-- PHAC annual-crawl recovery after the 2026-03-21 HTTP/2 failure loop:
-  - Current state: job 7 (`phac-20260101`) is deferred to a maintenance window so CIHR/other active crawls are not interrupted.
-  - Status tracking + operator commands: `../operations/healtharchive-ops-roadmap.md`
+- PHAC annual-crawl follow-up after the 2026-03-23 canada.ca incident:
+  - Current state: job 7 (`phac-20260101`) is parked `retryable` after a controlled restart with `--disable-http2` removed visible HTTP/2 thrash but not the no-progress condition.
+  - Status tracking + next-step guidance: `../operations/healtharchive-ops-roadmap.md`
 - Annual output-dir mount topology conversion (direct `sshfs` mounts → bind mounts):
   - Current state: the active 2026 annual job output dirs are mounted directly via `sshfs` (higher Errno 107/staleness risk).
   - Why maintenance-only: converting requires unmount/remount of job output dirs and can interrupt active crawls.
