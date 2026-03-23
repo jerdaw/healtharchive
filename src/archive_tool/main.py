@@ -464,6 +464,30 @@ def main():
             sys.exit(1)
         logger.info("Managed Browsertrix config persisted to %s", managed_browsertrix_config_path)
 
+    def _apply_managed_browsertrix_to_resume_config(
+        resume_path: Optional[Path],
+    ) -> Optional[Path]:
+        if resume_path is None or managed_browsertrix_config_path is None:
+            return resume_path
+
+        merged_resume_path = utils.merge_managed_browsertrix_config_into_resume_config(
+            resume_path,
+            managed_browsertrix_config_path,
+            host_output_dir,
+        )
+        if merged_resume_path is None:
+            logger.critical(
+                "Failed to merge managed Browsertrix config into resume config: %s",
+                resume_path,
+            )
+            return None
+
+        logger.info(
+            "Merged managed Browsertrix config into stable resume config: %s",
+            merged_resume_path,
+        )
+        return merged_resume_path
+
     # Determine initial worker count, potentially overridden by passthrough args
     logger.debug(f"Script argument --initial-workers: {script_args.initial_workers}")
     initial_workers_arg = script_args.initial_workers
@@ -553,7 +577,9 @@ def main():
 
     stable_resume = utils.find_stable_resume_config(host_output_dir)
     if stable_resume is not None:
-        config_yaml_path = stable_resume
+        config_yaml_path = _apply_managed_browsertrix_to_resume_config(stable_resume)
+        if config_yaml_path is None:
+            sys.exit(1)
         logger.info("Found stable resume config YAML: %s", config_yaml_path)
         can_resume_crawl = True
     elif existing_temp_dirs:
@@ -567,7 +593,9 @@ def main():
             can_resume_crawl = True
             persisted = utils.persist_resume_config(config_yaml_path, host_output_dir)
             if persisted is not None:
-                config_yaml_path = persisted
+                config_yaml_path = _apply_managed_browsertrix_to_resume_config(persisted)
+                if config_yaml_path is None:
+                    sys.exit(1)
                 logger.info("Persisted resume config YAML to stable path: %s", persisted)
         else:
             logger.info("No resume config YAML found in tracked temp dirs.")
@@ -742,7 +770,10 @@ def main():
             current_temp_dirs = crawl_state.get_temp_dir_paths()
             stable_resume = utils.find_stable_resume_config(host_output_dir)
             if stable_resume is not None:
-                config_yaml_path = stable_resume
+                config_yaml_path = _apply_managed_browsertrix_to_resume_config(stable_resume)
+                if config_yaml_path is None:
+                    final_status = "failed_state_error"
+                    break
                 logger.info("Using stable resume config YAML: %s", config_yaml_path)
             else:
                 config_yaml_path = utils.find_latest_config_yaml_in_temp_dirs(current_temp_dirs)
@@ -750,7 +781,10 @@ def main():
                     logger.info("Found resume config YAML for this attempt: %s", config_yaml_path)
                     persisted = utils.persist_resume_config(config_yaml_path, host_output_dir)
                     if persisted is not None:
-                        config_yaml_path = persisted
+                        config_yaml_path = _apply_managed_browsertrix_to_resume_config(persisted)
+                        if config_yaml_path is None:
+                            final_status = "failed_state_error"
+                            break
                         logger.info("Persisted resume config YAML to stable path: %s", persisted)
 
             if config_yaml_path:

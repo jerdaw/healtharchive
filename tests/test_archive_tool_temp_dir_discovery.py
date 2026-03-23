@@ -5,12 +5,16 @@ import pathlib
 import time
 from pathlib import Path
 
+import yaml  # type: ignore[import-untyped]
+
 from archive_tool.state import CrawlState
 from archive_tool.utils import (
     discover_temp_dirs,
     find_latest_config_yaml_in_temp_dirs,
     find_stable_resume_config,
+    merge_managed_browsertrix_config_into_resume_config,
     parse_temp_dir_from_log_file,
+    persist_managed_browsertrix_config,
     persist_resume_config,
 )
 
@@ -108,3 +112,53 @@ def test_resume_config_discovery_prefers_newest_and_persists(tmp_path: Path) -> 
     assert persisted is not None
     stable = find_stable_resume_config(output_dir)
     assert stable == persisted
+
+
+def test_merge_managed_browsertrix_config_into_resume_config_preserves_resume_state(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "job-output"
+    output_dir.mkdir(parents=True, exist_ok=True)
+
+    resume_source = tmp_path / "resume.yaml"
+    resume_source.write_text(
+        """
+seeds:
+  - https://example.org
+scopeType: custom
+behavior:
+  autoplay: false
+  clickSelector: a[href]
+extraChromeArgs:
+  - --existing-flag
+metadata:
+  source: phac
+""".strip()
+        + "\n",
+        encoding="utf-8",
+    )
+
+    managed = persist_managed_browsertrix_config(
+        {
+            "extraChromeArgs": ["--disable-http2"],
+            "behavior": {"autoplay": True},
+        },
+        output_dir,
+    )
+    assert managed is not None
+
+    merged = merge_managed_browsertrix_config_into_resume_config(
+        resume_source,
+        managed,
+        output_dir,
+    )
+    assert merged is not None
+    assert merged == (output_dir / ".zimit_resume.yaml").resolve()
+
+    merged_data = yaml.safe_load(merged.read_text(encoding="utf-8"))
+    assert merged_data["seeds"] == ["https://example.org"]
+    assert merged_data["scopeType"] == "custom"
+    assert merged_data["metadata"] == {"source": "phac"}
+    assert merged_data["behavior"]["autoplay"] is True
+    assert merged_data["behavior"]["clickSelector"] == "a[href]"
+    assert merged_data["extraChromeArgs"] == ["--disable-http2", "--existing-flag"]

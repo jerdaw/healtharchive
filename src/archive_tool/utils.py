@@ -14,6 +14,8 @@ from typing import (
     Optional,
 )
 
+import yaml  # type: ignore[import-untyped]
+
 # Use absolute imports
 from . import constants  # Import constants module
 from .constants import (
@@ -22,6 +24,32 @@ from .constants import (
 )
 
 logger = logging.getLogger("website_archiver.utils")
+
+
+def _merge_managed_config_value(managed_value: Any, existing_value: Any) -> Any:
+    """
+    Merge a managed Browsertrix config value onto an existing resume-config value.
+
+    Managed values win for scalars, merge recursively for mappings, and are
+    prepended/deduplicated for sequences so required flags are retained.
+    """
+    if isinstance(managed_value, dict) and isinstance(existing_value, dict):
+        merged = dict(existing_value)
+        for key, value in managed_value.items():
+            if key in merged:
+                merged[key] = _merge_managed_config_value(value, merged[key])
+            else:
+                merged[key] = value
+        return merged
+
+    if isinstance(managed_value, list) and isinstance(existing_value, list):
+        merged_list = list(managed_value)
+        for item in existing_value:
+            if item not in merged_list:
+                merged_list.append(item)
+        return merged_list
+
+    return managed_value
 
 
 def check_docker() -> bool:
@@ -346,6 +374,74 @@ def persist_managed_browsertrix_config(
         return dest.resolve()
     except OSError as exc:
         logger.warning("Could not persist managed Browsertrix config to %s: %s", dest, exc)
+        return None
+
+
+def merge_managed_browsertrix_config_into_resume_config(
+    resume_config_path: Path,
+    managed_config_path: Path,
+    host_output_dir: Path,
+) -> Optional[Path]:
+    """
+    Merge managed Browsertrix settings into the stable resume config.
+
+    This preserves resume queue/state from zimit while ensuring backend-managed
+    Browsertrix overrides (for example ``extraChromeArgs``) survive resumed
+    crawl phases as well as fresh phases.
+    """
+    try:
+        resume_data = yaml.safe_load(resume_config_path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        logger.warning("Could not read resume config YAML %s: %s", resume_config_path, exc)
+        return None
+    except yaml.YAMLError as exc:
+        logger.warning("Could not parse resume config YAML %s: %s", resume_config_path, exc)
+        return None
+
+    if not isinstance(resume_data, dict) or not resume_data:
+        logger.warning(
+            "Resume config YAML %s must contain a non-empty mapping; got %r",
+            resume_config_path,
+            type(resume_data).__name__,
+        )
+        return None
+
+    try:
+        managed_data = yaml.safe_load(managed_config_path.read_text(encoding="utf-8"))
+    except OSError as exc:
+        logger.warning("Could not read managed Browsertrix config %s: %s", managed_config_path, exc)
+        return None
+    except yaml.YAMLError as exc:
+        logger.warning(
+            "Could not parse managed Browsertrix config %s: %s", managed_config_path, exc
+        )
+        return None
+
+    if not isinstance(managed_data, dict) or not managed_data:
+        logger.warning(
+            "Managed Browsertrix config %s must contain a non-empty mapping; got %r",
+            managed_config_path,
+            type(managed_data).__name__,
+        )
+        return None
+
+    merged_data = _merge_managed_config_value(managed_data, resume_data)
+    dest = get_stable_resume_config_path(host_output_dir)
+
+    try:
+        serialized = yaml.safe_dump(
+            merged_data,
+            allow_unicode=False,
+            default_flow_style=False,
+            sort_keys=False,
+        )
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp = dest.with_suffix(f"{dest.suffix}.tmp.{os.getpid()}")
+        tmp.write_text(serialized, encoding="utf-8")
+        tmp.replace(dest)
+        return dest.resolve()
+    except (OSError, yaml.YAMLError) as exc:
+        logger.warning("Could not persist merged resume config YAML to %s: %s", dest, exc)
         return None
 
 

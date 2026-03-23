@@ -561,6 +561,10 @@ Durability shim (Phase 4):
   * `<output-dir>/.zimit_resume.yaml`
 * Subsequent runs prefer this stable path first (before probing `.tmp*` dirs), which reduces
   the chance of losing resume capability due to ambiguous temp-dir ordering.
+* When a backend-managed Browsertrix config is also present (for example
+  HealthArchive's canada.ca `extraChromeArgs` workaround), that managed config
+  is merged into the stable resume config before resumed crawl phases start, so
+  resume attempts retain the same Browsertrix overrides as fresh crawl phases.
 
 ### 5.5 WARC discovery
 

@@ -20,6 +20,7 @@ from pathlib import Path
 from unittest.mock import MagicMock
 
 import pytest
+import yaml  # type: ignore[import-untyped]
 
 import archive_tool.docker_runner as docker_runner_mod
 import archive_tool.main as archive_main
@@ -563,6 +564,84 @@ class TestRunModeDetection:
         combined = captured.out + captured.err
         # Should detect resume mode
         assert "resume" in combined.lower()
+
+    def test_resume_mode_merges_managed_browsertrix_config_into_stable_resume_config(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        mock_docker_check,
+        mock_container_stop,
+        clean_stop_event,
+    ):
+        out_dir = tmp_path / "resume-managed-browsertrix"
+        out_dir.mkdir()
+
+        config_file = out_dir / ".zimit_resume.yaml"
+        config_file.write_text(
+            """
+seeds:
+  - https://example.org
+scopeType: custom
+extraChromeArgs:
+  - --existing-flag
+""".strip()
+            + "\n",
+            encoding="utf-8",
+        )
+
+        captured: dict[str, object] = {}
+
+        class FakeProcess:
+            def __init__(self):
+                self.pid = 12345
+                self.stdout = None
+                self.returncode = 32
+
+            def poll(self):
+                return 32
+
+            def wait(self, timeout=None):
+                return 32
+
+            def communicate(self, timeout=None):
+                return (b"", b"")
+
+        def fake_start(docker_image, host_output_dir, zimit_args, run_name, **kwargs):
+            captured["docker_image"] = docker_image
+            captured["host_output_dir"] = host_output_dir
+            captured["zimit_args"] = list(zimit_args)
+            captured["run_name"] = run_name
+            return FakeProcess(), "test-container"
+
+        monkeypatch.setattr(docker_runner_mod, "start_docker_container", fake_start)
+
+        argv = [
+            "archive-tool",
+            "--seeds",
+            "https://example.org",
+            "--name",
+            "test-job",
+            "--output-dir",
+            str(out_dir),
+            "--browsertrix-config-json",
+            '{"extraChromeArgs":["--disable-http2"]}',
+            "--skip-final-build",
+        ]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        with pytest.raises(SystemExit) as exc_info:
+            archive_main.main()
+
+        assert exc_info.value.code == 1
+
+        zimit_args = captured["zimit_args"]
+        assert isinstance(zimit_args, list)
+        assert "--config" in zimit_args
+        config_index = zimit_args.index("--config")
+        assert zimit_args[config_index + 1] == "/output/.zimit_resume.yaml"
+
+        merged_resume = yaml.safe_load(config_file.read_text(encoding="utf-8"))
+        assert merged_resume["extraChromeArgs"] == ["--disable-http2", "--existing-flag"]
 
     def test_overwrite_mode_with_existing_zim(
         self,
