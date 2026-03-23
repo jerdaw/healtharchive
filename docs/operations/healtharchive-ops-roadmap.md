@@ -32,11 +32,28 @@ Keep the two synced copies of this file aligned:
   - Maintenance-window restart of services is still required to pick up the env change.
 - Annual output-dir mount topology is currently **unexpected** (direct `sshfs` mounts instead of bind mounts) for the active 2026 jobs.
   - We are intentionally deferring conversion to bind mounts until a maintenance window to avoid interrupting in-progress crawls.
-- PHAC annual crawl job 7 is no longer blocked on deploy/config drift.
-  - The scope reconciliation fix and the temporary PHAC HTML-family exclusions were both deployed and verified in the live PHAC process on 2026-03-23.
-  - The attempted HC/PHAC `--extraChromeArgs --disable-http2` compatibility workaround was later identified as a startup regression: the deployed zimit image forwards those flags into `warc2zim` preflight and exits `RC=2`.
-  - PHAC is currently paused pending a deploy/reconcile that removes the incompatible passthrough and then re-tests the narrowed PHAC scope.
-  - Repo-side monitor hardening now exists for one part of the symptom: stages that emit no `crawlStatus` for a full stall window now trigger an explicit `no_stats` intervention instead of silently hanging.
+- PHAC annual crawl job 7 is no longer blocked on deploy/config drift or on the
+  earlier Browsertrix-flag plumbing bug.
+  - The scope reconciliation fix and the temporary PHAC HTML-family exclusions
+    were both deployed and verified in the live PHAC process on 2026-03-23.
+  - The incompatible HC/PHAC CLI passthrough (`--extraChromeArgs
+    --disable-http2`) was removed from canonical annual config and live annual
+    jobs after the deployed zimit image proved it forwarded those flags into
+    `warc2zim` preflight.
+  - Repo-side monitor hardening now exists for one part of the symptom: stages
+    that emit no `crawlStatus` for a full stall window now trigger an explicit
+    `no_stats` intervention instead of silently hanging.
+  - Repo-side managed Browsertrix-config support is deployed and verified for
+    both fresh/new and resumed HC/PHAC runs:
+    - fresh/new phases launch via zimit `--config /output/.browsertrix_managed_config.yaml`
+    - resumed phases now carry the same Browsertrix overrides through the
+      stable `.zimit_resume.yaml`
+  - Empirical result after those fixes: PHAC still does not make useful forward
+    progress. Resumed PHAC attempts can start cleanly, then end immediately with
+    `crawled=0 total=2 failed=2` and an effectively empty/unprocessable WARC.
+  - PHAC is currently parked as `retryable` with the worker stopped rather than
+    allowing continued blind retries against the same unresolved state/runtime
+    problem.
 - Alerting noise-reduction tuning is deployed and verified:
   - Alertmanager routing is severity-aware (`critical` keeps resolved notifications, non-critical suppresses resolved and repeats less often).
   - Crawl alerting is now automation-first and dashboard-driven:
@@ -56,20 +73,42 @@ Treat the following as the current ops execution order:
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
-- PHAC follow-up is now repo-side investigation plus one corrected redeploy, not another blind live restart.
-  - Current state: job `7` (`phac-20260101`) is paused after resume-stage attempts repeatedly failed with `RC=2` before crawl startup.
-  - Current evidence: the newest combined logs show `zimit: error: unrecognized arguments: --extraChromeArgs --disable-http2` during the `warc2zim` preflight check.
-  - Diagnostic update (2026-03-23): the new content-cost report plus direct log review point to PHAC HTML/runtime churn, not broad binary/media frontier waste.
-    - Across the newest 120 combined logs, PHAC showed `3619` timeout signals concentrated under `en/public-health/services` and `fr/sante-publique/services`.
-    - Concrete repeated pathological targets include the travel-health artesunate page pair, the English NACI subtree, the English CCDR subtree, and the English Canadian Immunization Guide subtree.
-    - Current sampled WARC bytes remain dominated by normal pages/render assets rather than `.mp4`/dataset/document classes.
+- PHAC follow-up is now deeper repo-side investigation, not another mitigation
+  deploy or blind live restart.
+  - Current state: job `7` (`phac-20260101`) is parked as `retryable` after a
+    controlled 2026-03-23 investigation with the worker stopped.
+  - Settled findings from the investigation:
+    - the earlier HC/PHAC `--extraChromeArgs --disable-http2` CLI passthrough
+      was invalid for the deployed zimit image and is no longer the active
+      failure mode
+    - fresh/new PHAC launches now correctly use a managed Browsertrix config
+      file via zimit `--config`
+    - resumed PHAC launches now correctly preserve that Browsertrix override by
+      merging it into `.zimit_resume.yaml`
+    - despite that corrected plumbing, resumed PHAC attempts still collapse into
+      `crawled=0 total=2 failed=2` with empty/unprocessable WARC output
+  - Diagnostic update (2026-03-23): the content-cost report plus direct log
+    review still point to PHAC HTML/runtime friction rather than broad
+    binary/media frontier waste.
+    - Across the sampled PHAC combined logs, repeated failures remained
+      concentrated under `en/public-health/services` and
+      `fr/sante-publique/services`.
+    - Concrete repeated pathological targets include the travel-health
+      artesunate page pair, the English NACI subtree, the English CCDR subtree,
+      and the English Canadian Immunization Guide subtree.
+    - Sampled WARC bytes remained dominated by normal pages/render assets rather
+      than `.mp4`/dataset/document classes.
   - Next steps:
-    - deploy the rollback that removes canonical HC/PHAC `--extraChromeArgs --disable-http2`
-    - reconcile annual HC/PHAC tool options on the VPS so live jobs drop the incompatible passthrough
-    - restart PHAC once with the narrowed PHAC exclusions still in place
-    - verify whether PHAC now resumes into actual crawl activity or returns to URL-family timeout churn
-    - continue PHAC root-cause mitigation in the repo only after that corrected rerun
-  - Do not do further blind PHAC recover/restart attempts from the VPS until that rollback is deployed and reconciled.
+    - keep PHAC parked until a new repo-side investigation or mitigation is
+      ready
+    - determine whether the current PHAC resume queue/state is poisoned or
+      whether the same empty-WARC failure reproduces from a truly fresh crawl
+      phase
+    - diagnose why resumed PHAC queue/state can terminate immediately even when
+      the managed Browsertrix HTTP/2 workaround is present
+    - revisit the temporary `public-health-notices` exclusion only after the
+      deeper PHAC runtime/state issue is understood
+  - Do not do further blind PHAC recover/restart attempts from the VPS.
 - Maintenance window: complete the job lock-dir cutover by restarting services that read `/etc/healtharchive/backend.env`.
   - This must wait until crawls are idle unless you explicitly accept interrupting them.
   - Plan + commands: `../planning/2026-02-06-crawl-operability-locks-and-retry-controls.md` (Phase 4)

@@ -21,8 +21,11 @@ Active plans:
 Treat the following as the current "what's next" order across roadmap docs:
 
 1. PHAC annual-crawl follow-up is the immediate technical priority.
-   - Deploy the repo-side `no_stats` stall fallback, then verify the next PHAC retry surfaces an explicit monitored condition instead of silently sitting `running`.
-   - Continue repo-side PHAC root-cause mitigation work before any further controlled restart.
+   - The repo-side control-plane/plumbing fixes are now in place:
+     `no_stats` stall detection, managed Browsertrix config for fresh/new
+     phases, and managed Browsertrix config merged into resumed phases.
+   - Continue repo-side PHAC root-cause mitigation work before any further
+     controlled restart.
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
    - Related active plan for broader source-level diagnosis: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
 2. Complete the job lock-dir cutover during a maintenance window once crawls are idle.
@@ -45,9 +48,15 @@ Some plans are "implemented in repo" but still require a short, operator-run mai
 Current known items:
 
 - PHAC annual-crawl follow-up after the 2026-03-23 canada.ca incident:
-  - Current state: job 7 (`phac-20260101`) is parked `retryable` after a controlled restart with `--disable-http2` removed visible HTTP/2 thrash but not the no-progress condition.
-  - Next action: deploy the repo-side `no_stats` stall fallback before the next PHAC retry, then verify the retry surfaces an explicit monitored condition.
-  - Why this is first: further PHAC recover/restart attempts should stay blocked until the repo-side mitigation is deployed.
+  - Current state: job 7 (`phac-20260101`) is parked `retryable` after the
+    controlled 2026-03-23 investigation, with the worker stopped.
+  - Settled repo-side outcome: PHAC fresh/new and resumed launches now both
+    preserve the managed Browsertrix HTTP/2 workaround, so the remaining
+    problem is no longer config propagation.
+  - Next action: continue repo-side investigation of PHAC resume-state/runtime
+    failure before any further VPS restart attempt.
+  - Why this is first: further PHAC recover/restart attempts should stay
+    blocked until there is a new hypothesis to test.
   - Status tracking + next-step guidance: `../operations/healtharchive-ops-roadmap.md`
 - Job lock-dir cutover:
   - Current state: the env change is already staged on the VPS, but services still need a maintenance-window restart to pick it up.

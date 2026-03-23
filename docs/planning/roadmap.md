@@ -127,13 +127,25 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Already implemented: `implemented/2026-01-29-warc-manifest-verification.md`
 - Resolve the PHAC no-progress resume-loop state and re-evaluate the temporary `public-health-notices` exclusion.
   - Context: the 2026 PHAC annual crawl first hit sustained `net::ERR_HTTP2_PROTOCOL_ERROR` churn on canada.ca, and later a deployed `--disable-http2` compatibility change removed the visible HTTP/2 storm but still did not restore measurable crawl progress.
-  - Current repo status: the monitor/control-plane gap is closed in git, so stages that emit no `crawlStatus` for a full stall window now trigger an explicit `no_stats` stall instead of silently hanging.
+  - Current repo status:
+    - the monitor/control-plane gap is closed in git, so stages that emit no
+      `crawlStatus` for a full stall window now trigger an explicit `no_stats`
+      stall instead of silently hanging
+    - HC/PHAC Browsertrix-only chrome args are now carried through managed
+      Browsertrix config instead of incompatible zimit CLI passthrough
+    - resumed HC/PHAC phases now preserve those managed Browsertrix overrides by
+      merging them into the stable `.zimit_resume.yaml`
   - Immediate follow-through is tracked in `../operations/healtharchive-ops-roadmap.md`; keep maintenance-window cutovers there rather than duplicating them in this backlog.
   - Remaining work:
-    - deploy that fallback on the VPS before any further PHAC retry
-    - determine why PHAC can keep advancing resume attempts without new WARC output or parseable `crawlStatus`
-    - design a source-compatible crawler/runtime mitigation that restores intended PHAC coverage without reintroducing failure churn
-    - decide whether the temporary exclusion is still needed once the deeper issue is understood
+    - determine why PHAC resumed attempts can terminate immediately with
+      `crawled=0 total=2 failed=2` and empty/unprocessable WARC output even when
+      the managed Browsertrix HTTP/2 workaround is present
+    - determine whether the current PHAC resume queue/state is poisoned or
+      whether the same failure reproduces from a truly fresh crawl phase
+    - design a source-compatible crawler/runtime mitigation that restores
+      intended PHAC coverage without reintroducing failure churn
+    - decide whether the temporary exclusion is still needed once the deeper
+      issue is understood
   - Related docs: `../operations/annual-campaign.md`, `../operations/healtharchive-ops-roadmap.md`
 - Diagnose annual crawl cost/failure drivers by content class and refine scope toward the user-facing website.
   - Goal: determine which URL families or content classes (HTML pages, render assets, documents, archives, media, datasets) dominate WARC bytes, timeout churn, and restart budgets.

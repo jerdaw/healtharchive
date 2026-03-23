@@ -1,7 +1,7 @@
 # 2026-03-23: Annual Crawl Content-Cost and Scope Diagnosis
 
 **Plan Version**: v1.1
-**Status**: Active
+**Status**: Active (Phase 1 delivered; PHAC pilot evidence captured)
 **Scope**: Diagnose which content classes and URL families are consuming the most crawl time, storage, and restart budget in the 2026 annual campaign, then use that evidence to refine scope toward a "user-facing website" backup rather than letting every downloadable asset expand the crawl frontier by default.
 
 ## Why this plan exists
@@ -61,6 +61,31 @@ What we **do not** have yet:
   or repeated retries for a crawl job
 - a canonical evidence-based policy for which non-HTML content classes are
   allowed to expand the crawl frontier during annual captures
+
+## Progress update (2026-03-23)
+
+Progress already completed under this plan:
+
+- Phase 1's read-only operator report exists in repo as
+  `scripts/vps-crawl-content-report.py`, with automated coverage in
+  `tests/test_ops_crawl_content_report.py`.
+- Operator docs already point to that report for live crawl diagnosis:
+  - `docs/operations/playbooks/crawl/crawl-stalls.md`
+  - `docs/operations/runbooks/crawl-restart-budget-low.md`
+- The PHAC pilot result is directionally clear:
+  - sampled PHAC failures are concentrated on in-scope HTML/runtime families
+    under `en/public-health/services` / `fr/sante-publique/services`
+  - sampled WARC bytes are not dominated by broad document/media/archive
+    frontier waste
+  - this points to crawler/runtime compatibility work first, not generalized
+    scope cuts
+
+What remains active in this plan:
+
+- broader source-by-source evidence review (HC and CIHR after the PHAC pilot)
+- any future scope-policy refinement based on completed evidence review
+- repo-side implementation follow-through only if later evidence justifies
+  additional scope changes
 
 ## Planning update after review
 
