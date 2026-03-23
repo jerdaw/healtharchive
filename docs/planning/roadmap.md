@@ -24,6 +24,17 @@ and application preparation is in:
 That plan addresses Gates 1-4 below, the methods paper, dataset DOI, and
 application-specific preparation on a ~12-week timeline.
 
+Use that active plan, not this backlog file, as the canonical near-term
+sequence for:
+
+- reconciling real source/snapshot coverage counts across public materials
+- updating the portfolio/about narrative page
+- adding public uptime history and status-page evidence
+- publishing the governance/ethics + data-retention summary
+- verifier/partner/advisor outreach
+- the methods paper + architecture diagram
+- the first formal dataset release with a DOI
+
 Individual items (for reference; see the plan above for execution order):
 
 - External outreach + verification execution (operator-only):
@@ -43,7 +54,8 @@ Individual items (for reference; see the plan above for execution order):
 
 Track the current status and next actions in:
 
-- `../operations/healtharchive-ops-roadmap.md`
+- `../operations/healtharchive-ops-roadmap.md` for immediate PHAC + maintenance-window ops follow-through
+- `2026-02-admissions-strengthening-plan.md` for the external-validation and scholarly-output sequence
 
 Supporting materials:
 
@@ -115,10 +127,18 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Already implemented: `implemented/2026-01-29-warc-manifest-verification.md`
 - Resolve the PHAC no-progress resume-loop state and re-evaluate the temporary `public-health-notices` exclusion.
   - Context: the 2026 PHAC annual crawl first hit sustained `net::ERR_HTTP2_PROTOCOL_ERROR` churn on canada.ca, and later a deployed `--disable-http2` compatibility change removed the visible HTTP/2 storm but still did not restore measurable crawl progress.
-  - Current failure mode: PHAC can sit `status=running` while `.archive_state.json` keeps updating and resume attempts keep advancing, but no parseable `crawlStatus` or new WARC output appears.
-  - Already implemented: `archive_tool` monitoring now treats "no crawlStatus seen for a full stall window" as an explicit `no_stats` stall condition instead of a silent hang.
-  - Remaining goal: find a source-compatible crawler/runtime mitigation that restores intended PHAC coverage without reintroducing failure churn, then decide whether the temporary exclusion is still needed.
+  - Current repo status: the monitor/control-plane gap is closed in git, so stages that emit no `crawlStatus` for a full stall window now trigger an explicit `no_stats` stall instead of silently hanging.
+  - Immediate follow-through is tracked in `../operations/healtharchive-ops-roadmap.md`; keep maintenance-window cutovers there rather than duplicating them in this backlog.
+  - Remaining work:
+    - deploy that fallback on the VPS before any further PHAC retry
+    - determine why PHAC can keep advancing resume attempts without new WARC output or parseable `crawlStatus`
+    - design a source-compatible crawler/runtime mitigation that restores intended PHAC coverage without reintroducing failure churn
+    - decide whether the temporary exclusion is still needed once the deeper issue is understood
   - Related docs: `../operations/annual-campaign.md`, `../operations/healtharchive-ops-roadmap.md`
+- Diagnose annual crawl cost/failure drivers by content class and refine scope toward the user-facing website.
+  - Goal: determine which URL families or content classes (HTML pages, render assets, documents, archives, media, datasets) dominate WARC bytes, timeout churn, and restart budgets.
+  - Why this matters: large downloadable artifacts may not belong on the annual crawl frontier if the product goal is to preserve the user-facing website rather than every downloadable file.
+  - Active plan: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
 - Continue crawl telemetry calibration from live annual-crawl runs, but use dashboard trends (crawl rate / phase churn / progress age) rather than direct throughput alerts.
   - Current focus: validate dashboard thresholds/visual cues and only promote a signal back into Alertmanager if it becomes clearly actionable.
   - Related docs: `../operations/monitoring-and-alerting.md`, `../operations/healtharchive-ops-roadmap.md`

@@ -14,6 +14,8 @@ Notes:
 - The status script is read-only (no restarts, no DB writes); it’s safe mid-crawl.
 - If the combined log is very large and you only want **recent** timeout signals, use:
   - `./scripts/vps-crawl-status.sh --year 2026 --recent-lines 20000`
+- If you need to distinguish HTML/runtime friction from download/media frontier churn, run:
+  - `./scripts/vps-crawl-content-report.py --job-id JOB_ID`
 
 ## 1) Identify the stalled job
 

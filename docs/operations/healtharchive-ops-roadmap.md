@@ -35,11 +35,7 @@ Keep the two synced copies of this file aligned:
 - PHAC annual crawl job 7 is no longer blocked on deploy/config drift.
   - The scope reconciliation fix and `--extraChromeArgs --disable-http2` compatibility flag were both deployed and verified in the live PHAC process on 2026-03-23.
   - The visible HTTP/2 error storm stopped, but PHAC still made no measurable progress and was parked as `retryable`.
-  - Repo-side monitor hardening now exists for one part of the symptom: stages
-    that emit no `crawlStatus` for a full stall window now trigger an explicit
-    `no_stats` intervention instead of silently hanging.
-  - Current focus: deploy that fallback, then continue repo-side investigation
-    of repeated resume-stage churn without `crawlStatus` or new WARC output.
+  - Repo-side monitor hardening now exists for one part of the symptom: stages that emit no `crawlStatus` for a full stall window now trigger an explicit `no_stats` intervention instead of silently hanging.
 - Alerting noise-reduction tuning is deployed and verified:
   - Alertmanager routing is severity-aware (`critical` keeps resolved notifications, non-critical suppresses resolved and repeats less often).
   - Crawl alerting is now automation-first and dashboard-driven:
@@ -48,12 +44,24 @@ Keep the two synced copies of this file aligned:
     - Worker-down alerting waits for the worker auto-start watchdog window and suppresses during active deploy locks.
     - Watchdog freshness alerts were added for worker auto-start and crawl auto-recover timers.
 
+## Current priority order
+
+Treat the following as the current ops execution order:
+
+1. PHAC repo-side mitigation and verification.
+2. Job lock-dir cutover during a safe maintenance window.
+3. Annual output-dir bind-mount conversion after the 2026 annual crawl is idle.
+4. Routine quarterly ops and evidence collection.
+
 ## Current ops tasks (implementation already exists; enable/verify)
 
 - PHAC follow-up is now repo-side investigation, not another live restart.
   - Current state: job `7` (`phac-20260101`) is parked `retryable` after a controlled restart with `--disable-http2` removed visible HTTP/2 thrash but did not restore crawl progress.
   - Current evidence: repeated resume-stage attempts, `.archive_state.json` updates, no parseable `crawlStatus`, and no new WARC mtimes.
-  - Next step: deploy the new `no_stats` stall fallback with a pinned ref, then continue the PHAC root-cause mitigation work in the repo before any further controlled restart.
+  - Next steps:
+    - deploy the `no_stats` stall fallback with a pinned ref
+    - verify the next PHAC retry surfaces an explicit monitored condition instead of silent `running`
+    - continue the PHAC root-cause mitigation work in the repo before any further controlled restart
   - Do not do further blind PHAC recover/restart attempts from the VPS until that repo-side mitigation exists.
 - Maintenance window: complete the job lock-dir cutover by restarting services that read `/etc/healtharchive/backend.env`.
   - This must wait until crawls are idle unless you explicitly accept interrupting them.
@@ -74,13 +82,15 @@ Keep the two synced copies of this file aligned:
 - Verify the new Docker resource limit environment variables are set appropriately on VPS if defaults need adjustment:
   - `HEALTHARCHIVE_DOCKER_MEMORY_LIMIT` (default: 4g)
   - `HEALTHARCHIVE_DOCKER_CPU_LIMIT` (default: 1.5)
-- Post-deploy follow-through (alerting):
+  - Post-deploy follow-through (alerting):
   - Review notification volume and alert outcomes after 7 days (firing + resolved counts by alertname/severity).
   - Confirm crawl throughput/churn investigations are being done via Grafana (`HealthArchive - Pipeline Health`) and not missed due to notification removal.
   - Consider a future composite crawl-degradation alert only if dashboard review repeatedly reveals actionable issues that are not otherwise alerted.
 
 ## IRL / external validation (pending)
 
-Track external validation/outreach work (partner, verifier, mentions/citations log) in:
+After the immediate PHAC + maintenance-window items above, shift the main project emphasis back to the active admissions-strengthening work.
+
+Track external validation/outreach work (partner, verifier, methods paper, dataset DOI, mentions/citations log) in:
 
 - `../planning/roadmap.md`

@@ -32,6 +32,7 @@ Start with a read-only snapshot on the VPS:
 cd /opt/healtharchive-backend
 
 ./scripts/vps-crawl-status.sh --year 2026 --job-id <JOB_ID> --recent-lines 20000
+./scripts/vps-crawl-content-report.py --job-id <JOB_ID>
 
 curl -s http://127.0.0.1:9100/metrics | rg 'healtharchive_crawl_running_job_(container_restarts_done|last_progress_age_seconds|stalled|crawl_rate_ppm|output_dir_ok|output_dir_errno|log_probe_ok|log_probe_errno|state_file_ok|state_parse_ok|temp_dirs_count|errors_timeout|errors_http|errors_other)\{job_id="<JOB_ID>"'
 
@@ -44,6 +45,7 @@ docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}'
 Classify the incident:
 
 - **Timeout churn**: logs show repeated `Navigation timeout`, `Page load timed out`, HTTP/network failures, or the same URL families before restart messages.
+- **Download/frontier churn**: the content report shows repeated failures or sampled WARC cost dominated by documents/media/archive paths rather than HTML pages.
 - **Storage instability**: metrics or logs show `output_dir_errno=107`, `log_probe_errno=107`, unreadable state/log files, or permission errors.
 - **State/metrics drift**: DB still says `running`, but there is no active crawl container and no fresh `crawlStatus` or WARC activity.
 

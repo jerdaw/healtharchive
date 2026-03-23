@@ -14,6 +14,29 @@ Active plans:
 - Admissions strengthening (OMSAS ABS + CanMEDS, ~12 weeks): `2026-02-admissions-strengthening-plan.md`
 - Crawl operability (locks, writability, retry controls): `2026-02-06-crawl-operability-locks-and-retry-controls.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
+- Annual crawl content-cost and scope diagnosis: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
+
+## Current priority sequence
+
+Treat the following as the current "what's next" order across roadmap docs:
+
+1. PHAC annual-crawl follow-up is the immediate technical priority.
+   - Deploy the repo-side `no_stats` stall fallback, then verify the next PHAC retry surfaces an explicit monitored condition instead of silently sitting `running`.
+   - Continue repo-side PHAC root-cause mitigation work before any further controlled restart.
+   - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
+   - Related active plan for broader source-level diagnosis: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
+2. Complete the job lock-dir cutover during a maintenance window once crawls are idle.
+   - This is already implemented in repo; the remaining work is operator-run service restarts.
+   - Canonical plan: `2026-02-06-crawl-operability-locks-and-retry-controls.md`
+3. Convert annual output dirs from direct `sshfs` mounts to bind mounts during a later maintenance window.
+   - This remains intentionally deferred until the active annual crawl is idle.
+   - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
+4. Diagnose which content classes and URL families are actually driving annual crawl time, storage, and restart churn.
+   - Treat this as evidence gathering first; use it to decide whether more download/media/data exclusions are justified.
+   - Canonical plan: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
+5. After the crawl/ops path is stabilized, the main project emphasis is the active admissions-strengthening plan.
+   - That plan is the canonical home for the next external-validation, methods-paper, and dataset-release work.
+   - Canonical plan: `2026-02-admissions-strengthening-plan.md`
 
 ## Operator Follow-Through (Maintenance Window)
 
@@ -21,15 +44,19 @@ Some plans are "implemented in repo" but still require a short, operator-run mai
 
 Current known items:
 
-- Job lock-dir cutover: restart services that read `/etc/healtharchive/backend.env` after crawls are idle.
-  - Plan: `2026-02-06-crawl-operability-locks-and-retry-controls.md` (Phase 4)
-  - Hard requirement: do not restart the worker mid-crawl unless you explicitly accept interrupting crawls.
 - PHAC annual-crawl follow-up after the 2026-03-23 canada.ca incident:
   - Current state: job 7 (`phac-20260101`) is parked `retryable` after a controlled restart with `--disable-http2` removed visible HTTP/2 thrash but not the no-progress condition.
-  - Repo status: `archive_tool` now has a no-stats stall fallback for stages that never emit `crawlStatus`; deploy that before the next PHAC retry.
+  - Next action: deploy the repo-side `no_stats` stall fallback before the next PHAC retry, then verify the retry surfaces an explicit monitored condition.
+  - Why this is first: further PHAC recover/restart attempts should stay blocked until the repo-side mitigation is deployed.
   - Status tracking + next-step guidance: `../operations/healtharchive-ops-roadmap.md`
+- Job lock-dir cutover:
+  - Current state: the env change is already staged on the VPS, but services still need a maintenance-window restart to pick it up.
+  - Next action: restart the services that read `/etc/healtharchive/backend.env` after crawls are idle.
+  - Why deferred: do not restart the worker mid-crawl unless you explicitly accept interrupting crawls.
+  - Plan: `2026-02-06-crawl-operability-locks-and-retry-controls.md` (Phase 4)
 - Annual output-dir mount topology conversion (direct `sshfs` mounts → bind mounts):
   - Current state: the active 2026 annual job output dirs are mounted directly via `sshfs` (higher Errno 107/staleness risk).
+  - Next action: convert to bind mounts after the 2026 annual crawl is idle.
   - Why maintenance-only: converting requires unmount/remount of job output dirs and can interrupt active crawls.
   - Status tracking: `../operations/healtharchive-ops-roadmap.md`
 

@@ -177,6 +177,7 @@ nav:
           - Admissions Strengthening (OMSAS): planning/2026-02-admissions-strengthening-plan.md
           - Crawl Operability (Locks and Retry Controls): planning/2026-02-06-crawl-operability-locks-and-retry-controls.md
           - Hot-Path Staleness Root-Cause Investigation: planning/2026-02-06-hotpath-staleness-root-cause-investigation.md
+          - Annual Crawl Content-Cost and Scope Diagnosis: planning/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md
       - Future Roadmap: planning/roadmap.md
       - Roadmap Process: roadmap-process.md
       - Implemented Plans:
