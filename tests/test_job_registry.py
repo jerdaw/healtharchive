@@ -141,6 +141,35 @@ def test_reconcile_scope_passthrough_args_noop_for_unmanaged_source() -> None:
     assert normalized == args
 
 
+def test_reconcile_scope_passthrough_args_removes_legacy_managed_chrome_arg() -> None:
+    args = [
+        "--scopeType",
+        "custom",
+        "--scopeIncludeRx",
+        PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
+        "--scopeExcludeRx",
+        PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+        "--extraChromeArgs",
+        "--disable-http2",
+        "--extraChromeArgs",
+        "--disable-quic",
+    ]
+
+    normalized, drifted = reconcile_scope_passthrough_args("phac", args)
+
+    assert drifted is True
+    assert normalized == [
+        "--scopeType",
+        "custom",
+        "--scopeIncludeRx",
+        PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
+        "--scopeExcludeRx",
+        PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+        "--extraChromeArgs",
+        "--disable-quic",
+    ]
+
+
 def test_generate_job_name_uses_template_and_date() -> None:
     cfg = SOURCE_JOB_CONFIGS["hc"]
     fixed = datetime(2025, 12, 9, 12, 0, tzinfo=timezone.utc)

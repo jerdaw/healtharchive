@@ -59,6 +59,7 @@ _CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY = (
 # startup. Keep the canonical canada.ca profiles free of Browsertrix chrome
 # passthrough args until that upstream/container behavior changes.
 _CANADA_CA_EXTRA_CHROME_ARGS: tuple[str, ...] = ()
+_LEGACY_CANADA_CA_EXTRA_CHROME_ARGS = ("--disable-http2",)
 _PHAC_PUBLIC_HEALTH_NOTICES_EXCLUDE_RX_BODY = (
     r"https://www[.]canada[.]ca/en/public-health/services/public-health-notices"
     r"(?:/[^?#]*)?(?:[?#].*)?"
@@ -121,6 +122,7 @@ def normalize_scope_passthrough_args(
     scope_include_rx: str,
     scope_exclude_rx: str,
     extra_chrome_args: Iterable[str] = (),
+    remove_extra_chrome_args: Iterable[str] = (),
 ) -> list[str]:
     """
     Canonicalize managed passthrough args while preserving unrelated args.
@@ -150,7 +152,10 @@ def normalize_scope_passthrough_args(
 
     normalized_extra_chrome_args: list[str] = []
     seen_extra_chrome_args: set[str] = set()
+    removed_extra_chrome_args = {str(arg) for arg in remove_extra_chrome_args}
     for value in [*(str(arg) for arg in extra_chrome_args), *existing_extra_chrome_args]:
+        if value in removed_extra_chrome_args and value not in extra_chrome_args:
+            continue
         if value in seen_extra_chrome_args:
             continue
         seen_extra_chrome_args.add(value)
@@ -180,13 +185,16 @@ def reconcile_scope_passthrough_args(
         return existing_args, False
     include_rx, exclude_rx = canonical
     extra_chrome_args: tuple[str, ...] = ()
+    remove_extra_chrome_args: tuple[str, ...] = ()
     if str(source_code or "").strip().lower() in {"hc", "phac"}:
         extra_chrome_args = _CANADA_CA_EXTRA_CHROME_ARGS
+        remove_extra_chrome_args = _LEGACY_CANADA_CA_EXTRA_CHROME_ARGS
     normalized = normalize_scope_passthrough_args(
         existing_args,
         scope_include_rx=include_rx,
         scope_exclude_rx=exclude_rx,
         extra_chrome_args=extra_chrome_args,
+        remove_extra_chrome_args=remove_extra_chrome_args,
     )
     return normalized, normalized != existing_args
 
