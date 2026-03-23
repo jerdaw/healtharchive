@@ -54,6 +54,7 @@ PHAC_CANADA_CA_SCOPE_INCLUDE_RX = (
 _CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY = (
     r"https://www[.]canada[.]ca/.*[.](?:pdf|mp4|zip|docx?|pptx?|xlsx?)(?:[?#].*)?"
 )
+_CANADA_CA_EXTRA_CHROME_ARGS = ("--disable-http2",)
 _PHAC_PUBLIC_HEALTH_NOTICES_EXCLUDE_RX_BODY = (
     r"https://www[.]canada[.]ca/en/public-health/services/public-health-notices"
     r"(?:/[^?#]*)?(?:[?#].*)?"
@@ -84,15 +85,21 @@ def canonical_scope_filters_for_source(source_code: str) -> tuple[str, str] | No
 
 
 def normalize_scope_passthrough_args(
-    args: Iterable[str], *, scope_include_rx: str, scope_exclude_rx: str
+    args: Iterable[str],
+    *,
+    scope_include_rx: str,
+    scope_exclude_rx: str,
+    extra_chrome_args: Iterable[str] = (),
 ) -> list[str]:
     """
-    Canonicalize scope-related passthrough args while preserving unrelated args.
+    Canonicalize managed passthrough args while preserving unrelated args.
 
-    Scope args are emitted in a deterministic order so drift detection remains
-    stable across retries and one-off reconciliation runs.
+    Managed args are emitted in a deterministic order so drift detection remains
+    stable across retries and one-off reconciliation runs. Existing
+    ``--extraChromeArgs`` values are preserved after the canonical ones.
     """
     remaining: list[str] = []
+    existing_extra_chrome_args: list[str] = []
     raw_args = [str(arg) for arg in args]
     i = 0
     while i < len(raw_args):
@@ -100,8 +107,24 @@ def normalize_scope_passthrough_args(
         if tok in {"--scopeType", "--scopeIncludeRx", "--scopeExcludeRx"}:
             i += 2 if (i + 1) < len(raw_args) else 1
             continue
+        if tok == "--extraChromeArgs":
+            if (i + 1) < len(raw_args):
+                existing_extra_chrome_args.append(raw_args[i + 1])
+                i += 2
+            else:
+                i += 1
+            continue
         remaining.append(tok)
         i += 1
+
+    normalized_extra_chrome_args: list[str] = []
+    seen_extra_chrome_args: set[str] = set()
+    for value in [*(str(arg) for arg in extra_chrome_args), *existing_extra_chrome_args]:
+        if value in seen_extra_chrome_args:
+            continue
+        seen_extra_chrome_args.add(value)
+        normalized_extra_chrome_args.extend(["--extraChromeArgs", value])
+
     return [
         "--scopeType",
         "custom",
@@ -109,6 +132,7 @@ def normalize_scope_passthrough_args(
         scope_include_rx,
         "--scopeExcludeRx",
         scope_exclude_rx,
+        *normalized_extra_chrome_args,
         *remaining,
     ]
 
@@ -124,10 +148,14 @@ def reconcile_scope_passthrough_args(
     if canonical is None:
         return existing_args, False
     include_rx, exclude_rx = canonical
+    extra_chrome_args: tuple[str, ...] = ()
+    if str(source_code or "").strip().lower() in {"hc", "phac"}:
+        extra_chrome_args = _CANADA_CA_EXTRA_CHROME_ARGS
     normalized = normalize_scope_passthrough_args(
         existing_args,
         scope_include_rx=include_rx,
         scope_exclude_rx=exclude_rx,
+        extra_chrome_args=extra_chrome_args,
     )
     return normalized, normalized != existing_args
 
@@ -170,6 +198,8 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             HC_CANADA_CA_SCOPE_INCLUDE_RX,
             "--scopeExcludeRx",
             HC_CANADA_CA_SCOPE_EXCLUDE_RX,
+            "--extraChromeArgs",
+            *_CANADA_CA_EXTRA_CHROME_ARGS,
         ],
         default_tool_options={
             "cleanup": False,
@@ -208,6 +238,8 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
             "--scopeExcludeRx",
             PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+            "--extraChromeArgs",
+            *_CANADA_CA_EXTRA_CHROME_ARGS,
         ],
         default_tool_options={
             "cleanup": False,

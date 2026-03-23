@@ -178,6 +178,10 @@ def test_reconcile_annual_tool_options_apply_updates_profile_and_sets_campaign_m
         assert tool_opts.get("enable_adaptive_restart") is True
         assert tool_opts.get("skip_final_build") is True
         assert tool_opts.get("docker_shm_size") == "1g"
+        assert (
+            cfg.get("zimit_passthrough_args")
+            == SOURCE_JOB_CONFIGS["phac"].default_zimit_passthrough_args
+        )
 
 
 def test_reconcile_annual_tool_options_preserves_non_baseline_overrides_except_restart_floor(
@@ -245,6 +249,8 @@ def test_reconcile_annual_tool_options_applies_canonical_scope_filters_for_phac(
             "custom",
             "--scopeIncludeRx",
             "^https://www[.]canada[.]ca/(?:en/public-health[.]html|content/dam/phac-aspc/.*)$",
+            "--extraChromeArgs",
+            "--disable-quic",
             "--customFlag",
             "value",
         ]
@@ -275,6 +281,10 @@ def test_reconcile_annual_tool_options_applies_canonical_scope_filters_for_phac(
             PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
             "--scopeExcludeRx",
             PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+            "--extraChromeArgs",
+            "--disable-http2",
+            "--extraChromeArgs",
+            "--disable-quic",
             "--customFlag",
             "value",
         ]

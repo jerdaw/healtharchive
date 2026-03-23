@@ -109,11 +109,16 @@ def test_normalize_scope_passthrough_args_preserves_non_scope_args() -> None:
             "host",
             "--scopeIncludeRx",
             "^legacy$",
+            "--extraChromeArgs",
+            "--disable-http2",
+            "--extraChromeArgs",
+            "--disable-quic",
             "--customFlag",
             "value",
         ],
         scope_include_rx=PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
         scope_exclude_rx=PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+        extra_chrome_args=["--disable-http2"],
     )
     assert normalized == [
         "--scopeType",
@@ -122,6 +127,10 @@ def test_normalize_scope_passthrough_args_preserves_non_scope_args() -> None:
         PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
         "--scopeExcludeRx",
         PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+        "--extraChromeArgs",
+        "--disable-http2",
+        "--extraChromeArgs",
+        "--disable-quic",
         "--customFlag",
         "value",
     ]
@@ -189,6 +198,7 @@ def test_build_job_config_merges_defaults_and_overrides() -> None:
     assert config["zimit_passthrough_args"] == cfg.default_zimit_passthrough_args
     assert "--scopeIncludeRx" in config["zimit_passthrough_args"]
     assert "--scopeExcludeRx" in config["zimit_passthrough_args"]
+    assert "--extraChromeArgs" in config["zimit_passthrough_args"]
 
 
 def test_canada_ca_scope_regexes_match_expected_urls() -> None:
@@ -257,6 +267,9 @@ def test_canada_ca_scope_regexes_match_expected_urls() -> None:
     )
     assert phac_exclude_rx.match(
         "https://www.canada.ca/en/public-health/services/publications/example.docx"
+    )
+    assert not phac_exclude_rx.match(
+        "https://www.canada.ca/en/public-health/services/diseases/measles.html"
     )
     assert phac_exclude_rx.match(
         "https://www.canada.ca/en/public-health/services/public-health-notices/2015/public-health-notice-outbreak-e-coli-infections.html"

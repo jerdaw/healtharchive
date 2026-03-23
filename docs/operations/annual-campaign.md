@@ -92,6 +92,11 @@ still preserving completeness within each source:
     explicitly and sparingly (do not allow arbitrary internet expansion).
 -   **Canada.ca shared host:** `hc` and `phac` both live on `www.canada.ca`.
     We must scope by **host + path allowlist** (not “all of `www.canada.ca`”).
+-   **Canada.ca transport compatibility:** `hc` and `phac` annual profiles may
+    include conservative browser compatibility flags when repeated
+    `net::ERR_HTTP2_PROTOCOL_ERROR` failures appear across in-scope HTML pages.
+    This is preferred over broadening exclusions because the archive goal is
+    still completeness within the intended source boundary.
 
 ### 3.3 In-scope URL rules (mechanical, v1)
 
@@ -147,6 +152,14 @@ Out of scope (examples):
 -   `https://www.canada.ca/en/government/`
 -   Any other `https://www.canada.ca/<lang>/...` that is not the hub page or under
     the allowed prefixes above.
+
+Operational compatibility note (2026-03-23):
+
+-   HC/PHAC source profiles now pass Browsertrix `--extraChromeArgs --disable-http2`
+    to the crawler for canada.ca annual jobs. This is a source-profile
+    compatibility workaround for repeated document-level HTTP/2 protocol
+    failures and is intended to preserve completeness better than repeated
+    manual recoveries or broad new exclusions.
 
 #### CIHR (`cihr`) — `cihr-irsc.gc.ca`
 

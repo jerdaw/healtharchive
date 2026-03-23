@@ -300,6 +300,9 @@ Annual jobs are source-tuned (not one-size-fits-all). Canonical values live in `
 - For completeness-first posture, prefer targeted, versioned source-profile or scope changes in the repo before repeated manual recoveries.
 - Only increase tolerance (stall/restart budget) when evidence shows the crawl is still making useful progress and the issue is intermittent rather than continuous thrash.
 - Only reduce thresholds when repeated evidence shows low false-positive restart risk.
+- For recurring canada.ca transport errors, prefer a source-profile browser
+  compatibility change (for example Browsertrix `--extraChromeArgs`) before
+  expanding exclusions or repeatedly recycling the same job config.
 
 ### One-Time Annual Backfill/Reconciliation
 
