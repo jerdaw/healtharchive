@@ -59,6 +59,9 @@ _CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY = (
 # startup. Keep the canonical canada.ca profiles free of Browsertrix chrome
 # passthrough args until that upstream/container behavior changes.
 _CANADA_CA_EXTRA_CHROME_ARGS: tuple[str, ...] = ()
+_CANADA_CA_BROWSERTRIX_CONFIG: Dict[str, Any] = {
+    "extraChromeArgs": ["--disable-http2"],
+}
 _LEGACY_CANADA_CA_EXTRA_CHROME_ARGS = ("--disable-http2",)
 _PHAC_PUBLIC_HEALTH_NOTICES_EXCLUDE_RX_BODY = (
     r"https://www[.]canada[.]ca/en/public-health/services/public-health-notices"
@@ -250,6 +253,7 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             "cleanup": False,
             "overwrite": False,
             "skip_final_build": True,
+            "browsertrix_config": dict(_CANADA_CA_BROWSERTRIX_CONFIG),
             "enable_monitoring": True,
             "enable_adaptive_workers": True,
             "enable_adaptive_restart": True,
@@ -289,6 +293,7 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             "cleanup": False,
             "overwrite": False,
             "skip_final_build": True,
+            "browsertrix_config": dict(_CANADA_CA_BROWSERTRIX_CONFIG),
             "enable_monitoring": True,
             "enable_adaptive_workers": True,
             "enable_adaptive_restart": True,

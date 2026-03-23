@@ -494,6 +494,41 @@ class TestRunModeDetection:
         # In dry-run mode, it should show configuration summary
         assert "Dry run" in combined and "Configuration summary" in combined
 
+    def test_dry_run_persists_managed_browsertrix_config(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        mock_docker_check,
+        clean_stop_event,
+        capsys,
+    ):
+        out_dir = tmp_path / "managed-browsertrix"
+        out_dir.mkdir()
+
+        argv = [
+            "archive-tool",
+            "--seeds",
+            "https://example.org",
+            "--name",
+            "test-job",
+            "--output-dir",
+            str(out_dir),
+            "--browsertrix-config-json",
+            '{"extraChromeArgs":["--disable-http2"]}',
+            "--dry-run",
+        ]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        archive_main.main()
+
+        managed_config = out_dir / ".browsertrix_managed_config.yaml"
+        assert managed_config.is_file()
+        assert '"extraChromeArgs"' in managed_config.read_text(encoding="utf-8")
+
+        captured = capsys.readouterr()
+        combined = captured.out + captured.err
+        assert "Managed Browsertrix config" in combined
+
     def test_resume_mode_with_config_yaml(
         self,
         tmp_path: Path,

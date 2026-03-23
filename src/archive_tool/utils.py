@@ -284,6 +284,11 @@ def get_stable_resume_config_path(host_output_dir: Path) -> Path:
     return host_output_dir / constants.RESUME_CONFIG_FILE_NAME
 
 
+def get_managed_browsertrix_config_path(host_output_dir: Path) -> Path:
+    """Return the stable path for a managed Browsertrix config under the output dir."""
+    return host_output_dir / constants.MANAGED_BROWSERTRIX_CONFIG_FILE_NAME
+
+
 def find_stable_resume_config(host_output_dir: Path) -> Optional[Path]:
     path = get_stable_resume_config_path(host_output_dir)
     try:
@@ -314,6 +319,33 @@ def persist_resume_config(config_yaml_path: Path, host_output_dir: Path) -> Opti
         return dest.resolve()
     except OSError as exc:
         logger.warning("Could not persist resume config YAML to %s: %s", dest, exc)
+        return None
+
+
+def persist_managed_browsertrix_config(
+    config_data: Dict[str, Any], host_output_dir: Path
+) -> Optional[Path]:
+    """
+    Persist a managed Browsertrix config in JSON form.
+
+    JSON is a valid YAML subset, so Browsertrix can consume the resulting
+    ``.yaml`` file without introducing a YAML serialization dependency here.
+    """
+    dest = get_managed_browsertrix_config_path(host_output_dir)
+    try:
+        serialized = json.dumps(config_data, indent=2, sort_keys=True) + "\n"
+    except (TypeError, ValueError) as exc:
+        logger.warning("Could not serialize managed Browsertrix config: %s", exc)
+        return None
+
+    try:
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        tmp = dest.with_suffix(f"{dest.suffix}.tmp.{os.getpid()}")
+        tmp.write_text(serialized, encoding="utf-8")
+        tmp.replace(dest)
+        return dest.resolve()
+    except OSError as exc:
+        logger.warning("Could not persist managed Browsertrix config to %s: %s", dest, exc)
         return None
 
 

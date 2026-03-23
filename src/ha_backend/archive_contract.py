@@ -24,6 +24,7 @@ class ArchiveToolOptions:
     log_level: str = "INFO"
     docker_image: Optional[str] = None
     docker_shm_size: Optional[str] = None
+    browsertrix_config: Optional[Dict[str, Any]] = None
     skip_final_build: bool = False
 
     # Optional monitoring/adaptive fields.
@@ -72,6 +73,8 @@ class ArchiveToolOptions:
             docker_shm_size = str(self.docker_shm_size).strip()
             if docker_shm_size:
                 data["docker_shm_size"] = docker_shm_size
+        if self.browsertrix_config:
+            data["browsertrix_config"] = dict(self.browsertrix_config)
         if self.monitor_interval_seconds is not None:
             data["monitor_interval_seconds"] = self.monitor_interval_seconds
         if self.stall_timeout_minutes is not None:
@@ -104,6 +107,7 @@ class ArchiveToolOptions:
 
         Unknown keys are ignored; missing keys fall back to defaults.
         """
+        raw_browsertrix_config = data.get("browsertrix_config")
         return cls(
             cleanup=bool(data.get("cleanup", False)),
             overwrite=bool(data.get("overwrite", False)),
@@ -116,6 +120,9 @@ class ArchiveToolOptions:
             log_level=str(data.get("log_level", "INFO")),
             docker_image=data.get("docker_image"),
             docker_shm_size=data.get("docker_shm_size"),
+            browsertrix_config=(
+                dict(raw_browsertrix_config) if isinstance(raw_browsertrix_config, dict) else None
+            ),
             monitor_interval_seconds=data.get("monitor_interval_seconds"),
             stall_timeout_minutes=data.get("stall_timeout_minutes"),
             error_threshold_timeout=data.get("error_threshold_timeout"),
@@ -188,6 +195,9 @@ def validate_tool_options(opts: ArchiveToolOptions) -> None:
 
     if opts.docker_shm_size is not None and not str(opts.docker_shm_size).strip():
         raise ValueError("tool_options.docker_shm_size cannot be blank when set")
+
+    if opts.browsertrix_config is not None and not isinstance(opts.browsertrix_config, dict):
+        raise ValueError("tool_options.browsertrix_config must be a JSON object when set")
 
 
 __all__ = ["ArchiveToolOptions", "ArchiveJobConfig", "validate_tool_options"]

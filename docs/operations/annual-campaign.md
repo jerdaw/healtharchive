@@ -150,7 +150,9 @@ Out of scope (examples):
     sustained `net::ERR_HTTP2_PROTOCOL_ERROR` churn there. A short-lived
     2026-03-23 attempt to force Browsertrix `--disable-http2` was later rolled
     back after the live zimit image proved incompatible with that passthrough
-    during its `warc2zim` preflight step. Revisit only after the broader
+    during its `warc2zim` preflight step. The follow-up runtime fix carries
+    browser-only options through a managed Browsertrix config file via zimit
+    `--config` instead of raw CLI passthrough. Revisit only after the broader
     no-progress resume-loop issue is understood.
 -   Any other `https://www.canada.ca/<lang>/...` that is not the hub page or under
     the allowed prefixes above.

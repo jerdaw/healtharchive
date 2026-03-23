@@ -5,7 +5,9 @@ import pytest
 from archive_tool.cli import parse_arguments
 
 
-def test_parse_arguments_accepts_skip_final_build_and_docker_shm_size(monkeypatch) -> None:
+def test_parse_arguments_accepts_skip_final_build_docker_shm_and_browsertrix_config(
+    monkeypatch,
+) -> None:
     monkeypatch.setattr(
         "sys.argv",
         [
@@ -19,6 +21,8 @@ def test_parse_arguments_accepts_skip_final_build_and_docker_shm_size(monkeypatc
             "--skip-final-build",
             "--docker-shm-size",
             "1g",
+            "--browsertrix-config-json",
+            '{"extraChromeArgs":["--disable-http2"]}',
             "--scopeType",
             "host",
         ],
@@ -27,6 +31,7 @@ def test_parse_arguments_accepts_skip_final_build_and_docker_shm_size(monkeypatc
     script_args, zimit_passthrough = parse_arguments()
     assert script_args.skip_final_build is True
     assert script_args.docker_shm_size == "1g"
+    assert script_args.browsertrix_config_json == '{"extraChromeArgs":["--disable-http2"]}'
     assert zimit_passthrough == ["--scopeType", "host"]
 
 

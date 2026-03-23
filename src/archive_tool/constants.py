@@ -38,6 +38,7 @@ LOG_FORMAT = "%(asctime)s - %(levelname)s - [%(threadName)s] %(message)s"
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 STATE_FILE_NAME = ".archive_state.json"
 RESUME_CONFIG_FILE_NAME = ".zimit_resume.yaml"
+MANAGED_BROWSERTRIX_CONFIG_FILE_NAME = ".browsertrix_managed_config.yaml"
 
 # ---------------------------------------------------------------------------
 # Timeout and delay constants (seconds)

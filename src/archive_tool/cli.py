@@ -64,6 +64,14 @@ def parse_arguments() -> Tuple[argparse.Namespace, List[str]]:
         ),
     )
     tool_opts_group.add_argument(
+        "--browsertrix-config-json",
+        default=None,
+        help=(
+            "JSON object to persist as a managed Browsertrix config file under --output-dir "
+            "and feed to zimit via '--config' for fresh/new crawl phases."
+        ),
+    )
+    tool_opts_group.add_argument(
         "--log-level",
         default="INFO",
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],

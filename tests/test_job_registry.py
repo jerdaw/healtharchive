@@ -59,6 +59,9 @@ def test_get_config_for_source_known_sources() -> None:
     assert cihr_cfg.default_seeds
     # Annual defaults are tuned for search-first throughput on the single VPS.
     assert hc_cfg.default_tool_options["skip_final_build"] is True
+    assert hc_cfg.default_tool_options["browsertrix_config"] == {
+        "extraChromeArgs": ["--disable-http2"]
+    }
     assert hc_cfg.default_tool_options["docker_shm_size"] == "1g"
     assert hc_cfg.default_tool_options["initial_workers"] == 2
     assert hc_cfg.default_tool_options["stall_timeout_minutes"] == 75
@@ -68,6 +71,9 @@ def test_get_config_for_source_known_sources() -> None:
     assert hc_cfg.default_tool_options["backoff_delay_minutes"] == 15
 
     assert phac_cfg.default_tool_options["skip_final_build"] is True
+    assert phac_cfg.default_tool_options["browsertrix_config"] == {
+        "extraChromeArgs": ["--disable-http2"]
+    }
     assert phac_cfg.default_tool_options["docker_shm_size"] == "1g"
     assert phac_cfg.default_tool_options["initial_workers"] == 2
     assert phac_cfg.default_tool_options["stall_timeout_minutes"] == 90
@@ -119,6 +125,7 @@ def test_normalize_scope_passthrough_args_preserves_non_scope_args() -> None:
         scope_include_rx=PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
         scope_exclude_rx=PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
         extra_chrome_args=[],
+        remove_extra_chrome_args=["--disable-http2"],
     )
     assert normalized == [
         "--scopeType",
@@ -218,6 +225,7 @@ def test_build_job_config_merges_defaults_and_overrides() -> None:
     tool_options = config["tool_options"]
     assert tool_options["cleanup"] is True
     assert tool_options["initial_workers"] == 4
+    assert tool_options["browsertrix_config"] == {"extraChromeArgs": ["--disable-http2"]}
     # Unmodified options should still be present.
     assert tool_options["log_level"] == cfg.default_tool_options["log_level"]
 

@@ -147,6 +147,8 @@ def test_run_persistent_job_builds_monitoring_and_vpn_args(tmp_path, monkeypatch
     expected_extra_args = (
         "--docker-shm-size",
         "1g",
+        "--browsertrix-config-json",
+        '{"extraChromeArgs":["--disable-http2"]}',
         "--enable-monitoring",
         "--monitor-interval-seconds",
         "10",

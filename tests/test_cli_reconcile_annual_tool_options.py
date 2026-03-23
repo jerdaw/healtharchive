@@ -178,6 +178,7 @@ def test_reconcile_annual_tool_options_apply_updates_profile_and_sets_campaign_m
         assert tool_opts.get("enable_adaptive_restart") is True
         assert tool_opts.get("skip_final_build") is True
         assert tool_opts.get("docker_shm_size") == "1g"
+        assert tool_opts.get("browsertrix_config") == {"extraChromeArgs": ["--disable-http2"]}
         assert (
             cfg.get("zimit_passthrough_args")
             == SOURCE_JOB_CONFIGS["phac"].default_zimit_passthrough_args
@@ -286,3 +287,40 @@ def test_reconcile_annual_tool_options_applies_canonical_scope_filters_for_phac(
             "--customFlag",
             "value",
         ]
+
+
+def test_reconcile_annual_tool_options_backfills_managed_browsertrix_config(
+    tmp_path, monkeypatch
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    with get_session() as session:
+        seed_sources(session)
+        job_id = _create_annual_job(session, source_code="phac", year=2026)
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        cfg = dict(job.config or {})
+        tool_opts = dict(cfg.get("tool_options") or {})
+        tool_opts.pop("browsertrix_config", None)
+        cfg["tool_options"] = tool_opts
+        job.config = cfg
+        session.flush()
+
+    out = _run_cli(
+        [
+            "reconcile-annual-tool-options",
+            "--year",
+            "2026",
+            "--sources",
+            "phac",
+            "--apply",
+        ]
+    )
+    assert f"phac: UPDATED job_id={job_id}" in out
+    assert "browsertrix_config:" in out
+
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        tool_opts = dict((job.config or {}).get("tool_options") or {})
+        assert tool_opts.get("browsertrix_config") == {"extraChromeArgs": ["--disable-http2"]}

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import fcntl
+import json
 import logging
 import os
 import stat
@@ -380,6 +381,15 @@ def _build_tool_extra_args(tool_options: ArchiveToolOptions) -> list[str]:
     docker_shm_size = (getattr(tool_options, "docker_shm_size", None) or "").strip()
     if docker_shm_size:
         extra_tool_args.extend(["--docker-shm-size", docker_shm_size])
+
+    browsertrix_config = getattr(tool_options, "browsertrix_config", None)
+    if browsertrix_config:
+        extra_tool_args.extend(
+            [
+                "--browsertrix-config-json",
+                json.dumps(browsertrix_config, separators=(",", ":"), sort_keys=True),
+            ]
+        )
 
     enable_monitoring = bool(tool_options.enable_monitoring)
     if enable_monitoring:

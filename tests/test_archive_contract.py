@@ -25,6 +25,7 @@ def test_archive_tool_options_round_trip_defaults() -> None:
     # Optional fields should be omitted when None.
     assert "docker_image" not in data
     assert "docker_shm_size" not in data
+    assert "browsertrix_config" not in data
     assert "monitor_interval_seconds" not in data
     assert "stall_timeout_minutes" not in data
     assert "error_threshold_timeout" not in data
@@ -57,6 +58,7 @@ def test_archive_tool_options_round_trip_with_optional_fields() -> None:
         log_level="DEBUG",
         docker_image="ghcr.io/openzim/zimit:stable",
         docker_shm_size="1g",
+        browsertrix_config={"extraChromeArgs": ["--disable-http2"]},
         monitor_interval_seconds=10,
         stall_timeout_minutes=5,
         error_threshold_timeout=3,
@@ -74,6 +76,7 @@ def test_archive_tool_options_round_trip_with_optional_fields() -> None:
     # Ensure optional fields are serialized.
     assert data["docker_image"] == "ghcr.io/openzim/zimit:stable"
     assert data["docker_shm_size"] == "1g"
+    assert data["browsertrix_config"] == {"extraChromeArgs": ["--disable-http2"]}
     assert data["monitor_interval_seconds"] == 10
     assert data["stall_timeout_minutes"] == 5
     assert data["error_threshold_timeout"] == 3
@@ -97,6 +100,7 @@ def test_archive_job_config_round_trip() -> None:
         enable_monitoring=True,
         initial_workers=2,
         log_level="WARNING",
+        browsertrix_config={"extraChromeArgs": ["--disable-http2"]},
     )
     cfg = ArchiveJobConfig(
         seeds=["https://example.org", "https://example.com"],
@@ -109,6 +113,7 @@ def test_archive_job_config_round_trip() -> None:
     assert data["zimit_passthrough_args"] == ["--pageLimit", "10"]
     assert data["tool_options"]["enable_monitoring"] is True
     assert data["tool_options"]["initial_workers"] == 2
+    assert data["tool_options"]["browsertrix_config"] == {"extraChromeArgs": ["--disable-http2"]}
 
     loaded = ArchiveJobConfig.from_dict(data)
     assert loaded.seeds == cfg.seeds
@@ -181,3 +186,11 @@ def test_validate_tool_options_enforces_invariants() -> None:
         assert "docker_shm_size" in str(exc)
     else:
         assert False, "Expected ValueError for blank docker_shm_size"
+
+    opts = ArchiveToolOptions(browsertrix_config="bad")  # type: ignore[arg-type]
+    try:
+        validate_tool_options(opts)
+    except ValueError as exc:
+        assert "browsertrix_config" in str(exc)
+    else:
+        assert False, "Expected ValueError for non-object browsertrix_config"

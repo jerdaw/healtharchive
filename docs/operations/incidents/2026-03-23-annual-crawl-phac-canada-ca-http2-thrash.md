@@ -22,6 +22,14 @@ We first confirmed that the deployed backend was missing the repo-side PHAC scop
 
 Follow-up log review later showed that compatibility change was itself invalid for the deployed zimit image: each restart failed during zimit's `warc2zim` preflight with `unrecognized arguments: --extraChromeArgs --disable-http2`. PHAC was then paused pending a rollback of that incompatible passthrough. The longer-term PHAC diagnosis still points to HTML/runtime churn on specific canada.ca families, but the immediate resume-stage `RC=2` failures were self-inflicted by the passthrough flag.
 
+Subsequent repo-side investigation confirmed the underlying zimit mismatch: the
+deployed `v3.0.5` entrypoint treats unknown arguments as `warc2zim` arguments
+and does not recognize Browsertrix `extraChromeArgs` itself, even though
+Browsertrix supports them. The follow-up runtime fix therefore moved the
+managed canada.ca HTTP/2 workaround into a Browsertrix config file passed via
+zimit's supported `--config` path for fresh/new crawl phases instead of mixed
+CLI passthrough.
+
 The immediate repo-side follow-up was to harden `archive_tool` monitoring so a
 stage that emits no `crawlStatus` for a full stall window is treated as an
 explicit monitored stall (`reason=no_stats`) instead of remaining silently
@@ -71,6 +79,9 @@ the underlying PHAC no-progress behavior.
 - 2026-03-23T13:18:16Z — PHAC job 7 was parked as `retryable` again pending repo-side investigation.
 - 2026-03-23T18:57:26Z — Direct inspection of the newest PHAC resume log showed `zimit: error: unrecognized arguments: --extraChromeArgs --disable-http2` during the `warc2zim` preflight check.
 - 2026-03-23T19:xx:xxZ — Repo-side rollback prepared to remove the incompatible HC/PHAC Browsertrix passthrough from canonical annual source config.
+- 2026-03-23Txx:xx:xxZ — Repo-side runtime follow-up confirmed zimit `v3.0.5`
+  does not recognize Browsertrix `extraChromeArgs` on its own CLI surface and
+  added managed Browsertrix-config support via zimit `--config` for HC/PHAC.
 - 2026-03-23Txx:xx:xxZ — Repo-side monitor hardening was implemented so stages
   that emit no `crawlStatus` for a full stall window now trigger
   `{"status": "stalled", "reason": "no_stats"}` instead of remaining silently
@@ -80,6 +91,9 @@ the underlying PHAC no-progress behavior.
 
 - Immediate trigger: repeated document-level HTTP/2 protocol failures on canada.ca pages prevented PHAC from making useful crawl progress.
 - Secondary trigger introduced during mitigation: the deployed zimit image rejected `--extraChromeArgs --disable-http2` during its `warc2zim` preflight step, causing immediate `RC=2` failures before crawl startup.
+- Packaging detail behind the secondary trigger: zimit `v3.0.5` forwards
+  unknown arguments to `warc2zim` and does not treat Browsertrix
+  `extraChromeArgs` as a known crawler argument on its own entrypoint.
 - Underlying cause(s): current Browsertrix/chromium transport behavior appears incompatible with some canada.ca annual PHAC pages under the existing source profile; the single `public-health-notices` exclusion was not sufficient to restore progress.
 - Control-plane gap discovered during follow-up: the monitor only treated
   "known progress went stale" as a stall, so stages that emitted no
@@ -112,6 +126,9 @@ Completed after the initial draft:
 - Paused PHAC again rather than allowing repeated blind restarts.
 - Implemented repo-side monitor hardening so stages that emit no `crawlStatus`
   for an entire stall window now trigger a `no_stats` intervention path.
+- Implemented repo-side managed Browsertrix config support so HC/PHAC can carry
+  browser-only options (including `extraChromeArgs`) via zimit `--config`
+  instead of the incompatible mixed CLI passthrough.
 
 ## Post-incident verification
 
@@ -124,7 +141,8 @@ Completed so far:
 Still required:
 
 - Roll back the incompatible HC/PHAC `--disable-http2` passthrough in production and reconcile the live annual jobs.
-- Re-test PHAC once with the narrowed PHAC HTML-family exclusions but without the broken Browsertrix passthrough.
+- Deploy the managed Browsertrix-config follow-up, reconcile the live annual
+  HC/PHAC jobs, and re-test PHAC from a fresh/new crawl phase.
 - Decide whether the temporary `public-health-notices` exclusion remains justified once the deeper crawler/runtime issue is understood.
 - Design the next repo-side mitigation only after that corrected rerun.
 
@@ -140,6 +158,9 @@ Still required:
 - [x] Reconcile annual HC/PHAC job configs in production and confirm `show-job --id 6/7` reflect the canonical passthrough args. (priority=high)
 - [x] Perform one controlled PHAC restart with the new compatibility config and record the outcome in this note. (priority=high)
 - [ ] Roll back the incompatible HC/PHAC `--disable-http2` passthrough with a pinned deploy and annual reconciliation. (priority=high)
+- [ ] Deploy the managed Browsertrix-config follow-up for HC/PHAC, reconcile
+  annual jobs, and verify the live PHAC start path uses zimit `--config`
+  rather than CLI `--extraChromeArgs`. (priority=high)
 - [x] Improve ops visibility for repeated `Resume Crawl` churn without `crawlStatus` so this state is obvious in VPS snapshots and metrics. (priority=medium)
 - [x] Add a repo-side `archive_tool` monitor fallback so a stage with no `crawlStatus` for the full stall window triggers an explicit `no_stats` intervention instead of silently hanging. (priority=medium)
 - [ ] Decide whether the temporary PHAC `public-health-notices` exclusion can be removed after live verification. (priority=medium)

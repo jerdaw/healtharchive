@@ -1403,6 +1403,9 @@ def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
                 cfg.tool_options.skip_final_build = True
             if not (cfg.tool_options.docker_shm_size or "").strip():
                 cfg.tool_options.docker_shm_size = "1g"
+            desired_browsertrix_config = profile_cfg.default_tool_options.get("browsertrix_config")
+            if desired_browsertrix_config and not cfg.tool_options.browsertrix_config:
+                cfg.tool_options.browsertrix_config = dict(desired_browsertrix_config)
 
             desired_profile = {
                 key: int(profile_cfg.default_tool_options[key])

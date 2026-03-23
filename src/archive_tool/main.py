@@ -1,6 +1,7 @@
 # archive_tool/main.py
 import argparse
 import datetime
+import json
 import logging
 import os
 import shutil
@@ -442,6 +443,27 @@ def main():
         )
         sys.exit(1)
 
+    managed_browsertrix_config_path: Optional[Path] = None
+    raw_browsertrix_config = (getattr(script_args, "browsertrix_config_json", None) or "").strip()
+    if raw_browsertrix_config:
+        try:
+            browsertrix_config = json.loads(raw_browsertrix_config)
+        except json.JSONDecodeError as exc:
+            logger.critical("Managed Browsertrix config is not valid JSON: %s", exc)
+            sys.exit(1)
+        if not isinstance(browsertrix_config, dict) or not browsertrix_config:
+            logger.critical("Managed Browsertrix config must be a non-empty JSON object.")
+            sys.exit(1)
+        managed_browsertrix_config_path = utils.persist_managed_browsertrix_config(
+            browsertrix_config, host_output_dir
+        )
+        if managed_browsertrix_config_path is None:
+            logger.critical(
+                "Failed to persist managed Browsertrix config under %s", host_output_dir
+            )
+            sys.exit(1)
+        logger.info("Managed Browsertrix config persisted to %s", managed_browsertrix_config_path)
+
     # Determine initial worker count, potentially overridden by passthrough args
     logger.debug(f"Script argument --initial-workers: {script_args.initial_workers}")
     initial_workers_arg = script_args.initial_workers
@@ -482,6 +504,8 @@ def main():
         logger.info("  Monitoring enabled: %s", script_args.enable_monitoring)
         logger.info("  Adaptive workers enabled: %s", script_args.enable_adaptive_workers)
         logger.info("  VPN rotation enabled: %s", script_args.enable_vpn_rotation)
+        if managed_browsertrix_config_path is not None:
+            logger.info("  Managed Browsertrix config: %s", managed_browsertrix_config_path)
         if zimit_passthrough_args:
             logger.info(
                 "  Zimit passthrough args: %s",
@@ -694,6 +718,24 @@ def main():
 
         # --- Prepare arguments for this stage attempt ---
         logger.debug(f"Preparing arguments for stage '{stage_name_with_attempt}'")
+        if current_stage_name != "Resume Crawl" and managed_browsertrix_config_path is not None:
+            container_yaml = utils.host_to_container_path(
+                managed_browsertrix_config_path, host_output_dir
+            )
+            if container_yaml is not None:
+                extra_run_args = ["--config", str(container_yaml)]
+                logger.info(
+                    "Will use managed Browsertrix config for stage '%s': %s",
+                    current_stage_name,
+                    container_yaml,
+                )
+            else:
+                logger.critical(
+                    "Failed to convert managed Browsertrix config '%s' to container path.",
+                    managed_browsertrix_config_path,
+                )
+                final_status = "failed_state_error"
+                break
         if current_stage_name in ["Resume Crawl"]:
             logger.debug("This is a Resume attempt. Need to find config YAML.")
             # Re-check for the latest YAML file path right before the attempt
