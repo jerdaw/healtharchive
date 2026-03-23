@@ -16,9 +16,12 @@ from ha_backend.job_registry import (
     SOURCE_JOB_CONFIGS,
     build_job_config,
     build_output_dir_for_job,
+    canonical_scope_filters_for_source,
     create_job_for_source,
     generate_job_name,
     get_config_for_source,
+    normalize_scope_passthrough_args,
+    reconcile_scope_passthrough_args,
 )
 from ha_backend.models import ArchiveJob
 from ha_backend.seeds import seed_sources
@@ -85,6 +88,50 @@ def test_get_config_for_source_known_sources() -> None:
 
 def test_get_config_for_source_unknown() -> None:
     assert get_config_for_source("unknown-source") is None
+
+
+def test_canonical_scope_filters_for_source_returns_managed_sources() -> None:
+    assert canonical_scope_filters_for_source("hc") == (
+        HC_CANADA_CA_SCOPE_INCLUDE_RX,
+        HC_CANADA_CA_SCOPE_EXCLUDE_RX,
+    )
+    assert canonical_scope_filters_for_source("PHAC") == (
+        PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
+        PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+    )
+    assert canonical_scope_filters_for_source("cihr") is None
+
+
+def test_normalize_scope_passthrough_args_preserves_non_scope_args() -> None:
+    normalized = normalize_scope_passthrough_args(
+        [
+            "--scopeType",
+            "host",
+            "--scopeIncludeRx",
+            "^legacy$",
+            "--customFlag",
+            "value",
+        ],
+        scope_include_rx=PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
+        scope_exclude_rx=PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+    )
+    assert normalized == [
+        "--scopeType",
+        "custom",
+        "--scopeIncludeRx",
+        PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
+        "--scopeExcludeRx",
+        PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+        "--customFlag",
+        "value",
+    ]
+
+
+def test_reconcile_scope_passthrough_args_noop_for_unmanaged_source() -> None:
+    args = ["--scopeType", "host", "--limit", "10"]
+    normalized, drifted = reconcile_scope_passthrough_args("cihr", args)
+    assert drifted is False
+    assert normalized == args
 
 
 def test_generate_job_name_uses_template_and_date() -> None:

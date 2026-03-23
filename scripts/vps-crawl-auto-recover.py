@@ -15,13 +15,7 @@ from pathlib import Path
 
 from ha_backend.crawl_stats import parse_crawl_log_progress
 from ha_backend.db import get_session
-from ha_backend.job_registry import (
-    HC_CANADA_CA_SCOPE_EXCLUDE_RX,
-    HC_CANADA_CA_SCOPE_INCLUDE_RX,
-    PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
-    PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
-    SOURCE_JOB_CONFIGS,
-)
+from ha_backend.job_registry import SOURCE_JOB_CONFIGS, reconcile_scope_passthrough_args
 from ha_backend.models import ArchiveJob, Source
 
 DEFAULT_DEPLOY_LOCK_FILE = "/tmp/healtharchive-backend-deploy.lock"
@@ -96,25 +90,6 @@ _LEGACY_ANNUAL_BASELINE_VALUES: dict[str, set[int]] = {
 
 _SCOPED_SOURCES: set[str] = {"hc", "phac"}
 
-_CANONICAL_SCOPE_INCLUDE_BY_SOURCE: dict[str, str] = {
-    "hc": HC_CANADA_CA_SCOPE_INCLUDE_RX,
-    "phac": PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
-}
-
-_CANONICAL_SCOPE_EXCLUDE_BY_SOURCE: dict[str, str] = {
-    "hc": HC_CANADA_CA_SCOPE_EXCLUDE_RX,
-    "phac": PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
-}
-
-
-def _canonical_scope_filters(source_code: str | None) -> tuple[str, str] | None:
-    code = str(source_code or "").strip().lower()
-    include_rx = _CANONICAL_SCOPE_INCLUDE_BY_SOURCE.get(code)
-    exclude_rx = _CANONICAL_SCOPE_EXCLUDE_BY_SOURCE.get(code)
-    if not include_rx or not exclude_rx:
-        return None
-    return include_rx, exclude_rx
-
 
 def _infer_job_source_code(job: ArchiveJob) -> str:
     try:
@@ -135,51 +110,13 @@ def _infer_job_source_code(job: ArchiveJob) -> str:
     return ""
 
 
-def _normalize_scope_passthrough_args(
-    args: list[str], *, scope_include_rx: str, scope_exclude_rx: str
-) -> list[str]:
-    """
-    Canonicalize scope-related passthrough args while preserving unrelated args.
-
-    We intentionally keep a deterministic order for scope args so drift detection
-    and tests remain stable across retries/restarts.
-    """
-    remaining: list[str] = []
-    i = 0
-    while i < len(args):
-        tok = str(args[i])
-        if tok in {"--scopeType", "--scopeIncludeRx", "--scopeExcludeRx"}:
-            i += 2 if (i + 1) < len(args) else 1
-            continue
-        remaining.append(tok)
-        i += 1
-    return [
-        "--scopeType",
-        "custom",
-        "--scopeIncludeRx",
-        scope_include_rx,
-        "--scopeExcludeRx",
-        scope_exclude_rx,
-        *remaining,
-    ]
-
-
 def _compute_scope_args_for_job(
     job: ArchiveJob, *, source_code: str | None = None
 ) -> tuple[list[str], bool]:
     code = str(source_code or "").strip().lower() or _infer_job_source_code(job)
-    canonical = _canonical_scope_filters(code)
     cfg = dict(job.config or {})
     existing_args = list(cfg.get("zimit_passthrough_args") or [])
-    if canonical is None:
-        return existing_args, False
-    include_rx, exclude_rx = canonical
-    normalized = _normalize_scope_passthrough_args(
-        existing_args,
-        scope_include_rx=include_rx,
-        scope_exclude_rx=exclude_rx,
-    )
-    return normalized, normalized != existing_args
+    return reconcile_scope_passthrough_args(code, existing_args)
 
 
 def _apply_scope_args(job: ArchiveJob, normalized_args: list[str]) -> None:
