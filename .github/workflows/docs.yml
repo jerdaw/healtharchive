@@ -10,16 +10,14 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: "true"
 
 permissions:
-  contents: read
-  pages: write
-  id-token: write
+  contents: write
 
 concurrency:
   group: healtharchive-backend-pages
   cancel-in-progress: true
 
 jobs:
-  build:
+  deploy:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout backend
@@ -65,23 +63,35 @@ jobs:
           args: --verbose --no-progress --exclude-mail "healtharchive-backend/site/**/*.html"
           fail: false # Set to true if you want to block on dead links
 
-      - name: Set up GitHub Pages
-        uses: actions/configure-pages@v5
-        with:
-          enablement: true
+      - name: Publish site to gh-pages
+        working-directory: healtharchive-backend
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          set -euo pipefail
 
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v4
-        with:
-          path: ./healtharchive-backend/site
+          repo_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          publish_dir="$(mktemp -d)"
 
-  deploy:
-    needs: build
-    runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy to GitHub Pages
-        id: deployment
-        uses: actions/deploy-pages@v4
+          if git clone --branch gh-pages --single-branch "${repo_url}" "${publish_dir}" >/dev/null 2>&1; then
+            :
+          else
+            git init "${publish_dir}" >/dev/null 2>&1
+            git -C "${publish_dir}" checkout --orphan gh-pages
+          fi
+
+          find "${publish_dir}" -mindepth 1 -maxdepth 1 ! -name '.git' -exec rm -rf {} +
+          cp -a site/. "${publish_dir}/"
+          touch "${publish_dir}/.nojekyll"
+
+          git -C "${publish_dir}" config user.name "${GITHUB_ACTOR}"
+          git -C "${publish_dir}" config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+          git -C "${publish_dir}" add --all
+
+          if git -C "${publish_dir}" diff --cached --quiet; then
+            echo "No documentation changes to publish."
+            exit 0
+          fi
+
+          git -C "${publish_dir}" commit -m "docs: publish ${GITHUB_SHA}"
+          git -C "${publish_dir}" push "${repo_url}" gh-pages:gh-pages
