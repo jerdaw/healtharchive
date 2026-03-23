@@ -7,7 +7,12 @@ from pathlib import Path
 from ha_backend import cli as cli_module
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
-from ha_backend.job_registry import SOURCE_JOB_CONFIGS, build_job_config
+from ha_backend.job_registry import (
+    PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+    PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
+    SOURCE_JOB_CONFIGS,
+    build_job_config,
+)
 from ha_backend.models import ArchiveJob, Source
 from ha_backend.seeds import seed_sources
 
@@ -218,3 +223,58 @@ def test_reconcile_annual_tool_options_preserves_non_baseline_overrides_except_r
         assert tool_opts.get("error_threshold_http") == 20
         assert tool_opts.get("backoff_delay_minutes") == 4
         assert tool_opts.get("max_container_restarts") == 20
+
+
+def test_reconcile_annual_tool_options_applies_canonical_scope_filters_for_phac(
+    tmp_path, monkeypatch
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    with get_session() as session:
+        seed_sources(session)
+        job_id = _create_annual_job(
+            session,
+            source_code="phac",
+            year=2026,
+        )
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        cfg = dict(job.config or {})
+        cfg["zimit_passthrough_args"] = [
+            "--scopeType",
+            "custom",
+            "--scopeIncludeRx",
+            "^https://www[.]canada[.]ca/(?:en/public-health[.]html|content/dam/phac-aspc/.*)$",
+            "--customFlag",
+            "value",
+        ]
+        job.config = cfg
+        session.flush()
+
+    out = _run_cli(
+        [
+            "reconcile-annual-tool-options",
+            "--year",
+            "2026",
+            "--sources",
+            "phac",
+            "--apply",
+        ]
+    )
+    assert f"phac: UPDATED job_id={job_id}" in out
+    assert "zimit_passthrough_args:" in out
+
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        args = list((job.config or {}).get("zimit_passthrough_args") or [])
+        assert args == [
+            "--scopeType",
+            "custom",
+            "--scopeIncludeRx",
+            PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
+            "--scopeExcludeRx",
+            PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+            "--customFlag",
+            "value",
+        ]

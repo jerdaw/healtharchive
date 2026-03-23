@@ -43,7 +43,7 @@ from .config import (
 )
 from .db import get_engine, get_session
 from .indexing import index_job
-from .job_registry import create_job_for_source
+from .job_registry import create_job_for_source, reconcile_scope_passthrough_args
 from .jobs import create_job, run_persistent_job
 from .logging_config import configure_logging
 from .seeds import seed_sources
@@ -1445,6 +1445,15 @@ def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
                 if old_val != new_val:
                     changes.append((key, old_val, new_val))
 
+            old_zimit_args = list(cfg.zimit_passthrough_args)
+            new_zimit_args, scope_drift = reconcile_scope_passthrough_args(
+                source_code,
+                old_zimit_args,
+            )
+            if scope_drift:
+                cfg.zimit_passthrough_args = list(new_zimit_args)
+                changes.append(("zimit_passthrough_args", old_zimit_args, new_zimit_args))
+
             if not changes:
                 unchanged += 1
                 print(
@@ -1463,6 +1472,7 @@ def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
             if not dry_run:
                 current_cfg = dict(job.config or {})
                 current_cfg["tool_options"] = new_opts
+                current_cfg["zimit_passthrough_args"] = list(cfg.zimit_passthrough_args)
                 current_cfg.setdefault("campaign_kind", "annual")
                 current_cfg.setdefault("campaign_year", year)
                 current_cfg.setdefault("campaign_date", f"{year}-01-01")

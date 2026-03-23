@@ -602,6 +602,7 @@ ha-backend reconcile-annual-tool-options --year 2026 --sources hc --apply
 
 **What it does**:
 - Reconciles legacy baseline tool options to per-source profiles
+- Reconciles canonical HC/PHAC scope filters on existing annual jobs
 - Preserves explicit non-baseline overrides
 - Enforces restart-budget floor and annual safety defaults
 

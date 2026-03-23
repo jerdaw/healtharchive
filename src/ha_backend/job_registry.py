@@ -68,6 +68,70 @@ PHAC_CANADA_CA_SCOPE_EXCLUDE_RX = (
 )
 
 
+def canonical_scope_filters_for_source(source_code: str) -> tuple[str, str] | None:
+    """
+    Return canonical scope include/exclude regexes for sources with managed scope.
+
+    Only HC and PHAC currently use custom canada.ca scope filters that may need
+    backfilling on older annual jobs.
+    """
+    code = str(source_code or "").strip().lower()
+    if code == "hc":
+        return HC_CANADA_CA_SCOPE_INCLUDE_RX, HC_CANADA_CA_SCOPE_EXCLUDE_RX
+    if code == "phac":
+        return PHAC_CANADA_CA_SCOPE_INCLUDE_RX, PHAC_CANADA_CA_SCOPE_EXCLUDE_RX
+    return None
+
+
+def normalize_scope_passthrough_args(
+    args: Iterable[str], *, scope_include_rx: str, scope_exclude_rx: str
+) -> list[str]:
+    """
+    Canonicalize scope-related passthrough args while preserving unrelated args.
+
+    Scope args are emitted in a deterministic order so drift detection remains
+    stable across retries and one-off reconciliation runs.
+    """
+    remaining: list[str] = []
+    raw_args = [str(arg) for arg in args]
+    i = 0
+    while i < len(raw_args):
+        tok = raw_args[i]
+        if tok in {"--scopeType", "--scopeIncludeRx", "--scopeExcludeRx"}:
+            i += 2 if (i + 1) < len(raw_args) else 1
+            continue
+        remaining.append(tok)
+        i += 1
+    return [
+        "--scopeType",
+        "custom",
+        "--scopeIncludeRx",
+        scope_include_rx,
+        "--scopeExcludeRx",
+        scope_exclude_rx,
+        *remaining,
+    ]
+
+
+def reconcile_scope_passthrough_args(
+    source_code: str, args: Iterable[str]
+) -> tuple[list[str], bool]:
+    """
+    Normalize managed scope args for a source and report whether drift existed.
+    """
+    existing_args = [str(arg) for arg in args]
+    canonical = canonical_scope_filters_for_source(source_code)
+    if canonical is None:
+        return existing_args, False
+    include_rx, exclude_rx = canonical
+    normalized = normalize_scope_passthrough_args(
+        existing_args,
+        scope_include_rx=include_rx,
+        scope_exclude_rx=exclude_rx,
+    )
+    return normalized, normalized != existing_args
+
+
 @dataclass
 class SourceJobConfig:
     """
