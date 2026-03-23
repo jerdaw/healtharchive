@@ -26,6 +26,7 @@ Current known items:
   - Hard requirement: do not restart the worker mid-crawl unless you explicitly accept interrupting crawls.
 - PHAC annual-crawl follow-up after the 2026-03-23 canada.ca incident:
   - Current state: job 7 (`phac-20260101`) is parked `retryable` after a controlled restart with `--disable-http2` removed visible HTTP/2 thrash but not the no-progress condition.
+  - Repo status: `archive_tool` now has a no-stats stall fallback for stages that never emit `crawlStatus`; deploy that before the next PHAC retry.
   - Status tracking + next-step guidance: `../operations/healtharchive-ops-roadmap.md`
 - Annual output-dir mount topology conversion (direct `sshfs` mounts → bind mounts):
   - Current state: the active 2026 annual job output dirs are mounted directly via `sshfs` (higher Errno 107/staleness risk).

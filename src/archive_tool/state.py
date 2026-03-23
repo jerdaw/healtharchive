@@ -32,6 +32,7 @@ class CrawlState:
         self.last_failed_count: int = -1
         self.last_progress_timestamp: Optional[float] = None
         self.last_stats_timestamp: Optional[float] = None
+        self.last_no_stats_signal_timestamp: Optional[float] = None
         self.error_counts: Dict[str, int] = {"timeout": 0, "http": 0, "other": 0}
         self.last_error_type: Optional[str] = None
         self.exit_code: Optional[int] = None
@@ -364,6 +365,7 @@ class CrawlState:
 
         if progress_made:
             self.last_progress_timestamp = timestamp
+            self.last_no_stats_signal_timestamp = None
             if (
                 self.error_counts["timeout"] > 0
                 or self.error_counts["http"] > 0

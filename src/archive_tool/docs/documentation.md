@@ -761,6 +761,12 @@ Responsibilities:
        * If monitoring disabled, returns False.
        * If:
 
+         * No `crawlStatus` has been seen since `stage_start_time`,
+         * No prior no-stats intervention has fired within `stall_timeout_minutes`,
+         * No crawl stats for > `stall_timeout_minutes`,
+         * Then pushes `{"status": "stalled", "reason": "no_stats"}` and resets error counters.
+       * If:
+
          * We have valid `last_progress_timestamp`,
          * `last_pending_count > 0`,
          * No progress for > `stall_timeout_minutes`,

@@ -35,7 +35,11 @@ Keep the two synced copies of this file aligned:
 - PHAC annual crawl job 7 is no longer blocked on deploy/config drift.
   - The scope reconciliation fix and `--extraChromeArgs --disable-http2` compatibility flag were both deployed and verified in the live PHAC process on 2026-03-23.
   - The visible HTTP/2 error storm stopped, but PHAC still made no measurable progress and was parked as `retryable`.
-  - Current focus: repo-side investigation of repeated resume-stage churn without `crawlStatus` or new WARC output.
+  - Repo-side monitor hardening now exists for one part of the symptom: stages
+    that emit no `crawlStatus` for a full stall window now trigger an explicit
+    `no_stats` intervention instead of silently hanging.
+  - Current focus: deploy that fallback, then continue repo-side investigation
+    of repeated resume-stage churn without `crawlStatus` or new WARC output.
 - Alerting noise-reduction tuning is deployed and verified:
   - Alertmanager routing is severity-aware (`critical` keeps resolved notifications, non-critical suppresses resolved and repeats less often).
   - Crawl alerting is now automation-first and dashboard-driven:
@@ -49,7 +53,7 @@ Keep the two synced copies of this file aligned:
 - PHAC follow-up is now repo-side investigation, not another live restart.
   - Current state: job `7` (`phac-20260101`) is parked `retryable` after a controlled restart with `--disable-http2` removed visible HTTP/2 thrash but did not restore crawl progress.
   - Current evidence: repeated resume-stage attempts, `.archive_state.json` updates, no parseable `crawlStatus`, and no new WARC mtimes.
-  - Next step: design the next PHAC mitigation in the repo first, then do one pinned deploy + reconcile + controlled restart.
+  - Next step: deploy the new `no_stats` stall fallback with a pinned ref, then continue the PHAC root-cause mitigation work in the repo before any further controlled restart.
   - Do not do further blind PHAC recover/restart attempts from the VPS until that repo-side mitigation exists.
 - Maintenance window: complete the job lock-dir cutover by restarting services that read `/etc/healtharchive/backend.env`.
   - This must wait until crawls are idle unless you explicitly accept interrupting them.

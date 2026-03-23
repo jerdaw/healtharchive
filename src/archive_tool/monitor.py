@@ -73,6 +73,7 @@ class CrawlMonitor(threading.Thread):
         Queue messages sent to main thread:
         - {"status": "progress"} - Periodic heartbeat with current stats
         - {"status": "stalled", "reason": "timeout"} - No progress for stall_timeout_minutes
+        - {"status": "stalled", "reason": "no_stats"} - No crawl statistics seen since stage start
         - {"status": "error", "reason": "timeout_threshold"} - Too many timeout errors
         - {"status": "error", "reason": "http_threshold"} - Too many HTTP/network errors
         - {"status": "error", "message": "..."} - Fatal monitoring error
@@ -348,18 +349,41 @@ class CrawlMonitor(threading.Thread):
             When True, the caller should expect the main thread to take action.
 
         Conditions checked (in order, first match wins):
-        1. Stall detection: No progress (crawled count unchanged) for stall_timeout_minutes
+        1. No-stats detection: No crawlStatus metrics seen since stage start for stall_timeout_minutes.
+           Resets the no-stats debounce timestamp after signaling.
+        2. Stall detection: No progress (crawled count unchanged) for stall_timeout_minutes
            while pending > 0 or pending is unknown. Resets progress timestamp after signaling.
-        2. Timeout threshold: Accumulated timeout errors >= error_threshold_timeout
-        3. HTTP threshold: Accumulated HTTP/network errors >= error_threshold_http
+        3. Timeout threshold: Accumulated timeout errors >= error_threshold_timeout
+        4. HTTP threshold: Accumulated HTTP/network errors >= error_threshold_http
 
         Side effects:
+        - Resets last_no_stats_signal_timestamp when no-stats is detected (prevents re-trigger)
         - Resets last_progress_timestamp when stall is detected (prevents re-trigger)
         - Resets runtime error counts after signaling (allows fresh accumulation)
         """
         if not self.args.enable_monitoring:
             return False
         signaled = False
+        # No-stats Check
+        #
+        # Some broken runs never emit even a single crawlStatus event. Without a
+        # fallback guard, last_progress_timestamp remains None forever and the
+        # normal stall detector never trips.
+        if self.state.last_stats_timestamp is None and self.state.stage_start_time is not None:
+            no_stats_anchor = (
+                self.state.last_no_stats_signal_timestamp or self.state.stage_start_time
+            )
+            time_without_stats = now - no_stats_anchor
+            if time_without_stats > self.args.stall_timeout_minutes * 60:
+                logger.warning(
+                    "No crawl statistics received for %.1f seconds since stage start/intervention.",
+                    time_without_stats,
+                )
+                self.output_queue.put({"status": "stalled", "reason": "no_stats"})
+                self.state.last_no_stats_signal_timestamp = now
+                self.state.reset_runtime_errors()
+                signaled = True
+
         # Stall Check
         #
         # Prefer the "pending > 0" signal when present, but treat negative
@@ -368,7 +392,8 @@ class CrawlMonitor(threading.Thread):
         pending = self.state.last_pending_count
         pending_unknown = pending is None or pending < 0
         if (
-            self.state.last_progress_timestamp is not None
+            not signaled
+            and self.state.last_progress_timestamp is not None
             and self.state.last_crawled_count >= 0
             and (pending_unknown or pending > 0)
         ):

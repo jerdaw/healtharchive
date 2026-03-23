@@ -818,6 +818,7 @@ def main():
         crawl_state.last_failed_count = -1
         crawl_state.last_progress_timestamp = None
         crawl_state.last_stats_timestamp = None
+        crawl_state.last_no_stats_signal_timestamp = None
         crawl_state.previous_crawled_count = -1  # For rate calculation
         crawl_state.previous_stats_timestamp = None  # For rate calculation
         crawl_state.progress_rate_ppm = 0.0

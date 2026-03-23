@@ -47,6 +47,67 @@ def test_monitor_stall_triggers_when_pending_unknown(tmp_path: Path) -> None:
     assert msg["status"] == "stalled"
 
 
+def test_monitor_stall_triggers_when_no_stats_seen_since_stage_start(tmp_path: Path) -> None:
+    state = CrawlState(tmp_path, initial_workers=1)
+    now = time.monotonic()
+    state.stage_start_time = now - (31 * 60)
+    state.last_stats_timestamp = None
+    state.last_crawled_count = -1
+
+    args = argparse.Namespace(
+        enable_monitoring=True,
+        monitor_interval_seconds=30,
+        stall_timeout_minutes=30,
+        error_threshold_timeout=10,
+        error_threshold_http=10,
+    )
+
+    q: Queue = Queue()
+    m = CrawlMonitor(
+        container_id="deadbeef",
+        process_handle=cast(Any, _FakePopen()),
+        state=state,
+        args=args,
+        output_queue=q,
+        stop_event=threading.Event(),
+    )
+
+    assert m._check_stall_and_error_conditions(now) is True
+    msg = q.get_nowait()
+    assert msg["status"] == "stalled"
+    assert msg["reason"] == "no_stats"
+    assert state.last_no_stats_signal_timestamp == now
+
+
+def test_monitor_no_stats_stall_uses_debounce_anchor(tmp_path: Path) -> None:
+    state = CrawlState(tmp_path, initial_workers=1)
+    now = time.monotonic()
+    state.stage_start_time = now - (31 * 60)
+    state.last_stats_timestamp = None
+    state.last_no_stats_signal_timestamp = now - 60
+
+    args = argparse.Namespace(
+        enable_monitoring=True,
+        monitor_interval_seconds=30,
+        stall_timeout_minutes=30,
+        error_threshold_timeout=10,
+        error_threshold_http=10,
+    )
+
+    q: Queue = Queue()
+    m = CrawlMonitor(
+        container_id="deadbeef",
+        process_handle=cast(Any, _FakePopen()),
+        state=state,
+        args=args,
+        output_queue=q,
+        stop_event=threading.Event(),
+    )
+
+    assert m._check_stall_and_error_conditions(now) is False
+    assert q.empty()
+
+
 def test_monitor_error_threshold_does_not_reset_last_progress_timestamp(tmp_path: Path) -> None:
     state = CrawlState(tmp_path, initial_workers=1)
     now = time.monotonic()

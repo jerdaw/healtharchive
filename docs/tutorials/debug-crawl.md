@@ -369,7 +369,7 @@ ha-backend create-job --source hc \
 **Common overrides:**
 - `initial_workers: 2` → More parallelism (or `1` if resource-constrained)
 - `enable_monitoring: true` → Enable stall detection
-- `stall_timeout_minutes: 60` → Abort if no progress for 60 mins
+- `stall_timeout_minutes: 60` → Abort if no progress for 60 mins, or if no crawl stats arrive for 60 mins
 - `error_threshold_timeout: 50` → Tolerate more timeouts before adaptations
 - `error_threshold_http: 50` → Tolerate more HTTP/network errors before adaptations
 - `backoff_delay_minutes: 15` → Wait longer for WAF tarpits to clear (previously 2)

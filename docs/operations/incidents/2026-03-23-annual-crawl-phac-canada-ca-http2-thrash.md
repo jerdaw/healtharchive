@@ -22,6 +22,12 @@ We first confirmed that the deployed backend was missing the repo-side PHAC scop
 
 That compatibility change appears to have removed the visible HTTP/2 thrash, but it still did not restore measurable crawl progress. PHAC remained in a misleading `status=running` state with `.archive_state.json` updating and repeated resume-stage attempts, yet no parseable `crawlStatus`, no new WARC mtimes, and no non-zero crawl rate. The job was parked as `retryable` pending repo-side investigation.
 
+The immediate repo-side follow-up was to harden `archive_tool` monitoring so a
+stage that emits no `crawlStatus` for a full stall window is treated as an
+explicit monitored stall (`reason=no_stats`) instead of remaining silently
+`running`. That improves the control plane, but it does not yet explain or fix
+the underlying PHAC no-progress behavior.
+
 ## Impact
 
 - User-facing impact: annual campaign remained `Ready for search: NO`.
@@ -63,12 +69,20 @@ That compatibility change appears to have removed the visible HTTP/2 thrash, but
 - 2026-03-23T12:55:29Z — Status snapshot showed no recent HTTP/2/timeouts, but also no parseable `crawlStatus` and no measurable progress (`progress_known=0`, `crawl_rate_ppm=-1`).
 - 2026-03-23T13:12:30Z — Follow-up snapshot still showed no progress and no new WARC mtimes while the state file kept updating and the latest log had advanced to `archive_resume_crawl_-_attempt_8_...`.
 - 2026-03-23T13:18:16Z — PHAC job 7 was parked as `retryable` again pending repo-side investigation.
+- 2026-03-23Txx:xx:xxZ — Repo-side monitor hardening was implemented so stages
+  that emit no `crawlStatus` for a full stall window now trigger
+  `{"status": "stalled", "reason": "no_stats"}` instead of remaining silently
+  `running`. Pending: deploy and observe on the VPS.
 
 ## Root cause
 
 - Immediate trigger: repeated document-level HTTP/2 protocol failures on canada.ca pages prevented PHAC from making useful crawl progress.
 - Underlying cause(s): current Browsertrix/chromium transport behavior appears incompatible with some canada.ca annual PHAC pages under the existing source profile; the single `public-health-notices` exclusion was not sufficient to restore progress.
 - Follow-up hypothesis after the `--disable-http2` deploy: the crawler may now be falling into repeated resume-stage churn without emitting parseable `crawlStatus` or producing new WARC output, leaving ops metrics with only a weak "running but unknown" signal.
+- Control-plane gap discovered during follow-up: the monitor only treated
+  "known progress went stale" as a stall, so stages that emitted no
+  `crawlStatus` at all could avoid intervention indefinitely until the
+  repo-side `no_stats` stall fallback was added.
 
 ## Contributing factors
 
@@ -94,6 +108,8 @@ Completed after the initial draft:
 - Relaunched PHAC and verified the live process included `--extraChromeArgs --disable-http2`.
 - Observed that the HTTP/2 error storm stopped, but the crawler still failed to produce measurable progress.
 - Parked PHAC as `retryable` again rather than allowing repeated blind restarts.
+- Implemented repo-side monitor hardening so stages that emit no `crawlStatus`
+  for an entire stall window now trigger a `no_stats` intervention path.
 
 ## Post-incident verification
 
@@ -106,6 +122,7 @@ Completed so far:
 Still required:
 
 - Determine why PHAC can cycle through resume attempts without parseable `crawlStatus` or new WARC mtimes.
+- Deploy the new `no_stats` stall fallback before the next controlled PHAC retry.
 - Decide whether the temporary `public-health-notices` exclusion remains justified once the deeper crawler/runtime issue is understood.
 - Design the next repo-side mitigation before any further VPS recovery attempts.
 
@@ -121,6 +138,7 @@ Still required:
 - [x] Reconcile annual HC/PHAC job configs in production and confirm `show-job --id 6/7` reflect the canonical passthrough args. (priority=high)
 - [x] Perform one controlled PHAC restart with the new compatibility config and record the outcome in this note. (priority=high)
 - [x] Improve ops visibility for repeated `Resume Crawl` churn without `crawlStatus` so this state is obvious in VPS snapshots and metrics. (priority=medium)
+- [x] Add a repo-side `archive_tool` monitor fallback so a stage with no `crawlStatus` for the full stall window triggers an explicit `no_stats` intervention instead of silently hanging. (priority=medium)
 - [ ] Decide whether the temporary PHAC `public-health-notices` exclusion can be removed after live verification. (priority=medium)
 - [ ] If PHAC still flatlines after the compatibility change, capture the current no-progress failure mode and design a follow-up mitigation. (priority=medium)
 

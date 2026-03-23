@@ -206,6 +206,11 @@ If `progress_known == 0`, `crawl_rate_ppm == -1`, and `resume_crawl_count`
 keeps rising while the state file still updates, treat that as a likely
 no-progress resume loop even if the job still appears `running` in the DB.
 
+At the crawler level, `stall_timeout_minutes` now also covers the case where a
+stage never emits any `crawlStatus` at all. That turns silent "running but no
+stats ever arrive" hangs into a monitored intervention path instead of letting
+them sit indefinitely.
+
 Use:
 
 - `ops/observability/dashboards/healtharchive-pipeline-health.json`
