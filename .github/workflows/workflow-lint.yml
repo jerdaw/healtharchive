@@ -47,6 +47,8 @@ jobs:
             push)
               if [[ "${{ github.event.before }}" == "0000000000000000000000000000000000000000" ]]; then
                 files=$(git ls-files '.github/workflows/*.yml' '.github/workflows/*.yaml')
+              elif ! git rev-parse --verify --quiet "${{ github.event.before }}^{commit}" >/dev/null; then
+                files=$(git ls-files '.github/workflows/*.yml' '.github/workflows/*.yaml')
               else
                 files=$(git diff --name-only "${{ github.event.before }}" HEAD -- '.github/workflows/*.yml' '.github/workflows/*.yaml')
               fi
