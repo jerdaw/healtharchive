@@ -20,7 +20,7 @@
     "postinstall": "patch-package"
   },
   "dependencies": {
-    "diff": "^8.0.3",
+    "diff": "^8.0.4",
     "next": "16.1.7",
     "react": "^19.2.3",
     "react-dom": "19.2.4"
