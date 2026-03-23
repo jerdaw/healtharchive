@@ -83,18 +83,19 @@ As of 2026-03-21 (solo-dev profile), the checks are used as follows:
 - Frontend repo (not required): `docker-build-smoke`, external `Vercel` status
 - Datasets repo (when protecting datasets `main`): `Datasets CI / lint` (required)
 
-### Step 1a — Dependabot auto-merge policy (operator + repo config)
+### Step 1a — Dependabot review/merge policy (operator + repo config)
 
-Objective: reduce weekly maintenance overhead while preserving CI gating.
+Objective: reduce weekly maintenance overhead while preserving CI gating and human-only authorship in repository history.
 
 Current repo policy:
 
-- Backend and frontend Dependabot PRs are auto-merged only for `semver-patch` and `semver-minor` updates.
-- `semver-major` updates stay manual review.
-- Auto-merge is enabled by workflow in each repo: `.github/workflows/dependabot-auto-merge.yml`.
-- Backend auto-merge waits for required checks on `main`: `Backend CI / test` and `Backend CI / api-health`.
-- Frontend auto-merge waits for required checks on `main`: `lint-and-test` and `e2e-smoke`.
-- Backend and frontend `main` no longer rely on broad CODEOWNERS review requests for automated dependency PRs, which avoids reviewer-notification noise for bot-managed updates.
+- Dependabot PRs stay open for human review and human merge.
+- `semver-patch` and `semver-minor` updates may still be merged quickly once CI passes, but they are not bot-auto-merged.
+- `semver-major` updates remain manual review by default.
+- When merging dependency PRs, keep the resulting commit human-authored and remove any bot `Co-authored-by:` trailer before completing the merge.
+- Backend required checks on `main` remain `Backend CI / test` and `Backend CI / api-health`.
+- Frontend required checks on `main` remain `lint-and-test` and `e2e-smoke`.
+- Backend and frontend `main` no longer rely on broad CODEOWNERS review requests for dependency PRs, which avoids reviewer-notification noise while still keeping merge control with a human.
 
 ### Step 1b — End-to-end smoke checks (CI)
 
