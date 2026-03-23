@@ -54,31 +54,32 @@ HTML_EXTENSIONS = {".asp", ".aspx", ".htm", ".html", ".jsp", ".php", ".xhtml"}
 TOP_LIMIT = 10
 
 
-def _find_latest_combined_log(output_dir: Path) -> Path | None:
+def _find_combined_logs(output_dir: Path) -> list[Path]:
     try:
         st = output_dir.stat()
     except OSError:
-        return None
+        return []
     if not stat.S_ISDIR(st.st_mode):
-        return None
+        return []
     try:
         candidates = list(output_dir.glob("archive_*.combined.log"))
     except OSError:
-        return None
+        return []
     if not candidates:
-        return None
+        return []
 
-    latest: Path | None = None
-    latest_mtime: float | None = None
-    for path in candidates:
+    def _safe_mtime(path: Path) -> float:
         try:
-            mtime = path.stat().st_mtime
+            return float(path.stat().st_mtime)
         except OSError:
-            continue
-        if latest_mtime is None or mtime > latest_mtime:
-            latest = path
-            latest_mtime = mtime
-    return latest
+            return 0.0
+
+    return sorted(candidates, key=_safe_mtime, reverse=True)
+
+
+def _find_latest_combined_log(output_dir: Path) -> Path | None:
+    logs = _find_combined_logs(output_dir)
+    return logs[0] if logs else None
 
 
 def _probe_readable_dir(path: Path) -> tuple[int, int]:
@@ -276,6 +277,38 @@ def summarize_log_text(text: str) -> dict[str, Any]:
         "dominant_failing_extensions": _counter_to_top(repeated_extension_counts),
         "dominant_failing_classes": _counter_to_top(repeated_class_counts),
     }
+
+
+def summarize_recent_logs(
+    log_paths: list[Path],
+    *,
+    max_log_files: int,
+    max_bytes_per_log: int,
+) -> dict[str, Any]:
+    scanned_logs: list[dict[str, Any]] = []
+    text_chunks: list[str] = []
+
+    for path in log_paths[:max_log_files]:
+        ok, err = _probe_readable_file(path)
+        scanned_logs.append(
+            {
+                "path": str(path),
+                "ok": ok,
+                "errno": err,
+            }
+        )
+        if ok != 1:
+            continue
+        try:
+            text_chunks.append(_tail_text(path, max_bytes=max_bytes_per_log))
+        except Exception:
+            continue
+
+    summary = summarize_log_text("\n".join(text_chunks))
+    summary["combined_logs_scanned"] = scanned_logs
+    summary["combined_log_count_scanned"] = len(scanned_logs)
+    summary["combined_log_tail_bytes_per_file"] = max_bytes_per_log
+    return summary
 
 
 def _stable_warc_paths(output_dir: Path) -> list[Path]:
@@ -502,6 +535,7 @@ def generate_report(
     year: int | None,
     source_code: str | None,
     max_log_bytes: int,
+    max_log_files: int,
     max_warc_files: int,
 ) -> dict[str, Any]:
     job_data = _job_for_args(job_id=job_id, year=year, source_code=source_code)
@@ -510,18 +544,13 @@ def generate_report(
 
     output_dir = Path(str(job_data.get("output_dir") or "")).resolve()
     output_dir_ok, output_dir_errno = _probe_readable_dir(output_dir)
-    latest_log = _find_latest_combined_log(output_dir) if output_dir_ok == 1 else None
+    combined_logs = _find_combined_logs(output_dir) if output_dir_ok == 1 else []
+    latest_log = combined_logs[0] if combined_logs else None
     log_ok, log_errno = _probe_readable_file(latest_log) if latest_log is not None else (0, 0)
     state_data, state_path, state_ok, state_errno = _load_state_snapshot(output_dir)
 
-    log_text = ""
     progress_summary: dict[str, Any] = {}
     if latest_log is not None and log_ok == 1:
-        try:
-            log_text = _tail_text(latest_log, max_bytes=max_log_bytes)
-        except Exception:
-            log_text = ""
-
         progress = parse_crawl_log_progress(latest_log, max_bytes=max_log_bytes)
         if progress is not None:
             progress_summary = {
@@ -541,7 +570,11 @@ def generate_report(
                 "last_progress_age_seconds": round(progress.last_progress_age_seconds(), 1),
             }
 
-    log_summary = summarize_log_text(log_text)
+    log_summary = summarize_recent_logs(
+        combined_logs,
+        max_log_files=max_log_files,
+        max_bytes_per_log=max_log_bytes,
+    )
     warc_paths, warc_source = discover_warcs_read_only(output_dir, state_data)
     warc_summary = summarize_warc_content(warc_paths, max_warc_files=max_warc_files)
 
@@ -559,6 +592,7 @@ def generate_report(
             "combined_log_path": str(latest_log) if latest_log is not None else None,
             "combined_log_ok": log_ok,
             "combined_log_errno": log_errno,
+            "combined_log_count_total": len(combined_logs),
             "state_file_path": str(state_path),
             "state_file_ok": state_ok,
             "state_file_errno": state_errno,
@@ -586,6 +620,7 @@ def _print_human_summary(report: dict[str, Any]) -> None:
     print(f"job_id={meta['job_id']} source={meta['source']} status={meta['status']}")
     print(f"output_dir={meta['output_dir']}")
     print(f"combined_log={meta['combined_log_path'] or '(missing)'}")
+    print(f"combined_log_count_total={meta['combined_log_count_total']}")
     print(f"warc_discovery_source={meta['warc_discovery_source']}")
     print("")
     print("[crawl health]")
@@ -642,6 +677,12 @@ def main(argv: list[str] | None = None) -> int:
         help="Maximum combined-log tail bytes to inspect (default: 1048576).",
     )
     parser.add_argument(
+        "--max-log-files",
+        type=int,
+        default=6,
+        help="Maximum newest combined logs to scan for failure families (default: 6).",
+    )
+    parser.add_argument(
         "--max-warc-files",
         type=int,
         default=12,
@@ -655,6 +696,8 @@ def main(argv: list[str] | None = None) -> int:
         parser.error("use --job-id or --year/--source, not both")
     if args.max_log_bytes <= 0:
         parser.error("--max-log-bytes must be > 0")
+    if args.max_log_files <= 0:
+        parser.error("--max-log-files must be > 0")
     if args.max_warc_files <= 0:
         parser.error("--max-warc-files must be > 0")
 
@@ -663,6 +706,7 @@ def main(argv: list[str] | None = None) -> int:
         year=args.year,
         source_code=args.source.lower() if args.source else None,
         max_log_bytes=args.max_log_bytes,
+        max_log_files=args.max_log_files,
         max_warc_files=args.max_warc_files,
     )
     _print_human_summary(report)

@@ -4,6 +4,7 @@ import gzip
 import importlib.util
 import io
 import json
+import os
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -190,6 +191,67 @@ def test_main_emits_json_report_without_mutating_state(
     out = capsys.readouterr().out
     assert "HealthArchive crawl content-cost report" in out
     assert "job_id=" in out
+
+
+def test_report_scans_previous_logs_when_latest_log_is_quiet(
+    db_session: Session, tmp_path: Path
+) -> None:
+    mod = _load_script_module(
+        "vps-crawl-content-report.py",
+        module_name="ha_test_vps_crawl_content_report_multilog",
+    )
+    job = _seed_job(
+        db_session,
+        tmp_path=tmp_path,
+        source_code="phac",
+        name="phac-20260101",
+    )
+    output_dir = Path(job.output_dir)
+    output_dir.mkdir(parents=True, exist_ok=True)
+    (output_dir / ".archive_state.json").write_text(
+        json.dumps({"container_restarts_done": 30}),
+        encoding="utf-8",
+    )
+
+    older_log = output_dir / "archive_resume_crawl_-_attempt_52_20260323_160000.combined.log"
+    older_log.write_text(
+        "\n".join(
+            [
+                "Navigation timeout at https://www.canada.ca/content/dam/phac-aspc/documents/report.pdf",
+                "Navigation timeout at https://www.canada.ca/content/dam/phac-aspc/video/briefing.mp4",
+                "Attempting adaptive container restart after timeout churn",
+            ]
+        ),
+        encoding="utf-8",
+    )
+
+    latest_log = output_dir / "archive_resume_crawl_-_attempt_53_20260323_163136.combined.log"
+    latest_log.write_text(
+        '{"timestamp":"2026-03-23T16:31:36Z","message":"Resume stage still running"}\n',
+        encoding="utf-8",
+    )
+    os.utime(older_log, (1_711_209_600, 1_711_209_600))
+    os.utime(latest_log, (1_711_209_601, 1_711_209_601))
+
+    report = mod.generate_report(
+        job_id=job.id,
+        year=None,
+        source_code=None,
+        max_log_bytes=1024 * 1024,
+        max_log_files=4,
+        max_warc_files=1,
+    )
+
+    assert report["job_metadata"]["combined_log_path"].endswith(
+        "archive_resume_crawl_-_attempt_53_20260323_163136.combined.log"
+    )
+    assert report["job_metadata"]["combined_log_count_total"] == 2
+    assert report["error_family_summary"]["combined_log_count_scanned"] == 2
+    assert report["error_family_summary"]["timeout_count"] == 2
+    assert report["error_family_summary"]["repeated_failing_url_families"]
+    assert report["error_family_summary"]["repeated_failing_url_families"][0]["key"].endswith(
+        "/content/dam/phac-aspc"
+    )
 
 
 def test_main_can_lookup_annual_job_by_year_and_source(
