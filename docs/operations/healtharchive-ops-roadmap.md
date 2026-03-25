@@ -133,10 +133,19 @@ Treat the following as the current ops execution order:
   - Confirm crawl throughput/churn investigations are being done via Grafana (`HealthArchive - Pipeline Health`) and not missed due to notification removal.
   - Consider a future composite crawl-degradation alert only if dashboard review repeatedly reveals actionable issues that are not otherwise alerted.
 
-## IRL / external validation (pending)
+## IRL / external validation (active; runs in parallel with ops)
 
-After the immediate PHAC + maintenance-window items above, shift the main project emphasis back to the active admissions-strengthening work.
+External validation work is **not blocked** by the PHAC investigation or maintenance-window items. PHAC is parked; the lock-dir cutover and bind-mount conversion are deferred to maintenance windows. Outreach and scholarly output can proceed independently on any day.
 
-Track external validation/outreach work (partner, verifier, methods paper, dataset DOI, mentions/citations log) in:
+The active plan is:
 
-- `../planning/roadmap.md`
+- **`../planning/2026-02-admissions-strengthening-plan.md`** — phases, effort, and sequence for all external/IRL work.
+
+Current status as of 2026-03-25:
+
+- Phase 1 items (outreach, uptime monitoring, portfolio page, ethics/governance update) are **not yet started**.
+- The plan was created 2026-02-25; 4 weeks have elapsed, placing the timeline in Phase 1–2 territory.
+- The mentions log remains empty (zero confirmed partners, verifiers, or citations).
+- **The single highest-leverage unblocking action is: send the first outreach batch** (5–10 contacts, using existing templates at `../operations/outreach-templates.md` and the playbook at `playbooks/external/outreach-and-verification.md`).
+
+Treat external outreach as a parallel track to daily ops — not something to start "once ops settles." Ops will not fully settle before application deadlines.

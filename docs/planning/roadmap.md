@@ -172,11 +172,11 @@ Completed items were removed from this backlog and archived in:
 
 ### Governance and standards
 
-1. **Add `CITATION.cff` to repos still missing it** (S: 1-2h)
-2. **Add `SECURITY.md` to repos still missing it** (S: 1-2h)
+<!-- Items #1 (CITATION.cff) and #2 (SECURITY.md) removed 2026-03-25: confirmed present in all three repos (backend, frontend, datasets). Completed as part of implemented/2026-02-12-governance-seo-and-security-foundations.md. -->
+
 3. **Add a code of conduct to all repos** (S: 1h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 3, item 6
-4. **Add LICENSE to datasets repo if still missing** (S: 30m)
-5. **Add GitHub issue and PR templates across repos** (S: 2-3h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 3, item 6
+4. **Add LICENSE to datasets repo** (S: 30m) — confirmed still missing as of 2026-03-25
+5. **Add GitHub issue and PR templates across repos** (S: 2-3h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 3, item 6; confirmed not yet present
 7. **Add changelog/release tags to backend and frontend** (M: 1 day) — covered by `2026-02-admissions-strengthening-plan.md` Phase 3, item 6
 
 ### Reliability, security, and CI
@@ -192,8 +192,9 @@ Completed items were removed from this backlog and archived in:
 29. **Create change-management runbook** (S: 2-3h)
 30. **Formalize ethics/research exemption statement** (S: 1-2h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 1, item 1d
 31. **Add error tracking integration (Sentry)** (M: 1 day)
-32. **Add automated uptime monitoring badge** (S: 1-2h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 1, item 1c
-33. **Add public status page content with uptime history** (M: 1 day) — covered by `2026-02-admissions-strengthening-plan.md` Phase 1, item 1c
+32. **Add automated uptime monitoring badge** (S: 1-2h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 1, item 1c; external monitor (UptimeRobot) is described in the monitoring checklist but public badge and history page are not yet confirmed live as of 2026-03-25
+33. **Add public status page content with uptime history** (M: 1 day) — covered by `2026-02-admissions-strengthening-plan.md` Phase 1, item 1c; `service-levels.md` notes no dedicated status page yet
+34b. **Measure and record API/operational performance baselines** (S: 1-2h) — all baseline fields in `../operations/service-levels.md` remain TBD since 2026-01-18; collect real p50/p95 measurements from production under normal load and fill in the table
 
 ### Frontend quality and portfolio communication
 

@@ -1,9 +1,34 @@
 # Admissions Strengthening Plan (OMSAS ABS + CanMEDS)
 
 **Created:** 2026-02-25
-**Status:** Active
+**Status:** Active — Phase 1 not yet started (see progress section below)
 **Scope:** Cross-repo (backend, frontend, datasets) + external/IRL work
-**Timeline:** ~12 weeks (~6-8 hours/week, ~65-96 hours total)
+**Timeline:** ~12 weeks from 2026-02-25 (~6-8 hours/week, ~65-96 hours total)
+
+---
+
+## Progress as of 2026-03-25
+
+4 weeks elapsed. Phase 1 ("weeks 1–2") has not been executed. Phase 2 writing window is overlapping.
+
+| Item | Status | Notes |
+|---|---|---|
+| 1. External outreach (verifier/partner/advisory) | **Not started** | Mentions log empty; no outreach batch sent |
+| 1a. Fix source counts + coverage numbers | Unknown | Requires checking live `/api/stats` against public pages |
+| 1b. Portfolio narrative page (`/about` or `/brief`) | Unknown | `/brief` exists; quality and accuracy unchecked |
+| 1c. External uptime monitoring | **Not confirmed live** | UptimeRobot listed as setup guidance in `monitoring-and-ci-checklist.md` Step 3; no public badge or status history page confirmed present; roadmap items #32 and #33 still open |
+| 1d. Ethics/governance on `/governance` | Unknown | Page exists; whether data retention and ethics content meets the bar for outreach is unchecked |
+| 2. Methods paper | Not started | Outline exists at `docs/operations/methods-note-outline.md` |
+| 3. Dataset release with Zenodo DOI | Unknown | Pipeline exists; whether a formal release with DOI has been published is unconfirmed |
+| 4. Accessibility audit | Not started | |
+| 5. Real change detection examples | Not started | |
+| 6. Governance hygiene batch | Partially done | Some items completed in Feb 2026 batch |
+| 7. OMSAS ABS entries | Not started | |
+| 8. Interview preparation | Not started | |
+
+**Critical path:** Item 1 (outreach) has a multi-week response cycle. Every week of delay compresses the window for verifier confirmation before application deadlines. Send the first batch now.
+
+**Next action (operator):** Send first outreach batch of 5–10 contacts using `docs/operations/outreach-templates.md`. Warm contacts first.
 
 ---
 
