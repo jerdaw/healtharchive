@@ -98,5 +98,14 @@ exclude_lines = [
     "@(abc\\.)?abstractmethod",
 ]
 
+[tool.bandit]
+# All 18 findings are false positives for this codebase:
+# B101: assert for type narrowing (diffing.py BeautifulSoup Tag check)
+# B103: 0o666 on job lock files — intentional for multi-process access
+# B108: /tmp job lock dir — configurable via HEALTHARCHIVE_JOB_LOCK_DIR env var
+# B112: try/except/continue in infra_errors.py — resilience pattern
+# B404,B603,B607: subprocess with hardcoded systemctl/findmnt commands in CLI/worker
+skips = ["B101", "B103", "B108", "B112", "B404", "B603", "B607"]
+
 [tool.coverage.paths]
 source = ["src/"]

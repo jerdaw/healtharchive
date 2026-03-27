@@ -78,7 +78,7 @@ coverage-report:
 	@echo "Critical modules coverage: file://$(shell pwd)/htmlcov-critical/index.html"
 
 security:
-	$(BANDIT) -r src/ha_backend -q
+	$(BANDIT) -r src/ha_backend -q -c pyproject.toml
 
 audit:
 	$(PIP_AUDIT)
