@@ -47,7 +47,7 @@ jobs:
         run: make ci
 
       - name: Security audit (pip-audit)
-        run: pip-audit
+        run: make audit-ci
 
   api-health:
     name: Backend CI / api-health
