@@ -32,6 +32,7 @@ dev = [
   "bandit",
   "pip-audit",
   "pre-commit",
+  "requests>=2.33.0",  # CVE-2026-25645 fix
 ]
 docs = [
   "mkdocs-material[imaging]",

@@ -81,11 +81,11 @@ security:
 	$(BANDIT) -r src/ha_backend -q -c pyproject.toml
 
 audit:
-	$(PIP_AUDIT)
+	$(PIP_AUDIT) --ignore-vuln CVE-2026-4539  # pygments, no fix available
 
 audit-ci:
 	$(PYTHON_RUN) -m pip install --upgrade pip
-	$(PIP_AUDIT)
+	$(PIP_AUDIT) --ignore-vuln CVE-2026-4539  # pygments, no fix available
 
 migration-guard:
 	$(PYTHON_RUN) scripts/ci_migration_guard.py \
