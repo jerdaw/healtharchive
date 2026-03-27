@@ -9,5 +9,6 @@ If you are unsure where to start, use the main incident response playbook:
 ## Runbooks
 
 - [Crawl restart budget low](crawl-restart-budget-low.md)
+- [Crawl temp dirs high](crawl-temp-dirs-high.md)
 - [Crawl state file probe failure](crawl-state-file-probe-failure.md)
 - [Indexing not started](indexing-not-started.md)

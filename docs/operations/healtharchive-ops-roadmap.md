@@ -19,12 +19,26 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive-backend && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-03-23)
+## Current status (as of 2026-03-27)
 
 - 2026 annual campaign is partially active on the VPS:
   - `cihr` remains running.
   - `hc` is still in a failed state from earlier annual-campaign churn.
   - `phac` is parked as `retryable` after the 2026-03-23 investigation and controlled restart attempt.
+- CIHR annual crawl job `8` was re-checked live on 2026-03-27 after repeated
+  `HealthArchiveCrawlTempDirsHigh` warnings.
+  - Current live-health result: the crawl is still progressing (`crawl_rate_ppm`
+    roughly `3-4`, `stalled=0`, progress age low, `container_restarts_done=15`).
+  - The temp-dir warning is currently interpreted as historical accumulation in
+    the long-lived annual job directory rather than fresh active churn.
+  - Bounded content-cost sampling now points to a CIHR-specific
+    media-heavy frontier problem:
+    - sampled bytes were dominated by `.mp4`
+    - top sampled families were CIHR `asl-video/...` assets
+  - Operational posture: do not interrupt the current CIHR crawl solely due to
+    temp-dir count while forward progress continues.
+  - Follow-up remains repo-side scope analysis after the crawl is idle/terminal,
+    not live VPS cleanup.
 - Deploy-lock suppression is cleared (the stale `/tmp/healtharchive-backend-deploy.lock` was removed; auto-recover apply actions are no longer skipped due to deploy lock).
 - Job lock-dir cutover is **staged** (non-disruptive) but not fully complete:
   - `/etc/healtharchive/backend.env` now sets `HEALTHARCHIVE_JOB_LOCK_DIR=/srv/healtharchive/ops/locks/jobs`
@@ -68,8 +82,9 @@ Treat the following as the current ops execution order:
 
 1. PHAC repo-side mitigation and verification.
 2. Job lock-dir cutover during a safe maintenance window.
-3. Annual output-dir bind-mount conversion after the 2026 annual crawl is idle.
-4. Routine quarterly ops and evidence collection.
+3. CIHR repo-side scope follow-through after the current crawl is idle.
+4. Annual output-dir bind-mount conversion after the 2026 annual crawl is idle.
+5. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
@@ -109,6 +124,19 @@ Treat the following as the current ops execution order:
     - revisit the temporary `public-health-notices` exclusion only after the
       deeper PHAC runtime/state issue is understood
   - Do not do further blind PHAC recover/restart attempts from the VPS.
+- CIHR follow-up is evidence-backed scope analysis, not live intervention.
+  - Current state: job `8` remains healthy enough to keep running; temp-dir
+    accumulation alone is not the reason to interrupt it.
+  - Settled evidence from the 2026-03-27 bounded content report:
+    - sampled WARC bytes were dominated by CIHR-hosted `.mp4` media
+    - the heaviest sampled families were `cihr-irsc.gc.ca/asl-video/...`
+    - the live job did not show timeout or storage-failure signatures during
+      the investigation window
+  - Next steps:
+    - let the current CIHR crawl continue while progress remains healthy
+    - after the crawl is idle/terminal, decide whether CIHR should gain
+      source-managed frontier exclusions for media/document/query-heavy paths
+    - do not do live cleanup of `.tmp*` for job `8` while it remains running
 - Maintenance window: complete the job lock-dir cutover by restarting services that read `/etc/healtharchive/backend.env`.
   - This must wait until crawls are idle unless you explicitly accept interrupting them.
   - Plan + commands: `../planning/2026-02-06-crawl-operability-locks-and-retry-controls.md` (Phase 4)

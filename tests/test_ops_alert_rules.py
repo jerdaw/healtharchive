@@ -153,6 +153,7 @@ def test_crawl_temp_dirs_high_alert_semantics() -> None:
     assert "healtharchive_crawl_running_job_temp_dirs_count > 100" in body
     assert re.search(r"^\s*for:\s*1h\s*$", body, re.MULTILINE)
     assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
+    assert "docs/operations/runbooks/crawl-temp-dirs-high.md" in body
 
 
 def test_crawl_rate_degraded_alert_semantics() -> None:

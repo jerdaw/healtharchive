@@ -35,7 +35,10 @@ Treat the following as the current "what's next" order across roadmap docs:
    - This remains intentionally deferred until the active annual crawl is idle.
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
 4. Diagnose which content classes and URL families are actually driving annual crawl time, storage, and restart churn.
-   - Treat this as evidence gathering first; use it to decide whether more download/media/data exclusions are justified.
+   - Current evidence split:
+     - PHAC points to HTML/runtime friction first.
+     - CIHR now shows a media-heavy frontier under broad host scope.
+   - Treat this as evidence gathering first; use it to decide whether more source-specific download/media/data exclusions are justified.
    - Canonical plan: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
 5. After the crawl/ops path is stabilized, the main project emphasis is the active admissions-strengthening plan.
    - That plan is the canonical home for the next external-validation, methods-paper, and dataset-release work.

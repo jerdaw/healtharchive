@@ -673,20 +673,20 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--max-log-bytes",
         type=int,
-        default=1024 * 1024,
-        help="Maximum combined-log tail bytes to inspect (default: 1048576).",
+        default=256 * 1024,
+        help="Maximum combined-log tail bytes to inspect (default: 262144).",
     )
     parser.add_argument(
         "--max-log-files",
         type=int,
-        default=6,
-        help="Maximum newest combined logs to scan for failure families (default: 6).",
+        default=3,
+        help="Maximum newest combined logs to scan for failure families (default: 3).",
     )
     parser.add_argument(
         "--max-warc-files",
         type=int,
-        default=12,
-        help="Maximum newest WARC files to sample at record level (default: 12).",
+        default=3,
+        help="Maximum newest WARC files to sample at record level (default: 3).",
     )
     args = parser.parse_args(argv)
 

@@ -42,6 +42,16 @@ sudo journalctl -u healtharchive-worker.service -n 400 --no-pager
 docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}'
 ```
 
+If the content report is still too heavy for a large live job, keep it bounded:
+
+```bash
+timeout 120 ./scripts/vps-crawl-content-report.py \
+  --job-id <JOB_ID> \
+  --max-log-files 1 \
+  --max-log-bytes 262144 \
+  --max-warc-files 3
+```
+
 Classify the incident:
 
 - **Timeout churn**: logs show repeated `Navigation timeout`, `Page load timed out`, HTTP/network failures, or the same URL families before restart messages.

@@ -16,6 +16,8 @@ Notes:
   - `./scripts/vps-crawl-status.sh --year 2026 --recent-lines 20000`
 - If you need to distinguish HTML/runtime friction from download/media frontier churn, run:
   - `./scripts/vps-crawl-content-report.py --job-id JOB_ID`
+  - On very large live jobs, bound the scan explicitly:
+    `timeout 120 ./scripts/vps-crawl-content-report.py --job-id JOB_ID --max-log-files 1 --max-log-bytes 262144 --max-warc-files 3`
 
 ## 1) Identify the stalled job
 

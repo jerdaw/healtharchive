@@ -1,7 +1,7 @@
 # 2026-03-23: Annual Crawl Content-Cost and Scope Diagnosis
 
-**Plan Version**: v1.1
-**Status**: Active (Phase 1 delivered; PHAC pilot evidence captured)
+**Plan Version**: v1.2
+**Status**: Active (Phase 1 delivered; PHAC pilot and CIHR live evidence captured)
 **Scope**: Diagnose which content classes and URL families are consuming the most crawl time, storage, and restart budget in the 2026 annual campaign, then use that evidence to refine scope toward a "user-facing website" backup rather than letting every downloadable asset expand the crawl frontier by default.
 
 ## Why this plan exists
@@ -86,6 +86,45 @@ What remains active in this plan:
 - any future scope-policy refinement based on completed evidence review
 - repo-side implementation follow-through only if later evidence justifies
   additional scope changes
+
+## Progress update (2026-03-27)
+
+Additional live evidence was captured for CIHR job `8` on 2026-03-27 during the
+`HealthArchiveCrawlTempDirsHigh` investigation.
+
+Key findings:
+
+- The alerted CIHR crawl was **not** stalled at the time of inspection:
+  - `crawl_rate_ppm` stayed around `3-4`
+  - `last_progress_age_seconds` remained low
+  - `stalled=0`
+  - `container_restarts_done=15`
+  - `temp_dirs_count=132`, but it remained flat during observation
+- The alert was therefore interpreted as **historical temp-dir accumulation** in
+  the long-lived annual job output directory, not current active restart thrash.
+- A bounded live run of `scripts/vps-crawl-content-report.py` produced a
+  decision-useful CIHR sample:
+  - sampled WARC bytes were dominated by `.mp4`
+  - the top byte-heavy families were CIHR `asl-video/...` URLs
+  - the report emitted `likely_binary_download_frontier_issue`
+- The current CIHR direction is therefore different from the PHAC pilot:
+  - PHAC still points to HTML/runtime friction first
+  - CIHR now has evidence of media-heavy frontier expansion under broad host
+    scope
+
+Immediate implications:
+
+- Do **not** interrupt the current CIHR crawl solely because of temp-dir count
+  while it continues making forward progress.
+- After the CIHR crawl is idle/terminal, evaluate repo-side CIHR scope
+  refinements that may include:
+  - top-level media/document frontier exclusions
+  - targeted exclusions for large `asl-video/` families
+  - query-variant suppression where the same HTML resource expands via
+    filter-table parameter permutations
+- Keep the content report lightweight by default for live jobs. The default
+  scan caps were reduced after this incident because the previous defaults were
+  too heavy on the live CIHR job.
 
 ## Planning update after review
 

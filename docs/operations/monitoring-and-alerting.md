@@ -189,8 +189,8 @@ In practice this means:
 **Alert:** `HealthArchiveCrawlTempDirsHigh`
 
 - **Threshold:** `healtharchive_crawl_running_job_temp_dirs_count > 100` (for 1h).
-- **Meaning:** A running crawl job has accumulated over 100 temporary directories, typically from repeated container restarts without cleanup.
-- **Action:** Investigate the job's restart history and consider running `ha-backend cleanup-job --id <ID> --mode temp` if the job is in a terminal state. If still running, the temp dirs will accumulate until the crawl finishes or is recovered.
+- **Meaning:** A running crawl job has accumulated over 100 tracked `.tmp*` directories, usually from repeated resume/new-crawl phases, adaptive restarts, or storage/permission churn. This count comes from `.archive_state.json`, so it reflects real crawl-state accumulation.
+- **Action:** If the job is still running, do **not** run `cleanup-job`; first classify the incident using `vps-crawl-status.sh`, per-job crawl metrics, and the combined log, then follow the storage/stall/restart-budget runbooks as appropriate. If the job is already `indexed` or `index_failed`, reclaim space with `ha-backend cleanup-job --id <ID> --mode temp-nonwarc` (prefer `--dry-run` first). Use legacy `--mode temp` only when you explicitly intend to discard WARCs/replay data.
 
 ## Dashboard-heavy Crawl Performance Signals
 

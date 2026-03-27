@@ -249,8 +249,8 @@ groups:
           service: healtharchive
         annotations:
           summary: "Crawl temp directory count > 100"
-          description: "Job {{ $labels.job_id }} ({{ $labels.source }}) has >100 temp dirs."
-          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/tutorials/debug-crawl.md"
+          description: "Job {{ $labels.job_id }} ({{ $labels.source }}) has >100 tracked temp dirs while still running. This usually indicates repeated crawl-stage churn or restart thrash; do not cleanup .tmp* mid-crawl."
+          runbook_url: "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/runbooks/crawl-temp-dirs-high.md"
 
       - alert: HealthArchiveCrawlAutoRecoverMetricsStale
         expr: |

@@ -448,29 +448,40 @@ Clean up temporary crawl artifacts.
 
 **Usage**:
 ```bash
-ha-backend cleanup-job --id JOB_ID [--mode MODE] [--force]
+ha-backend cleanup-job --id JOB_ID [--mode MODE] [--force] [--dry-run]
 ```
 
 **Arguments**:
 - `--id` (required) - Job ID
-- `--mode` (optional) - Cleanup mode (default: `temp`, only supported value)
+- `--mode` (optional) - Cleanup mode (default: `temp`; supported: `temp`, `temp-nonwarc`)
 - `--force` (optional) - Force cleanup even if replay is enabled
+- `--dry-run` (optional) - Print the cleanup plan without changing files or the DB
 
 **Example**:
 ```bash
-# Clean up temp directories and state file
-ha-backend cleanup-job --id 42 --mode temp
+# Safe cleanup for an indexed job (preserves WARCs / replayability)
+ha-backend cleanup-job --id 42 --mode temp-nonwarc --dry-run
+ha-backend cleanup-job --id 42 --mode temp-nonwarc
 
-# Force cleanup (use with caution)
+# Legacy destructive cleanup (use with caution)
 ha-backend cleanup-job --id 42 --mode temp --force
 ```
 
 **What it does**:
-- Removes `.tmp*` directories
-- Removes `.archive_state.json`
-- Updates job: `cleanup_status = "temp_cleaned"`, `cleaned_at = now`
+- `temp-nonwarc`:
+  - consolidates WARCs into `warcs/`
+  - preserves provenance under `provenance/`
+  - rewrites `Snapshot.warc_path` away from `.tmp*` locations
+  - removes `.tmp*` directories and the live `.archive_state.json`
+  - updates job: `cleanup_status = "temp_nonwarc_cleaned"`, `cleaned_at = now`
+- `temp`:
+  - removes `.tmp*` directories
+  - removes `.archive_state.json`
+  - updates job: `cleanup_status = "temp_cleaned"`, `cleaned_at = now`
 
-**⚠️ Warning**: This deletes WARCs if they're in `.tmp*` directories. Only run on indexed jobs where you don't need replay.
+**⚠️ Warning**:
+- `temp-nonwarc` is the preferred cleanup mode for terminal jobs because it preserves WARCs and replayability.
+- `temp` deletes WARCs if they're in `.tmp*` directories. Only use it when you explicitly do not need replay retention.
 
 **Exit codes**:
 - `0` - Cleanup succeeded

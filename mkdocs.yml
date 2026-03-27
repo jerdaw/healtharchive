@@ -96,6 +96,12 @@ nav:
           - Observability:
               - Observability Guide: operations/playbooks/observability/observability-guide.md
               - Monitoring & Alerting: operations/playbooks/observability/monitoring-and-alerting.md
+          - Runbooks:
+              - Overview: operations/runbooks/README.md
+              - Crawl Restart Budget Low: operations/runbooks/crawl-restart-budget-low.md
+              - Crawl Temp Dirs High: operations/runbooks/crawl-temp-dirs-high.md
+              - Crawl State File Probe Failure: operations/runbooks/crawl-state-file-probe-failure.md
+              - Indexing Not Started: operations/runbooks/indexing-not-started.md
           - Crawls & Archives:
               - Crawl Preflight: operations/playbooks/crawl/crawl-preflight.md
               - Crawl Stalls: operations/playbooks/crawl/crawl-stalls.md
