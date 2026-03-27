@@ -35,7 +35,7 @@ function getReportCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getReportCopy(locale);
@@ -46,7 +46,7 @@ export default async function ReportPage({
   params,
   searchParams,
 }: {
-  params?: Promise<{ locale: string }>;
+  params: Promise<{ locale: string }>;
   searchParams: Promise<ReportSearchParams>;
 }) {
   const locale = await resolveLocale(params);

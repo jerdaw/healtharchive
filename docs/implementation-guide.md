@@ -7,7 +7,12 @@ repo. It covers:
 - API integration + offline fallback behavior
 - Styling system (`.ha-*` classes) and key UI components
 - Routes/pages and the snapshot viewer
-- Deployment notes (Vercel + DNS)
+- Deployment notes (VPS + Caddy)
+
+Documentation boundary note:
+
+- Shared VPS facts that are not specific to the frontend alone are canonical in `/home/jer/repos/platform-ops`.
+- Use `/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md` when deciding whether a host fact belongs here or in the shared ops workspace.
 
 ## 1. High-level project summary
 
@@ -37,7 +42,9 @@ You’re joining after:
   - Service reporting routes (`/status`, `/impact`).
   - Change tracking routes (`/changes`, `/compare`, `/digest`).
 
-- Deployment is live on **Vercel**, with **Namecheap DNS** pointing at Vercel.
+- Production frontend now runs on the Hetzner VPS behind host Caddy, with
+  `https://healtharchive.ca` as the canonical public origin and
+  `https://www.healtharchive.ca` as a redirect alias.
 
 ---
 
@@ -65,7 +72,7 @@ npm run dev
 # Build
 npm run build
 
-# Production start (typically handled by Vercel)
+# Production start
 npm start
 
 # Full checks (what CI runs)
@@ -75,8 +82,8 @@ npm run check
 ### Environment variables
 
 - `NEXT_PUBLIC_API_BASE_URL` – base URL for the backend API (e.g., `http://localhost:8001` for local dev, `https://api.healtharchive.ca` for Preview/Production). If unset, the API client falls back to `http://localhost:8001`.
-- `NEXT_PUBLIC_SHOW_API_HEALTH_BANNER` – when set to `true`, shows a small banner in the UI if `/api/health` fails (dev/Preview helper).
-- `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE` – when set to `true`, logs a console warning if `/api/health` fails (dev/Preview helper).
+- `NEXT_PUBLIC_SHOW_API_HEALTH_BANNER` – when set to `true`, shows a small banner in the UI if `/api/health` fails (dev helper).
+- `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE` – when set to `true`, logs a console warning if `/api/health` fails (dev helper).
 - `NEXT_PUBLIC_SHOW_API_BASE_HINT` – when set to `true` in development, logs the effective API base URL to the browser console via `ApiHealthBanner` (dev-only helper; silenced in tests and production). This should remain disabled in production and CI to avoid noisy logs.
 - Source options are built from backend data when available; the UI falls
   back to a bundled offline sample when the API is unreachable.
@@ -148,16 +155,15 @@ npm run check
   `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE`, `NEXT_PUBLIC_SHOW_API_BASE_HINT`) are
   disabled to keep output quiet and deterministic.
 
-### Deployment env expectations (Vercel Preview/Production)
+### Deployment env expectations (local / VPS runtime)
 
 - `NEXT_PUBLIC_API_BASE_URL` must point at the backend for the environment.
 
   Suggested values:
   - **Local dev:** `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001`
-  - **Preview:** `NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca`
   - **Production:** `NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca`
 
-- Optional diagnostics (usually enabled in dev/Preview, disabled in production/CI):
+- Optional diagnostics (usually enabled in development, disabled in production/CI):
   - `NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=true` to surface a UI banner on health failures.
   - `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true` to log health failures to the console.
   - `NEXT_PUBLIC_SHOW_API_BASE_HINT=true` to log the effective API base URL once in the browser console (via `ApiHealthBanner`).
@@ -895,44 +901,47 @@ All text is stable, but can be refined later.
 
 ## 9. Deployment & DNS
 
-### 9.1 Vercel project
+### 9.1 Production runtime
 
-- Project: `healtharchive` on Vercel.
-- Connected to GitHub repo: `jerdaw/healtharchive-frontend`.
+- Frontend app: `healtharchive-frontend`.
+- Source repo: `jerdaw/healtharchive-frontend`.
 - Production branch: `main`.
-- Build settings:
+- Packaging model:
   - Root Directory: repo root.
-  - Framework Preset: Next.js.
-  - Build Command: `npm run build` (default).
-  - Install Command: `npm install` (default).
-  - Output Directory: `.next` (handled automatically by Vercel).
+  - Build Command: `npm run build`.
+  - Install Command: `npm ci`.
+  - Output: Next.js standalone server.
+  - Production container: `Dockerfile` at repo root.
+- Runtime contract:
+  - `NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca`
+  - `NEXT_PUBLIC_REPLAY_BASE_URL=https://replay.healtharchive.ca`
+  - `PORT=3000`
+  - `HOSTNAME=0.0.0.0`
 
-### 9.2 Domains (Vercel side)
+### 9.2 Domains and ingress
 
-- `healtharchive.vercel.app` – Vercel default URL (valid, production).
-- `healtharchive.ca` – apex domain (Configured via A record).
-- `www.healtharchive.ca` – CNAME to Vercel DNS host.
+- `healtharchive.ca` – canonical public frontend origin.
+- `www.healtharchive.ca` – redirect-only alias to apex.
+- `api.healtharchive.ca` – backend API on the VPS.
+- `replay.healtharchive.ca` – replay service on the VPS.
 
-Vercel expects:
+Ingress ownership:
 
-- `A @ 216.198.79.1` (apex).
-- `CNAME www → ba6b8a306401d981.vercel-dns-017.com.` (or similar `vercel-dns-*` host).
+- DNS remains with the existing provider/registrar.
+- Host Caddy remains the public ingress owner on the VPS.
+- The frontend app is proxied internally from host Caddy to `127.0.0.1:3200`.
 
-### 9.3 Namecheap DNS configuration
+### 9.3 DNS configuration
 
-Under **Advanced DNS** for `healtharchive.ca`:
+Cloudflare should be configured so that:
 
-Host Records:
+- `A healtharchive.ca -> <VPS public IP>`
+  → Points apex traffic at the VPS.
 
-- `A @ 216.198.79.1`
-  → Points apex to Vercel.
+- `CNAME www -> healtharchive.ca`
+  → Points the `www` alias at the canonical apex host.
 
-- `CNAME www ba6b8a306401d981.vercel-dns-017.com.`
-  → Points `www` subdomain to Vercel.
-
-- TXT SPF record for email (unchanged).
-
-Old GitHub Pages `A @ 185.199.*` records have been **removed**.
+- `api` and `replay` records remain pointed at the existing VPS endpoints.
 
 ---
 
@@ -978,9 +987,9 @@ We followed an 8-step build plan. Status:
   - ⏳ Further polish (e.g., more advanced responsive tweaks, accessibility audit) still possible.
 
 - **Deployment & DNS**
-  - ✅ Next.js app deployed to Vercel.
-  - ✅ GitHub integration configured.
-  - ✅ `healtharchive.ca` and `www.healtharchive.ca` pointed to Vercel.
+  - ✅ Next.js app migrated to a production standalone runtime path.
+  - ✅ GitHub remains the source of truth for deployment builds.
+  - ✅ Public `healtharchive.ca` VPS cutover completed, with `www.healtharchive.ca` redirecting to apex.
 
 ---
 
@@ -1015,9 +1024,9 @@ We followed an 8-step build plan. Status:
 
 ---
 
-## 12. Suggested future directions (for the next LLM)
+## 12. Suggested future directions
 
-If you’re continuing dev, some clear next steps could be:
+If you’re continuing development, some clear next steps could be:
 
 1. **Introduce real API routes**:
    - `/api/search` and `/api/sources` reusing the logic in `demo-records.ts`.

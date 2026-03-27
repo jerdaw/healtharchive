@@ -1,5 +1,7 @@
 import type { MetadataRoute } from "next";
 
+import { SITE_BASE_URL } from "@/lib/metadata";
+
 export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
@@ -7,6 +9,6 @@ export default function robots(): MetadataRoute.Robots {
       allow: "/",
       disallow: ["/compare-live", "/fr/compare-live"],
     },
-    sitemap: "https://www.healtharchive.ca/sitemap.xml",
+    sitemap: `${SITE_BASE_URL}/sitemap.xml`,
   };
 }

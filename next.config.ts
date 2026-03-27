@@ -1,4 +1,8 @@
+import { dirname } from "node:path";
+import { fileURLToPath } from "node:url";
 import type { NextConfig } from "next";
+
+const workspaceRoot = dirname(fileURLToPath(import.meta.url));
 
 const csp = [
   "default-src 'self';",
@@ -30,6 +34,9 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  output: "standalone",
+  outputFileTracingRoot: workspaceRoot,
+
   // CDN bandwidth optimization for Next Image responses.
   images: {
     formats: ["image/avif", "image/webp"],

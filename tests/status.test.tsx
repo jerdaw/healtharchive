@@ -59,7 +59,7 @@ describe("/status", () => {
       daily: [],
     });
 
-    const ui = await StatusPage();
+    const ui = await StatusPage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     expect(screen.getByText(/Status & metrics/i)).toBeInTheDocument();
@@ -75,7 +75,7 @@ describe("/status", () => {
     mockFetchSources.mockRejectedValue(failure);
     mockFetchUsageMetrics.mockRejectedValue(failure);
 
-    const ui = await StatusPage();
+    const ui = await StatusPage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     expect(screen.getByText(/Live metrics unavailable/i)).toBeInTheDocument();

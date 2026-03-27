@@ -26,18 +26,14 @@ function getMethodsCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getMethodsCopy(locale);
   return buildPageMetadata(locale, "/methods", copy.title, copy.intro);
 }
 
-export default async function MethodsPage({
-  params,
-}: {
-  params?: Promise<{ locale: string }>;
-} = {}) {
+export default async function MethodsPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getMethodsCopy(locale);
 

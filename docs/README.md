@@ -3,6 +3,11 @@
 This folder contains documentation for the **HealthArchive frontend**
 (`healtharchive-frontend`, Next.js).
 
+Shared VPS facts that are not specific to the frontend alone are canonical in:
+
+- `/home/jer/repos/platform-ops`
+- `/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md`
+
 ## Start here
 
 - Project docs portal (multi-repo navigation):

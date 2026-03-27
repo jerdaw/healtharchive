@@ -29,7 +29,7 @@ function getGovernanceCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getGovernanceCopy(locale);
@@ -238,11 +238,7 @@ function GovernanceEnglishContent({ copy }: { copy: SiteCopy }) {
   );
 }
 
-export default async function GovernancePage({
-  params,
-}: {
-  params?: Promise<{ locale: string }>;
-} = {}) {
+export default async function GovernancePage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getGovernanceCopy(locale);
   const siteCopy = getSiteCopy(locale);

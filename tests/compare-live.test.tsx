@@ -51,6 +51,7 @@ describe("/compare-live url fallback", () => {
     });
 
     const ui = await CompareLivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({ url: "https://example.org/page" }),
     });
     render(ui);
@@ -71,6 +72,7 @@ describe("/compare-live url fallback", () => {
     mockSearchSnapshots.mockResolvedValue(response);
 
     const ui = await CompareLivePage({
+      params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({ url: "https://example.org/page" }),
     });
     render(ui);

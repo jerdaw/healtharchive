@@ -28,18 +28,14 @@ function getChangelogCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getChangelogCopy(locale);
   return buildPageMetadata(locale, "/changelog", copy.title, copy.intro);
 }
 
-export default async function ChangelogPage({
-  params,
-}: {
-  params?: Promise<{ locale: string }>;
-} = {}) {
+export default async function ChangelogPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getChangelogCopy(locale);
   const changelogEntries = changelogEntriesByLocale[locale];

@@ -29,17 +29,13 @@ function getResearchersCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getResearchersCopy(locale);
   return buildPageMetadata(locale, "/researchers", copy.title, copy.intro);
 }
-export default async function ResearchersPage({
-  params,
-}: {
-  params?: Promise<{ locale: string }>;
-} = {}) {
+export default async function ResearchersPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getResearchersCopy(locale);
   const apiBase = getApiBaseUrl();

@@ -36,18 +36,14 @@ function getStatusCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getStatusCopy(locale);
   return buildPageMetadata(locale, "/status", copy.title, copy.intro);
 }
 
-export default async function StatusPage({
-  params,
-}: {
-  params?: Promise<{ locale?: string }>;
-} = {}) {
+export default async function StatusPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getStatusCopy(locale);
   const siteCopy = getSiteCopy(locale);

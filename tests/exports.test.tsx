@@ -4,7 +4,7 @@ import ExportsPage from "@/app/[locale]/exports/page";
 
 describe("/exports", () => {
   it("renders the exports data dictionary link", async () => {
-    const ui = await ExportsPage();
+    const ui = await ExportsPage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     expect(

@@ -30,18 +30,14 @@ function getExportsCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getExportsCopy(locale);
   return buildPageMetadata(locale, "/exports", copy.title, copy.intro);
 }
 
-export default async function ExportsPage({
-  params,
-}: {
-  params?: Promise<{ locale?: string }>;
-} = {}) {
+export default async function ExportsPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getExportsCopy(locale);
   const apiBase = getApiBaseUrl();

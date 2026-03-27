@@ -34,7 +34,7 @@ describe("/digest", () => {
       },
     ]);
 
-    const ui = await DigestPage();
+    const ui = await DigestPage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     expect(screen.getByText(/Change digest/i)).toBeInTheDocument();

@@ -4,7 +4,10 @@ import CitePage from "@/app/[locale]/cite/page";
 
 describe("/cite", () => {
   it("renders citation guidance and a downloadable handout link", async () => {
-    const ui = await CitePage();
+    const ui = await CitePage({
+      params: Promise.resolve({ locale: "en" }),
+      searchParams: Promise.resolve({}),
+    });
     render(ui);
 
     expect(
@@ -20,7 +23,10 @@ describe("/cite", () => {
   });
 
   it("renders the French citation download link", async () => {
-    const ui = await CitePage({ params: Promise.resolve({ locale: "fr" }) });
+    const ui = await CitePage({
+      params: Promise.resolve({ locale: "fr" }),
+      searchParams: Promise.resolve({}),
+    });
     render(ui);
 
     const download = screen.getByRole("link", {

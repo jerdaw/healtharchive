@@ -27,18 +27,14 @@ function getContactCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getContactCopy(locale);
   return buildPageMetadata(locale, "/contact", copy.title, copy.intro);
 }
 
-export default async function ContactPage({
-  params,
-}: {
-  params?: Promise<{ locale?: string }>;
-} = {}) {
+export default async function ContactPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getContactCopy(locale);
 

@@ -51,7 +51,7 @@ function getBrowseBySourceCopy(locale: Locale) {
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getBrowseBySourceCopy(locale);
@@ -61,8 +61,8 @@ export async function generateMetadata({
 export default async function BrowseBySourcePage({
   params,
 }: {
-  params?: Promise<{ locale: string }>;
-} = {}) {
+  params: Promise<{ locale: string }>;
+}) {
   const locale = await resolveLocale(params);
   const copy = getBrowseBySourceCopy(locale);
   const siteCopy = getSiteCopy(locale);

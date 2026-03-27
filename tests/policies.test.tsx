@@ -6,7 +6,7 @@ import TermsPage from "@/app/[locale]/terms/page";
 
 describe("policy pages", () => {
   it("shows the English-governs notice on /terms", async () => {
-    const ui = await TermsPage();
+    const ui = await TermsPage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     expect(screen.getByRole("heading", { level: 1, name: "Terms of use" })).toBeInTheDocument();
@@ -15,7 +15,7 @@ describe("policy pages", () => {
   });
 
   it("shows the English-governs notice on /privacy", async () => {
-    const ui = await PrivacyPage();
+    const ui = await PrivacyPage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     expect(screen.getByRole("heading", { level: 1, name: "Privacy" })).toBeInTheDocument();
@@ -24,7 +24,7 @@ describe("policy pages", () => {
   });
 
   it("shows the English-governs notice on /governance", async () => {
-    const ui = await GovernancePage();
+    const ui = await GovernancePage({ params: Promise.resolve({ locale: "en" }) });
     render(ui);
 
     expect(

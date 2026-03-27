@@ -43,7 +43,7 @@ function formatUtcTimestamp(locale: Locale, value: string | null | undefined): s
 export async function generateMetadata({
   params,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getCompareLiveMetadataCopy(locale);
@@ -58,7 +58,7 @@ export default async function CompareLivePage({
   params: routeParams,
   searchParams,
 }: {
-  params?: Promise<{ locale?: string }>;
+  params: Promise<{ locale: string }>;
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const locale = await resolveLocale(routeParams);

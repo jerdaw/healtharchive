@@ -16,7 +16,7 @@ HealthArchive.ca Project. "<Page title>" (snapshot from <capture date/time>). Ar
 
 Exemple :
 
-HealthArchive.ca Project. "COVID-19 epidemiology update: Canada" (snapshot from 2025-02-15 00:00 UTC). Archived copy of Public Health Agency of Canada web page (https://www.canada.ca/...). Accessed 2025-12-03. Available from: https://www.healtharchive.ca/snapshot/12345.
+HealthArchive.ca Project. "COVID-19 epidemiology update: Canada" (snapshot from 2025-02-15 00:00 UTC). Archived copy of Public Health Agency of Canada web page (https://www.canada.ca/...). Accessed 2025-12-03. Available from: https://healtharchive.ca/snapshot/12345.
 
 Notes :
 
@@ -32,7 +32,7 @@ Les vues de comparaison mettent en évidence des différences de texte descripti
 
 Format recommandé (en anglais) :
 
-HealthArchive.ca Project. "Comparison of archived captures" (from snapshot <ID A> to snapshot <ID B>). Archived copies of <source organization> web page (<original URL>). Accessed <access date>. Available from: https://www.healtharchive.ca/compare?from=<ID A>&to=<ID B>.
+HealthArchive.ca Project. "Comparison of archived captures" (from snapshot <ID A> to snapshot <ID B>). Archived copies of <source organization> web page (<original URL>). Accessed <access date>. Available from: https://healtharchive.ca/compare?from=<ID A>&to=<ID B>.
 
 Notes :
 
