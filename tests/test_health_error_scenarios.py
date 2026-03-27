@@ -105,7 +105,7 @@ def test_health_check_includes_cors_headers(tmp_path, monkeypatch):
     """Test that health check includes CORS headers."""
     client = _init_test_app(tmp_path, monkeypatch)
 
-    response = client.get("/api/health", headers={"Origin": "*"})
+    response = client.get("/api/health", headers={"Origin": "http://localhost:3000"})
 
     assert response.status_code == 200
     # CORS headers should be present

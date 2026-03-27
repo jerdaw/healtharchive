@@ -19,6 +19,27 @@ from ha_backend.models import ArchiveJob, Snapshot, Source
 
 
 @pytest.fixture(autouse=True)
+def _disable_rate_limiting() -> Generator[None, None, None]:
+    """
+    Disable rate limiting by default for all tests and reset storage between tests.
+
+    The limiter singleton is created at import time, so env-var patches have no
+    effect. Tests that need rate limiting (test_rate_limiting.py) re-enable it
+    explicitly via ``limiter.enabled = True``.
+    """
+    from ha_backend.rate_limiting import limiter
+
+    original = limiter.enabled
+    limiter.enabled = False
+    yield
+    limiter.enabled = original
+    try:
+        limiter.reset()
+    except Exception:
+        pass
+
+
+@pytest.fixture(autouse=True)
 def _isolate_process_env(monkeypatch: pytest.MonkeyPatch) -> None:
     """
     Make tests deterministic even when run in a production-like shell.

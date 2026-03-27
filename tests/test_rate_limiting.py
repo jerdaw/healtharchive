@@ -16,10 +16,6 @@ def _init_test_app(tmp_path: Path, monkeypatch, rate_limiting_enabled: bool = Tr
     """
     db_path = tmp_path / "rate_limit_test.db"
     monkeypatch.setenv("HEALTHARCHIVE_DATABASE_URL", f"sqlite:///{db_path}")
-    monkeypatch.setenv(
-        "HEALTHARCHIVE_RATE_LIMITING_ENABLED",
-        "1" if rate_limiting_enabled else "0",
-    )
 
     # Reset cached engine/session so we pick up the new URL.
     db_module._engine = None
@@ -28,6 +24,16 @@ def _init_test_app(tmp_path: Path, monkeypatch, rate_limiting_enabled: bool = Tr
     engine = get_engine()
     Base.metadata.drop_all(engine)
     Base.metadata.create_all(engine)
+
+    # Directly set the limiter singleton's enabled state and reset storage.
+    # Env-var patches don't work because the limiter is created at import time.
+    from ha_backend.rate_limiting import limiter
+
+    limiter.enabled = rate_limiting_enabled
+    try:
+        limiter.reset()
+    except Exception:
+        pass
 
     from ha_backend.api import app
 
