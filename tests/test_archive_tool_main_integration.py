@@ -1049,6 +1049,104 @@ extraChromeArgs:
         log_text = combined_logs[-1].read_text(encoding="utf-8")
         assert '"context":"crawlStatus"' in log_text
 
+    def test_fresh_only_browsertrix_promotes_inline_to_http_warc_after_budget(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        mock_docker_check,
+        mock_container_stop,
+        clean_stop_event,
+        capsys,
+    ):
+        out_dir = tmp_path / "fresh-to-fallback"
+        out_dir.mkdir()
+
+        docker_starts: list[list[str]] = []
+
+        class FakeProcess:
+            def __init__(self):
+                self.pid = 12345
+                self.stdout = io.StringIO("")
+                self.returncode = None
+                self._polled = False
+
+            def poll(self):
+                if self._polled:
+                    self.returncode = 4
+                    return 4
+                self._polled = True
+                return None
+
+            def wait(self, timeout=None):
+                self.returncode = 4
+                return 4
+
+            def communicate(self, timeout=None):
+                return (b"", b"")
+
+        def fake_start(docker_image, host_output_dir, zimit_args, run_name, **kwargs):
+            docker_starts.append(list(zimit_args))
+            return FakeProcess(), "test-container"
+
+        class FallbackResult:
+            exit_code = 0
+            crawled = 2
+            failed = 0
+            warc_path = out_dir / "warcs" / "warc-000001.warc.gz"
+
+        fallback_called: dict[str, object] = {}
+
+        def fake_http_warc_capture(*, output_dir, seeds, zimit_passthrough_args):
+            fallback_called["output_dir"] = output_dir
+            fallback_called["seeds"] = list(seeds)
+            fallback_called["zimit_passthrough_args"] = list(zimit_passthrough_args)
+            (Path(output_dir) / "warcs").mkdir(parents=True, exist_ok=True)
+            FallbackResult.warc_path.write_bytes(b"fallback-warc")
+            return FallbackResult()
+
+        monkeypatch.setattr(docker_runner_mod, "start_docker_container", fake_start)
+        monkeypatch.setattr(
+            "archive_tool.http_warc_backend.run_http_warc_capture",
+            fake_http_warc_capture,
+        )
+
+        argv = [
+            "archive-tool",
+            "--seeds",
+            "https://www.canada.ca/en/public-health.html",
+            "https://www.canada.ca/fr/sante-publique.html",
+            "--name",
+            "phac-20260101",
+            "--output-dir",
+            str(out_dir),
+            "--browsertrix-config-json",
+            '{"extraChromeArgs":["--disable-http2"]}',
+            "--resume-policy",
+            "fresh_only",
+            "--fallback-backend",
+            "http_warc",
+            "--max-fresh-failures-before-fallback",
+            "2",
+            "--backoff-delay-minutes",
+            "0",
+            "--skip-final-build",
+        ]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        with pytest.raises(SystemExit) as exc_info:
+            archive_main.main()
+
+        captured = capsys.readouterr()
+        combined = captured.out + captured.err
+        assert exc_info.value.code == 0
+        assert len(docker_starts) == 2
+        assert "Promoting this run to fallback backend 'http_warc'" in combined
+        assert fallback_called["seeds"] == [
+            "https://www.canada.ca/en/public-health.html",
+            "https://www.canada.ca/fr/sante-publique.html",
+        ]
+        assert FallbackResult.warc_path.is_file()
+
 
 class TestStageLoopExitCodes:
     """Tests for stage loop exit code handling (ACCEPTABLE_CRAWLER_EXIT_CODES)."""

@@ -479,6 +479,18 @@ def _build_tool_extra_args(
     if resume_policy:
         extra_tool_args.extend(["--resume-policy", resume_policy])
 
+    fallback_backend = str(execution_policy.fallback_backend or "").strip().lower()
+    if fallback_backend:
+        extra_tool_args.extend(["--fallback-backend", fallback_backend])
+
+    if execution_policy.max_fresh_failures_before_fallback is not None:
+        extra_tool_args.extend(
+            [
+                "--max-fresh-failures-before-fallback",
+                str(int(execution_policy.max_fresh_failures_before_fallback)),
+            ]
+        )
+
     if bool(execution_policy.auto_reset_poisoned_state):
         extra_tool_args.append("--auto-reset-poisoned-state")
 

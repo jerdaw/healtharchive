@@ -525,6 +525,10 @@ def main():
 
     logger.info("Step 1: Initial Checks and Setup")
     capture_backend = str(getattr(script_args, "capture_backend", "browsertrix")).strip().lower()
+    fallback_backend = str(getattr(script_args, "fallback_backend", "none")).strip().lower()
+    max_fresh_failures_before_fallback = int(
+        getattr(script_args, "max_fresh_failures_before_fallback", 0) or 0
+    )
     if capture_backend == "http_warc":
         logger.info("Capture backend is http_warc; skipping Docker availability check.")
     else:
@@ -808,7 +812,11 @@ def main():
         config_yaml_path = None
         skip_resume_queue = True
 
-    if capture_backend == "http_warc":
+    def _run_fallback_capture(active_backend: str) -> None:
+        if active_backend != "http_warc":
+            logger.critical("Unsupported fallback capture backend: %s", active_backend)
+            sys.exit(1)
+
         logger.info("Step 4: Running fallback HTTP WARC capture backend")
         result = http_warc_backend.run_http_warc_capture(
             output_dir=host_output_dir,
@@ -828,6 +836,9 @@ def main():
             result.crawled,
             result.failed,
         )
+
+    if capture_backend == "http_warc":
+        _run_fallback_capture(capture_backend)
         return
 
     # Check for existing ZIM file and --overwrite flag
@@ -938,6 +949,7 @@ def main():
     stage_attempt = 1
     max_crawl_stages = 100  # Safety limit to prevent infinite loops
     final_status = "failed"  # Overall status, assume failure until success
+    fresh_failures_done = 0
     monitor_queue = Queue()  # Queue for monitor thread communication
     active_monitor: Optional[monitor.CrawlMonitor] = None
     required_run_args = {"seeds": script_args.seeds, "name": script_args.name}
@@ -1665,6 +1677,41 @@ def main():
 
         else:  # status == "failed" (or potentially other unexpected states)
             logger.error(f"Stage '{stage_name_with_attempt}' FAILED (RC: {final_rc}).")
+            if (
+                capture_backend == "browsertrix"
+                and str(getattr(script_args, "resume_policy", "auto")).strip().lower()
+                == "fresh_only"
+                and current_stage_name != "Resume Crawl"
+            ):
+                fresh_failures_done += 1
+                if max_fresh_failures_before_fallback > 0:
+                    logger.warning(
+                        "Fresh Browsertrix crawl stage failed (%d/%d before fallback).",
+                        fresh_failures_done,
+                        max_fresh_failures_before_fallback,
+                    )
+                else:
+                    logger.warning(
+                        "Fresh Browsertrix crawl stage failed (%d). No fallback budget configured.",
+                        fresh_failures_done,
+                    )
+
+                if (
+                    fallback_backend == "http_warc"
+                    and max_fresh_failures_before_fallback > 0
+                    and fresh_failures_done >= max_fresh_failures_before_fallback
+                ):
+                    logger.warning(
+                        "Fresh Browsertrix failure budget exhausted (%d/%d). Promoting this run "
+                        "to fallback backend '%s'.",
+                        fresh_failures_done,
+                        max_fresh_failures_before_fallback,
+                        fallback_backend,
+                    )
+                    capture_backend = fallback_backend
+                    _run_fallback_capture(capture_backend)
+                    final_status = "success"
+                    break
             if stage_attempt >= max_crawl_stages:
                 logger.critical(
                     f"Maximum number of stage attempts ({max_crawl_stages}) reached after failure. Aborting."
@@ -1808,6 +1855,11 @@ def main():
                             final_build_temp_dir,
                         )
                         crawl_state.add_temp_dir(final_build_temp_dir)
+
+    elif final_status == "success":
+        logger.info(
+            "Final build stage is not needed because the active capture backend already produced usable WARCs."
+        )
 
     elif stop_event.is_set():
         logger.warning("Skipping final build stage because stop event was set.")

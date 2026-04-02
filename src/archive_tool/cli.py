@@ -95,6 +95,21 @@ def parse_arguments() -> Tuple[argparse.Namespace, List[str]]:
         help="Whether resume state may be reused for this run.",
     )
     tool_opts_group.add_argument(
+        "--fallback-backend",
+        choices=["none", "http_warc"],
+        default="none",
+        help="Fallback backend to promote to after repeated fresh crawl failures.",
+    )
+    tool_opts_group.add_argument(
+        "--max-fresh-failures-before-fallback",
+        type=int,
+        default=0,
+        help=(
+            "When >0, switch to --fallback-backend after this many failed fresh Browsertrix "
+            "crawl stages within a single run."
+        ),
+    )
+    tool_opts_group.add_argument(
         "--auto-reset-poisoned-state",
         action="store_true",
         default=False,

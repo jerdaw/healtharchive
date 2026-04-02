@@ -27,6 +27,10 @@ def test_parse_arguments_accepts_skip_final_build_docker_shm_and_browsertrix_con
             "http_warc",
             "--resume-policy",
             "fresh_only",
+            "--fallback-backend",
+            "http_warc",
+            "--max-fresh-failures-before-fallback",
+            "2",
             "--auto-reset-poisoned-state",
             "--max-temp-dirs-before-reset",
             "25",
@@ -41,6 +45,8 @@ def test_parse_arguments_accepts_skip_final_build_docker_shm_and_browsertrix_con
     assert script_args.browsertrix_config_json == '{"extraChromeArgs":["--disable-http2"]}'
     assert script_args.capture_backend == "http_warc"
     assert script_args.resume_policy == "fresh_only"
+    assert script_args.fallback_backend == "http_warc"
+    assert script_args.max_fresh_failures_before_fallback == 2
     assert script_args.auto_reset_poisoned_state is True
     assert script_args.max_temp_dirs_before_reset == 25
     assert zimit_passthrough == ["--scopeType", "host"]
