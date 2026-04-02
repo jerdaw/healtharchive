@@ -416,7 +416,7 @@ Run on the VPS:
 
 ```bash
 cd /opt/healtharchive-backend
-sudo -u haadmin python3 ./scripts/verify_healthchecks_alignment.py
+sudo python3 ./scripts/verify_healthchecks_alignment.py
 ```
 
 If it reports “referenced but unset”, you either:

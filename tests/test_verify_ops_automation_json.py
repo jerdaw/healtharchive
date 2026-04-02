@@ -35,3 +35,30 @@ def test_verify_ops_automation_json_only_emits_single_json_line() -> None:
     assert payload["ok"] is True
     assert payload["failures"] == 0
     assert isinstance(payload["warnings"], int)
+
+
+def test_verify_ops_automation_accepts_optional_require_flags_in_json_mode() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    script_path = repo_root / "scripts" / "verify_ops_automation.sh"
+
+    env = os.environ.copy()
+    env["PATH"] = "/nonexistent"
+
+    result = subprocess.run(
+        [
+            "/usr/bin/bash",
+            str(script_path),
+            "--json-only",
+            "--require-cleanup-automation",
+            "--require-storage-hotpath-auto-recover",
+        ],
+        capture_output=True,
+        text=True,
+        env=env,
+        check=False,
+    )
+
+    assert result.returncode == 0
+    payload = json.loads(result.stdout)
+    assert payload["schema_version"] == 1
+    assert payload["skipped"] is True

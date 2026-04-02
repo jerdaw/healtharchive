@@ -109,3 +109,17 @@ def test_worker_auto_start_systemd_template_requires_venv() -> None:
         "/opt/healtharchive-backend/scripts/vps-worker-auto-start.py --apply"
     ) in text
     assert "--reconcile-running-drift" in text
+
+
+def test_public_surface_verify_systemd_template_uses_canonical_frontend_domain() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    unit_path = (
+        repo_root
+        / "docs"
+        / "deployment"
+        / "systemd"
+        / "healtharchive-public-surface-verify.service"
+    )
+    text = unit_path.read_text(encoding="utf-8")
+    assert "--frontend-base https://healtharchive.ca" in text
+    assert "--frontend-base https://www.healtharchive.ca" not in text

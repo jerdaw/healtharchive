@@ -28,3 +28,15 @@ def test_verify_public_surface_build_frontend_pages_includes_en_and_fr() -> None
     assert "https://healtharchive.ca/fr/archive" in urls
     assert "https://healtharchive.ca/snapshot/123" in urls
     assert "https://healtharchive.ca/fr/snapshot/123" in urls
+
+
+def test_verify_public_surface_canonicalizes_www_frontend_alias() -> None:
+    module = _load_script_module()
+
+    assert (
+        module._canonicalize_frontend_base("https://www.healtharchive.ca")
+        == "https://healtharchive.ca"
+    )
+    assert (
+        module._canonicalize_frontend_base("https://healtharchive.ca") == "https://healtharchive.ca"
+    )

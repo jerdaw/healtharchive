@@ -47,6 +47,7 @@ REQUIRE_ANNUAL_SENTINEL="false"
 REQUIRE_ANNUAL_SEARCH_VERIFY="false"
 REQUIRE_COVERAGE_GUARDRAILS="false"
 REQUIRE_REPLAY_SMOKE="false"
+REQUIRE_CLEANUP_AUTOMATION="false"
 REQUIRE_PUBLIC_VERIFY="false"
 REQUIRE_STORAGE_HOTPATH_AUTO_RECOVER="false"
 REQUIRE_WORKER_AUTO_START="false"
@@ -101,6 +102,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --require-public-verify)
       REQUIRE_PUBLIC_VERIFY="true"
+      shift 1
+      ;;
+    --require-storage-hotpath-auto-recover)
+      REQUIRE_STORAGE_HOTPATH_AUTO_RECOVER="true"
       shift 1
       ;;
     --require-worker-auto-start)

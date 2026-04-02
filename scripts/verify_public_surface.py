@@ -6,6 +6,7 @@ import json
 from dataclasses import dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
+from urllib.parse import urlsplit, urlunsplit
 from urllib.request import Request, urlopen
 
 
@@ -18,6 +19,25 @@ class HttpResponse:
 
 def _normalize_base(url: str) -> str:
     return url.strip().rstrip("/")
+
+
+def _canonicalize_frontend_base(url: str) -> str:
+    """
+    Prefer the apex host for frontend checks.
+
+    The public site intentionally redirects ``www.healtharchive.ca`` to
+    ``healtharchive.ca``. GET probes tolerate that redirect, but POSTing to the
+    same-origin report forwarder through urllib can degrade into a GET after a
+    301 and produce a false 405 failure. Canonicalizing the alias keeps the
+    verifier aligned with the documented frontend canonical domain.
+    """
+
+    parts = urlsplit(url.strip())
+    if parts.netloc == "www.healtharchive.ca":
+        return urlunsplit(
+            (parts.scheme, "healtharchive.ca", parts.path, parts.query, parts.fragment)
+        )
+    return url
 
 
 def _http_request(
@@ -194,7 +214,7 @@ def main(argv: list[str] | None = None) -> int:
     args = parser.parse_args(argv)
 
     api_base = _normalize_base(str(args.api_base))
-    frontend_base = _normalize_base(str(args.frontend_base))
+    frontend_base = _canonicalize_frontend_base(_normalize_base(str(args.frontend_base)))
     timeout_s = float(args.timeout_seconds)
 
     failures = 0

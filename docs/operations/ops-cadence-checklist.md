@@ -47,7 +47,7 @@ Related docs:
 - If you enable Healthchecks pings, keep ping URLs only in the root-owned VPS env file:
   - `/etc/healtharchive/healthchecks.env` (never commit ping URLs)
 - If you use Healthchecks pings, periodically audit for drift (missing or stale checks):
-  - `cd /opt/healtharchive-backend && sudo -u haadmin python3 ./scripts/verify_healthchecks_alignment.py`
+  - `cd /opt/healtharchive-backend && sudo python3 ./scripts/verify_healthchecks_alignment.py`
 - If you enable optional automations (coverage guardrails, replay smoke, cleanup), confirm their timers + sentinels are intentional.
 
 See: `../deployment/systemd/README.md`
