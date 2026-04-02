@@ -15,6 +15,7 @@ from archive_tool.utils import (
     find_latest_config_yaml_in_temp_dirs,
     find_stable_resume_config,
     merge_managed_browsertrix_config_into_resume_config,
+    parse_last_stats_from_log,
     parse_temp_dir_from_log_file,
     persist_managed_browsertrix_config,
     persist_resume_config,
@@ -164,3 +165,23 @@ metadata:
     assert merged_data["behavior"]["autoplay"] is True
     assert merged_data["behavior"]["clickSelector"] == "a[href]"
     assert merged_data["extraChromeArgs"] == ["--disable-http2", "--existing-flag"]
+
+
+def test_parse_last_stats_from_log_skips_empty_details_and_uses_last_usable_entry(
+    tmp_path: Path,
+) -> None:
+    log_path = tmp_path / "archive_resume_crawl.combined.log"
+    log_path.write_text(
+        "\n".join(
+            [
+                '{"timestamp":"2026-03-24T05:06:06.051Z","logLevel":"info","context":"crawlStatus","message":"Crawl statistics","details":{"crawled":0,"total":2,"pending":0,"failed":2,"limit":{"max":0,"hit":false},"pendingPages":[]}}',
+                '{"timestamp":"2026-04-02T02:03:21.937Z","logLevel":"warning","context":"crawlStatus","message":"Crawl statistics","details":{}}',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    parsed = parse_last_stats_from_log(log_path)
+
+    assert parsed == {"crawled": 0, "total": 2, "pending": 0, "failed": 2}

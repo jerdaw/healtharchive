@@ -185,6 +185,10 @@ Completed after the initial draft:
   empty/unprocessable-WARC tail error, `archive_tool` now skips that queue and
   starts a new crawl phase with consolidation instead of blindly resuming the
   same broken state again.
+- Hardened the fallback so malformed or empty trailing `crawlStatus.details`
+  entries no longer suppress it; `archive_tool` now falls back to the most
+  recent usable stats line and still treats the queue as poisoned when the
+  empty-WARC tail signature is present.
 - Verified in production that:
   - fresh/new PHAC launches used zimit
     `--config /output/.browsertrix_managed_config.yaml`

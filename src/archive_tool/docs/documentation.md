@@ -570,7 +570,9 @@ Durability shim (Phase 4):
   ended with `crawled=0 total=2 pending=0 failed=2` and an
   empty/unprocessable-WARC tail error, the tool treats that queue as poisoned
   and starts a new crawl phase with consolidation instead of blindly resuming
-  the same queue again.
+  the same queue again. If the newest `crawlStatus` line is malformed or has
+  empty `details`, the tool still treats the queue as poisoned when the
+  empty-WARC tail signature is present.
 
 ### 5.5 WARC discovery
 
@@ -591,7 +593,10 @@ Used both to:
 
 * `parse_last_stats_from_log(log_file_path: Path) -> Optional[Dict[str, Any]]`
 
-Uses `constants.STATS_REGEX` to find the **last** `"Crawl statistics"` log entry in the tail of the log file and returns:
+Scans the tail of the combined log in reverse and parses the newest usable JSON
+line where `context="crawlStatus"` and `message="Crawl statistics"`. If the
+newest stats line has malformed or empty `details`, the parser skips it and
+falls back to the previous usable stats entry. It returns:
 
 ```python
 {

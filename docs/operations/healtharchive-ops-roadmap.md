@@ -67,6 +67,10 @@ Keep the two synced copies of this file aligned:
     empty/unprocessable-WARC tail error, `archive_tool` skips that resume queue
     and starts a new crawl phase with consolidation instead of looping back
     into the same poisoned resume state.
+  - That fallback no longer depends on the newest `crawlStatus` line being
+    well-formed; malformed or empty trailing stats now fall back to the most
+    recent usable stats entry, and the empty-WARC tail signature alone is
+    enough to force a fresh crawl phase for managed-browsertrix jobs.
   - Empirical result after those fixes: PHAC still does not make useful forward
     progress. Resumed PHAC attempts can start cleanly, then end immediately with
     `crawled=0 total=2 failed=2` and an effectively empty/unprocessable WARC.

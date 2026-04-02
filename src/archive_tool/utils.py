@@ -522,11 +522,10 @@ def find_all_warc_files(temp_dir_paths: List[Path]) -> List[Path]:
 
 
 def parse_last_stats_from_log(log_file_path: Path) -> Optional[Dict[str, Any]]:
-    """Parses the last 'Crawl statistics' JSON blob from a log file."""
+    """Parses the last 'Crawl statistics' entry from a combined log file."""
     if not log_file_path or not log_file_path.is_file():
         logger.warning(f"Cannot parse stats, invalid log file path: {log_file_path}")
         return None
-    last_stats_json_str = None
     try:
         file_size = log_file_path.stat().st_size
         read_size = min(file_size, 1024 * 1024)
@@ -535,28 +534,56 @@ def parse_last_stats_from_log(log_file_path: Path) -> Optional[Dict[str, Any]]:
             if offset > 0:
                 f.seek(offset)
             log_content = f.read()
-        # Use regex from constants
-        matches = list(constants.STATS_REGEX.finditer(log_content))
-        if matches:
-            last_stats_json_str = matches[-1].group(1)
-        else:
-            logger.info(f"No 'Crawl statistics' message found in the end of {log_file_path.name}.")
+
+        found_stats_entry = False
+        for raw_line in reversed(log_content.splitlines()):
+            line = raw_line.strip()
+            if not line or not line.startswith("{"):
+                continue
+            if '"context":"crawlStatus"' not in line or '"message":"Crawl statistics"' not in line:
+                continue
+
+            found_stats_entry = True
+            try:
+                payload = json.loads(line)
+            except json.JSONDecodeError as json_e:
+                logger.warning(
+                    "Failed parsing crawlStatus JSON line in %s: %s",
+                    log_file_path.name,
+                    json_e,
+                )
+                continue
+
+            stats_details = payload.get("details")
+            if not isinstance(stats_details, dict):
+                logger.warning(
+                    "Last stats message in %s has non-dict details: %r",
+                    log_file_path.name,
+                    stats_details,
+                )
+                continue
+
+            extracted_stats = {
+                "crawled": stats_details.get("crawled"),
+                "total": stats_details.get("total"),
+                "pending": stats_details.get("pending"),
+                "failed": stats_details.get("failed"),
+            }
+            if extracted_stats["crawled"] is None or extracted_stats["total"] is None:
+                logger.warning("Last stats message missing data: %s", stats_details)
+                continue
+
+            logger.info("Parsed last stats from %s: %s", log_file_path.name, extracted_stats)
+            return extracted_stats
+
+        if found_stats_entry:
+            logger.info(
+                "No usable 'Crawl statistics' payload found in the end of %s.",
+                log_file_path.name,
+            )
             return None
-        stats_details = json.loads(last_stats_json_str)
-        extracted_stats = {
-            "crawled": stats_details.get("crawled"),
-            "total": stats_details.get("total"),
-            "pending": stats_details.get("pending"),
-            "failed": stats_details.get("failed"),
-        }
-        if extracted_stats["crawled"] is None or extracted_stats["total"] is None:
-            logger.warning(f"Last stats message missing data: {last_stats_json_str}")
-            return None
-        logger.info(f"Parsed last stats from {log_file_path.name}: {extracted_stats}")
-        return extracted_stats
-    except json.JSONDecodeError as json_e:
-        logger.error(f"Failed parsing stats JSON: {json_e}")
-        logger.debug(f"Invalid JSON: {last_stats_json_str}")
+
+        logger.info(f"No 'Crawl statistics' message found in the end of {log_file_path.name}.")
         return None
     except Exception as e:
         logger.error(f"Error parsing stats log {log_file_path}: {e}")

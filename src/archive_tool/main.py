@@ -69,8 +69,25 @@ def _resume_queue_looks_poisoned(
     the same queue again is not useful; the safer next step is a new crawl
     phase that preserves previously captured WARCs for later consolidation.
     """
-    if managed_browsertrix_config_path is None or latest_log_file is None or last_stats is None:
+    if managed_browsertrix_config_path is None or latest_log_file is None:
         return False
+
+    empty_warc_tail = utils.resume_log_indicates_unprocessable_empty_warc(latest_log_file)
+    if not empty_warc_tail:
+        return False
+
+    if last_stats is None:
+        # Some broken resume attempts emit a final crawlStatus line with empty
+        # details, which makes stats parsing unavailable even though the log
+        # clearly shows the same poisoned empty-WARC failure. For managed
+        # Browsertrix jobs, it is safer to abandon that resume queue and start a
+        # new crawl phase with consolidation.
+        logger.warning(
+            "Detected empty/unprocessable WARC tail in %s but no usable crawl stats were parsed; "
+            "treating the managed resume queue as poisoned.",
+            latest_log_file.name,
+        )
+        return True
 
     crawled = last_stats.get("crawled")
     total = last_stats.get("total")
@@ -84,7 +101,7 @@ def _resume_queue_looks_poisoned(
     if failed != total:
         return False
 
-    return utils.resume_log_indicates_unprocessable_empty_warc(latest_log_file)
+    return True
 
 
 # --- Global Signal Handling Setup ---
