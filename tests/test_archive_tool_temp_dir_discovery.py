@@ -1,11 +1,13 @@
 from __future__ import annotations
 
+import importlib
 import os
 import pathlib
 import time
 from pathlib import Path
+from typing import Any
 
-import yaml  # type: ignore[import-untyped]
+yaml: Any = importlib.import_module("yaml")
 
 from archive_tool.state import CrawlState
 from archive_tool.utils import (

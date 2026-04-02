@@ -565,6 +565,12 @@ Durability shim (Phase 4):
   HealthArchive's canada.ca `extraChromeArgs` workaround), that managed config
   is merged into the stable resume config before resumed crawl phases start, so
   resume attempts retain the same Browsertrix overrides as fresh crawl phases.
+* For managed-browsertrix jobs, `archive_tool` also checks the newest combined
+  log before trusting an existing resume queue. If the most recent resumed run
+  ended with `crawled=0 total=2 pending=0 failed=2` and an
+  empty/unprocessable-WARC tail error, the tool treats that queue as poisoned
+  and starts a new crawl phase with consolidation instead of blindly resuming
+  the same queue again.
 
 ### 5.5 WARC discovery
 

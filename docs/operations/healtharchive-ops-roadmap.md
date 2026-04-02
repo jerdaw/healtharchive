@@ -62,6 +62,11 @@ Keep the two synced copies of this file aligned:
     - fresh/new phases launch via zimit `--config /output/.browsertrix_managed_config.yaml`
     - resumed phases now carry the same Browsertrix overrides through the
       stable `.zimit_resume.yaml`
+  - Repo-side poisoned-resume fallback now exists for managed-browsertrix jobs:
+    if the newest resumed run ended with `crawled=0 total=2 failed=2` plus the
+    empty/unprocessable-WARC tail error, `archive_tool` skips that resume queue
+    and starts a new crawl phase with consolidation instead of looping back
+    into the same poisoned resume state.
   - Empirical result after those fixes: PHAC still does not make useful forward
     progress. Resumed PHAC attempts can start cleanly, then end immediately with
     `crawled=0 total=2 failed=2` and an effectively empty/unprocessable WARC.
@@ -100,6 +105,9 @@ Treat the following as the current ops execution order:
       file via zimit `--config`
     - resumed PHAC launches now correctly preserve that Browsertrix override by
       merging it into `.zimit_resume.yaml`
+    - the backend now auto-detects the known poisoned-resume signature and
+      falls back to a new crawl phase with consolidation instead of blindly
+      resuming the same queue again
     - despite that corrected plumbing, resumed PHAC attempts still collapse into
       `crawled=0 total=2 failed=2` with empty/unprocessable WARC output
   - Diagnostic update (2026-03-23): the content-cost report plus direct log
@@ -114,13 +122,12 @@ Treat the following as the current ops execution order:
     - Sampled WARC bytes remained dominated by normal pages/render assets rather
       than `.mp4`/dataset/document classes.
   - Next steps:
-    - keep PHAC parked until a new repo-side investigation or mitigation is
-      ready
-    - determine whether the current PHAC resume queue/state is poisoned or
-      whether the same empty-WARC failure reproduces from a truly fresh crawl
-      phase
-    - diagnose why resumed PHAC queue/state can terminate immediately even when
-      the managed Browsertrix HTTP/2 workaround is present
+    - redeploy before the next HC/PHAC retry so the poisoned-resume fallback is
+      active on the VPS
+    - determine whether PHAC still reproduces the same empty-WARC failure from
+      a truly fresh crawl phase after the new fallback skips the poisoned queue
+    - diagnose the remaining canada.ca runtime/state issue if fresh phases also
+      fail to make useful progress
     - revisit the temporary `public-health-notices` exclusion only after the
       deeper PHAC runtime/state issue is understood
   - Do not do further blind PHAC recover/restart attempts from the VPS.

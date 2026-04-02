@@ -679,6 +679,102 @@ extraChromeArgs:
         # Should allow overwrite
         assert "overwrite" in combined.lower() or "Dry-run" in combined
 
+    def test_dry_run_skips_poisoned_resume_queue_and_uses_new_crawl_phase(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        mock_docker_check,
+        mock_container_stop,
+        clean_stop_event,
+        capsys,
+    ):
+        out_dir = tmp_path / "poisoned-resume"
+        out_dir.mkdir()
+
+        (out_dir / ".zimit_resume.yaml").write_text(
+            "seeds:\n  - https://www.canada.ca/en/public-health.html\n",
+            encoding="utf-8",
+        )
+
+        temp_dir = out_dir / ".tmpresume"
+        archive_dir = temp_dir / "collections" / "crawl-1" / "archive"
+        archive_dir.mkdir(parents=True)
+        (archive_dir / "sample.warc.gz").write_bytes(b"warc-bytes")
+
+        latest_log = out_dir / "archive_resume_crawl_-_attempt_100_20260324_050558.combined.log"
+        latest_log.write_text(
+            "\n".join(
+                [
+                    '{"timestamp":"2026-03-24T05:06:06.051Z","logLevel":"info","context":"crawlStatus","message":"Crawl statistics","details":{"crawled":0,"total":2,"pending":0,"failed":2,"limit":{"max":0,"hit":false},"pendingPages":[]}}',
+                    "[warc2zim::2026-03-24 05:06:06,262] ERROR:No entry found to push to the ZIM, WARC file(s) is unprocessable and looks probably mostly empty",
+                ]
+            )
+            + "\n",
+            encoding="utf-8",
+        )
+
+        captured_start: dict[str, object] = {}
+
+        class FakeProcess:
+            def __init__(self):
+                self.pid = 12345
+                self.stdout = None
+                self.returncode = None
+                self._polled = False
+
+            def poll(self):
+                if self._polled:
+                    self.returncode = 32
+                    return 32
+                self._polled = True
+                return None
+
+            def wait(self, timeout=None):
+                self.returncode = 32
+                return 32
+
+            def communicate(self, timeout=None):
+                return (b"", b"")
+
+        def fake_start(docker_image, host_output_dir, zimit_args, run_name, **kwargs):
+            captured_start["zimit_args"] = list(zimit_args)
+            return FakeProcess(), "test-container"
+
+        monkeypatch.setattr(docker_runner_mod, "start_docker_container", fake_start)
+
+        argv = [
+            "archive-tool",
+            "--seeds",
+            "https://www.canada.ca/en/public-health.html",
+            "https://www.canada.ca/fr/sante-publique.html",
+            "--name",
+            "phac-20260101",
+            "--output-dir",
+            str(out_dir),
+            "--browsertrix-config-json",
+            '{"extraChromeArgs":["--disable-http2"]}',
+            "--skip-final-build",
+        ]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        exit_code: int | str | None = None
+        try:
+            archive_main.main()
+            exit_code = 0
+        except SystemExit as exc:
+            exit_code = exc.code
+
+        captured = capsys.readouterr()
+        combined = captured.out + captured.err
+        assert exit_code == 0
+        assert "poisoned resume queue" in combined.lower()
+        assert "Run Mode: NEW crawl phase" in combined
+        zimit_args = captured_start["zimit_args"]
+        assert isinstance(zimit_args, list)
+        assert "--config" in zimit_args
+        config_index = zimit_args.index("--config")
+        assert zimit_args[config_index + 1] == "/output/.browsertrix_managed_config.yaml"
+
 
 class TestStageLoopExitCodes:
     """Tests for stage loop exit code handling (ACCEPTABLE_CRAWLER_EXIT_CODES)."""

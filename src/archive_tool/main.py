@@ -54,6 +54,39 @@ def _should_attempt_container_restart(
     return is_stalled or hit_error_threshold
 
 
+def _resume_queue_looks_poisoned(
+    *,
+    latest_log_file: Optional[Path],
+    last_stats: Optional[Dict[str, Any]],
+    managed_browsertrix_config_path: Optional[Path],
+) -> bool:
+    """
+    Detect the known empty-WARC resume failure pattern.
+
+    HC/PHAC currently use a managed Browsertrix config. When a resumed run with
+    that config immediately exits with `crawled=0 total=2 pending=0 failed=2`
+    and the combined log ends with an empty/unprocessable WARC error, resuming
+    the same queue again is not useful; the safer next step is a new crawl
+    phase that preserves previously captured WARCs for later consolidation.
+    """
+    if managed_browsertrix_config_path is None or latest_log_file is None or last_stats is None:
+        return False
+
+    crawled = last_stats.get("crawled")
+    total = last_stats.get("total")
+    pending = last_stats.get("pending")
+    failed = last_stats.get("failed")
+
+    if crawled != 0 or pending != 0:
+        return False
+    if not isinstance(total, int) or total < 1:
+        return False
+    if failed != total:
+        return False
+
+    return utils.resume_log_indicates_unprocessable_empty_warc(latest_log_file)
+
+
 # --- Global Signal Handling Setup ---
 def signal_handler(signum, frame):
     """Handles SIGINT/SIGTERM for graceful shutdown attempt."""
@@ -552,8 +585,10 @@ def main():
     has_prior_warcs = False
     warc_file_count = 0
     last_stats = None
+    latest_log_file: Optional[Path] = None
     config_yaml_path: Optional[Path] = None  # Ensure type hint
     warc_files: List[Path] = []  # Initialize
+    skip_resume_queue = False
 
     existing_temp_dirs = crawl_state.get_temp_dir_paths()  # Get validated paths from state
     discovered_temp_dirs = utils.discover_temp_dirs(host_output_dir)
@@ -656,6 +691,22 @@ def main():
 
     initial_run_mode = "Fresh Crawl"  # Default assumption
 
+    if can_resume_crawl and _resume_queue_looks_poisoned(
+        latest_log_file=latest_log_file,
+        last_stats=last_stats,
+        managed_browsertrix_config_path=managed_browsertrix_config_path,
+    ):
+        logger.warning(
+            "Detected poisoned resume queue from %s: latest stats=%s and empty/unprocessable "
+            "WARC output. Will skip resume state and start a new crawl phase while preserving "
+            "prior WARCs.",
+            latest_log_file.name if latest_log_file is not None else "(unknown log)",
+            last_stats,
+        )
+        can_resume_crawl = False
+        config_yaml_path = None
+        skip_resume_queue = True
+
     if final_zim_exists:
         if not script_args.overwrite:
             logger.critical(
@@ -736,6 +787,11 @@ def main():
     required_run_args = {"seeds": script_args.seeds, "name": script_args.name}
 
     while stage_attempt <= max_crawl_stages and not stop_event.is_set():
+        if current_stage_name == "Resume Crawl" and skip_resume_queue:
+            logger.warning(
+                "Skipping poisoned resume queue for this attempt; starting a new crawl phase while preserving prior WARCs."
+            )
+            current_stage_name = "New Crawl Phase"
         stage_name_with_attempt = f"{current_stage_name} - Attempt {stage_attempt}"
         logger.info(f"--- Starting Loop Iteration: Stage '{stage_name_with_attempt}' ---")
         crawl_state.current_stage = stage_name_with_attempt
@@ -1349,6 +1405,30 @@ def main():
                 f"CRITICAL: Could not determine temp directory created by stage '{stage_name_with_attempt}'. State might be incomplete."
             )
 
+        poisoned_resume_stage = False
+        if current_stage_name == "Resume Crawl":
+            stage_last_stats = None
+            if stage_combined_log_path is not None:
+                stage_last_stats = utils.parse_last_stats_from_log(stage_combined_log_path)
+            poisoned_resume_stage = _resume_queue_looks_poisoned(
+                latest_log_file=stage_combined_log_path,
+                last_stats=stage_last_stats,
+                managed_browsertrix_config_path=managed_browsertrix_config_path,
+            )
+            if poisoned_resume_stage:
+                logger.warning(
+                    "Stage '%s' ended in the known poisoned-resume pattern (stats=%s, empty/unprocessable WARC output). "
+                    "Future retries in this run will skip resume state and start a new crawl phase.",
+                    stage_name_with_attempt,
+                    stage_last_stats,
+                )
+                skip_resume_queue = True
+        elif skip_resume_queue and crawl_state.last_crawled_count > 0:
+            logger.info(
+                "New crawl phase produced forward progress; resume queue fallback is cleared for future retries."
+            )
+            skip_resume_queue = False
+
         # --- Determine Final Stage Status (if not already set by loop break) ---
         # Status flow:
         # - "running"/"running_no_monitor" + RC 0 -> "success" (crawl completed)
@@ -1403,7 +1483,7 @@ def main():
             logger.info(
                 f"Stage '{stage_name_with_attempt}' stopped for adaptation. Will attempt to resume."
             )
-            current_stage_name = "Resume Crawl"  # Ensure next stage is explicitly resume
+            current_stage_name = "New Crawl Phase" if skip_resume_queue else "Resume Crawl"
             # Do NOT increment stage_attempt, we are retrying the *same logical step* after adaptation
             logger.info(f"Next stage will be '{current_stage_name}' (Attempt {stage_attempt}).")
             # Optional: Apply backoff delay even after successful adaptation?
@@ -1436,10 +1516,16 @@ def main():
                 final_status = "failed_max_attempts"
                 break  # Exit outer loop
             else:
-                logger.info("Attempting to recover by trying a 'Resume Crawl' in the next stage.")
-                current_stage_name = (
-                    "Resume Crawl"  # Try resuming even if previous stage wasn't resume
-                )
+                if poisoned_resume_stage or skip_resume_queue:
+                    logger.info(
+                        "Attempting to recover by starting a fresh crawl phase with consolidation instead of resuming the poisoned queue."
+                    )
+                    current_stage_name = "New Crawl Phase"
+                else:
+                    logger.info(
+                        "Attempting to recover by trying a 'Resume Crawl' in the next stage."
+                    )
+                    current_stage_name = "Resume Crawl"
                 stage_attempt += 1  # Increment attempt counter
                 logger.info(f"Next stage will be '{current_stage_name}' (Attempt {stage_attempt}).")
                 # Apply backoff delay after failure

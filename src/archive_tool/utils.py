@@ -563,6 +563,35 @@ def parse_last_stats_from_log(log_file_path: Path) -> Optional[Dict[str, Any]]:
         return None
 
 
+def resume_log_indicates_unprocessable_empty_warc(log_file_path: Path) -> bool:
+    """
+    Detect the "empty WARC" tail signature seen in poisoned resume attempts.
+
+    This looks only at the tail of a combined log and returns True when the
+    final build failed because the generated WARC output was effectively empty.
+    """
+    if not log_file_path or not log_file_path.is_file():
+        logger.warning("Cannot inspect resume log tail, invalid path: %s", log_file_path)
+        return False
+
+    try:
+        file_size = log_file_path.stat().st_size
+        read_size = min(file_size, 128 * 1024)
+        offset = max(0, file_size - read_size)
+        with open(log_file_path, "r", encoding="utf-8", errors="replace") as f:
+            f.seek(offset)
+            tail = f.read()
+    except Exception as exc:
+        logger.warning("Failed reading resume log tail %s: %s", log_file_path, exc)
+        return False
+
+    needles = (
+        "No entry found to push to the ZIM",
+        "WARC file(s) is unprocessable and looks probably mostly empty",
+    )
+    return any(needle in tail for needle in needles)
+
+
 def cleanup_temp_dirs(temp_dir_paths: List[Path], state_file_path: Path):
     """Deletes temporary directories and the state file."""
     logger.info("--- Starting Cleanup ---")

@@ -180,6 +180,11 @@ Completed after the initial draft:
 - Implemented repo-side resume-config merging so resumed HC/PHAC phases also
   preserve the managed Browsertrix config instead of dropping back to a raw
   `.zimit_resume.yaml`.
+- Implemented repo-side poisoned-resume fallback for managed-browsertrix jobs:
+  when the newest resumed run ended with `crawled=0 total=2 failed=2` and the
+  empty/unprocessable-WARC tail error, `archive_tool` now skips that queue and
+  starts a new crawl phase with consolidation instead of blindly resuming the
+  same broken state again.
 - Verified in production that:
   - fresh/new PHAC launches used zimit
     `--config /output/.browsertrix_managed_config.yaml`
@@ -199,15 +204,14 @@ Completed so far:
 
 Still required:
 
-- Decide whether a future PHAC investigation should start from the existing
-  resume queue/state or from a deliberately fresh crawl phase.
-- Determine why resumed PHAC queue/state can terminate immediately with
-  `crawled=0 total=2 failed=2` and empty/unprocessable WARC output even when
-  the managed Browsertrix HTTP/2 workaround is present.
+- Redeploy the new poisoned-resume fallback before the next HC/PHAC retry so
+  the VPS skips the known-bad resume queue automatically.
+- Determine whether PHAC still reproduces the same failure from a deliberately
+  fresh crawl phase after the poisoned queue is skipped automatically.
 - Decide whether the temporary `public-health-notices` exclusion remains
   justified once the deeper crawler/runtime issue is understood.
-- Design the next repo-side mitigation only after that deeper failure mode is
-  better characterized.
+- Design the next repo-side mitigation only if the fresh-phase path still shows
+  the deeper canada.ca runtime/state issue.
 
 ## Open questions (still unknown)
 
@@ -215,7 +219,7 @@ Still required:
   `crawled=0 total=2 failed=2` even when the managed Browsertrix config is
   present on resumed phases?
 - Is the current PHAC resume queue/state itself poisoned, or would the same
-  failure reproduce from a truly fresh crawl phase?
+  failure reproduce from a truly fresh crawl phase after resume is skipped?
 - Once the deeper runtime/state issue is understood, is the temporary
   `public-health-notices` exclusion still necessary?
 
@@ -232,6 +236,9 @@ Still required:
   the managed Browsertrix HTTP/2 workaround. (priority=high)
 - [x] Improve ops visibility for repeated `Resume Crawl` churn without `crawlStatus` so this state is obvious in VPS snapshots and metrics. (priority=medium)
 - [x] Add a repo-side `archive_tool` monitor fallback so a stage with no `crawlStatus` for the full stall window triggers an explicit `no_stats` intervention instead of silently hanging. (priority=medium)
+- [x] Add a repo-side poisoned-resume fallback so HC/PHAC can skip the known
+  `crawled=0 total=2 failed=2` empty-WARC resume state and restart from a new
+  crawl phase with consolidation. (priority=medium)
 - [ ] Decide whether the temporary PHAC `public-health-notices` exclusion can be removed after live verification. (priority=medium)
 - [ ] Capture the current deeper PHAC no-progress failure mode and design a
   follow-up mitigation before any future restart. (priority=medium)
