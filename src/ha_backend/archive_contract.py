@@ -139,6 +139,48 @@ class ArchiveToolOptions:
 
 
 @dataclass
+class ArchiveExecutionPolicy:
+    """
+    Typed execution policy for source/job-specific crawl control.
+
+    This governs which capture backend is used, whether resume is allowed, and
+    when an annual job should auto-promote to a simpler fallback backend.
+    """
+
+    capture_backend: str = "browsertrix"
+    resume_policy: str = "auto"
+    fallback_backend: str = "none"
+    max_fresh_failures_before_fallback: int = 0
+    auto_reset_poisoned_state: bool = False
+    max_temp_dirs_before_reset: Optional[int] = None
+
+    def to_dict(self) -> Dict[str, Any]:
+        data: Dict[str, Any] = {
+            "capture_backend": str(self.capture_backend).strip().lower() or "browsertrix",
+            "resume_policy": str(self.resume_policy).strip().lower() or "auto",
+            "fallback_backend": str(self.fallback_backend).strip().lower() or "none",
+            "max_fresh_failures_before_fallback": int(self.max_fresh_failures_before_fallback or 0),
+            "auto_reset_poisoned_state": bool(self.auto_reset_poisoned_state),
+        }
+        if self.max_temp_dirs_before_reset is not None:
+            data["max_temp_dirs_before_reset"] = int(self.max_temp_dirs_before_reset)
+        return data
+
+    @classmethod
+    def from_dict(cls, data: Dict[str, Any]) -> "ArchiveExecutionPolicy":
+        return cls(
+            capture_backend=str(data.get("capture_backend", "browsertrix")),
+            resume_policy=str(data.get("resume_policy", "auto")),
+            fallback_backend=str(data.get("fallback_backend", "none")),
+            max_fresh_failures_before_fallback=int(
+                data.get("max_fresh_failures_before_fallback", 0) or 0
+            ),
+            auto_reset_poisoned_state=bool(data.get("auto_reset_poisoned_state", False)),
+            max_temp_dirs_before_reset=data.get("max_temp_dirs_before_reset"),
+        )
+
+
+@dataclass
 class ArchiveJobConfig:
     """
     Typed representation of the JSON blob stored under ArchiveJob.config.
@@ -147,6 +189,7 @@ class ArchiveJobConfig:
     seeds: List[str] = field(default_factory=list)
     zimit_passthrough_args: List[str] = field(default_factory=list)
     tool_options: ArchiveToolOptions = field(default_factory=ArchiveToolOptions)
+    execution_policy: ArchiveExecutionPolicy = field(default_factory=ArchiveExecutionPolicy)
 
     def to_dict(self) -> Dict[str, Any]:
         """
@@ -157,6 +200,7 @@ class ArchiveJobConfig:
             "seeds": list(self.seeds),
             "zimit_passthrough_args": list(self.zimit_passthrough_args),
             "tool_options": self.tool_options.to_dict(),
+            "execution_policy": self.execution_policy.to_dict(),
         }
 
     @classmethod
@@ -167,7 +211,18 @@ class ArchiveJobConfig:
         seeds = list(data.get("seeds") or [])
         zimit_args = list(data.get("zimit_passthrough_args") or [])
         tool_opts = ArchiveToolOptions.from_dict(data.get("tool_options") or {})
-        return cls(seeds=seeds, zimit_passthrough_args=zimit_args, tool_options=tool_opts)
+        execution_policy = ArchiveExecutionPolicy.from_dict(data.get("execution_policy") or {})
+        return cls(
+            seeds=seeds,
+            zimit_passthrough_args=zimit_args,
+            tool_options=tool_opts,
+            execution_policy=execution_policy,
+        )
+
+
+_VALID_CAPTURE_BACKENDS = {"browsertrix", "http_warc"}
+_VALID_RESUME_POLICIES = {"auto", "fresh_only"}
+_VALID_FALLBACK_BACKENDS = {"none", "http_warc"}
 
 
 def validate_tool_options(opts: ArchiveToolOptions) -> None:
@@ -200,4 +255,41 @@ def validate_tool_options(opts: ArchiveToolOptions) -> None:
         raise ValueError("tool_options.browsertrix_config must be a JSON object when set")
 
 
-__all__ = ["ArchiveToolOptions", "ArchiveJobConfig", "validate_tool_options"]
+def validate_execution_policy(policy: ArchiveExecutionPolicy) -> None:
+    capture_backend = str(policy.capture_backend or "").strip().lower()
+    if capture_backend not in _VALID_CAPTURE_BACKENDS:
+        raise ValueError(
+            "execution_policy.capture_backend must be one of "
+            + ", ".join(sorted(_VALID_CAPTURE_BACKENDS))
+        )
+
+    resume_policy = str(policy.resume_policy or "").strip().lower()
+    if resume_policy not in _VALID_RESUME_POLICIES:
+        raise ValueError(
+            "execution_policy.resume_policy must be one of "
+            + ", ".join(sorted(_VALID_RESUME_POLICIES))
+        )
+
+    fallback_backend = str(policy.fallback_backend or "").strip().lower()
+    if fallback_backend not in _VALID_FALLBACK_BACKENDS:
+        raise ValueError(
+            "execution_policy.fallback_backend must be one of "
+            + ", ".join(sorted(_VALID_FALLBACK_BACKENDS))
+        )
+
+    max_failures = int(policy.max_fresh_failures_before_fallback or 0)
+    if max_failures < 0:
+        raise ValueError("execution_policy.max_fresh_failures_before_fallback must be >= 0")
+
+    max_temp_dirs = policy.max_temp_dirs_before_reset
+    if max_temp_dirs is not None and int(max_temp_dirs) <= 0:
+        raise ValueError("execution_policy.max_temp_dirs_before_reset must be > 0 when set")
+
+
+__all__ = [
+    "ArchiveToolOptions",
+    "ArchiveExecutionPolicy",
+    "ArchiveJobConfig",
+    "validate_tool_options",
+    "validate_execution_policy",
+]

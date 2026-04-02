@@ -16,7 +16,16 @@ from queue import Empty, Queue
 from typing import IO, Any, Dict, List, Optional, Tuple
 
 # Use absolute imports within the package
-from archive_tool import cli, constants, docker_runner, monitor, state, strategies, utils
+from archive_tool import (
+    cli,
+    constants,
+    docker_runner,
+    http_warc_backend,
+    monitor,
+    state,
+    strategies,
+    utils,
+)
 
 # Setup logger for this module
 # Note: Root logger is configured in main(), this just gets the specific logger
@@ -102,6 +111,55 @@ def _resume_queue_looks_poisoned(
         return False
 
     return True
+
+
+def _reset_stale_crawl_state(
+    *,
+    host_output_dir: Path,
+    crawl_state: state.CrawlState,
+    temp_dirs: List[Path],
+    reason: str,
+) -> int:
+    """
+    Consolidate any discovered temp WARCs, then discard stale temp/resume state.
+
+    Stable `warcs/` content is preserved. The managed Browsertrix config remains
+    in place because it is part of the desired next-run policy.
+    """
+    from ha_backend.archive_storage import consolidate_warcs
+
+    temp_dirs = sorted({p.resolve() for p in temp_dirs if p.is_dir()})
+    logger.warning("Resetting stale crawl state before the next run: %s", reason)
+
+    preserved_warcs = 0
+    source_warcs = utils.find_all_warc_files(temp_dirs) if temp_dirs else []
+    if source_warcs:
+        result = consolidate_warcs(
+            output_dir=host_output_dir,
+            source_warc_paths=source_warcs,
+            allow_copy_fallback=False,
+            dry_run=False,
+        )
+        preserved_warcs = len(result.stable_warcs)
+        logger.info(
+            "Preserved %d WARC file(s) in %s before resetting temp state.",
+            preserved_warcs,
+            result.warcs_dir,
+        )
+
+    utils.cleanup_temp_dirs(temp_dirs, crawl_state.state_file_path)
+
+    stable_resume = utils.get_stable_resume_config_path(host_output_dir)
+    try:
+        if stable_resume.exists():
+            stable_resume.unlink()
+            logger.info("Deleted stale resume config: %s", stable_resume)
+    except OSError as exc:
+        logger.warning("Failed deleting stale resume config %s: %s", stable_resume, exc)
+
+    crawl_state._reset_persistent_state_values()
+    crawl_state.save_persistent_state()
+    return preserved_warcs
 
 
 # --- Global Signal Handling Setup ---
@@ -466,13 +524,17 @@ def main():
     logger.debug(f"Raw Passthrough Zimit Arguments: {zimit_passthrough_args}")
 
     logger.info("Step 1: Initial Checks and Setup")
-    logger.debug("Checking Docker availability...")
-    if not utils.check_docker():
-        logger.critical(
-            "Docker check failed. Please ensure Docker is installed, running, and accessible. Exiting."
-        )
-        sys.exit(1)
-    logger.debug("Docker check successful.")
+    capture_backend = str(getattr(script_args, "capture_backend", "browsertrix")).strip().lower()
+    if capture_backend == "http_warc":
+        logger.info("Capture backend is http_warc; skipping Docker availability check.")
+    else:
+        logger.debug("Checking Docker availability...")
+        if not utils.check_docker():
+            logger.critical(
+                "Docker check failed. Please ensure Docker is installed, running, and accessible. Exiting."
+            )
+            sys.exit(1)
+        logger.debug("Docker check successful.")
 
     logger.debug("Resolving and verifying output directory...")
     try:
@@ -575,6 +637,8 @@ def main():
         logger.info("  Name: %s", script_args.name)
         logger.info("  Output directory: %s", host_output_dir)
         logger.info("  Effective initial workers: %s", effective_initial_workers)
+        logger.info("  Capture backend: %s", capture_backend)
+        logger.info("  Resume policy: %s", script_args.resume_policy)
         logger.info("  Monitoring enabled: %s", script_args.enable_monitoring)
         logger.info("  Adaptive workers enabled: %s", script_args.enable_adaptive_workers)
         logger.info("  VPN rotation enabled: %s", script_args.enable_vpn_rotation)
@@ -687,6 +751,85 @@ def main():
         except Exception as e:
             logger.warning(f"Error finding or parsing last log file: {e}", exc_info=True)
 
+    reset_reasons: list[str] = []
+    poisoned_resume_detected = can_resume_crawl and _resume_queue_looks_poisoned(
+        latest_log_file=latest_log_file,
+        last_stats=last_stats,
+        managed_browsertrix_config_path=managed_browsertrix_config_path,
+    )
+    if bool(getattr(script_args, "auto_reset_poisoned_state", False)):
+        if poisoned_resume_detected:
+            reset_reasons.append("poisoned resume queue detected")
+        max_temp_dirs_before_reset = getattr(script_args, "max_temp_dirs_before_reset", None)
+        if max_temp_dirs_before_reset is not None and len(existing_temp_dirs) > int(
+            max_temp_dirs_before_reset
+        ):
+            reset_reasons.append(
+                f"tracked temp dir count {len(existing_temp_dirs)} exceeds threshold "
+                f"{int(max_temp_dirs_before_reset)}"
+            )
+        if str(getattr(script_args, "resume_policy", "auto")).strip().lower() == "fresh_only" and (
+            can_resume_crawl or existing_temp_dirs
+        ):
+            reset_reasons.append(
+                "resume_policy=fresh_only requires discarding stale resume/temp state"
+            )
+
+    if reset_reasons:
+        try:
+            _reset_stale_crawl_state(
+                host_output_dir=host_output_dir,
+                crawl_state=crawl_state,
+                temp_dirs=existing_temp_dirs or discovered_temp_dirs,
+                reason="; ".join(reset_reasons),
+            )
+        except Exception as exc:
+            logger.critical("Failed resetting stale crawl state: %s", exc, exc_info=True)
+            sys.exit(1)
+
+        existing_temp_dirs = crawl_state.get_temp_dir_paths()
+        discovered_temp_dirs = utils.discover_temp_dirs(host_output_dir)
+        can_resume_crawl = False
+        has_prior_warcs = False
+        warc_file_count = 0
+        last_stats = None
+        latest_log_file = None
+        config_yaml_path = None
+        warc_files = []
+        skip_resume_queue = True
+        poisoned_resume_detected = False
+
+    if str(getattr(script_args, "resume_policy", "auto")).strip().lower() == "fresh_only":
+        if can_resume_crawl or config_yaml_path is not None:
+            logger.info(
+                "Resume policy is fresh_only; ignoring discovered resume config and starting a new crawl phase."
+            )
+        can_resume_crawl = False
+        config_yaml_path = None
+        skip_resume_queue = True
+
+    if capture_backend == "http_warc":
+        logger.info("Step 4: Running fallback HTTP WARC capture backend")
+        result = http_warc_backend.run_http_warc_capture(
+            output_dir=host_output_dir,
+            seeds=list(script_args.seeds),
+            zimit_passthrough_args=list(zimit_passthrough_args),
+        )
+        if result.exit_code != 0:
+            logger.error(
+                "Fallback HTTP WARC capture failed (crawled=%d failed=%d).",
+                result.crawled,
+                result.failed,
+            )
+            sys.exit(result.exit_code)
+        logger.info(
+            "Fallback HTTP WARC capture completed successfully: warc=%s crawled=%d failed=%d",
+            result.warc_path,
+            result.crawled,
+            result.failed,
+        )
+        return
+
     # Check for existing ZIM file and --overwrite flag
     final_zim_path = host_output_dir / f"{script_args.name}.zim"
     final_zim_exists = final_zim_path.exists()
@@ -708,11 +851,7 @@ def main():
 
     initial_run_mode = "Fresh Crawl"  # Default assumption
 
-    if can_resume_crawl and _resume_queue_looks_poisoned(
-        latest_log_file=latest_log_file,
-        last_stats=last_stats,
-        managed_browsertrix_config_path=managed_browsertrix_config_path,
-    ):
+    if can_resume_crawl and poisoned_resume_detected:
         logger.warning(
             "Detected poisoned resume queue from %s: latest stats=%s and empty/unprocessable "
             "WARC output. Will skip resume state and start a new crawl phase while preserving "

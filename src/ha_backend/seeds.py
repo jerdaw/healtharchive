@@ -54,6 +54,11 @@ def seed_sources(session: Session) -> int:
         session.add(source)
         created += 1
 
+    if created:
+        # Sessions in tests run with autoflush disabled, so make the new Source
+        # rows visible immediately to helpers like create_job_for_source().
+        session.flush()
+
     return created
 
 

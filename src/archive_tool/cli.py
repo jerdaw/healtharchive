@@ -82,6 +82,36 @@ def parse_arguments() -> Tuple[argparse.Namespace, List[str]]:
         action="store_true",
         help=("Validate configuration and print a summary without running Docker containers."),
     )
+    tool_opts_group.add_argument(
+        "--capture-backend",
+        choices=["browsertrix", "http_warc"],
+        default="browsertrix",
+        help="Capture backend to use for this run.",
+    )
+    tool_opts_group.add_argument(
+        "--resume-policy",
+        choices=["auto", "fresh_only"],
+        default="auto",
+        help="Whether resume state may be reused for this run.",
+    )
+    tool_opts_group.add_argument(
+        "--auto-reset-poisoned-state",
+        action="store_true",
+        default=False,
+        help=(
+            "Before starting a fresh phase, consolidate existing WARCs and discard stale resume/temp "
+            "state when the queue is known to be poisoned or excessive temp-dir churn is detected."
+        ),
+    )
+    tool_opts_group.add_argument(
+        "--max-temp-dirs-before-reset",
+        type=int,
+        default=None,
+        help=(
+            "If set with --auto-reset-poisoned-state, reset stale temp/resume state before the run "
+            "when the tracked temp-dir count exceeds this threshold."
+        ),
+    )
 
     monitor_group = parser.add_argument_group("Monitoring Configuration")
     # ... (monitor args remain the same) ...
@@ -220,5 +250,10 @@ def parse_arguments() -> Tuple[argparse.Namespace, List[str]]:
         parser.error("--max-container-restarts cannot be negative.")
     if script_args.vpn_rotation_frequency_minutes < 0:
         parser.error("--vpn-rotation-frequency-minutes cannot be negative.")
+    if (
+        script_args.max_temp_dirs_before_reset is not None
+        and script_args.max_temp_dirs_before_reset <= 0
+    ):
+        parser.error("--max-temp-dirs-before-reset must be > 0 when set.")
 
     return script_args, zimit_passthrough_args

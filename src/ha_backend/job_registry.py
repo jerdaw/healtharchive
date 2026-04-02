@@ -7,7 +7,13 @@ from typing import Any, Dict, Iterable, List, Optional
 
 from sqlalchemy.orm import Session
 
-from .archive_contract import ArchiveJobConfig, ArchiveToolOptions, validate_tool_options
+from .archive_contract import (
+    ArchiveExecutionPolicy,
+    ArchiveJobConfig,
+    ArchiveToolOptions,
+    validate_execution_policy,
+    validate_tool_options,
+)
 from .config import get_archive_tool_config
 from .models import ArchiveJob as ORMArchiveJob
 from .models import Source
@@ -226,6 +232,7 @@ class SourceJobConfig:
     default_seeds: List[str]
     default_zimit_passthrough_args: List[str]
     default_tool_options: Dict[str, Any]
+    default_execution_policy: Dict[str, Any]
     schedule_hint: Optional[str] = None
 
 
@@ -271,6 +278,14 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             "log_level": "INFO",
             "relax_perms": True,  # ensure WARCs are readable on host in dev
         },
+        default_execution_policy={
+            "capture_backend": "browsertrix",
+            "resume_policy": "fresh_only",
+            "fallback_backend": "http_warc",
+            "max_fresh_failures_before_fallback": 2,
+            "auto_reset_poisoned_state": True,
+            "max_temp_dirs_before_reset": 50,
+        },
         schedule_hint="annual",
     ),
     "phac": SourceJobConfig(
@@ -309,6 +324,14 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             "log_level": "INFO",
             "relax_perms": True,
         },
+        default_execution_policy={
+            "capture_backend": "browsertrix",
+            "resume_policy": "fresh_only",
+            "fallback_backend": "http_warc",
+            "max_fresh_failures_before_fallback": 2,
+            "auto_reset_poisoned_state": True,
+            "max_temp_dirs_before_reset": 50,
+        },
         schedule_hint="annual",
     ),
     "cihr": SourceJobConfig(
@@ -341,6 +364,13 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             "log_level": "INFO",
             "relax_perms": True,
         },
+        default_execution_policy={
+            "capture_backend": "browsertrix",
+            "resume_policy": "auto",
+            "fallback_backend": "none",
+            "max_fresh_failures_before_fallback": 0,
+            "auto_reset_poisoned_state": False,
+        },
         schedule_hint="annual",
     ),
     "hc_canary": SourceJobConfig(
@@ -369,6 +399,13 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             "max_container_restarts": 3,
             "log_level": "WARNING",  # Reduce noise
             "relax_perms": True,
+        },
+        default_execution_policy={
+            "capture_backend": "browsertrix",
+            "resume_policy": "auto",
+            "fallback_backend": "none",
+            "max_fresh_failures_before_fallback": 0,
+            "auto_reset_poisoned_state": False,
         },
         schedule_hint=None,  # Not scheduled, created on-demand
     ),
@@ -445,11 +482,14 @@ def build_job_config(
 
     tool_options = ArchiveToolOptions.from_dict(tool_options_data)
     validate_tool_options(tool_options)
+    execution_policy = ArchiveExecutionPolicy.from_dict(source_cfg.default_execution_policy)
+    validate_execution_policy(execution_policy)
 
     job_cfg = ArchiveJobConfig(
         seeds=list(seeds),
         zimit_passthrough_args=list(zimit_args),
         tool_options=tool_options,
+        execution_policy=execution_policy,
     )
     return job_cfg.to_dict()
 
@@ -470,6 +510,10 @@ def create_job_for_source(
     cfg = get_config_for_source(source_code)
     if cfg is None:
         raise ValueError(f"Unknown source code {source_code!r}")
+
+    # The caller may have just added Source rows in the same session; flush
+    # first because our sessionmaker disables autoflush.
+    session.flush()
 
     # Ensure a Source row exists in the DB.
     source = session.query(Source).filter_by(code=cfg.source_code).one_or_none()

@@ -4,8 +4,11 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
 from ha_backend import db as db_module
+from ha_backend.archive_contract import ArchiveJobConfig
 from ha_backend.db import Base, get_engine, get_session
+from ha_backend.job_registry import create_job_for_source
 from ha_backend.models import ArchiveJob, Source
+from ha_backend.seeds import seed_sources
 from ha_backend.worker.main import MAX_CRAWL_RETRIES, run_worker_loop
 
 
@@ -339,3 +342,127 @@ def test_worker_skips_recent_infra_error_jobs(monkeypatch, tmp_path) -> None:
         assert loaded_infra is not None
         assert loaded_infra.status == "retryable"
         assert loaded_infra.crawler_status == "infra_error"
+
+
+def test_worker_promotes_fresh_only_browsertrix_job_to_http_warc_after_second_failure(
+    monkeypatch, tmp_path
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    archive_root = tmp_path / "jobs"
+    monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(archive_root))
+
+    with get_session() as session:
+        seed_sources(session)
+        job_row = create_job_for_source("phac", session=session)
+        job_id = job_row.id
+
+    def failing_run_persistent_job(jid: int) -> int:
+        with get_session() as session:
+            job = session.get(ArchiveJob, jid)
+            assert job is not None
+            job.status = "failed"
+            job.crawler_exit_code = 1
+            job.crawler_status = "failed"
+        return 1
+
+    monkeypatch.setattr("ha_backend.worker.main.run_persistent_job", failing_run_persistent_job)
+
+    run_worker_loop(poll_interval=1, run_once=True)
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        assert job.status == "retryable"
+        assert job.retry_count == 1
+        assert job.crawler_stage == "fresh_failed"
+
+    run_worker_loop(poll_interval=1, run_once=True)
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        cfg = ArchiveJobConfig.from_dict(job.config or {})
+        assert job.status == "retryable"
+        assert job.retry_count == 0
+        assert job.crawler_stage == "promoted_to_http_warc"
+        assert cfg.execution_policy.capture_backend == "http_warc"
+
+
+def test_worker_marks_http_warc_jobs_fallback_exhausted_after_second_failure(
+    monkeypatch, tmp_path
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    archive_root = tmp_path / "jobs"
+    monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(archive_root))
+
+    with get_session() as session:
+        seed_sources(session)
+        job_row = create_job_for_source("phac", session=session)
+        job_id = job_row.id
+        cfg = ArchiveJobConfig.from_dict(job_row.config or {})
+        cfg.execution_policy.capture_backend = "http_warc"
+        job_row.config = cfg.to_dict()
+        job_row.status = "retryable"
+        session.flush()
+
+    def failing_run_persistent_job(jid: int) -> int:
+        with get_session() as session:
+            job = session.get(ArchiveJob, jid)
+            assert job is not None
+            job.status = "failed"
+            job.crawler_exit_code = 1
+            job.crawler_status = "failed"
+        return 1
+
+    monkeypatch.setattr("ha_backend.worker.main.run_persistent_job", failing_run_persistent_job)
+
+    run_worker_loop(poll_interval=1, run_once=True)
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        assert job.status == "retryable"
+        assert job.retry_count == 1
+        assert job.crawler_stage == "http_warc_retry"
+
+    run_worker_loop(poll_interval=1, run_once=True)
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        assert job.status == "failed"
+        assert job.retry_count == 2
+        assert job.crawler_stage == "fallback_exhausted"
+
+
+def test_worker_auto_recovers_stale_running_jobs_before_processing(monkeypatch, tmp_path) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    archive_root = tmp_path / "jobs"
+    monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(archive_root))
+
+    with get_session() as session:
+        seed_sources(session)
+        job_row = create_job_for_source("hc", session=session)
+        job_id = job_row.id
+        job_row.status = "running"
+        job_row.started_at = datetime.now(timezone.utc) - timedelta(minutes=30)
+        session.flush()
+
+    def fake_run_persistent_job(jid: int) -> int:
+        with get_session() as session:
+            job = session.get(ArchiveJob, jid)
+            assert job is not None
+            job.status = "completed"
+            job.crawler_exit_code = 0
+            job.crawler_status = "success"
+        return 0
+
+    monkeypatch.setattr("ha_backend.worker.main.run_persistent_job", fake_run_persistent_job)
+    monkeypatch.setattr("ha_backend.worker.main.index_job", lambda _jid: 0)
+
+    run_worker_loop(poll_interval=1, run_once=True)
+
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        assert job.status == "completed"
+        assert job.crawler_status == "success"

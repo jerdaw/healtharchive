@@ -71,6 +71,15 @@ Keep the two synced copies of this file aligned:
     well-formed; malformed or empty trailing stats now fall back to the most
     recent usable stats entry, and the empty-WARC tail signature alone is
     enough to force a fresh crawl phase for managed-browsertrix jobs.
+  - Annual source-managed execution policy is now implemented in-repo:
+    - HC/PHAC default to `resume_policy=fresh_only`
+    - poisoned temp/resume state can be auto-reset before the next attempt
+    - repeated fresh Browsertrix failures are bounded and can auto-promote the
+      job to the `http_warc` fallback backend
+    - stale `status=running` rows can be auto-demoted back to `retryable`
+      before they block new work
+    - crawl auto-recover can now run bounded degraded-rate recoveries instead
+      of observe-only logging
   - Empirical result after those fixes: PHAC still does not make useful forward
     progress. Resumed PHAC attempts can start cleanly, then end immediately with
     `crawled=0 total=2 failed=2` and an effectively empty/unprocessable WARC.
@@ -126,12 +135,13 @@ Treat the following as the current ops execution order:
     - Sampled WARC bytes remained dominated by normal pages/render assets rather
       than `.mp4`/dataset/document classes.
   - Next steps:
-    - redeploy before the next HC/PHAC retry so the poisoned-resume fallback is
-      active on the VPS
-    - determine whether PHAC still reproduces the same empty-WARC failure from
-      a truly fresh crawl phase after the new fallback skips the poisoned queue
-    - diagnose the remaining canada.ca runtime/state issue if fresh phases also
-      fail to make useful progress
+    - deploy the latest repo changes before the next HC/PHAC retry so
+      fresh-only policy, stale-state reset, and bounded fallback promotion are
+      all active on the VPS
+    - determine whether PHAC still reproduces the same failure from a truly
+      fresh phase after resume state is reset automatically
+    - diagnose the remaining canada.ca runtime issue only if fresh Browsertrix
+      phases still fail before the fallback budget can help
     - revisit the temporary `public-health-notices` exclusion only after the
       deeper PHAC runtime/state issue is understood
   - Do not do further blind PHAC recover/restart attempts from the VPS.

@@ -11,9 +11,11 @@ from typing import Optional
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from ha_backend.archive_contract import ArchiveJobConfig
+from ha_backend.crawl_stats import parse_crawl_log_progress
 from ha_backend.db import get_session
 from ha_backend.indexing import index_job
-from ha_backend.jobs import JobAlreadyRunningError, run_persistent_job
+from ha_backend.jobs import JobAlreadyRunningError, _job_lock, run_persistent_job
 from ha_backend.models import ArchiveJob, Source
 
 """
@@ -39,6 +41,8 @@ logger = logging.getLogger("healtharchive.worker")
 MAX_CRAWL_RETRIES = 2
 DEFAULT_POLL_INTERVAL = 30
 INFRA_ERROR_RETRY_COOLDOWN_MINUTES = 10
+STALE_RUNNING_RECOVERY_OLDER_THAN_MINUTES = 10
+STALE_RUNNING_REQUIRE_NO_PROGRESS_SECONDS = 300
 
 # Disk headroom threshold: skip crawl if disk usage exceeds this percentage
 DISK_HEADROOM_THRESHOLD_PERCENT = 85
@@ -48,6 +52,163 @@ DISK_HEADROOM_CHECK_PATH = "/srv/healtharchive/jobs"
 FINDMNT_TIMEOUT_SEC = 5  # Timeout for mountpoint check via findmnt
 AUTO_TIERING_TIMEOUT_SEC = 120  # Timeout for auto-tiering script execution
 STDERR_LOG_TRUNCATE_LENGTH = 500  # Truncate stderr output in logs to this length
+
+
+def _find_latest_combined_log(output_dir: Path) -> Path | None:
+    try:
+        candidates = list(output_dir.glob("archive_*.combined.log"))
+    except OSError:
+        return None
+    if not candidates:
+        return None
+    try:
+        return max(candidates, key=lambda p: p.stat().st_mtime)
+    except OSError:
+        return None
+
+
+def _find_log_for_job(job: ArchiveJob) -> Path | None:
+    if job.combined_log_path:
+        p = Path(job.combined_log_path)
+        try:
+            if p.is_file():
+                return p
+        except OSError:
+            return None
+    if not job.output_dir:
+        return None
+    return _find_latest_combined_log(Path(job.output_dir))
+
+
+def _auto_recover_stale_running_jobs(*, now_utc: datetime) -> int:
+    cutoff = now_utc - timedelta(minutes=STALE_RUNNING_RECOVERY_OLDER_THAN_MINUTES)
+    recovered = 0
+
+    with get_session() as session:
+        jobs = (
+            session.query(ArchiveJob)
+            .filter(ArchiveJob.status == "running")
+            .filter(or_(ArchiveJob.started_at.is_(None), ArchiveJob.started_at < cutoff))
+            .order_by(ArchiveJob.started_at.asc().nullsfirst(), ArchiveJob.id.asc())
+            .all()
+        )
+
+        for job in jobs:
+            try:
+                with _job_lock(int(job.id)):
+                    pass
+            except JobAlreadyRunningError:
+                continue
+            except OSError:
+                continue
+
+            progress_age = None
+            log_path = _find_log_for_job(job)
+            if log_path is not None:
+                progress = parse_crawl_log_progress(log_path)
+                if progress is not None:
+                    progress_age = int(progress.last_progress_age_seconds(now_utc=now_utc))
+
+            if (
+                progress_age is not None
+                and progress_age < STALE_RUNNING_REQUIRE_NO_PROGRESS_SECONDS
+            ):
+                continue
+
+            job.status = "retryable"
+            job.crawler_stage = "recovered_stale_running"
+            recovered += 1
+
+    if recovered:
+        logger.warning(
+            "Recovered %d stale running job(s) with no active lock/progress.",
+            recovered,
+        )
+    return recovered
+
+
+def _apply_failure_policy(job: ArchiveJob, *, crawl_rc: int) -> None:
+    cfg = ArchiveJobConfig.from_dict(job.config or {})
+    policy = cfg.execution_policy
+    capture_backend = str(policy.capture_backend or "browsertrix").strip().lower()
+    resume_policy = str(policy.resume_policy or "auto").strip().lower()
+    fallback_backend = str(policy.fallback_backend or "none").strip().lower()
+    max_fresh_failures = int(policy.max_fresh_failures_before_fallback or 0)
+
+    if (
+        capture_backend == "browsertrix"
+        and resume_policy == "fresh_only"
+        and fallback_backend != "none"
+        and max_fresh_failures > 0
+    ):
+        next_failures = int(job.retry_count) + 1
+        if next_failures >= max_fresh_failures:
+            cfg.execution_policy.capture_backend = fallback_backend
+            job.config = cfg.to_dict()
+            job.retry_count = 0
+            job.status = "retryable"
+            job.crawler_stage = f"promoted_to_{fallback_backend}"
+            logger.warning(
+                "Crawl for job %s failed (RC=%s). Promoting from %s to %s after %d fresh failure(s).",
+                job.id,
+                crawl_rc,
+                capture_backend,
+                fallback_backend,
+                next_failures,
+            )
+            return
+
+        job.retry_count = next_failures
+        job.status = "retryable"
+        job.crawler_stage = "fresh_failed"
+        logger.warning(
+            "Crawl for job %s failed (RC=%s). Marking as retryable under fresh-failure budget (%d/%d).",
+            job.id,
+            crawl_rc,
+            next_failures,
+            max_fresh_failures,
+        )
+        return
+
+    if capture_backend == "http_warc":
+        next_failures = int(job.retry_count) + 1
+        job.retry_count = next_failures
+        if next_failures < MAX_CRAWL_RETRIES:
+            job.status = "retryable"
+            job.crawler_stage = "http_warc_retry"
+            logger.warning(
+                "Fallback crawl for job %s failed (RC=%s). Marking retryable (%d/%d).",
+                job.id,
+                crawl_rc,
+                next_failures,
+                MAX_CRAWL_RETRIES,
+            )
+        else:
+            job.status = "failed"
+            job.crawler_stage = "fallback_exhausted"
+            logger.error(
+                "Fallback crawl for job %s failed (RC=%s) and fallback budget is exhausted.",
+                job.id,
+                crawl_rc,
+            )
+        return
+
+    if job.retry_count < MAX_CRAWL_RETRIES:
+        job.retry_count += 1
+        job.status = "retryable"
+        logger.warning(
+            "Crawl for job %s failed (RC=%s). Marking as retryable (retry_count=%s).",
+            job.id,
+            crawl_rc,
+            job.retry_count,
+        )
+    else:
+        logger.error(
+            "Crawl for job %s failed (RC=%s) and max retries reached; leaving status as %s.",
+            job.id,
+            crawl_rc,
+            job.status,
+        )
 
 
 def _is_mountpoint(path: Path) -> bool:
@@ -248,6 +409,10 @@ def _process_single_job() -> bool:
         True if a job was processed (crawl and/or index), False if no work was found.
     """
     job_id: Optional[int] = None
+    now_utc = datetime.now(timezone.utc)
+
+    # First, self-heal obviously stale DB rows so they do not block future work.
+    _auto_recover_stale_running_jobs(now_utc=now_utc)
 
     # Pre-flight: check disk headroom before selecting a job.
     # This prevents starting crawls when disk is already under pressure.
@@ -261,7 +426,6 @@ def _process_single_job() -> bool:
         return False
 
     # Select a job that needs crawling.
-    now_utc = datetime.now(timezone.utc)
     with get_session() as session:
         job = _select_next_crawl_job(session, now_utc=now_utc)
         if job is None:
@@ -327,23 +491,7 @@ def _process_single_job() -> bool:
             return True
 
         if crawl_rc != 0 or job.status == "failed":
-            # Crawl failed; decide whether to mark as retryable.
-            if job.retry_count < MAX_CRAWL_RETRIES:
-                job.retry_count += 1
-                job.status = "retryable"
-                logger.warning(
-                    "Crawl for job %s failed (RC=%s). Marking as retryable (retry_count=%s).",
-                    job_id,
-                    crawl_rc,
-                    job.retry_count,
-                )
-            else:
-                logger.error(
-                    "Crawl for job %s failed (RC=%s) and max retries reached; leaving status as %s.",
-                    job_id,
-                    crawl_rc,
-                    job.status,
-                )
+            _apply_failure_policy(job, crawl_rc=crawl_rc)
             return True
 
         # If we reach here, crawl succeeded and job.status should be 'completed'.

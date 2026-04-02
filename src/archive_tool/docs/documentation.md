@@ -574,6 +574,19 @@ Durability shim (Phase 4):
   empty `details`, the tool still treats the queue as poisoned when the
   empty-WARC tail signature is present.
 
+Fresh-only resume policy:
+
+* `--resume-policy fresh_only` disables `Resume Crawl` selection for the run.
+* When paired with `--auto-reset-poisoned-state`, `archive_tool` first:
+  * consolidates any temp-dir WARCs into stable `warcs/`
+  * removes tracked `.tmp*` dirs
+  * removes `.archive_state.json`
+  * removes the stable `.zimit_resume.yaml`
+* The next stage then starts as a true new crawl phase while preserving already
+  captured stable WARCs for later indexing/consolidation.
+* `--max-temp-dirs-before-reset N` applies the same reset path when the tracked
+  temp-dir count has grown beyond a safe threshold.
+
 ### 5.5 WARC discovery
 
 * `find_all_warc_files(temp_dir_paths: List[Path]) -> List[Path]`
@@ -588,6 +601,31 @@ Used both to:
 
 * Decide if there are **preexisting warcs** when choosing run mode.
 * Provide warc list to the final `--warcs` build.
+
+### 5.5.1 Fallback HTTP WARC backend
+
+`archive_tool` now has a source-managed fallback backend selected with:
+
+```text
+--capture-backend http_warc
+```
+
+Behavior:
+
+* Uses `httpx` + `BeautifulSoup` instead of Browsertrix/Zimit.
+* Reuses the same include/exclude scope regexes passed through the job config.
+* Crawls HTML pages plus linked render assets (CSS/JS/images/fonts) inside
+  scope.
+* Writes WARC response records directly into stable `warcs/warc-000001.warc.gz`.
+* Emits `crawlStatus` JSON lines into `archive_http_warc_capture_*.combined.log`
+  so existing monitoring and stats parsing keep working.
+
+This backend is intentionally narrower than Browsertrix:
+
+* no JS execution
+* no browser emulation
+* targeted as a bounded fallback for source-managed annual jobs (currently
+  HC/PHAC) when Browsertrix fresh phases keep failing
 
 ### 5.6 Parsing stats from logs
 
@@ -619,6 +657,13 @@ If `--cleanup` was set and the run is successful:
 
 * Deletes each temp dir whose name starts with `.tmp`.
 * Deletes the `.archive_state.json`.
+
+Note:
+
+* the fresh-only poisoned-state reset path described above is separate from the
+  end-of-run `--cleanup` path
+* reset preserves stable `warcs/` first, while `--cleanup` only runs after a
+  successful crawl
 
 ### 5.8 Final-build argument filtering
 

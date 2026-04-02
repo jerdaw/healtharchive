@@ -738,6 +738,7 @@ def _ensure_recovery_tool_options(job: ArchiveJob) -> bool:
     is_annual = campaign_kind == "annual" or _infer_annual_campaign_year(job, cfg) is not None
     source_code = _infer_source_code()
     source_profile = _ANNUAL_SOURCE_RECOVERY_PROFILES.get(source_code) if is_annual else None
+    source_cfg = SOURCE_JOB_CONFIGS.get(source_code) if is_annual and source_code else None
 
     # Required for any monitor-driven recovery strategies.
     if not bool(tool.get("enable_monitoring", False)):
@@ -801,10 +802,49 @@ def _ensure_recovery_tool_options(job: ArchiveJob) -> bool:
                     tool[key] = desired
                     changed = True
 
+        desired_exec = dict((source_cfg.default_execution_policy or {}) if source_cfg else {})
+        if desired_exec:
+            execution_policy = dict(cfg.get("execution_policy") or {})
+            current_backend = str(execution_policy.get("capture_backend") or "").strip().lower()
+            if not current_backend:
+                execution_policy["capture_backend"] = (
+                    str(desired_exec.get("capture_backend") or "browsertrix").strip().lower()
+                )
+                changed = True
+
+            for key in (
+                "resume_policy",
+                "fallback_backend",
+                "max_fresh_failures_before_fallback",
+                "auto_reset_poisoned_state",
+            ):
+                desired_val = desired_exec.get(key)
+                if execution_policy.get(key) != desired_val:
+                    execution_policy[key] = desired_val
+                    changed = True
+
+            desired_temp_cap = desired_exec.get("max_temp_dirs_before_reset")
+            if desired_temp_cap is not None:
+                if execution_policy.get("max_temp_dirs_before_reset") != desired_temp_cap:
+                    execution_policy["max_temp_dirs_before_reset"] = desired_temp_cap
+                    changed = True
+
+            cfg["execution_policy"] = execution_policy
+
     if changed:
         cfg["tool_options"] = tool
         job.config = cfg
     return changed
+
+
+def _mark_job_retryable(job_id: int, *, crawler_stage: str) -> bool:
+    with get_session() as session:
+        orm_job = session.get(ArchiveJob, int(job_id))
+        if orm_job is None:
+            return False
+        orm_job.status = "retryable"
+        orm_job.crawler_stage = str(crawler_stage)
+    return True
 
 
 def _infer_annual_campaign_year(job: ArchiveJob, cfg: dict) -> int | None:
@@ -1720,10 +1760,209 @@ def main(argv: list[str] | None = None) -> int:
         pass
 
     if not stalled:
-        degraded_threshold_hit = any(
-            int(degraded_state.get(str(jid), 0)) >= int(degraded_min_runs)
-            for jid in degraded_current_job_ids
-        )
+        degraded_recovery_candidates: list[tuple[RunningJob, float, float, int]] = []
+        degraded_threshold_hit = False
+        for jid in sorted(degraded_current_job_ids):
+            streak = int(degraded_state.get(str(jid), 0))
+            if streak < int(degraded_min_runs):
+                continue
+            degraded_threshold_hit = True
+            if str(args.degraded_action).strip().lower() != "recover":
+                continue
+            running_job = next((row for row in running_jobs if int(row.job_id) == int(jid)), None)
+            if running_job is None:
+                continue
+            degraded_recovery_candidates.append(
+                (
+                    running_job,
+                    float(progress_age_by_job_id.get(int(jid), 0.0)),
+                    float(crawl_rate_ppm_by_job_id.get(int(jid), -1.0)),
+                    streak,
+                )
+            )
+
+        if degraded_recovery_candidates:
+            job, age, crawl_rate_ppm, streak = degraded_recovery_candidates[0]
+            runner = _detect_job_runner(
+                job,
+                simulate_mode=simulate_mode,
+                simulate_runner=getattr(args, "simulate_stalled_job_runner", None),
+                simulate_runner_unit=getattr(args, "simulate_stalled_job_runner_unit", None),
+            )
+            current_crawled = None
+            log_path = _find_job_log(job)
+            progress = parse_crawl_log_progress(log_path) if log_path else None
+            if progress is not None:
+                current_crawled = progress.last_status.crawled
+
+            guard_seconds = int(args.skip_if_any_job_progress_within_seconds or 0)
+            if guard_seconds > 0 and runner.kind == "worker":
+                other_recent = [
+                    (jid, a)
+                    for jid, a in progress_age_by_job_id.items()
+                    if jid != int(job.job_id) and a < float(guard_seconds)
+                ]
+                if other_recent:
+                    jid, recent_age = sorted(other_recent, key=lambda item: item[1])[0]
+                    print(
+                        f"SKIP: degraded job_id={job.job_id} source={job.source_code} "
+                        f"(crawl_rate_ppm={crawl_rate_ppm:.2f}, streak={streak}) shares the worker with "
+                        f"healthy job_id={jid} (progress age {recent_age:.0f}s < {guard_seconds}s guard)."
+                    )
+                    write_metrics(
+                        running_jobs=len(running_jobs),
+                        stalled_jobs=0,
+                        result="skip",
+                        reason="degraded_guard_window_healthy_job",
+                        state=state,
+                    )
+                    return 0
+
+            if current_crawled is not None and _is_progress_circuit_open(
+                state,
+                job.job_id,
+                current_crawled,
+                min_progress=int(args.min_progress_per_recovery),
+                window=int(args.progress_circuit_window),
+            ):
+                print(
+                    f"SKIP: degraded job_id={job.job_id} source={job.source_code} "
+                    f"(crawl_rate_ppm={crawl_rate_ppm:.2f}, streak={streak}) because the progress circuit is open."
+                )
+                write_metrics(
+                    running_jobs=len(running_jobs),
+                    stalled_jobs=0,
+                    result="skip",
+                    reason="progress_circuit_open",
+                    state=state,
+                )
+                return 0
+
+            recent_n = _count_recent_recoveries(state, job.job_id, since_utc=recent_cutoff)
+            if recent_n >= int(args.max_recoveries_per_job_per_day):
+                print(
+                    f"SKIP: degraded job_id={job.job_id} source={job.source_code} "
+                    f"(crawl_rate_ppm={crawl_rate_ppm:.2f}, streak={streak}) but max recoveries reached "
+                    f"({recent_n}/{args.max_recoveries_per_job_per_day} in last 24h)."
+                )
+                write_metrics(
+                    running_jobs=len(running_jobs),
+                    stalled_jobs=0,
+                    result="skip",
+                    reason="max_recoveries_degraded",
+                    state=state,
+                )
+                return 0
+
+            print(
+                f"{'APPLY' if args.apply else 'DRY-RUN'}: would recover degraded job_id={job.job_id} "
+                f"source={job.source_code} crawl_rate_ppm={crawl_rate_ppm:.2f} "
+                f"progress_age_seconds={age:.0f} streak={streak} runner={runner.kind}"
+            )
+
+            if not args.apply:
+                print("")
+                print("Planned actions (dry-run):")
+                step = 1
+                if runner.kind == "systemd_unit" and runner.unit:
+                    print(f"  {step}) systemctl stop {runner.unit}")
+                    step += 1
+                elif runner.kind == "worker":
+                    print(f"  {step}) systemctl stop healtharchive-worker.service")
+                    step += 1
+                elif runner.kind == "unknown":
+                    print(f"  {step}) (skip) runner unknown; operator intervention required")
+                    step += 1
+
+                print(
+                    f"  {step}) mark job_id={job.job_id} status=retryable crawler_stage=recovered_degraded"
+                )
+                step += 1
+                if runner.kind == "systemd_unit" and runner.unit:
+                    print(f"  {step}) systemctl start {runner.unit}")
+                elif runner.kind == "worker":
+                    print(f"  {step}) systemctl start healtharchive-worker.service")
+                write_metrics(
+                    running_jobs=len(running_jobs),
+                    stalled_jobs=0,
+                    result="skip",
+                    reason="dry_run_degraded_recover",
+                    state=state,
+                )
+                return 0
+
+            try:
+                with get_session() as session:
+                    orm_job = session.get(ArchiveJob, job.job_id)
+                    if orm_job is not None:
+                        changed = False
+                        if _ensure_recovery_tool_options(orm_job):
+                            changed = True
+                        normalized_args, scope_drift = _compute_scope_args_for_job(
+                            orm_job,
+                            source_code=job.source_code,
+                        )
+                        if scope_drift:
+                            _apply_scope_args(orm_job, normalized_args)
+                            changed = True
+                            state["scope_rewrites_total"] = (
+                                int(state.get("scope_rewrites_total") or 0) + 1
+                            )
+                        if changed:
+                            session.commit()
+            except Exception as exc:
+                print(f"WARNING: failed to update job config before degraded recovery: {exc}")
+
+            if runner.kind == "systemd_unit" and runner.unit:
+                _run(["systemctl", "stop", runner.unit])
+            elif runner.kind == "worker":
+                _run(["systemctl", "stop", "healtharchive-worker.service"])
+            elif runner.kind == "unknown":
+                print(
+                    f"ERROR: degraded job_id={job.job_id} appears active, but no safe stop target was identified.",
+                    file=sys.stderr,
+                )
+                write_metrics(
+                    running_jobs=len(running_jobs),
+                    stalled_jobs=0,
+                    result="skip",
+                    reason="runner_unknown",
+                    state=state,
+                )
+                return 2
+
+            if not _mark_job_retryable(int(job.job_id), crawler_stage="recovered_degraded"):
+                print(
+                    f"ERROR: failed to mark degraded job_id={job.job_id} retryable.",
+                    file=sys.stderr,
+                )
+                write_metrics(
+                    running_jobs=len(running_jobs),
+                    stalled_jobs=0,
+                    result="skip",
+                    reason="degraded_mark_retryable_failed",
+                    state=state,
+                )
+                return 2
+
+            if runner.kind == "systemd_unit" and runner.unit:
+                _run(["systemctl", "start", runner.unit])
+            elif runner.kind == "worker":
+                _run(["systemctl", "start", "healtharchive-worker.service"])
+
+            _record_recovery(state, job.job_id, when_utc=now)
+            if current_crawled is not None:
+                _record_recovery_progress(state, job.job_id, current_crawled, when_utc=now)
+            _save_state(state_path, state)
+            write_metrics(
+                running_jobs=len(running_jobs),
+                stalled_jobs=0,
+                result="ok",
+                reason="degraded_recovered",
+                state=state,
+            )
+            return 0
+
         no_stall_reason = "degraded_observe" if degraded_threshold_hit else "no_stalled_jobs"
         ensure_min_running = int(getattr(args, "ensure_min_running_jobs", 0) or 0)
         if ensure_min_running <= 0:

@@ -184,6 +184,57 @@ class TestPatchJobConfigApply:
             assert cfg.tool_options.skip_final_build is True
             assert cfg.tool_options.docker_shm_size == "2g"
 
+    def test_apply_updates_execution_policy_in_db(
+        self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
+    ) -> None:
+        _init_test_db(tmp_path, monkeypatch)
+
+        archive_root = tmp_path / "jobs"
+        monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(archive_root))
+
+        with get_session() as session:
+            seed_sources(session)
+
+        with get_session() as session:
+            job_row = create_job_for_source("cihr", session=session)
+            job_id = job_row.id
+
+        parser = cli_module.build_parser()
+        args = parser.parse_args(
+            [
+                "patch-job-config",
+                "--id",
+                str(job_id),
+                "--set-execution-policy",
+                "resume_policy=fresh_only",
+                "--set-execution-policy",
+                "fallback_backend=http_warc",
+                "--set-execution-policy",
+                "max_fresh_failures_before_fallback=2",
+                "--apply",
+            ]
+        )
+
+        stdout = StringIO()
+        old_stdout = sys.stdout
+        try:
+            sys.stdout = stdout
+            args.func(args)
+        finally:
+            sys.stdout = old_stdout
+
+        out = stdout.getvalue()
+        assert "execution_policy.resume_policy:" in out
+        assert "[APPLIED]" in out
+
+        with get_session() as session:
+            stored = session.get(ArchiveJob, job_id)
+            assert stored is not None
+            cfg = ArchiveJobConfig.from_dict(stored.config or {})
+            assert cfg.execution_policy.resume_policy == "fresh_only"
+            assert cfg.execution_policy.fallback_backend == "http_warc"
+            assert cfg.execution_policy.max_fresh_failures_before_fallback == 2
+
 
 class TestPatchJobConfigValidation:
     """Tests for validation and error handling."""
@@ -507,7 +558,7 @@ class TestPatchJobConfigValidation:
             sys.stderr = old_stderr
 
         err = stderr.getvalue()
-        assert "At least one --set-tool-option" in err
+        assert "--set-tool-option or --set-execution-policy" in err
 
 
 class TestPatchJobConfigTypeCoercion:

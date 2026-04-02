@@ -15,7 +15,7 @@ from typing import Iterable, Iterator, Sequence
 
 from sqlalchemy.orm import Session
 
-from .archive_contract import ArchiveJobConfig, ArchiveToolOptions
+from .archive_contract import ArchiveExecutionPolicy, ArchiveJobConfig, ArchiveToolOptions
 from .config import get_archive_tool_config
 from .crawl_stats import update_job_stats_from_logs
 from .db import get_session
@@ -368,7 +368,10 @@ def create_job(name: str, seeds: Iterable[str]) -> RuntimeArchiveJob:
 ArchiveJob = RuntimeArchiveJob
 
 
-def _build_tool_extra_args(tool_options: ArchiveToolOptions) -> list[str]:
+def _build_tool_extra_args(
+    tool_options: ArchiveToolOptions,
+    execution_policy: ArchiveExecutionPolicy,
+) -> list[str]:
     """
     Build archive_tool-specific CLI options from ArchiveToolOptions.
     """
@@ -468,6 +471,22 @@ def _build_tool_extra_args(tool_options: ArchiveToolOptions) -> list[str]:
     if bool(getattr(tool_options, "skip_final_build", False)):
         extra_tool_args.append("--skip-final-build")
 
+    capture_backend = str(execution_policy.capture_backend or "").strip().lower()
+    if capture_backend:
+        extra_tool_args.extend(["--capture-backend", capture_backend])
+
+    resume_policy = str(execution_policy.resume_policy or "").strip().lower()
+    if resume_policy:
+        extra_tool_args.extend(["--resume-policy", resume_policy])
+
+    if bool(execution_policy.auto_reset_poisoned_state):
+        extra_tool_args.append("--auto-reset-poisoned-state")
+
+    if execution_policy.max_temp_dirs_before_reset is not None:
+        extra_tool_args.extend(
+            ["--max-temp-dirs-before-reset", str(int(execution_policy.max_temp_dirs_before_reset))]
+        )
+
     return extra_tool_args
 
 
@@ -505,6 +524,7 @@ def run_persistent_job(job_id: int) -> int:
             seeds = list(job_cfg.seeds)
             zimit_args = list(job_cfg.zimit_passthrough_args)
             tool_options = job_cfg.tool_options
+            execution_policy = job_cfg.execution_policy
 
             if not seeds:
                 raise ValueError(
@@ -534,7 +554,7 @@ def run_persistent_job(job_id: int) -> int:
         log_level = str(tool_options.log_level)
 
         # Build archive_tool-specific CLI options (before the '--' separator).
-        extra_tool_args: list[str] = _build_tool_extra_args(tool_options)
+        extra_tool_args: list[str] = _build_tool_extra_args(tool_options, execution_policy)
 
         # Compose final extra args: tool args first, then the Zimit passthrough
         # arguments (no additional '--' separator needed; archive_tool will pass

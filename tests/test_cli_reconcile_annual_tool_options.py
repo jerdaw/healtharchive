@@ -162,6 +162,7 @@ def test_reconcile_annual_tool_options_apply_updates_profile_and_sets_campaign_m
         assert job is not None
         cfg = dict(job.config or {})
         tool_opts = dict(cfg.get("tool_options") or {})
+        execution_policy = dict(cfg.get("execution_policy") or {})
 
         assert cfg.get("campaign_kind") == "annual"
         assert cfg.get("campaign_year") == 2026
@@ -179,6 +180,7 @@ def test_reconcile_annual_tool_options_apply_updates_profile_and_sets_campaign_m
         assert tool_opts.get("skip_final_build") is True
         assert tool_opts.get("docker_shm_size") == "1g"
         assert tool_opts.get("browsertrix_config") == {"extraChromeArgs": ["--disable-http2"]}
+        assert execution_policy == SOURCE_JOB_CONFIGS["phac"].default_execution_policy
         assert (
             cfg.get("zimit_passthrough_args")
             == SOURCE_JOB_CONFIGS["phac"].default_zimit_passthrough_args

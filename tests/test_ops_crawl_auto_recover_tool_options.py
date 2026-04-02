@@ -166,7 +166,7 @@ def test_ensure_recovery_tool_options_preserves_nonbaseline_hc_overrides() -> No
     )
 
     changed = module._ensure_recovery_tool_options(job)
-    assert changed is False
+    assert changed is True
     assert job.config is not None
 
     tool = job.config["tool_options"]
@@ -176,3 +176,41 @@ def test_ensure_recovery_tool_options_preserves_nonbaseline_hc_overrides() -> No
     assert tool["error_threshold_http"] == 70
     assert tool["backoff_delay_minutes"] == 5
     assert tool["max_container_restarts"] == 40
+
+    execution_policy = job.config["execution_policy"]
+    assert execution_policy["capture_backend"] == "browsertrix"
+    assert execution_policy["resume_policy"] == "fresh_only"
+
+
+def test_ensure_recovery_tool_options_backfills_execution_policy_without_downgrading_fallback() -> (
+    None
+):
+    module = _load_script_module()
+
+    job = ArchiveJob(
+        name="phac-20260101",
+        status="running",
+        config={
+            "campaign_kind": "annual",
+            "tool_options": {
+                "enable_monitoring": True,
+                "enable_adaptive_restart": True,
+                "max_container_restarts": 30,
+            },
+            "execution_policy": {
+                "capture_backend": "http_warc",
+            },
+        },
+    )
+
+    changed = module._ensure_recovery_tool_options(job)
+    assert changed is True
+    assert job.config is not None
+
+    execution_policy = job.config["execution_policy"]
+    assert execution_policy["capture_backend"] == "http_warc"
+    assert execution_policy["resume_policy"] == "fresh_only"
+    assert execution_policy["fallback_backend"] == "http_warc"
+    assert execution_policy["max_fresh_failures_before_fallback"] == 2
+    assert execution_policy["auto_reset_poisoned_state"] is True
+    assert execution_policy["max_temp_dirs_before_reset"] == 50

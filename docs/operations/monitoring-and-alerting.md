@@ -147,7 +147,23 @@ In practice this means:
   - `healtharchive_crawl_auto_recover_scope_drift_jobs`
   - `healtharchive_crawl_auto_recover_scope_rewrites_total`
   - `healtharchive_crawl_auto_recover_degraded_streak`
-  Use controlled restart playbooks only after long-window reassessment confirms persistent degradation.
+  For HC/PHAC, the watchdog can now run bounded degraded recoveries when
+  `degraded-action=recover` is enabled:
+  - it only acts after the degraded streak threshold is met
+  - it preserves the canonical annual execution policy before recovery
+  - it skips worker-level recovery when another healthy crawl would be
+    interrupted by the guard window
+  - it marks the degraded job `retryable` after stopping the safe runner target
+    instead of allowing open-ended low-rate churn
+
+### 4.2 Stale Running Rows
+
+- The worker now performs a preflight stale-running reconciliation before
+  selecting new work.
+- If a job is still marked `running` in the DB but has no held job lock and no
+  recent crawl progress, it is demoted back to `retryable` automatically.
+- This is meant to prevent dead PHAC/HC attempts from blocking fresh retries
+  behind a zombie DB row.
 ### 5) Infrastructure Errors
 
 **Alert:** `HealthArchiveInfraErrorsHigh`
@@ -210,6 +226,14 @@ At the crawler level, `stall_timeout_minutes` now also covers the case where a
 stage never emits any `crawlStatus` at all. That turns silent "running but no
 stats ever arrive" hangs into a monitored intervention path instead of letting
 them sit indefinitely.
+
+For HC/PHAC annual jobs, the execution policy now also provides hard stop
+conditions outside the watchdog:
+
+- `resume_policy=fresh_only` prevents repeat `Resume Crawl` loops
+- poisoned resume state can be auto-reset before the next attempt
+- repeated fresh Browsertrix failures are bounded and can auto-promote the job
+  to the `http_warc` fallback backend
 
 Use:
 

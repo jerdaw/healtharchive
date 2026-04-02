@@ -1,6 +1,12 @@
 from __future__ import annotations
 
-from ha_backend.archive_contract import ArchiveJobConfig, ArchiveToolOptions, validate_tool_options
+from ha_backend.archive_contract import (
+    ArchiveExecutionPolicy,
+    ArchiveJobConfig,
+    ArchiveToolOptions,
+    validate_execution_policy,
+    validate_tool_options,
+)
 
 
 def test_archive_tool_options_round_trip_defaults() -> None:
@@ -106,6 +112,14 @@ def test_archive_job_config_round_trip() -> None:
         seeds=["https://example.org", "https://example.com"],
         zimit_passthrough_args=["--pageLimit", "10"],
         tool_options=tool_opts,
+        execution_policy=ArchiveExecutionPolicy(
+            capture_backend="http_warc",
+            resume_policy="fresh_only",
+            fallback_backend="none",
+            max_fresh_failures_before_fallback=1,
+            auto_reset_poisoned_state=True,
+            max_temp_dirs_before_reset=25,
+        ),
     )
 
     data = cfg.to_dict()
@@ -114,11 +128,15 @@ def test_archive_job_config_round_trip() -> None:
     assert data["tool_options"]["enable_monitoring"] is True
     assert data["tool_options"]["initial_workers"] == 2
     assert data["tool_options"]["browsertrix_config"] == {"extraChromeArgs": ["--disable-http2"]}
+    assert data["execution_policy"]["capture_backend"] == "http_warc"
+    assert data["execution_policy"]["resume_policy"] == "fresh_only"
+    assert data["execution_policy"]["auto_reset_poisoned_state"] is True
 
     loaded = ArchiveJobConfig.from_dict(data)
     assert loaded.seeds == cfg.seeds
     assert loaded.zimit_passthrough_args == cfg.zimit_passthrough_args
     assert loaded.tool_options == tool_opts
+    assert loaded.execution_policy == cfg.execution_policy
 
 
 def test_validate_tool_options_enforces_invariants() -> None:
@@ -194,3 +212,62 @@ def test_validate_tool_options_enforces_invariants() -> None:
         assert "browsertrix_config" in str(exc)
     else:
         assert False, "Expected ValueError for non-object browsertrix_config"
+
+
+def test_validate_execution_policy_enforces_invariants() -> None:
+    policy = ArchiveExecutionPolicy(
+        capture_backend="bad",
+    )
+    try:
+        validate_execution_policy(policy)
+    except ValueError as exc:
+        assert "capture_backend" in str(exc)
+    else:
+        assert False, "Expected ValueError for invalid capture_backend"
+
+    policy = ArchiveExecutionPolicy(
+        resume_policy="bad",
+    )
+    try:
+        validate_execution_policy(policy)
+    except ValueError as exc:
+        assert "resume_policy" in str(exc)
+    else:
+        assert False, "Expected ValueError for invalid resume_policy"
+
+    policy = ArchiveExecutionPolicy(
+        fallback_backend="bad",
+    )
+    try:
+        validate_execution_policy(policy)
+    except ValueError as exc:
+        assert "fallback_backend" in str(exc)
+    else:
+        assert False, "Expected ValueError for invalid fallback_backend"
+
+    policy = ArchiveExecutionPolicy(max_fresh_failures_before_fallback=-1)
+    try:
+        validate_execution_policy(policy)
+    except ValueError as exc:
+        assert "max_fresh_failures_before_fallback" in str(exc)
+    else:
+        assert False, "Expected ValueError for negative fresh-failure budget"
+
+    policy = ArchiveExecutionPolicy(max_temp_dirs_before_reset=0)
+    try:
+        validate_execution_policy(policy)
+    except ValueError as exc:
+        assert "max_temp_dirs_before_reset" in str(exc)
+    else:
+        assert False, "Expected ValueError for non-positive temp-dir threshold"
+
+    validate_execution_policy(
+        ArchiveExecutionPolicy(
+            capture_backend="browsertrix",
+            resume_policy="fresh_only",
+            fallback_backend="http_warc",
+            max_fresh_failures_before_fallback=2,
+            auto_reset_poisoned_state=True,
+            max_temp_dirs_before_reset=50,
+        )
+    )

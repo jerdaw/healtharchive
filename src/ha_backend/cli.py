@@ -1264,7 +1264,7 @@ def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
     Safe-by-default (dry-run). Intended for one-time backfills of older annual
     jobs that predate per-source tuning.
     """
-    from .archive_contract import ArchiveJobConfig, validate_tool_options
+    from .archive_contract import ArchiveJobConfig, validate_execution_policy, validate_tool_options
     from .job_registry import SOURCE_JOB_CONFIGS
     from .models import ArchiveJob as ORMArchiveJob
     from .models import Source
@@ -1393,6 +1393,7 @@ def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
             processed += 1
             cfg = ArchiveJobConfig.from_dict(job.config or {})
             old_opts = cfg.tool_options.to_dict()
+            old_exec = cfg.execution_policy.to_dict()
 
             # Annual safety defaults.
             if not bool(cfg.tool_options.enable_monitoring):
@@ -1433,6 +1434,7 @@ def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
 
             try:
                 validate_tool_options(cfg.tool_options)
+                validate_execution_policy(cfg.execution_policy)
             except ValueError as exc:
                 print(
                     f"{source_code}: ERROR job_id={job.id} name={job.name} validation failed: {exc}",
@@ -1441,12 +1443,22 @@ def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
                 continue
 
             new_opts = cfg.tool_options.to_dict()
+            desired_exec = dict(profile_cfg.default_execution_policy or {})
+            for key, value in desired_exec.items():
+                setattr(cfg.execution_policy, key, value)
+            validate_execution_policy(cfg.execution_policy)
+            new_exec = cfg.execution_policy.to_dict()
             changes: list[tuple[str, object, object]] = []
             for key in sorted(set(old_opts.keys()) | set(new_opts.keys())):
                 old_val = old_opts.get(key)
                 new_val = new_opts.get(key)
                 if old_val != new_val:
                     changes.append((key, old_val, new_val))
+            for key in sorted(set(old_exec.keys()) | set(new_exec.keys())):
+                old_val = old_exec.get(key)
+                new_val = new_exec.get(key)
+                if old_val != new_val:
+                    changes.append((f"execution_policy.{key}", old_val, new_val))
 
             old_zimit_args = list(cfg.zimit_passthrough_args)
             new_zimit_args, scope_drift = reconcile_scope_passthrough_args(
@@ -1475,6 +1487,7 @@ def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
             if not dry_run:
                 current_cfg = dict(job.config or {})
                 current_cfg["tool_options"] = new_opts
+                current_cfg["execution_policy"] = new_exec
                 current_cfg["zimit_passthrough_args"] = list(cfg.zimit_passthrough_args)
                 current_cfg.setdefault("campaign_kind", "annual")
                 current_cfg.setdefault("campaign_year", year)
@@ -2815,6 +2828,7 @@ def cmd_validate_job_config(args: argparse.Namespace) -> None:
             sys.exit(1)
 
         tool_options = job_cfg.tool_options
+        execution_policy = job_cfg.execution_policy
         zimit_args = list(job_cfg.zimit_passthrough_args)
         output_dir = Path(job.output_dir)
         job_name = job.name
@@ -2826,7 +2840,7 @@ def cmd_validate_job_config(args: argparse.Namespace) -> None:
     overwrite = bool(tool_options.overwrite)
     log_level = str(tool_options.log_level)
 
-    extra_tool_args: list[str] = _build_tool_extra_args(tool_options)
+    extra_tool_args: list[str] = _build_tool_extra_args(tool_options, execution_policy)
     # Prepend --dry-run so archive_tool validates config without running Docker.
     full_extra_args: list[str] = ["--dry-run"]
     full_extra_args.extend(extra_tool_args)
@@ -2900,23 +2914,34 @@ def cmd_patch_job_config(args: argparse.Namespace) -> None:
     """
     from dataclasses import fields as dataclass_fields
 
-    from .archive_contract import ArchiveJobConfig, ArchiveToolOptions, validate_tool_options
+    from .archive_contract import (
+        ArchiveExecutionPolicy,
+        ArchiveJobConfig,
+        ArchiveToolOptions,
+        validate_execution_policy,
+        validate_tool_options,
+    )
     from .models import ArchiveJob as ORMArchiveJob
 
     job_id = args.id
     dry_run = not args.apply
-    patches = args.set_tool_option or []
+    tool_patches = args.set_tool_option or []
+    execution_patches = args.set_execution_policy or []
 
-    if not patches:
-        print("ERROR: At least one --set-tool-option KEY=VALUE is required.", file=sys.stderr)
+    if not tool_patches and not execution_patches:
+        print(
+            "ERROR: At least one --set-tool-option or --set-execution-policy KEY=VALUE is required.",
+            file=sys.stderr,
+        )
         sys.exit(1)
 
     # Get valid field names from ArchiveToolOptions dataclass
     valid_fields = {f.name for f in dataclass_fields(ArchiveToolOptions)}
+    valid_execution_fields = {f.name for f in dataclass_fields(ArchiveExecutionPolicy)}
 
     # Parse patches into key-value pairs
-    parsed_patches: list[tuple[str, bool | int | str]] = []
-    for patch in patches:
+    parsed_tool_patches: list[tuple[str, bool | int | str]] = []
+    for patch in tool_patches:
         if "=" not in patch:
             print(
                 f"ERROR: Invalid format for --set-tool-option: {patch!r}. Expected KEY=VALUE.",
@@ -2936,7 +2961,30 @@ def cmd_patch_job_config(args: argparse.Namespace) -> None:
             sys.exit(1)
 
         value = _parse_tool_option_value(raw_value)
-        parsed_patches.append((key, value))
+        parsed_tool_patches.append((key, value))
+
+    parsed_execution_patches: list[tuple[str, bool | int | str]] = []
+    for patch in execution_patches:
+        if "=" not in patch:
+            print(
+                f"ERROR: Invalid format for --set-execution-policy: {patch!r}. Expected KEY=VALUE.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        key, _, raw_value = patch.partition("=")
+        key = key.strip()
+
+        if key not in valid_execution_fields:
+            print(
+                f"ERROR: Unknown execution_policy key: {key!r}. "
+                f"Valid keys: {', '.join(sorted(valid_execution_fields))}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        value = _parse_tool_option_value(raw_value)
+        parsed_execution_patches.append((key, value))
 
     with get_session() as session:
         job = session.get(ORMArchiveJob, job_id)
@@ -2956,19 +3004,24 @@ def cmd_patch_job_config(args: argparse.Namespace) -> None:
 
         config = ArchiveJobConfig.from_dict(job.config or {})
         old_opts = config.tool_options.to_dict()
+        old_exec = config.execution_policy.to_dict()
 
         # Apply patches
-        for key, value in parsed_patches:
+        for key, value in parsed_tool_patches:
             setattr(config.tool_options, key, value)
+        for key, value in parsed_execution_patches:
+            setattr(config.execution_policy, key, value)
 
         # Validate the new config
         try:
             validate_tool_options(config.tool_options)
+            validate_execution_policy(config.execution_policy)
         except ValueError as exc:
             print(f"ERROR: Validation failed: {exc}", file=sys.stderr)
             sys.exit(1)
 
         new_opts = config.tool_options.to_dict()
+        new_exec = config.execution_policy.to_dict()
 
         # Show diff
         print(f"Job ID: {job_id}")
@@ -2989,6 +3042,17 @@ def cmd_patch_job_config(args: argparse.Namespace) -> None:
                     f"-> {_format_tool_option_value(new_val)}"
                 )
 
+        all_exec_keys = sorted(set(old_exec.keys()) | set(new_exec.keys()))
+        for key in all_exec_keys:
+            old_val = old_exec.get(key)
+            new_val = new_exec.get(key)
+            if old_val != new_val:
+                any_changes = True
+                print(
+                    f"  execution_policy.{key}: {_format_tool_option_value(old_val)} "
+                    f"-> {_format_tool_option_value(new_val)}"
+                )
+
         if not any_changes:
             print("  (no changes)")
 
@@ -2999,6 +3063,131 @@ def cmd_patch_job_config(args: argparse.Namespace) -> None:
             job.config = config.to_dict()
             session.commit()
             print(f"[APPLIED] Job {job_id} config updated.")
+
+
+def cmd_reset_crawl_state(args: argparse.Namespace) -> None:
+    """
+    Reset crawl temp/resume state for a non-running job while preserving WARCs.
+
+    This is intended for poisoned annual job directories where `.tmp*`,
+    `.archive_state.json`, or `.zimit_resume.yaml` should not be trusted for
+    the next attempt.
+    """
+    from datetime import datetime, timezone
+    from pathlib import Path
+
+    from archive_tool.constants import RESUME_CONFIG_FILE_NAME
+    from archive_tool.state import CrawlState
+    from archive_tool.utils import cleanup_temp_dirs, find_all_warc_files
+
+    from .archive_storage import consolidate_warcs
+    from .jobs import JobAlreadyRunningError, _job_lock
+    from .models import ArchiveJob as ORMArchiveJob
+
+    job_id = int(args.id)
+    dry_run = not bool(getattr(args, "apply", False))
+
+    with get_session() as session:
+        job = session.get(ORMArchiveJob, job_id)
+        if job is None:
+            print(f"ERROR: Job {job_id} not found.", file=sys.stderr)
+            sys.exit(1)
+
+        if job.status == "running":
+            print("ERROR: Refusing to reset crawl state for a running job.", file=sys.stderr)
+            sys.exit(1)
+
+        output_dir = Path(job.output_dir).resolve()
+        if not output_dir.is_dir():
+            print(
+                f"ERROR: Output directory {output_dir} does not exist or is not a directory.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        try:
+            with _job_lock(job_id):
+                pass
+        except JobAlreadyRunningError as exc:
+            print(
+                f"ERROR: Refusing to reset crawl state while job lock is held: {exc.lock_path}",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        state = CrawlState(output_dir, initial_workers=1)
+        temp_dirs = state.get_temp_dir_paths()
+        temp_dir_candidates = sorted([p for p in output_dir.glob(".tmp*") if p.is_dir()])
+        seen_dirs: set[Path] = set()
+        merged_temp_dirs: list[Path] = []
+        for p in list(temp_dirs) + list(temp_dir_candidates):
+            p = p.resolve()
+            if p in seen_dirs:
+                continue
+            seen_dirs.add(p)
+            merged_temp_dirs.append(p)
+        temp_dirs = merged_temp_dirs
+
+        resume_config_path = output_dir / RESUME_CONFIG_FILE_NAME
+        had_state_file = state.state_file_path.exists()
+        had_resume_config = resume_config_path.exists()
+        source_warcs = find_all_warc_files(temp_dirs) if temp_dirs else []
+
+        if not temp_dirs and not had_state_file and not had_resume_config:
+            print(f"No crawl temp/state artifacts discovered for job {job.id}; nothing to reset.")
+            return
+
+        print("HealthArchive Backend – Reset Crawl State")
+        print("----------------------------------------")
+        print(f"Mode:       {'APPLY' if not dry_run else 'DRY-RUN'}")
+        print(f"Job ID:     {job.id}")
+        print(f"Job name:   {job.name}")
+        print(f"Status:     {job.status}")
+        print(f"Output dir: {output_dir}")
+        print(f"Temp dirs:  {len(temp_dirs)}")
+        print(f"State file: {int(had_state_file)}")
+        print(f"Resume cfg: {int(had_resume_config)}")
+        print(f"Temp WARCs: {len(source_warcs)}")
+        print("")
+
+        if temp_dirs:
+            print("Temp dirs to remove:")
+            for d in temp_dirs:
+                print(f"  - {d}")
+        if had_state_file:
+            print(f"State file to remove:  {state.state_file_path}")
+        if had_resume_config:
+            print(f"Resume config to remove: {resume_config_path}")
+        if source_warcs:
+            print(f"WARCs to preserve via consolidation: {len(source_warcs)}")
+        print("")
+
+        if dry_run:
+            print("[DRY RUN] No changes applied. Use --apply to persist changes.")
+            return
+
+        if source_warcs:
+            result = consolidate_warcs(
+                output_dir=output_dir,
+                source_warc_paths=source_warcs,
+                allow_copy_fallback=False,
+                dry_run=False,
+            )
+            print(
+                f"Consolidated WARCs into {result.warcs_dir} (created={result.created} reused={result.reused})."
+            )
+
+        cleanup_temp_dirs(temp_dirs, state.state_file_path)
+
+        if resume_config_path.exists():
+            resume_config_path.unlink()
+            print(f"Deleted resume config: {resume_config_path}")
+
+        job.crawler_stage = "state_reset"
+        job.state_file_path = None
+        job.combined_log_path = None
+        job.cleaned_at = datetime.now(timezone.utc)
+        print(f"[APPLIED] Job {job.id} crawl state reset.")
 
 
 def cmd_cleanup_job(args: argparse.Namespace) -> None:
@@ -5595,12 +5784,44 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_patch.add_argument(
+        "--set-execution-policy",
+        action="append",
+        metavar="KEY=VALUE",
+        help=(
+            "Set an execution_policy key to a value. Can be specified multiple times. "
+            "Example: --set-execution-policy resume_policy=fresh_only "
+            "--set-execution-policy fallback_backend=http_warc"
+        ),
+    )
+    p_patch.add_argument(
         "--apply",
         action="store_true",
         default=False,
         help="Apply changes (default is dry-run).",
     )
     p_patch.set_defaults(func=cmd_patch_job_config)
+
+    # reset-crawl-state
+    p_reset_state = subparsers.add_parser(
+        "reset-crawl-state",
+        help=(
+            "Consolidate any existing WARCs, then delete .tmp*, .archive_state.json, and "
+            ".zimit_resume.yaml for a non-running job."
+        ),
+    )
+    p_reset_state.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ArchiveJob ID whose crawl state should be reset.",
+    )
+    p_reset_state.add_argument(
+        "--apply",
+        action="store_true",
+        default=False,
+        help="Apply changes (default is dry-run).",
+    )
+    p_reset_state.set_defaults(func=cmd_reset_crawl_state)
 
     # cleanup-job
     p_cleanup = subparsers.add_parser(

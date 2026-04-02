@@ -15,10 +15,12 @@ Docker operations are mocked to allow testing without real containers.
 
 from __future__ import annotations
 
+import io
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import httpx
 import pytest
 import yaml  # type: ignore[import-untyped]
 
@@ -26,6 +28,7 @@ import archive_tool.docker_runner as docker_runner_mod
 import archive_tool.main as archive_main
 import archive_tool.utils as utils_mod
 from archive_tool.state import CrawlState
+from ha_backend.indexing.warc_reader import iter_html_records
 
 
 @pytest.fixture
@@ -871,6 +874,180 @@ extraChromeArgs:
         assert "--config" in zimit_args
         config_index = zimit_args.index("--config")
         assert zimit_args[config_index + 1] == "/output/.browsertrix_managed_config.yaml"
+
+    def test_fresh_only_auto_reset_discards_resume_state_and_preserves_warcs(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        mock_docker_check,
+        mock_container_stop,
+        clean_stop_event,
+        capsys,
+    ):
+        out_dir = tmp_path / "fresh-only-reset"
+        out_dir.mkdir()
+
+        state_file = out_dir / ".archive_state.json"
+        resume_file = out_dir / ".zimit_resume.yaml"
+        temp_dir = out_dir / ".tmpstale"
+        archive_dir = temp_dir / "collections" / "crawl-1" / "archive"
+        archive_dir.mkdir(parents=True)
+        (archive_dir / "sample.warc.gz").write_bytes(b"warc-bytes")
+        resume_file.write_text("seeds:\n  - https://www.canada.ca/en/public-health.html\n")
+
+        state = CrawlState(out_dir, initial_workers=2)
+        state.add_temp_dir(temp_dir)
+        state.save_persistent_state()
+        assert state_file.exists()
+
+        captured_start: dict[str, object] = {}
+
+        class FakeProcess:
+            def __init__(self):
+                self.pid = 12345
+                self.stdout = io.StringIO('Output to tempdir: "/output/.tmpfresh"\n')
+                self.returncode = None
+                self._polled = False
+
+            def poll(self):
+                if self._polled:
+                    self.returncode = 32
+                    return 32
+                self._polled = True
+                return None
+
+            def wait(self, timeout=None):
+                self.returncode = 32
+                return 32
+
+            def communicate(self, timeout=None):
+                return (b"", b"")
+
+        def fake_start(docker_image, host_output_dir, zimit_args, run_name, **kwargs):
+            captured_start["zimit_args"] = list(zimit_args)
+            new_temp_dir = Path(host_output_dir) / ".tmpfresh"
+            new_archive_dir = new_temp_dir / "collections" / "crawl-2" / "archive"
+            new_archive_dir.mkdir(parents=True, exist_ok=True)
+            (new_archive_dir / "fresh.warc.gz").write_bytes(b"fresh-warc")
+            return FakeProcess(), "test-container"
+
+        monkeypatch.setattr(docker_runner_mod, "start_docker_container", fake_start)
+
+        argv = [
+            "archive-tool",
+            "--seeds",
+            "https://www.canada.ca/en/public-health.html",
+            "--name",
+            "phac-20260101",
+            "--output-dir",
+            str(out_dir),
+            "--browsertrix-config-json",
+            '{"extraChromeArgs":["--disable-http2"]}',
+            "--resume-policy",
+            "fresh_only",
+            "--auto-reset-poisoned-state",
+            "--skip-final-build",
+        ]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        with pytest.raises(SystemExit) as exc_info:
+            archive_main.main()
+
+        captured = capsys.readouterr()
+        combined = captured.out + captured.err
+        assert exc_info.value.code == 0
+        assert "fresh_only" in combined
+        assert not temp_dir.exists()
+        assert not resume_file.exists()
+        stable_warcs = sorted((out_dir / "warcs").glob("*.warc.gz"))
+        assert len(stable_warcs) == 1
+        zimit_args = captured_start["zimit_args"]
+        assert isinstance(zimit_args, list)
+        assert "--config" in zimit_args
+        config_index = zimit_args.index("--config")
+        assert zimit_args[config_index + 1] == "/output/.browsertrix_managed_config.yaml"
+
+    def test_http_warc_backend_skips_docker_and_writes_warc(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        clean_stop_event,
+    ):
+        out_dir = tmp_path / "http-warc"
+        out_dir.mkdir()
+
+        pages = {
+            "https://example.org/": httpx.Response(
+                200,
+                headers={"content-type": "text/html; charset=utf-8"},
+                content=b'<html><body><a href="/page">Page</a></body></html>',
+                request=httpx.Request("GET", "https://example.org/"),
+            ),
+            "https://example.org/page": httpx.Response(
+                200,
+                headers={"content-type": "text/html; charset=utf-8"},
+                content=b"<html><body>Page body</body></html>",
+                request=httpx.Request("GET", "https://example.org/page"),
+            ),
+        }
+
+        class FakeClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def get(self, url):
+                return pages[url]
+
+        def fail_docker_check():
+            raise AssertionError("Docker check should not run for http_warc backend")
+
+        monkeypatch.setattr(utils_mod, "check_docker", fail_docker_check)
+        monkeypatch.setattr(
+            "archive_tool.http_warc_backend.httpx.Client",
+            FakeClient,
+        )
+        monkeypatch.setattr(
+            docker_runner_mod,
+            "start_docker_container",
+            lambda *args, **kwargs: (_ for _ in ()).throw(
+                AssertionError("Docker should not be used for http_warc backend")
+            ),
+        )
+
+        argv = [
+            "archive-tool",
+            "--seeds",
+            "https://example.org/",
+            "--name",
+            "example-http-warc",
+            "--output-dir",
+            str(out_dir),
+            "--capture-backend",
+            "http_warc",
+            "--resume-policy",
+            "fresh_only",
+            "--auto-reset-poisoned-state",
+            "--skip-final-build",
+        ]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        archive_main.main()
+
+        warc_path = out_dir / "warcs" / "warc-000001.warc.gz"
+        assert warc_path.is_file()
+        urls = [rec.url for rec in iter_html_records(warc_path)]
+        assert urls == ["https://example.org/", "https://example.org/page"]
+
+        combined_logs = sorted(out_dir.glob("archive_http_warc_capture_*.combined.log"))
+        assert combined_logs
+        log_text = combined_logs[-1].read_text(encoding="utf-8")
+        assert '"context":"crawlStatus"' in log_text
 
 
 class TestStageLoopExitCodes:

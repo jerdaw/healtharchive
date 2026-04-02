@@ -69,6 +69,14 @@ def test_get_config_for_source_known_sources() -> None:
     assert hc_cfg.default_tool_options["error_threshold_timeout"] == 55
     assert hc_cfg.default_tool_options["error_threshold_http"] == 55
     assert hc_cfg.default_tool_options["backoff_delay_minutes"] == 15
+    assert hc_cfg.default_execution_policy == {
+        "capture_backend": "browsertrix",
+        "resume_policy": "fresh_only",
+        "fallback_backend": "http_warc",
+        "max_fresh_failures_before_fallback": 2,
+        "auto_reset_poisoned_state": True,
+        "max_temp_dirs_before_reset": 50,
+    }
 
     assert phac_cfg.default_tool_options["skip_final_build"] is True
     assert phac_cfg.default_tool_options["browsertrix_config"] == {
@@ -81,6 +89,14 @@ def test_get_config_for_source_known_sources() -> None:
     assert phac_cfg.default_tool_options["error_threshold_timeout"] == 65
     assert phac_cfg.default_tool_options["error_threshold_http"] == 65
     assert phac_cfg.default_tool_options["backoff_delay_minutes"] == 3
+    assert phac_cfg.default_execution_policy == {
+        "capture_backend": "browsertrix",
+        "resume_policy": "fresh_only",
+        "fallback_backend": "http_warc",
+        "max_fresh_failures_before_fallback": 2,
+        "auto_reset_poisoned_state": True,
+        "max_temp_dirs_before_reset": 50,
+    }
 
     assert cihr_cfg.default_tool_options["skip_final_build"] is True
     assert cihr_cfg.default_tool_options["docker_shm_size"] == "1g"
@@ -90,6 +106,13 @@ def test_get_config_for_source_known_sources() -> None:
     assert cihr_cfg.default_tool_options["error_threshold_timeout"] == 35
     assert cihr_cfg.default_tool_options["error_threshold_http"] == 35
     assert cihr_cfg.default_tool_options["backoff_delay_minutes"] == 1
+    assert cihr_cfg.default_execution_policy == {
+        "capture_backend": "browsertrix",
+        "resume_policy": "auto",
+        "fallback_backend": "none",
+        "max_fresh_failures_before_fallback": 0,
+        "auto_reset_poisoned_state": False,
+    }
 
 
 def test_get_config_for_source_unknown() -> None:
@@ -217,6 +240,7 @@ def test_build_job_config_merges_defaults_and_overrides() -> None:
     assert "seeds" in config
     assert "zimit_passthrough_args" in config
     assert "tool_options" in config
+    assert "execution_policy" in config
 
     seeds = config["seeds"]
     assert cfg.default_seeds[0] in seeds
@@ -226,6 +250,7 @@ def test_build_job_config_merges_defaults_and_overrides() -> None:
     assert tool_options["cleanup"] is True
     assert tool_options["initial_workers"] == 4
     assert tool_options["browsertrix_config"] == {"extraChromeArgs": ["--disable-http2"]}
+    assert config["execution_policy"] == cfg.default_execution_policy
     # Unmodified options should still be present.
     assert tool_options["log_level"] == cfg.default_tool_options["log_level"]
 

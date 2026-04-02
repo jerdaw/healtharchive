@@ -213,3 +213,80 @@ def test_flat_crawled_count_does_not_look_like_recent_progress(tmp_path, monkeyp
     assert (
         'healtharchive_crawl_auto_recover_degraded_streak{job_id="1",source="phac"}' not in metrics
     )
+
+
+def test_degraded_action_recover_dry_run_emits_recovery_plan(tmp_path, monkeypatch, capsys) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    module = _load_script_module()
+    fixed_now = datetime(2026, 3, 1, 0, 0, 50, tzinfo=timezone.utc)
+    monkeypatch.setattr(module, "_utc_now", lambda: fixed_now)
+    monkeypatch.setattr(module, "_ps_snapshot", lambda: [])
+    monkeypatch.setattr(
+        module,
+        "_detect_job_runner",
+        lambda *args, **kwargs: module.JobRunner(
+            kind="systemd_unit", unit="healtharchive-job1-test.service"
+        ),
+    )
+
+    log_path = tmp_path / "jobs" / "hc" / "archive_test.combined.log"
+    _write_crawl_status_log(log_path, now=fixed_now)
+
+    with get_session() as session:
+        source = Source(code="hc", name="Health Canada")
+        session.add(source)
+        session.flush()
+        job = ArchiveJob(
+            source_id=int(source.id),
+            name="hc-20260101",
+            output_dir=str(log_path.parent),
+            status="running",
+            combined_log_path=str(log_path),
+            started_at=fixed_now,
+            config={},
+        )
+        session.add(job)
+        session.commit()
+
+    sentinel = tmp_path / "enabled"
+    sentinel.write_text("", encoding="utf-8")
+    state_path = tmp_path / "state.json"
+    metrics_path = tmp_path / "metrics.prom"
+
+    rc = module.main(
+        [
+            "--sentinel-file",
+            str(sentinel),
+            "--deploy-lock-file",
+            str(tmp_path / "deploy.lock"),
+            "--state-file",
+            str(state_path),
+            "--lock-file",
+            str(tmp_path / "watchdog.lock"),
+            "--textfile-out-dir",
+            str(tmp_path),
+            "--textfile-out-file",
+            metrics_path.name,
+            "--degraded-rate-threshold-ppm",
+            "2.0",
+            "--degraded-min-consecutive-runs",
+            "1",
+            "--degraded-max-progress-age-seconds",
+            "300",
+            "--degraded-sources",
+            "hc,phac",
+            "--degraded-action",
+            "recover",
+        ]
+    )
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "would recover degraded job_id=1 source=hc" in out
+    assert "systemctl stop healtharchive-job1-test.service" in out
+    assert "mark job_id=1 status=retryable crawler_stage=recovered_degraded" in out
+    metrics = metrics_path.read_text(encoding="utf-8")
+    assert (
+        'healtharchive_crawl_auto_recover_last_result{result="skip",reason="dry_run_degraded_recover"} 1'
+        in metrics
+    )

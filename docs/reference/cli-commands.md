@@ -29,7 +29,7 @@ ha-backend --help
 | **Job Management** | `create-job`, `run-db-job`, `index-job`, `register-job-dir` |
 | **Direct Execution** | `run-job` |
 | **Inspection** | `list-jobs`, `show-job` |
-| **Maintenance** | `retry-job`, `reset-retry-count`, `cleanup-job`, `replay-index-job` |
+| **Maintenance** | `retry-job`, `reset-retry-count`, `cleanup-job`, `reset-crawl-state`, `replay-index-job` |
 | **Annual Campaign** | `schedule-annual`, `annual-status`, `reconcile-annual-tool-options` |
 | **Seeding** | `seed-sources` |
 | **Worker** | `start-worker` |
@@ -613,9 +613,41 @@ ha-backend reconcile-annual-tool-options --year 2026 --sources hc --apply
 
 **What it does**:
 - Reconciles legacy baseline tool options to per-source profiles
+- Reconciles annual `execution_policy` defaults (for example HC/PHAC
+  `fresh_only` resume policy and `http_warc` fallback settings)
 - Reconciles canonical HC/PHAC scope filters on existing annual jobs
 - Preserves explicit non-baseline overrides
 - Enforces restart-budget floor and annual safety defaults
+
+### reset-crawl-state
+
+Reset poisoned crawl temp/resume state for a non-running job while preserving
+stable WARCs.
+
+**Usage**:
+```bash
+ha-backend reset-crawl-state --id JOB_ID [--apply]
+```
+
+**Examples**:
+```bash
+# Show what would be removed/preserved
+ha-backend reset-crawl-state --id 7
+
+# Consolidate temp WARCs, remove stale .tmp*/state/resume files
+ha-backend reset-crawl-state --id 7 --apply
+```
+
+**What it does**:
+- Refuses to run if the job is still `running` or its job lock is held
+- Consolidates temp-dir WARCs into stable `warcs/`
+- Removes stale `.tmp*` dirs
+- Removes `.archive_state.json`
+- Removes `.zimit_resume.yaml`
+- Marks the job `crawler_stage=state_reset`
+
+Use this when an annual job has accumulated poisoned resume state and should be
+forced back to a fresh crawl phase without losing already captured WARCs.
 
 ---
 

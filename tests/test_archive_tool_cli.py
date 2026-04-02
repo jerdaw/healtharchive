@@ -23,6 +23,13 @@ def test_parse_arguments_accepts_skip_final_build_docker_shm_and_browsertrix_con
             "1g",
             "--browsertrix-config-json",
             '{"extraChromeArgs":["--disable-http2"]}',
+            "--capture-backend",
+            "http_warc",
+            "--resume-policy",
+            "fresh_only",
+            "--auto-reset-poisoned-state",
+            "--max-temp-dirs-before-reset",
+            "25",
             "--scopeType",
             "host",
         ],
@@ -32,6 +39,10 @@ def test_parse_arguments_accepts_skip_final_build_docker_shm_and_browsertrix_con
     assert script_args.skip_final_build is True
     assert script_args.docker_shm_size == "1g"
     assert script_args.browsertrix_config_json == '{"extraChromeArgs":["--disable-http2"]}'
+    assert script_args.capture_backend == "http_warc"
+    assert script_args.resume_policy == "fresh_only"
+    assert script_args.auto_reset_poisoned_state is True
+    assert script_args.max_temp_dirs_before_reset == 25
     assert zimit_passthrough == ["--scopeType", "host"]
 
 
@@ -47,6 +58,26 @@ def test_parse_arguments_rejects_adaptive_without_monitoring(monkeypatch) -> Non
             "--output-dir",
             "/tmp/example",
             "--enable-adaptive-restart",
+        ],
+    )
+
+    with pytest.raises(SystemExit):
+        parse_arguments()
+
+
+def test_parse_arguments_rejects_non_positive_temp_dir_reset_threshold(monkeypatch) -> None:
+    monkeypatch.setattr(
+        "sys.argv",
+        [
+            "archive-tool",
+            "--seeds",
+            "https://example.org",
+            "--name",
+            "example",
+            "--output-dir",
+            "/tmp/example",
+            "--max-temp-dirs-before-reset",
+            "0",
         ],
     )
 

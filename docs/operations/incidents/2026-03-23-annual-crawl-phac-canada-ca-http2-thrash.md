@@ -189,6 +189,16 @@ Completed after the initial draft:
   entries no longer suppress it; `archive_tool` now falls back to the most
   recent usable stats line and still treats the queue as poisoned when the
   empty-WARC tail signature is present.
+- Added source-managed annual execution policy for HC/PHAC:
+  - `resume_policy=fresh_only`
+  - automatic poisoned-state reset before the next attempt
+  - bounded Browsertrix fresh-failure budget
+  - automatic promotion to the `http_warc` fallback backend after repeated
+    fresh failures
+- Added stale-running auto-recovery in the worker so zombie DB rows no longer
+  block future retries until an operator manually runs `recover-stale-jobs`.
+- Upgraded crawl auto-recover degraded handling from observe-only to bounded
+  recoveries for HC/PHAC when explicitly enabled.
 - Verified in production that:
   - fresh/new PHAC launches used zimit
     `--config /output/.browsertrix_managed_config.yaml`
@@ -246,6 +256,8 @@ Still required:
 - [ ] Decide whether the temporary PHAC `public-health-notices` exclusion can be removed after live verification. (priority=medium)
 - [ ] Capture the current deeper PHAC no-progress failure mode and design a
   follow-up mitigation before any future restart. (priority=medium)
+- [x] Add hard-stop protections so HC/PHAC do not endlessly loop on poisoned
+  resume state or stale `running` rows. (priority=high)
 
 ## Automation opportunities
 
