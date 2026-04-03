@@ -3,6 +3,12 @@
 This repository contains the backend services and archiving pipeline for
 [HealthArchive.ca](https://healtharchive.ca).
 
+Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
+operations state live in `/home/jer/repos/platform-ops`. Use
+`/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+as the default rule for what belongs in this repo versus shared ops
+documentation.
+
 The backend has three main responsibilities:
 
 - **Run crawl jobs** for sources like Health Canada (`hc`) and PHAC (`phac`)

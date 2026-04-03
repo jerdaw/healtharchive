@@ -8,6 +8,12 @@ SSH is private-only via **Tailscale**; the public internet only sees ports
 Use this as the canonical runbook for rebuilding the stack, auditing it, or
 explaining it to new operators.
 
+Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
+operations state live in `/home/jer/repos/platform-ops`. Use
+`/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+as the default rule for what belongs in this repo versus shared ops
+documentation.
+
 For recovery from total failure, see the [Disaster Recovery Runbook](disaster-recovery.md).
 
 Documentation boundary note:

@@ -18,6 +18,12 @@ It is useful when:
 - Double-checking that frontend hosts, backend hosts, and backend CORS settings
   line up.
 
+Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
+operations state live in `/home/jer/repos/platform-ops`. Use
+`/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+as the default rule for what belongs in this repo versus shared ops
+documentation.
+
 For deeper operational details, see:
 
 - `production-single-vps.md` (current production runbook)

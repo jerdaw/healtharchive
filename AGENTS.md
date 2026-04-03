@@ -34,6 +34,12 @@ Canonical docs to consult first:
 - `/home/jer/repos/platform-ops` – shared VPS inventory, roadmap, handoff, and cross-project runbooks
 - `/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md` – canonical boundary for what belongs in `platform-ops` vs this repo
 
+Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
+operations state live in `/home/jer/repos/platform-ops`. Use
+`/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+as the default rule for what belongs in this repo versus shared ops
+documentation.
+
 When you're doing anything beyond tiny local changes, **open those docs and sync your mental model first**.
 
 **Cross-project ops note:** Backend behavior and backend-facing docs belong in this repo. Shared VPS standards, live service inventory, ingress ownership, shared host access posture, and cross-project migration/operations state belong in `/home/jer/repos/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`). Host-side paths under `/etc/projects-merge/...` remain intentionally unchanged.

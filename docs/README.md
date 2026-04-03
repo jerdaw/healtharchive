@@ -3,6 +3,12 @@
 This documentation portal covers the **HealthArchive backend** and links to
 frontend and datasets documentation.
 
+Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
+operations state live in `/home/jer/repos/platform-ops`. Use
+`/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+as the default rule for what belongs in this repo versus shared ops
+documentation.
+
 ## Quick Start by Role
 
 **Choose your path:**
