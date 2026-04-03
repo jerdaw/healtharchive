@@ -4,6 +4,7 @@ import io
 import json
 import logging
 import os
+import time
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -19,6 +20,17 @@ from warcio.warcwriter import WARCWriter
 logger = logging.getLogger("website_archiver.http_warc")
 
 _HTML_MIME_TOKENS = ("text/html", "application/xhtml+xml")
+_DEFAULT_BROWSER_USER_AGENT = (
+    "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 "
+    "(KHTML, like Gecko) Chrome/135.0.0.0 Safari/537.36"
+)
+_DEFAULT_ACCEPT_HEADER = (
+    "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8"
+)
+_DEFAULT_ACCEPT_LANGUAGE_HEADER = "en-CA,en;q=0.9,fr-CA;q=0.8,fr;q=0.7"
+_SEED_FETCH_ATTEMPTS = 3
+_DISCOVERED_FETCH_ATTEMPTS = 2
+_RETRYABLE_STATUS_CODES = {408, 425, 429, 500, 502, 503, 504}
 _LINK_ATTRS: tuple[tuple[str, str], ...] = (
     ("a", "href"),
     ("area", "href"),
@@ -183,6 +195,18 @@ def _extract_links(base_url: str, body: bytes, content_type: str | None) -> set[
     return found
 
 
+def _build_default_headers(user_agent: str) -> dict[str, str]:
+    return {
+        "User-Agent": user_agent,
+        "Accept": _DEFAULT_ACCEPT_HEADER,
+        "Accept-Language": _DEFAULT_ACCEPT_LANGUAGE_HEADER,
+        "Accept-Encoding": "gzip, deflate, br",
+        "Cache-Control": "no-cache",
+        "Pragma": "no-cache",
+        "Upgrade-Insecure-Requests": "1",
+    }
+
+
 def _write_response_record(
     writer: WARCWriter,
     *,
@@ -208,14 +232,77 @@ def _write_response_record(
     writer.write_record(record)
 
 
+def _fetch_with_retries(
+    *,
+    client: httpx.Client,
+    sink: _StageLogSink,
+    url: str,
+    max_attempts: int,
+    retry_backoff_seconds: float,
+) -> httpx.Response:
+    last_exc: httpx.HTTPError | None = None
+
+    for attempt in range(1, max_attempts + 1):
+        if attempt == 1:
+            sink.emit(f"[http_warc] Fetching {url}")
+        else:
+            delay = retry_backoff_seconds * float(attempt - 1)
+            sink.emit(
+                f"[http_warc] Retrying {url} after {delay:.1f}s backoff "
+                f"(attempt {attempt}/{max_attempts})."
+            )
+            if delay > 0:
+                time.sleep(delay)
+
+        try:
+            response = client.get(url)
+        except httpx.TimeoutException as exc:
+            last_exc = exc
+            sink.emit(
+                f"[http_warc] WARNING fetching {url} attempt {attempt}/{max_attempts}: "
+                f"timeout ({exc})"
+            )
+            if attempt < max_attempts:
+                continue
+            raise
+        except httpx.TransportError as exc:
+            last_exc = exc
+            sink.emit(
+                f"[http_warc] WARNING fetching {url} attempt {attempt}/{max_attempts}: "
+                f"transport error ({exc})"
+            )
+            if attempt < max_attempts:
+                continue
+            raise
+
+        if response.status_code in _RETRYABLE_STATUS_CODES and attempt < max_attempts:
+            sink.emit(
+                f"[http_warc] WARNING fetching {url} attempt {attempt}/{max_attempts}: "
+                f"HTTP {response.status_code}; will retry."
+            )
+            continue
+
+        if attempt > 1:
+            sink.emit(
+                f"[http_warc] Fetch succeeded for {url} on attempt {attempt}/{max_attempts} "
+                f"with status {response.status_code}."
+            )
+        return response
+
+    if last_exc is not None:
+        raise last_exc
+    raise httpx.HTTPError(f"Failed to fetch {url}")
+
+
 def run_http_warc_capture(
     *,
     output_dir: Path,
     seeds: list[str],
     zimit_passthrough_args: list[str],
-    user_agent: str = "HealthArchiveHttpWarc/1.0",
+    user_agent: str = _DEFAULT_BROWSER_USER_AGENT,
     connect_timeout_seconds: float = 20.0,
-    read_timeout_seconds: float = 60.0,
+    read_timeout_seconds: float = 120.0,
+    retry_backoff_seconds: float = 5.0,
 ) -> HttpWarcRunResult:
     output_dir = output_dir.resolve()
     output_dir.mkdir(parents=True, exist_ok=True)
@@ -239,6 +326,7 @@ def run_http_warc_capture(
         if scope.allows(normalized):
             queued.append(normalized)
             seen.add(normalized)
+    seed_urls = set(seen)
 
     sink.emit("[http_warc] Starting fallback capture backend.")
     sink.emit(
@@ -268,16 +356,24 @@ def run_http_warc_capture(
             warc_path.open("wb") as warc_stream,
             httpx.Client(
                 follow_redirects=True,
+                http2=False,
                 timeout=timeout,
-                headers={"User-Agent": user_agent},
+                headers=_build_default_headers(user_agent),
             ) as client,
         ):
             writer = WARCWriter(warc_stream, gzip=True)
             while queued:
                 url = queued.popleft()
-                sink.emit(f"[http_warc] Fetching {url}")
                 try:
-                    response = client.get(url)
+                    response = _fetch_with_retries(
+                        client=client,
+                        sink=sink,
+                        url=url,
+                        max_attempts=(
+                            _SEED_FETCH_ATTEMPTS if url in seed_urls else _DISCOVERED_FETCH_ATTEMPTS
+                        ),
+                        retry_backoff_seconds=retry_backoff_seconds,
+                    )
                     _write_response_record(writer, url=url, response=response)
                     crawled += 1
                     content_type = response.headers.get("content-type")

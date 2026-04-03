@@ -18,6 +18,7 @@ from __future__ import annotations
 import io
 import sys
 from pathlib import Path
+from typing import cast
 from unittest.mock import MagicMock
 
 import httpx
@@ -1049,6 +1050,87 @@ extraChromeArgs:
         log_text = combined_logs[-1].read_text(encoding="utf-8")
         assert '"context":"crawlStatus"' in log_text
 
+    def test_http_warc_backend_retries_timed_out_seed_before_success(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        clean_stop_event,
+    ):
+        out_dir = tmp_path / "http-warc-retry"
+        out_dir.mkdir()
+
+        pages = {
+            "https://example.org/": httpx.Response(
+                200,
+                headers={"content-type": "text/html; charset=utf-8"},
+                content=b'<html><body><a href="/page">Page</a></body></html>',
+                request=httpx.Request("GET", "https://example.org/"),
+            ),
+            "https://example.org/page": httpx.Response(
+                200,
+                headers={"content-type": "text/html; charset=utf-8"},
+                content=b"<html><body>Page body</body></html>",
+                request=httpx.Request("GET", "https://example.org/page"),
+            ),
+        }
+        attempts: dict[str, int] = {}
+
+        class FakeClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def get(self, url):
+                attempts[url] = attempts.get(url, 0) + 1
+                if url == "https://example.org/" and attempts[url] == 1:
+                    raise httpx.ReadTimeout(
+                        "The read operation timed out",
+                        request=httpx.Request("GET", url),
+                    )
+                return pages[url]
+
+        monkeypatch.setattr(
+            "archive_tool.http_warc_backend.httpx.Client",
+            FakeClient,
+        )
+        monkeypatch.setattr("archive_tool.http_warc_backend.time.sleep", lambda *_: None)
+
+        argv = [
+            "archive-tool",
+            "--seeds",
+            "https://example.org/",
+            "--name",
+            "example-http-warc-retry",
+            "--output-dir",
+            str(out_dir),
+            "--capture-backend",
+            "http_warc",
+            "--resume-policy",
+            "fresh_only",
+            "--auto-reset-poisoned-state",
+            "--skip-final-build",
+        ]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        archive_main.main()
+
+        warc_path = out_dir / "warcs" / "warc-000001.warc.gz"
+        assert warc_path.is_file()
+        urls = [rec.url for rec in iter_html_records(warc_path)]
+        assert urls == ["https://example.org/", "https://example.org/page"]
+        assert attempts["https://example.org/"] == 2
+
+        combined_logs = sorted(out_dir.glob("archive_http_warc_capture_*.combined.log"))
+        assert combined_logs
+        log_text = combined_logs[-1].read_text(encoding="utf-8")
+        assert "Retrying https://example.org/" in log_text
+        assert "Fetch succeeded for https://example.org/ on attempt 2/3" in log_text
+
     def test_fresh_only_browsertrix_promotes_inline_to_http_warc_after_budget(
         self,
         tmp_path: Path,
@@ -1096,10 +1178,11 @@ extraChromeArgs:
 
         fallback_called: dict[str, object] = {}
 
-        def fake_http_warc_capture(*, output_dir, seeds, zimit_passthrough_args):
+        def fake_http_warc_capture(*, output_dir, seeds, zimit_passthrough_args, **kwargs):
             fallback_called["output_dir"] = output_dir
             fallback_called["seeds"] = list(seeds)
             fallback_called["zimit_passthrough_args"] = list(zimit_passthrough_args)
+            fallback_called["kwargs"] = dict(kwargs)
             (Path(output_dir) / "warcs").mkdir(parents=True, exist_ok=True)
             FallbackResult.warc_path.write_bytes(b"fallback-warc")
             return FallbackResult()
@@ -1145,6 +1228,8 @@ extraChromeArgs:
             "https://www.canada.ca/en/public-health.html",
             "https://www.canada.ca/fr/sante-publique.html",
         ]
+        fallback_kwargs = cast(dict[str, object], fallback_called["kwargs"])
+        assert "retry_backoff_seconds" not in fallback_kwargs
         assert FallbackResult.warc_path.is_file()
 
 

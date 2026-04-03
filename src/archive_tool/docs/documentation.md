@@ -614,6 +614,8 @@ Behavior:
 
 * Uses `httpx` + `BeautifulSoup` instead of Browsertrix/Zimit.
 * Reuses the same include/exclude scope regexes passed through the job config.
+* Uses browser-like request headers plus bounded retry/backoff for timeouts,
+  transport errors, and transient 4xx/5xx responses.
 * Crawls HTML pages plus linked render assets (CSS/JS/images/fonts) inside
   scope.
 * Writes WARC response records directly into stable `warcs/warc-000001.warc.gz`.
