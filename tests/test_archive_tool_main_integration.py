@@ -16,6 +16,7 @@ Docker operations are mocked to allow testing without real containers.
 from __future__ import annotations
 
 import io
+import subprocess
 import sys
 from pathlib import Path
 from typing import cast
@@ -1130,6 +1131,98 @@ extraChromeArgs:
         log_text = combined_logs[-1].read_text(encoding="utf-8")
         assert "Retrying https://example.org/" in log_text
         assert "Fetch succeeded for https://example.org/ on attempt 2/3" in log_text
+
+    def test_http_warc_backend_falls_back_to_curl_for_seed_after_httpx_timeouts(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        clean_stop_event,
+    ):
+        out_dir = tmp_path / "http-warc-curl-fallback"
+        out_dir.mkdir()
+
+        attempts: dict[str, int] = {}
+
+        class FakeClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def get(self, url):
+                attempts[url] = attempts.get(url, 0) + 1
+                if url == "https://example.org/":
+                    raise httpx.ReadTimeout(
+                        "The read operation timed out",
+                        request=httpx.Request("GET", url),
+                    )
+                return httpx.Response(
+                    200,
+                    headers={"content-type": "text/html; charset=utf-8"},
+                    content=b"<html><body>Page body</body></html>",
+                    request=httpx.Request("GET", url),
+                )
+
+        def fake_subprocess_run(cmd, capture_output, text, timeout, check):
+            assert "curl" in cmd[0]
+            header_path = Path(cmd[cmd.index("--dump-header") + 1])
+            body_path = Path(cmd[cmd.index("--output") + 1])
+            header_path.write_text(
+                "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n\r\n",
+                encoding="iso-8859-1",
+            )
+            body_path.write_bytes(b'<html><body><a href="/page">Page</a></body></html>')
+            return subprocess.CompletedProcess(
+                cmd,
+                0,
+                stdout="200\nhttps://example.org/\n",
+                stderr="",
+            )
+
+        monkeypatch.setattr(
+            "archive_tool.http_warc_backend.httpx.Client",
+            FakeClient,
+        )
+        monkeypatch.setattr("archive_tool.http_warc_backend.subprocess.run", fake_subprocess_run)
+        monkeypatch.setattr("archive_tool.http_warc_backend.time.sleep", lambda *_: None)
+
+        argv = [
+            "archive-tool",
+            "--seeds",
+            "https://example.org/",
+            "--name",
+            "example-http-warc-curl",
+            "--output-dir",
+            str(out_dir),
+            "--capture-backend",
+            "http_warc",
+            "--resume-policy",
+            "fresh_only",
+            "--auto-reset-poisoned-state",
+            "--skip-final-build",
+        ]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        archive_main.main()
+
+        warc_path = out_dir / "warcs" / "warc-000001.warc.gz"
+        assert warc_path.is_file()
+        urls = [rec.url for rec in iter_html_records(warc_path)]
+        assert urls == ["https://example.org/", "https://example.org/page"]
+        assert attempts["https://example.org/"] == 3
+
+        combined_logs = sorted(out_dir.glob("archive_http_warc_capture_*.combined.log"))
+        assert combined_logs
+        log_text = combined_logs[-1].read_text(encoding="utf-8")
+        assert "Switching https://example.org/ to curl --http1.1 transport" in log_text
+        assert (
+            "Curl fetch succeeded for https://example.org/ on attempt 1/2 with status 200."
+            in log_text
+        )
 
     def test_fresh_only_browsertrix_promotes_inline_to_http_warc_after_budget(
         self,

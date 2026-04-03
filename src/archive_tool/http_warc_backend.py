@@ -4,10 +4,14 @@ import io
 import json
 import logging
 import os
+import re
+import subprocess
+import tempfile
 import time
 from collections import deque
 from dataclasses import dataclass
 from datetime import datetime, timezone
+from http import HTTPStatus
 from pathlib import Path
 from typing import Iterable, Pattern
 from urllib.parse import urljoin, urlsplit, urlunsplit
@@ -207,6 +211,180 @@ def _build_default_headers(user_agent: str) -> dict[str, str]:
     }
 
 
+def _reason_phrase_for_status(status_code: int) -> str:
+    try:
+        return HTTPStatus(status_code).phrase
+    except ValueError:
+        return ""
+
+
+def _parse_curl_response_headers(raw_headers: bytes) -> tuple[int, list[tuple[str, str]]]:
+    text = raw_headers.decode("iso-8859-1", errors="replace")
+    blocks = [block.strip() for block in re.split(r"\r?\n\r?\n", text) if block.strip()]
+    response_blocks = [block for block in blocks if block.startswith("HTTP/")]
+    if not response_blocks:
+        raise ValueError("curl response headers did not include an HTTP status line")
+
+    last_block = response_blocks[-1]
+    lines = [line.strip() for line in last_block.splitlines() if line.strip()]
+    status_line = lines[0]
+    parts = status_line.split(" ", 2)
+    if len(parts) < 2:
+        raise ValueError(f"invalid curl status line: {status_line!r}")
+    status_code = int(parts[1])
+
+    header_items: list[tuple[str, str]] = []
+    for line in lines[1:]:
+        if ":" not in line:
+            continue
+        key, value = line.split(":", 1)
+        header_items.append((key.strip(), value.strip()))
+    return status_code, header_items
+
+
+def _curl_fetch_with_retries(
+    *,
+    sink: _StageLogSink,
+    url: str,
+    user_agent: str,
+    connect_timeout_seconds: float,
+    read_timeout_seconds: float,
+    retry_backoff_seconds: float,
+    max_attempts: int = 2,
+) -> httpx.Response:
+    headers = _build_default_headers(user_agent)
+    last_error: Exception | None = None
+
+    for attempt in range(1, max_attempts + 1):
+        if attempt == 1:
+            sink.emit(
+                f"[http_warc] Switching {url} to curl --http1.1 transport "
+                f"(attempt {attempt}/{max_attempts})."
+            )
+        else:
+            delay = retry_backoff_seconds * float(attempt - 1)
+            sink.emit(
+                f"[http_warc] Retrying {url} via curl after {delay:.1f}s backoff "
+                f"(attempt {attempt}/{max_attempts})."
+            )
+            if delay > 0:
+                time.sleep(delay)
+
+        try:
+            with tempfile.TemporaryDirectory(prefix="ha-http-warc-curl-") as temp_dir:
+                header_path = Path(temp_dir) / "headers.txt"
+                body_path = Path(temp_dir) / "body.bin"
+                cmd = [
+                    "curl",
+                    "--http1.1",
+                    "--location",
+                    "--compressed",
+                    "--silent",
+                    "--show-error",
+                    "--dump-header",
+                    str(header_path),
+                    "--output",
+                    str(body_path),
+                    "--write-out",
+                    "%{http_code}\n%{url_effective}",
+                    "--connect-timeout",
+                    str(int(max(1.0, round(connect_timeout_seconds)))),
+                    "--max-time",
+                    str(int(max(1.0, round(connect_timeout_seconds + read_timeout_seconds)))),
+                    "--user-agent",
+                    user_agent,
+                ]
+                for key, value in headers.items():
+                    if key.lower() == "user-agent":
+                        continue
+                    cmd.extend(["--header", f"{key}: {value}"])
+                cmd.append(url)
+
+                result = subprocess.run(
+                    cmd,
+                    capture_output=True,
+                    text=True,
+                    timeout=max(1.0, connect_timeout_seconds + read_timeout_seconds + 15.0),
+                    check=False,
+                )
+
+                if result.returncode != 0:
+                    stderr = (result.stderr or "").strip()
+                    if result.returncode == 28:
+                        last_error = httpx.ReadTimeout(
+                            stderr or "curl timed out",
+                            request=httpx.Request("GET", url),
+                        )
+                        sink.emit(
+                            f"[http_warc] WARNING curl fetching {url} attempt {attempt}/{max_attempts}: "
+                            f"timeout ({stderr or 'curl timed out'})"
+                        )
+                    else:
+                        last_error = httpx.TransportError(
+                            stderr or f"curl exited {result.returncode}"
+                        )
+                        sink.emit(
+                            f"[http_warc] WARNING curl fetching {url} attempt {attempt}/{max_attempts}: "
+                            f"transport error ({stderr or f'curl exited {result.returncode}'})"
+                        )
+                    if attempt < max_attempts:
+                        continue
+                    break
+
+                stdout_lines = (result.stdout or "").splitlines()
+                if not stdout_lines:
+                    raise ValueError("curl write-out did not return status metadata")
+                status_code = int(stdout_lines[0].strip())
+                effective_url = stdout_lines[1].strip() if len(stdout_lines) > 1 else url
+                raw_headers = header_path.read_bytes()
+                body = body_path.read_bytes()
+                parsed_status_code, header_items = _parse_curl_response_headers(raw_headers)
+                if parsed_status_code != status_code:
+                    status_code = parsed_status_code
+
+                response = httpx.Response(
+                    status_code,
+                    headers=header_items,
+                    content=body,
+                    request=httpx.Request("GET", effective_url or url),
+                )
+
+                if status_code in _RETRYABLE_STATUS_CODES and attempt < max_attempts:
+                    sink.emit(
+                        f"[http_warc] WARNING curl fetching {url} attempt {attempt}/{max_attempts}: "
+                        f"HTTP {status_code}; will retry."
+                    )
+                    continue
+
+                sink.emit(
+                    f"[http_warc] Curl fetch succeeded for {url} on attempt {attempt}/{max_attempts} "
+                    f"with status {status_code}."
+                )
+                return response
+        except subprocess.TimeoutExpired as exc:
+            last_error = httpx.ReadTimeout(
+                str(exc),
+                request=httpx.Request("GET", url),
+            )
+            sink.emit(
+                f"[http_warc] WARNING curl fetching {url} attempt {attempt}/{max_attempts}: "
+                f"timeout ({exc})"
+            )
+            if attempt < max_attempts:
+                continue
+        except Exception as exc:
+            last_error = exc
+            sink.emit(
+                f"[http_warc] WARNING curl fetching {url} attempt {attempt}/{max_attempts}: {exc}"
+            )
+            if attempt < max_attempts:
+                continue
+
+    if isinstance(last_error, httpx.HTTPError):
+        raise last_error
+    raise httpx.TransportError(str(last_error or "curl transport failed"))
+
+
 def _write_response_record(
     writer: WARCWriter,
     *,
@@ -239,6 +417,10 @@ def _fetch_with_retries(
     url: str,
     max_attempts: int,
     retry_backoff_seconds: float,
+    allow_curl_transport: bool,
+    user_agent: str,
+    connect_timeout_seconds: float,
+    read_timeout_seconds: float,
 ) -> httpx.Response:
     last_exc: httpx.HTTPError | None = None
 
@@ -264,7 +446,7 @@ def _fetch_with_retries(
             )
             if attempt < max_attempts:
                 continue
-            raise
+            break
         except httpx.TransportError as exc:
             last_exc = exc
             sink.emit(
@@ -273,7 +455,7 @@ def _fetch_with_retries(
             )
             if attempt < max_attempts:
                 continue
-            raise
+            break
 
         if response.status_code in _RETRYABLE_STATUS_CODES and attempt < max_attempts:
             sink.emit(
@@ -290,6 +472,15 @@ def _fetch_with_retries(
         return response
 
     if last_exc is not None:
+        if allow_curl_transport:
+            return _curl_fetch_with_retries(
+                sink=sink,
+                url=url,
+                user_agent=user_agent,
+                connect_timeout_seconds=connect_timeout_seconds,
+                read_timeout_seconds=read_timeout_seconds,
+                retry_backoff_seconds=retry_backoff_seconds,
+            )
         raise last_exc
     raise httpx.HTTPError(f"Failed to fetch {url}")
 
@@ -373,6 +564,10 @@ def run_http_warc_capture(
                             _SEED_FETCH_ATTEMPTS if url in seed_urls else _DISCOVERED_FETCH_ATTEMPTS
                         ),
                         retry_backoff_seconds=retry_backoff_seconds,
+                        allow_curl_transport=url in seed_urls,
+                        user_agent=user_agent,
+                        connect_timeout_seconds=connect_timeout_seconds,
+                        read_timeout_seconds=read_timeout_seconds,
                     )
                     _write_response_record(writer, url=url, response=response)
                     crawled += 1
