@@ -95,6 +95,7 @@ export HEALTHARCHIVE_ENV=development
 export HEALTHARCHIVE_DATABASE_URL=sqlite:///$(pwd)/.dev-healtharchive.db
 export HEALTHARCHIVE_ARCHIVE_ROOT=$(pwd)/.dev-archive-root
 export HEALTHARCHIVE_ZIMIT_DOCKER_IMAGE=ghcr.io/openzim/zimit  # optional override (pin by tag or digest)
+export HEALTHARCHIVE_PLAYWRIGHT_DOCKER_IMAGE=mcr.microsoft.com/playwright:v1.50.1-jammy  # optional fallback-browser override
 export HEALTHARCHIVE_ADMIN_TOKEN=localdev-admin
 export HEALTHARCHIVE_LOG_LEVEL=DEBUG
 export HA_SEARCH_RANKING_VERSION=v2
@@ -115,6 +116,7 @@ export HEALTHARCHIVE_ENV=production
 export HEALTHARCHIVE_DATABASE_URL=postgresql+psycopg://healtharchive:<DB_PASSWORD>@127.0.0.1:5432/healtharchive
 export HEALTHARCHIVE_ARCHIVE_ROOT=/srv/healtharchive/jobs
 export HEALTHARCHIVE_ZIMIT_DOCKER_IMAGE=ghcr.io/openzim/zimit@sha256:<PINNED_DIGEST>
+export HEALTHARCHIVE_PLAYWRIGHT_DOCKER_IMAGE=mcr.microsoft.com/playwright:v1.50.1-jammy
 export HEALTHARCHIVE_ADMIN_TOKEN=<LONG_RANDOM_SECRET>
 export HEALTHARCHIVE_CORS_ORIGINS=https://healtharchive.ca,https://www.healtharchive.ca,https://replay.healtharchive.ca
 export HEALTHARCHIVE_LOG_LEVEL=INFO
@@ -137,6 +139,21 @@ Notes:
   manager (e.g., Bitwarden + server env), **never committed**.
 - `HEALTHARCHIVE_ZIMIT_DOCKER_IMAGE` pins the crawler container image used by `archive_tool`.
   Use a digest (`...@sha256:...`) in production to avoid upstream `latest` changes breaking crawls.
+- `HEALTHARCHIVE_PLAYWRIGHT_DOCKER_IMAGE` pins the Chromium fallback image used
+  by `playwright_warc`. Keep it pinned to an explicit Playwright tag so browser
+  behavior is reproducible across annual reruns.
+- `HEALTHARCHIVE_PLAYWRIGHT_NAVIGATION_TIMEOUT_MS` (default `150000`) sets the
+  per-page browser navigation timeout for `playwright_warc`.
+- `HEALTHARCHIVE_PLAYWRIGHT_SETTLE_MS` (default `5000`) adds a fixed post-load
+  settle delay before capture/link extraction.
+- `HEALTHARCHIVE_PLAYWRIGHT_VIEWPORT_WIDTH` / `HEALTHARCHIVE_PLAYWRIGHT_VIEWPORT_HEIGHT`
+  (defaults `1440x900`) define the deterministic browser viewport.
+- `HEALTHARCHIVE_PLAYWRIGHT_LOCALE` (default `en-CA`) and
+  `HEALTHARCHIVE_PLAYWRIGHT_TIMEZONE` (default `America/Toronto`) keep the
+  fallback browser runtime stable across runs.
+- `HEALTHARCHIVE_PLAYWRIGHT_NODE_CACHE_DIR` (default `/tmp/healtharchive-playwright-node`)
+  controls the host-side cache/work directory mounted into the Playwright
+  container for npm dependencies.
 - `HEALTHARCHIVE_REPLAY_BASE_URL` enables `browseUrl` fields in `/api/search`
   and `/api/snapshot/{id}` so the frontend can embed the replay service.
 - `HEALTHARCHIVE_USAGE_METRICS_ENABLED` controls whether aggregated daily usage

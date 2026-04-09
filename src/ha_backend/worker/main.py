@@ -170,12 +170,12 @@ def _apply_failure_policy(job: ArchiveJob, *, crawl_rc: int) -> None:
         )
         return
 
-    if capture_backend == "http_warc":
+    if capture_backend in {"http_warc", "playwright_warc"}:
         next_failures = int(job.retry_count) + 1
         job.retry_count = next_failures
         if next_failures < MAX_CRAWL_RETRIES:
             job.status = "retryable"
-            job.crawler_stage = "http_warc_retry"
+            job.crawler_stage = f"{capture_backend}_retry"
             logger.warning(
                 "Fallback crawl for job %s failed (RC=%s). Marking retryable (%d/%d).",
                 job.id,

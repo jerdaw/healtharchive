@@ -22,6 +22,7 @@ from archive_tool import (
     docker_runner,
     http_warc_backend,
     monitor,
+    playwright_warc_backend,
     state,
     strategies,
     utils,
@@ -813,31 +814,55 @@ def main():
         skip_resume_queue = True
 
     def _run_fallback_capture(active_backend: str) -> None:
-        if active_backend != "http_warc":
-            logger.critical("Unsupported fallback capture backend: %s", active_backend)
-            sys.exit(1)
-
-        logger.info("Step 4: Running fallback HTTP WARC capture backend")
-        result = http_warc_backend.run_http_warc_capture(
-            output_dir=host_output_dir,
-            seeds=list(script_args.seeds),
-            zimit_passthrough_args=list(zimit_passthrough_args),
-        )
-        if result.exit_code != 0:
-            logger.error(
-                "Fallback HTTP WARC capture failed (crawled=%d failed=%d).",
-                result.crawled,
-                result.failed,
+        if active_backend == "http_warc":
+            logger.info("Step 4: Running fallback HTTP WARC capture backend")
+            http_warc_result = http_warc_backend.run_http_warc_capture(
+                output_dir=host_output_dir,
+                seeds=list(script_args.seeds),
+                zimit_passthrough_args=list(zimit_passthrough_args),
             )
-            sys.exit(result.exit_code)
-        logger.info(
-            "Fallback HTTP WARC capture completed successfully: warc=%s crawled=%d failed=%d",
-            result.warc_path,
-            result.crawled,
-            result.failed,
-        )
+            if http_warc_result.exit_code != 0:
+                logger.error(
+                    "Fallback HTTP WARC capture failed (crawled=%d failed=%d).",
+                    http_warc_result.crawled,
+                    http_warc_result.failed,
+                )
+                sys.exit(http_warc_result.exit_code)
+            logger.info(
+                "Fallback HTTP WARC capture completed successfully: warc=%s crawled=%d failed=%d",
+                http_warc_result.warc_path,
+                http_warc_result.crawled,
+                http_warc_result.failed,
+            )
+            return
 
-    if capture_backend == "http_warc":
+        if active_backend == "playwright_warc":
+            logger.info("Step 4: Running fallback Playwright WARC capture backend")
+            playwright_result = playwright_warc_backend.run_playwright_warc_capture(
+                output_dir=host_output_dir,
+                seeds=list(script_args.seeds),
+                zimit_passthrough_args=list(zimit_passthrough_args),
+            )
+            if playwright_result.exit_code != 0:
+                logger.error(
+                    "Fallback Playwright WARC capture failed (crawled=%d failed=%d).",
+                    playwright_result.crawled,
+                    playwright_result.failed,
+                )
+                sys.exit(playwright_result.exit_code)
+            logger.info(
+                "Fallback Playwright WARC capture completed successfully: warc=%s crawled=%d failed=%d provenance=%s",
+                playwright_result.warc_path,
+                playwright_result.crawled,
+                playwright_result.failed,
+                playwright_result.provenance_path,
+            )
+            return
+
+        logger.critical("Unsupported fallback capture backend: %s", active_backend)
+        sys.exit(1)
+
+    if capture_backend in {"http_warc", "playwright_warc"}:
         _run_fallback_capture(capture_backend)
         return
 
@@ -1697,7 +1722,7 @@ def main():
                     )
 
                 if (
-                    fallback_backend == "http_warc"
+                    fallback_backend in {"http_warc", "playwright_warc"}
                     and max_fresh_failures_before_fallback > 0
                     and fresh_failures_done >= max_fresh_failures_before_fallback
                 ):

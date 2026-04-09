@@ -84,7 +84,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, List[str]]:
     )
     tool_opts_group.add_argument(
         "--capture-backend",
-        choices=["browsertrix", "http_warc"],
+        choices=["browsertrix", "http_warc", "playwright_warc"],
         default="browsertrix",
         help="Capture backend to use for this run.",
     )
@@ -96,7 +96,7 @@ def parse_arguments() -> Tuple[argparse.Namespace, List[str]]:
     )
     tool_opts_group.add_argument(
         "--fallback-backend",
-        choices=["none", "http_warc"],
+        choices=["none", "http_warc", "playwright_warc"],
         default="none",
         help="Fallback backend to promote to after repeated fresh crawl failures.",
     )

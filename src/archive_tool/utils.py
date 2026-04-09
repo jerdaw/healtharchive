@@ -569,6 +569,9 @@ def parse_last_stats_from_log(log_file_path: Path) -> Optional[Dict[str, Any]]:
                 "pending": stats_details.get("pending"),
                 "failed": stats_details.get("failed"),
             }
+            for extra_key in ("backend", "captureMode", "lastPage"):
+                if extra_key in stats_details:
+                    extracted_stats[extra_key] = stats_details.get(extra_key)
             if extracted_stats["crawled"] is None or extracted_stats["total"] is None:
                 logger.warning("Last stats message missing data: %s", stats_details)
                 continue

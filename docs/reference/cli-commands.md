@@ -614,10 +614,33 @@ ha-backend reconcile-annual-tool-options --year 2026 --sources hc --apply
 **What it does**:
 - Reconciles legacy baseline tool options to per-source profiles
 - Reconciles annual `execution_policy` defaults (for example HC/PHAC
-  `fresh_only` resume policy and `http_warc` fallback settings)
+  `fresh_only` resume policy and `playwright_warc` fallback settings)
 - Reconciles canonical HC/PHAC scope filters on existing annual jobs
 - Preserves explicit non-baseline overrides
 - Enforces restart-budget floor and annual safety defaults
+
+### probe-browser-fetch
+
+Run one or more URLs through the pinned Playwright browser path used by the
+server-side `playwright_warc` fallback backend.
+
+**Usage**:
+```bash
+ha-backend probe-browser-fetch URL [URL ...]
+```
+
+**Examples**:
+```bash
+ha-backend probe-browser-fetch https://www.canada.ca/en/public-health.html
+ha-backend probe-browser-fetch \
+  https://www.canada.ca/en/public-health.html \
+  https://www.canada.ca/en/health-canada.html
+```
+
+**What it does**:
+- launches the same pinned Playwright Docker image used by the browser fallback
+- reports final URL, status code, cookie count, body source, and HTML byte size
+- helps operators confirm whether the server-side browser path works before rerunning a failed annual job
 
 ### reset-crawl-state
 

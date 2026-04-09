@@ -602,15 +602,16 @@ Used both to:
 * Decide if there are **preexisting warcs** when choosing run mode.
 * Provide warc list to the final `--warcs` build.
 
-### 5.5.1 Fallback HTTP WARC backend
+### 5.5.1 Fallback backends
 
-`archive_tool` now has a source-managed fallback backend selected with:
+`archive_tool` supports two source-managed fallback backends:
 
 ```text
 --capture-backend http_warc
+--capture-backend playwright_warc
 ```
 
-Behavior:
+#### `http_warc`
 
 * Uses `httpx` + `BeautifulSoup` instead of Browsertrix/Zimit.
 * Reuses the same include/exclude scope regexes passed through the job config.
@@ -631,6 +632,46 @@ This backend is intentionally narrower than Browsertrix:
 * targeted as a bounded fallback for source-managed annual jobs (currently
   HC/PHAC) when Browsertrix fresh phases keep failing
 
+#### `playwright_warc`
+
+* Runs pinned headless Chromium inside an official Playwright Docker image.
+* Reuses the same include/exclude scope regexes passed through the job config.
+* Keeps one browser context for the full fallback run so cookies/session
+  bootstrap persist across queued pages.
+* Prefers canonical main-document response bytes for WARC payloads when
+  Playwright exposes them; if not, records rendered DOM as an explicit degraded
+  fallback and preserves that distinction in crawl provenance.
+* Uses the final navigated URL as the canonical WARC target URL while keeping
+  requested/final URL provenance in emitted metadata.
+* Writes crawl provenance under
+  `provenance/playwright_warc/run_*/capture_provenance.json`.
+* Emits `crawlStatus` JSON lines into
+  `archive_playwright_warc_capture_*.combined.log` with extra `backend`,
+  `captureMode`, and `lastPage` details so existing monitoring and stats
+  parsing continue to work.
+
+Runtime knobs for `playwright_warc`:
+
+* `HEALTHARCHIVE_PLAYWRIGHT_DOCKER_IMAGE` pins the Playwright image tag used
+  for server-side browser fallback.
+* `HEALTHARCHIVE_PLAYWRIGHT_NAVIGATION_TIMEOUT_MS` and
+  `HEALTHARCHIVE_PLAYWRIGHT_SETTLE_MS` control deterministic navigation/settle
+  timing.
+* `HEALTHARCHIVE_PLAYWRIGHT_VIEWPORT_WIDTH`,
+  `HEALTHARCHIVE_PLAYWRIGHT_VIEWPORT_HEIGHT`,
+  `HEALTHARCHIVE_PLAYWRIGHT_LOCALE`, and
+  `HEALTHARCHIVE_PLAYWRIGHT_TIMEZONE` define the browser runtime shape used for
+  yearly comparability.
+* `HEALTHARCHIVE_PLAYWRIGHT_NODE_CACHE_DIR` controls the host-side cache/work
+  directory mounted into the Playwright container.
+
+This backend is still narrower than Browsertrix:
+
+* it captures the main document plus in-scope link discovery, not a full
+  browser-level recursive asset archive
+* it is intended as an explicit degraded archival mode when Browsertrix fails,
+  not as the default archival standard
+
 ### 5.6 Parsing stats from logs
 
 * `parse_last_stats_from_log(log_file_path: Path) -> Optional[Dict[str, Any]]`
@@ -645,7 +686,10 @@ falls back to the previous usable stats entry. It returns:
   "crawled": ...,
   "total": ...,
   "pending": ...,
-  "failed": ...
+  "failed": ...,
+  "backend": ...,
+  "captureMode": ...,
+  "lastPage": ...,
 }
 ```
 

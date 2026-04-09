@@ -220,9 +220,9 @@ class ArchiveJobConfig:
         )
 
 
-_VALID_CAPTURE_BACKENDS = {"browsertrix", "http_warc"}
+_VALID_CAPTURE_BACKENDS = {"browsertrix", "http_warc", "playwright_warc"}
 _VALID_RESUME_POLICIES = {"auto", "fresh_only"}
-_VALID_FALLBACK_BACKENDS = {"none", "http_warc"}
+_VALID_FALLBACK_BACKENDS = {"none", "http_warc", "playwright_warc"}
 
 
 def validate_tool_options(opts: ArchiveToolOptions) -> None:

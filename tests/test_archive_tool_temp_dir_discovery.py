@@ -185,3 +185,37 @@ def test_parse_last_stats_from_log_skips_empty_details_and_uses_last_usable_entr
     parsed = parse_last_stats_from_log(log_path)
 
     assert parsed == {"crawled": 0, "total": 2, "pending": 0, "failed": 2}
+
+
+def test_parse_last_stats_from_log_preserves_playwright_backend_metadata(
+    tmp_path: Path,
+) -> None:
+    log_path = tmp_path / "archive_playwright_warc_capture.combined.log"
+    log_path.write_text(
+        "\n".join(
+            [
+                '{"timestamp":"2026-04-03T05:06:06.051Z","logLevel":"info","context":"crawlStatus","message":"Crawl statistics","details":{"crawled":2,"total":2,"pending":0,"failed":0,"backend":{"name":"playwright_warc","chromiumVersion":"147.0.7727.15"},"captureMode":{"bodySourceCounts":{"network_response":2},"provenancePath":"/tmp/provenance.json"},"lastPage":{"requestedUrl":"https://example.org","finalUrl":"https://example.org/final","statusCode":200}}}',
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    parsed = parse_last_stats_from_log(log_path)
+
+    assert parsed == {
+        "crawled": 2,
+        "total": 2,
+        "pending": 0,
+        "failed": 0,
+        "backend": {"name": "playwright_warc", "chromiumVersion": "147.0.7727.15"},
+        "captureMode": {
+            "bodySourceCounts": {"network_response": 2},
+            "provenancePath": "/tmp/provenance.json",
+        },
+        "lastPage": {
+            "requestedUrl": "https://example.org",
+            "finalUrl": "https://example.org/final",
+            "statusCode": 200,
+        },
+    }

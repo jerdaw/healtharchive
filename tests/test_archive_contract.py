@@ -271,3 +271,14 @@ def test_validate_execution_policy_enforces_invariants() -> None:
             max_temp_dirs_before_reset=50,
         )
     )
+
+    validate_execution_policy(
+        ArchiveExecutionPolicy(
+            capture_backend="playwright_warc",
+            resume_policy="fresh_only",
+            fallback_backend="none",
+            max_fresh_failures_before_fallback=2,
+            auto_reset_poisoned_state=True,
+            max_temp_dirs_before_reset=50,
+        )
+    )
