@@ -82,6 +82,7 @@ Guidelines:
 
 - Commits, docs, code comments, release notes, and metadata must list only human contributors as authors.
 - Do not add AI-assistant attribution (for example: Codex, Claude, Gemini, Copilot, ChatGPT) in authored-by/co-authored-by lines, prose, or generated metadata.
+- Do not rely on bot-managed auto-merge paths that stamp bot authorship or `Co-Authored-By` trailers into repository history.
 - If tooling is used, describe the technical change directly without attributing authorship to the tool.
 
 ---
