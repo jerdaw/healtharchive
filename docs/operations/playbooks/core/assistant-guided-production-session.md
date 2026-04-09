@@ -218,7 +218,7 @@ Recommended follow-ups:
 2. Confirm the access window is temporary and the operator is present.
 3. Confirm the session will use Tailscale SSH, not generic SSH-over-tailnet.
 4. Confirm the SSH policy is narrow enough for production:
-   `users=["haadmin"]`, `action="check"`, short `checkPeriod`, minimal
+   `users=["haadmin"]`, `action="check"`, default approval window, minimal
    environment forwarding.
 5. Confirm whether session recording is enabled and whether it is currently
    fail-open or fail-closed.
