@@ -62,6 +62,29 @@ function loadPlaywright() {
   return requireFromCwd("playwright");
 }
 
+async function detectPlaywrightVersion(playwright) {
+  const fromEnv = String(process.env.PLAYWRIGHT_VERSION || "").trim();
+  if (fromEnv) return fromEnv;
+
+  const fromModule = String(playwright?.version || "").trim();
+  if (fromModule) return fromModule;
+
+  try {
+    const { createRequire } = require("node:module");
+    const requireFromCwd = createRequire(`${process.cwd()}/`);
+    const playwrightEntry = requireFromCwd.resolve("playwright");
+    const playwrightDir = path.dirname(playwrightEntry);
+    const packageJsonPath = path.join(playwrightDir, "package.json");
+    const packageJson = JSON.parse(await fs.readFile(packageJsonPath, "utf8"));
+    const version = String(packageJson.version || "").trim();
+    if (version) return version;
+  } catch (_err) {
+    // Best effort only; runtime metadata can omit the npm version.
+  }
+
+  return "";
+}
+
 function emitJson(payload) {
   // eslint-disable-next-line no-console
   console.log(JSON.stringify(payload));
@@ -174,7 +197,8 @@ async function main() {
   await fs.mkdir(path.dirname(manifestPath), { recursive: true });
   await fs.mkdir(bodiesDir, { recursive: true });
 
-  const { chromium } = loadPlaywright();
+  const playwright = loadPlaywright();
+  const { chromium } = playwright;
   const browser = await chromium.launch({
     args: ["--disable-dev-shm-usage"],
     headless: true,
@@ -321,11 +345,10 @@ async function main() {
     }
   }
 
-  const playwrightPkg = require("playwright/package.json");
   const manifest = {
     runtime: {
       backend: "playwright_warc",
-      playwrightVersion: String(playwrightPkg.version || ""),
+      playwrightVersion: await detectPlaywrightVersion(playwright),
       chromiumVersion: await browser.version(),
       viewport: { width: viewportWidth, height: viewportHeight },
       locale,

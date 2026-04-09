@@ -4,7 +4,9 @@ import json
 from pathlib import Path
 
 from archive_tool.constants import PLAYWRIGHT_DOCKER_IMAGE
+from archive_tool.http_warc_backend import _StageLogSink
 from archive_tool.playwright_warc_backend import (
+    _run_playwright_container,
     probe_playwright_fetch,
     run_playwright_warc_capture,
 )
@@ -278,3 +280,62 @@ def test_probe_playwright_fetch_returns_runtime_and_items(tmp_path, monkeypatch)
             "error": "boom",
         },
     ]
+
+
+def test_run_playwright_container_passes_playwright_version_env(tmp_path, monkeypatch) -> None:
+    script_path = tmp_path / "playwright_warc_capture.js"
+    script_path.write_text("// test stub\n", encoding="utf-8")
+    scratch_dir = tmp_path / "scratch"
+    node_cache_dir = tmp_path / "node-cache"
+    captured_cmd: dict[str, list[str]] = {}
+
+    class FakeProc:
+        stdout = None
+
+        def wait(self) -> int:
+            return 0
+
+    def fake_stream_subprocess_output(proc, sink) -> None:
+        manifest = {
+            "runtime": {
+                "playwrightVersion": "1.50.1",
+                "chromiumVersion": "147.0.7727.15",
+            },
+            "records": [],
+            "failures": [],
+        }
+        (scratch_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+    def fake_popen(cmd, **kwargs):
+        captured_cmd["cmd"] = list(cmd)
+        return FakeProc()
+
+    monkeypatch.setattr(
+        "archive_tool.playwright_warc_backend._playwright_script_path",
+        lambda: script_path,
+    )
+    monkeypatch.setattr(
+        "archive_tool.playwright_warc_backend._node_cache_dir",
+        lambda: node_cache_dir,
+    )
+    monkeypatch.setattr(
+        "archive_tool.playwright_warc_backend._stream_subprocess_output",
+        fake_stream_subprocess_output,
+    )
+    monkeypatch.setattr("archive_tool.playwright_warc_backend.subprocess.Popen", fake_popen)
+
+    sink = _StageLogSink(tmp_path, "playwright_warc_capture")
+    rc, manifest = _run_playwright_container(
+        sink=sink,
+        seeds=["https://example.org"],
+        scope_include_rx=None,
+        scope_exclude_rx=None,
+        expand_links=False,
+        scratch_dir=scratch_dir,
+    )
+
+    assert rc == 0
+    assert manifest["runtime"]["playwrightVersion"] == "1.50.1"
+    assert "cmd" in captured_cmd
+    assert "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1" in captured_cmd["cmd"]
+    assert "PLAYWRIGHT_VERSION=1.50.1" in captured_cmd["cmd"]

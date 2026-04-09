@@ -257,6 +257,8 @@ def _run_playwright_container(
         "--rm",
         "-e",
         "PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD=1",
+        "-e",
+        f"PLAYWRIGHT_VERSION={npm_version}",
         "-v",
         f"{script_path}:{container_script}:ro",
         "-v",
