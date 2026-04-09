@@ -16,6 +16,7 @@
 | Daily checks | [Ops Cadence](ops-cadence-checklist.md) |
 | Deploy changes | [Deploy & Verify](playbooks/core/deploy-and-verify.md) |
 | Investigate issues | [Incident Response](playbooks/core/incident-response.md) |
+| Use an assistant safely on prod | [Assistant-Guided Production Session](playbooks/core/assistant-guided-production-session.md) |
 | Monitor health | [Monitoring](monitoring-and-ci-checklist.md) |
 | Quarterly tasks | [Restore Test](playbooks/validation/restore-test.md), [Dataset Release](dataset-release-runbook.md) |
 
@@ -28,6 +29,7 @@ Operational default:
 ## All Operational Documentation
 
 - Ops playbooks (task-oriented checklists): `playbooks/README.md`
+- Assistant-guided production sessions (HealthArchive-specific prod session protocol): `playbooks/core/assistant-guided-production-session.md`
 - Incident notes / postmortems (internal): `incidents/README.md`
 - Observability + private stats contract (public vs private boundaries): `observability-and-private-stats.md`
 - Annual capture campaign (scope + seeds): `annual-campaign.md`

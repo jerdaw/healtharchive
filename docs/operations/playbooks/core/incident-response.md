@@ -8,6 +8,7 @@ Canonical references:
 - Monitoring checklist: `../../monitoring-and-ci-checklist.md`
 - Service levels: `../../service-levels.md` — for communication commitments and SLOs
 - Escalation procedures: `../../escalation-procedures.md`
+- Assistant-guided production sessions: `assistant-guided-production-session.md`
 - Disaster recovery runbook: `../../../deployment/disaster-recovery.md`
 - Baseline drift: `../../baseline-drift.md`
 - Incident notes (template + where to file): `../../incidents/README.md`
