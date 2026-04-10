@@ -1,7 +1,7 @@
 # 2026-03-23: Annual Crawl Content-Cost and Scope Diagnosis
 
-**Plan Version**: v1.2
-**Status**: Active (Phase 1 delivered; PHAC pilot and CIHR live evidence captured)
+**Plan Version**: v1.3
+**Status**: Active (Phase 1-4 partially delivered; prod browser-fallback probe verified on 2026-04-09)
 **Scope**: Diagnose which content classes and URL families are consuming the most crawl time, storage, and restart budget in the 2026 annual campaign, then use that evidence to refine scope toward a "user-facing website" backup rather than letting every downloadable asset expand the crawl frontier by default.
 
 ## Why this plan exists
@@ -125,6 +125,96 @@ Immediate implications:
 - Keep the content report lightweight by default for live jobs. The default
   scan caps were reduced after this incident because the previous defaults were
   too heavy on the live CIHR job.
+
+## Progress update (2026-04-09)
+
+Additional repo-side and production verification work was completed on
+2026-04-09.
+
+Key repo-side outcome:
+
+- the active rescue branch now implements a source-managed fallback path for
+  difficult annual sources:
+  - HC and PHAC annual defaults now target:
+    - `capture_backend=browsertrix`
+    - `resume_policy=fresh_only`
+    - `fallback_backend=playwright_warc`
+    - bounded fresh-failure promotion
+    - optional poisoned-state reset before the next fresh phase
+- the browser fallback is now the server-side `playwright_warc` backend rather
+  than the earlier `http_warc`-only recovery direction
+- a production-only bug in the first Playwright probe rollout was fixed:
+  - the container image successfully captured HC/PHAC seed pages
+  - but crashed afterward while trying to resolve `playwright/package.json`
+  - the runtime now tolerates image package-layout differences and passes the
+    pinned Playwright npm version explicitly into the container
+
+Key production verification outcome:
+
+- the VPS was safely deployed to the rescue branch without restarting the
+  worker while CIHR job `8` remained active
+- `ha-backend probe-browser-fetch` was run successfully on the production VPS
+  after the fix using:
+  - `https://www.canada.ca/en/health-canada.html`
+  - `https://www.canada.ca/en/public-health.html`
+- both pages returned:
+  - `statusCode=200`
+  - `bodySource=network_response`
+  - non-trivial HTML byte counts
+- this is the strongest live evidence so far that the new browser fallback path
+  is operational on the real VPS/runtime, not only in local tests
+
+Annual-job reconciliation status:
+
+- a dry-run of `ha-backend reconcile-annual-tool-options --year 2026 --sources hc phac`
+  showed the expected updates for the existing failed annual jobs:
+  - HC job `6` would move `execution_policy.capture_backend` from `http_warc`
+    back to `browsertrix`
+  - HC and PHAC would both move `execution_policy.fallback_backend` from
+    `http_warc` to `playwright_warc`
+- those changes were intentionally **not** applied yet during the 2026-04-09
+  session
+
+Current interpreted state after the 2026-04-09 checkpoint:
+
+- CIHR remains the "do not interrupt" live crawl while progress continues
+- HC is the recommended first rescue target
+- PHAC remains second, after HC establishes whether the new promotion path is
+  actually decision-useful under live annual conditions
+- the project is no longer blocked on "can the server-side browser fallback run
+  on prod?" and is now blocked only on the controlled application of the new
+  job policy to HC/PHAC annual jobs
+
+## Resume point (2026-04-09)
+
+The next production steps were deliberately left undone at the end of the
+session so they can be resumed cleanly in a later maintenance window or new
+conversation.
+
+Resume in this order:
+
+1. Apply annual-job reconciliation for HC and PHAC:
+   - `ha-backend reconcile-annual-tool-options --year 2026 --sources hc phac --apply`
+2. Reset HC job `6` retry budget before requeueing it:
+   - `ha-backend reset-retry-count --id 6 --apply --reason "playwright fallback deployed; restart annual hc rescue"`
+3. Requeue HC:
+   - `ha-backend retry-job --id 6`
+4. Observe HC's first post-reconcile attempt before touching PHAC:
+   - confirm whether it:
+     - makes useful fresh Browsertrix progress
+     - fails once and remains retryable
+     - or promotes to `playwright_warc` after the bounded fresh-failure budget
+5. Only after HC yields decision-useful evidence, decide whether to:
+   - repeat the same controlled rescue flow for PHAC
+   - or patch PHAC-specific policy again before requeueing job `7`
+
+Important guardrails at this resume point:
+
+- do not restart the worker while CIHR is still running unless interruption is
+  explicitly acceptable
+- do not do blind PHAC retries before the HC-first checkpoint is observed
+- keep CIHR on the current "monitor but do not interrupt" posture unless it
+  actually stalls or exhausts safe forward progress
 
 ## Planning update after review
 

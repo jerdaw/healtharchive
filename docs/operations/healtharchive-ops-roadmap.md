@@ -19,12 +19,36 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive-backend && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-03-27)
+## Current status (as of 2026-04-09)
 
-- 2026 annual campaign is partially active on the VPS:
+- 2026 annual campaign is still not search-ready on the VPS:
   - `cihr` remains running.
-  - `hc` is still in a failed state from earlier annual-campaign churn.
-  - `phac` is parked as `retryable` after the 2026-03-23 investigation and controlled restart attempt.
+  - `hc` is currently `failed`.
+  - `phac` is currently `failed`.
+- The prod assistant-on-VPS setup is now in its intended safe operating state:
+  - prod host access is on `tag:prod`
+  - SSH is recorded off-box
+  - `haadmin` prod SSH is `check`-gated
+  - `root` is denied on the prod path
+- The current crawl-rescue branch has been deployed safely to production
+  without interrupting the active CIHR crawl.
+  - Verified production refs during the 2026-04-09 session:
+    - `3437c5d` initial `playwright_warc` rollout
+    - `93bf8e2` follow-up fix for Playwright image package-layout tolerance
+- Production `playwright_warc` probe is now verified against real canada.ca
+  HC/PHAC seed pages.
+  - `ha-backend probe-browser-fetch` succeeded on:
+    - `https://www.canada.ca/en/health-canada.html`
+    - `https://www.canada.ca/en/public-health.html`
+  - Both pages returned:
+    - `statusCode=200`
+    - `bodySource=network_response`
+    - meaningful HTML byte counts
+- Annual HC/PHAC reconcile was dry-run successfully on 2026-04-09, but not yet
+  applied.
+  - Expected live changes:
+    - HC job `6`: `capture_backend http_warc -> browsertrix`
+    - HC and PHAC: `fallback_backend http_warc -> playwright_warc`
 - CIHR annual crawl job `8` was re-checked live on 2026-03-27 after repeated
   `HealthArchiveCrawlTempDirsHigh` warnings.
   - Current live-health result: the crawl is still progressing (`crawl_rate_ppm`
@@ -75,7 +99,7 @@ Keep the two synced copies of this file aligned:
     - HC/PHAC default to `resume_policy=fresh_only`
     - poisoned temp/resume state can be auto-reset before the next attempt
     - repeated fresh Browsertrix failures are bounded and can auto-promote the
-      job to the `http_warc` fallback backend
+      job to the `playwright_warc` fallback backend
     - stale `status=running` rows can be auto-demoted back to `retryable`
       before they block new work
     - crawl auto-recover can now run bounded degraded-rate recoveries instead
@@ -83,9 +107,8 @@ Keep the two synced copies of this file aligned:
   - Empirical result after those fixes: PHAC still does not make useful forward
     progress. Resumed PHAC attempts can start cleanly, then end immediately with
     `crawled=0 total=2 failed=2` and an effectively empty/unprocessable WARC.
-  - PHAC is currently parked as `retryable` with the worker stopped rather than
-    allowing continued blind retries against the same unresolved state/runtime
-    problem.
+  - PHAC remains a controlled second-priority rescue target rather than the
+    first post-deploy rerun.
 - Alerting noise-reduction tuning is deployed and verified:
   - Alertmanager routing is severity-aware (`critical` keeps resolved notifications, non-critical suppresses resolved and repeats less often).
   - Crawl alerting is now automation-first and dashboard-driven:
@@ -98,18 +121,22 @@ Keep the two synced copies of this file aligned:
 
 Treat the following as the current ops execution order:
 
-1. PHAC repo-side mitigation and verification.
-2. Job lock-dir cutover during a safe maintenance window.
-3. CIHR repo-side scope follow-through after the current crawl is idle.
-4. Annual output-dir bind-mount conversion after the 2026 annual crawl is idle.
-5. Routine quarterly ops and evidence collection.
+1. Apply HC/PHAC annual reconcile on the VPS now that `playwright_warc` is verified on prod.
+2. Reset HC job `6` retry budget, requeue it, and observe its first post-reconcile cycle before touching PHAC.
+3. Use the HC result to decide whether PHAC should be retried immediately or patched again first.
+4. CIHR repo-side scope follow-through after the current crawl is idle.
+5. Job lock-dir cutover during a safe maintenance window.
+6. Annual output-dir bind-mount conversion after the 2026 annual crawl is idle.
+7. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
-- PHAC follow-up is now deeper repo-side investigation, not another mitigation
-  deploy or blind live restart.
-  - Current state: job `7` (`phac-20260101`) is parked as `retryable` after a
-    controlled 2026-03-23 investigation with the worker stopped.
+- HC/PHAC follow-up is now controlled live execution against the newly verified
+  `playwright_warc` fallback path, not speculative repo-side plumbing work.
+  - Current state:
+    - job `6` (`hc-20260101`) is `failed` with retry budget already consumed
+    - job `7` (`phac-20260101`) is `failed`
+    - job `8` (`cihr-20260101`) remains running and should stay undisturbed
   - Settled findings from the investigation:
     - the earlier HC/PHAC `--extraChromeArgs --disable-http2` CLI passthrough
       was invalid for the deployed zimit image and is no longer the active
@@ -134,17 +161,18 @@ Treat the following as the current ops execution order:
       and the English Canadian Immunization Guide subtree.
     - Sampled WARC bytes remained dominated by normal pages/render assets rather
       than `.mp4`/dataset/document classes.
-  - Next steps:
-    - deploy the latest repo changes before the next HC/PHAC retry so
-      fresh-only policy, stale-state reset, and bounded fallback promotion are
-      all active on the VPS
-    - determine whether PHAC still reproduces the same failure from a truly
-      fresh phase after resume state is reset automatically
-    - diagnose the remaining canada.ca runtime issue only if fresh Browsertrix
-      phases still fail before the fallback budget can help
-    - revisit the temporary `public-health-notices` exclusion only after the
-      deeper PHAC runtime/state issue is understood
-  - Do not do further blind PHAC recover/restart attempts from the VPS.
+  - Verified on 2026-04-09:
+    - prod deploys can land safely without restarting the worker while CIHR is
+      active
+    - `ha-backend probe-browser-fetch` succeeds on production for both HC and
+      PHAC seed pages using the pinned `playwright_warc` runtime
+    - annual reconcile dry-run shows the intended HC/PHAC policy changes
+  - Immediate next steps:
+    - `ha-backend reconcile-annual-tool-options --year 2026 --sources hc phac --apply`
+    - `ha-backend reset-retry-count --id 6 --apply --reason "playwright fallback deployed; restart annual hc rescue"`
+    - `ha-backend retry-job --id 6`
+    - observe HC before deciding whether to retry PHAC
+  - Do not do blind PHAC retries before the HC-first checkpoint.
 - CIHR follow-up is evidence-backed scope analysis, not live intervention.
   - Current state: job `8` remains healthy enough to keep running; temp-dir
     accumulation alone is not the reason to interrupt it.

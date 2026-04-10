@@ -151,6 +151,7 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Goal: determine which URL families or content classes (HTML pages, render assets, documents, archives, media, datasets) dominate WARC bytes, timeout churn, and restart budgets.
   - Why this matters: large downloadable artifacts may not belong on the annual crawl frontier if the product goal is to preserve the user-facing website rather than every downloadable file.
   - Active plan: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
+  - Current status (2026-04-09): repo-side HC/PHAC fresh-only + `playwright_warc` fallback path is implemented and production probe is verified; remaining work is controlled live execution of the annual reconcile plus HC-first retry/observation.
 - Continue crawl telemetry calibration from live annual-crawl runs, but use dashboard trends (crawl rate / phase churn / progress age) rather than direct throughput alerts.
   - Current focus: validate dashboard thresholds/visual cues and only promote a signal back into Alertmanager if it becomes clearly actionable.
   - Related docs: `../operations/monitoring-and-alerting.md`, `../operations/healtharchive-ops-roadmap.md`
