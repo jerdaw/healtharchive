@@ -668,7 +668,7 @@ def main(argv: list[str] | None = None) -> int:
     _emit(lines, "# TYPE healtharchive_crawl_running_job_effective_backend_info gauge")
     _emit(
         lines,
-        "# HELP healtharchive_crawl_running_job_fallback_backend_info 1 for the configured fallback backend (or backend=\"none\" when unset).",
+        '# HELP healtharchive_crawl_running_job_fallback_backend_info 1 for the configured fallback backend (or backend="none" when unset).',
     )
     _emit(lines, "# TYPE healtharchive_crawl_running_job_fallback_backend_info gauge")
     _emit(

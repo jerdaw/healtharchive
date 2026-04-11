@@ -117,19 +117,18 @@ def test_metrics_emits_archive_state_counters(tmp_path, monkeypatch) -> None:
     assert f"healtharchive_crawl_running_job_new_crawl_phase_count{{{labels}}} 2" in content
     assert f"healtharchive_crawl_running_job_resume_crawl_count{{{labels}}} 1" in content
     assert (
-        'healtharchive_crawl_running_job_primary_backend_info'
-        f'{{{labels},backend="browsertrix"}} 1'
+        f'healtharchive_crawl_running_job_primary_backend_info{{{labels},backend="browsertrix"}} 1'
     ) in content
     assert (
-        'healtharchive_crawl_running_job_configured_backend_info'
+        "healtharchive_crawl_running_job_configured_backend_info"
         f'{{{labels},backend="playwright_warc"}} 1'
     ) in content
     assert (
-        'healtharchive_crawl_running_job_effective_backend_info'
+        "healtharchive_crawl_running_job_effective_backend_info"
         f'{{{labels},backend="playwright_warc"}} 1'
     ) in content
     assert (
-        'healtharchive_crawl_running_job_fallback_backend_info'
+        "healtharchive_crawl_running_job_fallback_backend_info"
         f'{{{labels},backend="playwright_warc"}} 1'
     ) in content
     assert f"healtharchive_crawl_running_job_fallback_active{{{labels}}} 1" in content

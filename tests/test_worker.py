@@ -388,10 +388,7 @@ def test_worker_promotes_fresh_only_browsertrix_job_to_playwright_warc_after_sec
         assert cfg.execution_policy.primary_backend == "browsertrix"
         assert cfg.execution_policy.capture_backend == "playwright_warc"
         assert cfg.execution_policy.last_promoted_from_backend == "browsertrix"
-        assert (
-            cfg.execution_policy.last_promotion_reason
-            == PROMOTION_REASON_FRESH_FAILURE_BUDGET
-        )
+        assert cfg.execution_policy.last_promotion_reason == PROMOTION_REASON_FRESH_FAILURE_BUDGET
 
 
 def test_worker_marks_playwright_warc_jobs_fallback_exhausted_after_second_failure(
