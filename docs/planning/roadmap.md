@@ -54,7 +54,7 @@ Individual items (for reference; see the plan above for execution order):
 
 Track the current status and next actions in:
 
-- `../operations/healtharchive-ops-roadmap.md` for immediate PHAC + maintenance-window ops follow-through
+- `../operations/healtharchive-ops-roadmap.md` for immediate HC/PHAC rescue follow-through plus maintenance-window ops
 - `2026-02-admissions-strengthening-plan.md` for the external-validation and scholarly-output sequence
 
 Supporting materials:
@@ -151,7 +151,14 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Goal: determine which URL families or content classes (HTML pages, render assets, documents, archives, media, datasets) dominate WARC bytes, timeout churn, and restart budgets.
   - Why this matters: large downloadable artifacts may not belong on the annual crawl frontier if the product goal is to preserve the user-facing website rather than every downloadable file.
   - Active plan: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
-  - Current status (2026-04-09): repo-side HC/PHAC fresh-only + `playwright_warc` fallback path is implemented and production probe is verified; remaining work is controlled live execution of the annual reconcile plus HC-first retry/observation.
+  - Current status (2026-04-10): HC now shows the intended live behavior on prod: Browsertrix-first still fails at the seed pages, then the rescue path auto-promotes into `playwright_warc`, which is making sustained real forward progress. Remaining work is:
+    - let HC reach a decision-useful checkpoint or terminal state and verify final WARC/indexing behavior
+    - use the HC result to decide whether PHAC should retry under the same rescue policy or receive another PHAC-specific patch first
+    - after live annual crawls are idle, perform CIHR scope refinement based on evidence rather than interruption
+- Improve crawl rescue observability and operator ergonomics for annual jobs.
+  - Goal: make it obvious from normal operator surfaces which backend a rescue job is currently using, whether fallback promotion already occurred, why it occurred, and whether the fallback path is healthy.
+  - Why this matters: the HC rescue control flow worked on prod, but the operator still had to identify the current log by mtime and reconstruct rescue state from multiple metrics/log fragments.
+  - Active plan: `2026-04-10-crawl-rescue-observability-and-operator-ergonomics.md`
 - Continue crawl telemetry calibration from live annual-crawl runs, but use dashboard trends (crawl rate / phase churn / progress age) rather than direct throughput alerts.
   - Current focus: validate dashboard thresholds/visual cues and only promote a signal back into Alertmanager if it becomes clearly actionable.
   - Related docs: `../operations/monitoring-and-alerting.md`, `../operations/healtharchive-ops-roadmap.md`

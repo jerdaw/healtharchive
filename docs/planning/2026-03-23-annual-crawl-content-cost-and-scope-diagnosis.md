@@ -185,7 +185,54 @@ Current interpreted state after the 2026-04-09 checkpoint:
   on prod?" and is now blocked only on the controlled application of the new
   job policy to HC/PHAC annual jobs
 
-## Resume point (2026-04-09)
+## Resume point (2026-04-10)
+
+The original 2026-04-09 resume commands were executed on 2026-04-10, and the
+HC-first live checkpoint is now materially further along.
+
+Current interpreted state after the 2026-04-10 checkpoint:
+
+- annual-job reconciliation has been applied for HC/PHAC
+- HC job `6` demonstrated the intended rescue path on prod:
+  - fresh Browsertrix still failed immediately at the seed pages with
+    `net::ERR_HTTP2_PROTOCOL_ERROR`
+  - the job remained alive through rescue/backoff
+  - the job auto-promoted into `playwright_warc`
+  - the fallback backend then made sustained real forward progress on prod
+- CIHR remains the "do not interrupt" live crawl while progress continues
+- PHAC remains the controlled second-priority target and should stay untouched
+  until HC reaches a decision-useful checkpoint or terminal state
+- the project is no longer blocked on "does the rescue path work live on prod?"
+- the project is now blocked on:
+  - letting HC run far enough to validate end-to-end fallback behavior and
+    final artifacts
+  - deciding the PHAC next move based on the HC result
+  - improving rescue observability/operator ergonomics so this state is obvious
+    without manual log-forensics
+
+Resume from here in this order:
+
+1. Let HC continue while fallback progress remains healthy.
+2. At the next decision-useful checkpoint or terminal state, verify that:
+   - WARC files remain non-empty and sane
+   - the crawl does not silently stall in fallback
+   - finalization/indexing behavior is sane
+3. Only after HC yields that decision-useful result, decide whether to:
+   - retry PHAC under the same rescue policy
+   - or patch PHAC-specific policy again before requeueing job `7`
+4. Track the operator-visibility gap in:
+   - `2026-04-10-crawl-rescue-observability-and-operator-ergonomics.md`
+
+Important guardrails at this updated resume point:
+
+- do not restart the worker while CIHR is still running unless interruption is
+  explicitly acceptable
+- do not start PHAC while both HC and CIHR are still active
+- do not treat "fallback control flow worked" as the same thing as
+  "operator ergonomics are good enough"; the observability follow-up remains
+  active work
+
+## Historical resume point (2026-04-09)
 
 The next production steps were deliberately left undone at the end of the
 session so they can be resumed cleanly in a later maintenance window or new

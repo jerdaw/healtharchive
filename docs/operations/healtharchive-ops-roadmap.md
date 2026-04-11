@@ -19,11 +19,11 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive-backend && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-04-09)
+## Current status (as of 2026-04-10)
 
 - 2026 annual campaign is still not search-ready on the VPS:
   - `cihr` remains running.
-  - `hc` is currently `failed`.
+  - `hc` is now running again.
   - `phac` is currently `failed`.
 - The prod assistant-on-VPS setup is now in its intended safe operating state:
   - prod host access is on `tag:prod`
@@ -44,11 +44,19 @@ Keep the two synced copies of this file aligned:
     - `statusCode=200`
     - `bodySource=network_response`
     - meaningful HTML byte counts
-- Annual HC/PHAC reconcile was dry-run successfully on 2026-04-09, but not yet
-  applied.
-  - Expected live changes:
-    - HC job `6`: `capture_backend http_warc -> browsertrix`
-    - HC and PHAC: `fallback_backend http_warc -> playwright_warc`
+- Annual HC/PHAC reconcile was applied on 2026-04-10.
+  - HC and PHAC now carry the intended annual rescue policy for the current
+    campaign jobs.
+  - HC job `6` then demonstrated the intended live rescue path on prod:
+    - fresh Browsertrix phase still failed immediately with
+      `net::ERR_HTTP2_PROTOCOL_ERROR`
+    - the job stayed alive through rescue/backoff logic
+    - the job auto-promoted into `playwright_warc`
+    - the `playwright_warc` fallback is now making real forward progress on
+      production for HC
+  - This means HC rescue behavior is now functionally working, but operator
+    ergonomics around that rescue remain too manual; follow-up is now tracked
+    in `../planning/2026-04-10-crawl-rescue-observability-and-operator-ergonomics.md`
 - CIHR annual crawl job `8` was re-checked live on 2026-03-27 after repeated
   `HealthArchiveCrawlTempDirsHigh` warnings.
   - Current live-health result: the crawl is still progressing (`crawl_rate_ppm`
@@ -121,20 +129,21 @@ Keep the two synced copies of this file aligned:
 
 Treat the following as the current ops execution order:
 
-1. Apply HC/PHAC annual reconcile on the VPS now that `playwright_warc` is verified on prod.
-2. Reset HC job `6` retry budget, requeue it, and observe its first post-reconcile cycle before touching PHAC.
-3. Use the HC result to decide whether PHAC should be retried immediately or patched again first.
-4. CIHR repo-side scope follow-through after the current crawl is idle.
-5. Job lock-dir cutover during a safe maintenance window.
-6. Annual output-dir bind-mount conversion after the 2026 annual crawl is idle.
-7. Routine quarterly ops and evidence collection.
+1. Keep HC job `6` running on its current `playwright_warc` fallback path and continue observing whether progress remains healthy.
+2. Let HC reach a decision-useful checkpoint or terminal state, then verify that resulting WARC/indexing artifacts are sane before changing PHAC.
+3. Use the HC result to decide whether PHAC should be retried with the same rescue path or patched again first.
+4. Implement the rescue-observability/operator-ergonomics follow-up so fallback promotion and current effective backend are obvious from standard operator surfaces.
+5. CIHR repo-side scope follow-through after the current crawl is idle.
+6. Job lock-dir cutover during a safe maintenance window.
+7. Annual output-dir bind-mount conversion after the 2026 annual crawl is idle.
+8. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
 - HC/PHAC follow-up is now controlled live execution against the newly verified
   `playwright_warc` fallback path, not speculative repo-side plumbing work.
   - Current state:
-    - job `6` (`hc-20260101`) is `failed` with retry budget already consumed
+    - job `6` (`hc-20260101`) is running
     - job `7` (`phac-20260101`) is `failed`
     - job `8` (`cihr-20260101`) remains running and should stay undisturbed
   - Settled findings from the investigation:
@@ -167,12 +176,29 @@ Treat the following as the current ops execution order:
     - `ha-backend probe-browser-fetch` succeeds on production for both HC and
       PHAC seed pages using the pinned `playwright_warc` runtime
     - annual reconcile dry-run shows the intended HC/PHAC policy changes
+  - Live update on 2026-04-10:
+    - annual reconcile was applied
+    - HC did exactly what the rescue policy was meant to enable:
+      - Browsertrix-first failed immediately at the seeds with
+        `net::ERR_HTTP2_PROTOCOL_ERROR`
+      - the job remained alive through rescue/backoff
+      - the job auto-promoted into `playwright_warc`
+      - the fallback backend now shows sustained healthy progress on prod
+    - the remaining gap is observability/operator ergonomics, not the fallback
+      control flow itself
   - Immediate next steps:
-    - `ha-backend reconcile-annual-tool-options --year 2026 --sources hc phac --apply`
-    - `ha-backend reset-retry-count --id 6 --apply --reason "playwright fallback deployed; restart annual hc rescue"`
-    - `ha-backend retry-job --id 6`
-    - observe HC before deciding whether to retry PHAC
-  - Do not do blind PHAC retries before the HC-first checkpoint.
+    - let HC continue on the fallback path while progress remains healthy
+    - once HC reaches a checkpoint or terminal state, verify that:
+      - WARC files remain non-empty and stable
+      - the crawl exits cleanly rather than stalling in fallback
+      - indexing/finalization results are sane before touching PHAC
+    - do not start PHAC while both HC and CIHR are still active
+    - use the HC result to decide whether PHAC should:
+      - retry under the same rescue policy
+      - or receive another PHAC-specific policy patch first
+    - track the rescue-observability follow-up in
+      `../planning/2026-04-10-crawl-rescue-observability-and-operator-ergonomics.md`
+  - Do not do blind PHAC retries before the HC-first checkpoint is settled.
 - CIHR follow-up is evidence-backed scope analysis, not live intervention.
   - Current state: job `8` remains healthy enough to keep running; temp-dir
     accumulation alone is not the reason to interrupt it.
