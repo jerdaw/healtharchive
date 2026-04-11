@@ -2159,6 +2159,7 @@ def cmd_list_jobs(args: argparse.Namespace) -> None:
     """
     List recent ArchiveJob rows with optional filters.
     """
+    from .crawl_rescue_status import derive_crawl_rescue_status
     from .models import ArchiveJob as ORMArchiveJob
     from .models import Source
 
@@ -2176,11 +2177,19 @@ def cmd_list_jobs(args: argparse.Namespace) -> None:
 
         for job in query.all():
             src_code = job.source.code if job.source else "?"
+            rescue = derive_crawl_rescue_status(
+                source_code=src_code,
+                config=job.config or {},
+                crawler_stage=job.crawler_stage,
+                last_stats=job.last_stats_json or {},
+            )
             rows_data.append(
                 (
                     job.id,
                     src_code,
                     job.status,
+                    rescue.effective_backend,
+                    rescue.short_status,
                     job.retry_count,
                     job.created_at,
                     job.started_at,
@@ -2195,12 +2204,14 @@ def cmd_list_jobs(args: argparse.Namespace) -> None:
         return
 
     print(
-        "ID  Source  Status       Retries  Created_at           Started_at           Finished_at          Indexed"
+        "ID  Source  Status       Backend          Rescue            Retries  Created_at           Started_at           Finished_at          Indexed"
     )
     for (
         job_id,
         src,
         status,
+        backend,
+        rescue_status,
         retry_count,
         created_at,
         started_at,
@@ -2209,7 +2220,7 @@ def cmd_list_jobs(args: argparse.Namespace) -> None:
         name,
     ) in rows_data:
         print(
-            f"{job_id:<3} {src:<6} {status:<11} {retry_count:<7} "
+            f"{job_id:<3} {src:<6} {status:<11} {backend:<16} {rescue_status:<17} {retry_count:<7} "
             f"{str(created_at)[:19]:<19} {str(started_at)[:19]:<19} "
             f"{str(finished_at)[:19]:<19} {indexed_page_count} {name}"
         )
@@ -2271,6 +2282,7 @@ def cmd_show_job(args: argparse.Namespace) -> None:
     """
     Show detailed information about a single job.
     """
+    from .crawl_rescue_status import derive_crawl_rescue_status
     from .models import ArchiveJob as ORMArchiveJob
 
     discovered_warc_count: int | None = None
@@ -2291,6 +2303,7 @@ def cmd_show_job(args: argparse.Namespace) -> None:
         output_dir = job.output_dir
         crawler_exit_code = job.crawler_exit_code
         crawler_status = job.crawler_status
+        crawler_stage = job.crawler_stage
         warc_file_count = job.warc_file_count
         indexed_page_count = job.indexed_page_count
         last_stats = job.last_stats_json or {}
@@ -2302,6 +2315,12 @@ def cmd_show_job(args: argparse.Namespace) -> None:
         seeds = config.get("seeds") or []
         tool_opts = config.get("tool_options") or {}
         zimit_args = config.get("zimit_passthrough_args") or []
+        rescue = derive_crawl_rescue_status(
+            source_code=source_code,
+            config=config,
+            crawler_stage=crawler_stage,
+            last_stats=last_stats,
+        )
 
         # Best-effort, on-demand WARC discovery to avoid misleading "0" counts
         # for long-running crawls (job.warc_file_count is primarily updated by
@@ -2332,6 +2351,7 @@ def cmd_show_job(args: argparse.Namespace) -> None:
     print(f"Output dir:      {output_dir}")
     print(f"Crawler RC:      {crawler_exit_code}")
     print(f"Crawler status:  {crawler_status}")
+    print(f"Crawler stage:   {crawler_stage}")
     print(f"WARC files:      {warc_file_count}")
     if discovered_warc_count is None:
         print("WARC files (discovered): (unknown)")
@@ -2368,6 +2388,17 @@ def cmd_show_job(args: argparse.Namespace) -> None:
                     print(f"  {warc_path.name} ({size_mb:.1f} MB, {mtime_str})")
 
     print(f"Indexed pages:   {indexed_page_count}")
+    print("Rescue:")
+    print(f"  Primary backend:      {rescue.primary_backend}")
+    print(f"  Configured backend:   {rescue.configured_backend}")
+    print(f"  Effective backend:    {rescue.effective_backend}")
+    print(f"  Fallback backend:     {rescue.fallback_backend_label}")
+    print(f"  Resume policy:        {rescue.resume_policy}")
+    print(f"  Fresh failure budget: {rescue.fresh_failure_budget}")
+    print(f"  Fallback active:      {'yes' if rescue.fallback_active else 'no'}")
+    print(f"  Promoted to fallback: {'yes' if rescue.promoted_to_fallback else 'no'}")
+    if rescue.note:
+        print(f"  Rescue note:          {rescue.note}")
     if isinstance(last_stats, dict) and last_stats:
         backend = last_stats.get("backend")
         if isinstance(backend, dict) and backend.get("name"):

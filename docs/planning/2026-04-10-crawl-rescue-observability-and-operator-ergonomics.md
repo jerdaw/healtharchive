@@ -1,6 +1,6 @@
 # 2026-04-10: Crawl Rescue Observability And Operator Ergonomics
 
-**Status:** Active  
+**Status:** Active (initial CLI/metrics/test slice implemented locally)
 **Scope:** Make annual-crawl rescue behavior explicit, operator-readable, and
 easy to verify without reconstructing state from multiple logs and metrics by
 hand.
@@ -114,6 +114,37 @@ include:
    - operator-facing summary rendering
    - metrics/state-file consistency
 6. Updated operator docs that make the intended diagnosis path short and stable
+
+## Current implementation status
+
+As of 2026-04-11, the first implementation slice is in progress on the active
+backend branch and includes:
+
+1. a shared rescue-status derivation helper for backend/operator surfaces
+2. `ha-backend list-jobs` columns for current effective backend and compact
+   rescue state
+3. `ha-backend show-job` rescue details including primary backend, configured
+   backend, effective backend, fallback promotion status, and rescue note
+4. new crawl textfile metrics for:
+   - primary backend
+   - configured backend
+   - effective backend
+   - fallback backend
+   - fallback active/promoted state
+   - fresh-failure budget
+5. focused tests covering:
+   - rescue-state derivation
+   - Browsertrix-to-fallback promotion persistence
+   - operator CLI rendering
+   - textfile metrics emission
+
+Still outstanding after this slice:
+
+1. a compact annual-rescue summary/reporting command
+2. clearer differentiation of intentional backoff vs active failure from the
+   standard operator surfaces
+3. additional operator/runbook updates once the annual HC/PHAC rescue path is
+   calmer
 
 ## Constraints
 

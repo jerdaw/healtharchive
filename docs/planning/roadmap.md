@@ -159,6 +159,16 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Goal: make it obvious from normal operator surfaces which backend a rescue job is currently using, whether fallback promotion already occurred, why it occurred, and whether the fallback path is healthy.
   - Why this matters: the HC rescue control flow worked on prod, but the operator still had to identify the current log by mtime and reconstruct rescue state from multiple metrics/log fragments.
   - Active plan: `2026-04-10-crawl-rescue-observability-and-operator-ergonomics.md`
+  - Initial implementation slice is now in repo:
+    - shared rescue-status derivation for operator surfaces
+    - `list-jobs` backend/rescue columns
+    - `show-job` rescue details
+    - crawl textfile metrics for backend/fallback rescue state
+    - focused tests covering the new rescue visibility behavior
+  - Remaining work:
+    - add a compact annual-rescue summary/reporting command
+    - make intentional backoff vs active failure clearer from standard operator surfaces
+    - finish the runbook/operator-doc follow-through after the live annual rescue path is calmer
 - Continue crawl telemetry calibration from live annual-crawl runs, but use dashboard trends (crawl rate / phase churn / progress age) rather than direct throughput alerts.
   - Current focus: validate dashboard thresholds/visual cues and only promote a signal back into Alertmanager if it becomes clearly actionable.
   - Related docs: `../operations/monitoring-and-alerting.md`, `../operations/healtharchive-ops-roadmap.md`

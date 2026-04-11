@@ -52,6 +52,43 @@ def _seed_jobs() -> None:
         session.add_all([job1, job2])
 
 
+def _seed_rescue_job() -> int:
+    with get_session() as session:
+        src = Source(
+            code="phac",
+            name="Public Health Agency of Canada",
+            base_url="https://www.canada.ca/en/public-health.html",
+            description="PHAC",
+            enabled=True,
+        )
+        session.add(src)
+        session.flush()
+
+        job = ArchiveJob(
+            source_id=src.id,
+            name="phac-fallback",
+            output_dir="/tmp/phac-fallback",
+            status="running",
+            crawler_stage="promoted_to_playwright_warc",
+            config={
+                "seeds": ["https://www.canada.ca/en/public-health.html"],
+                "execution_policy": {
+                    "capture_backend": "playwright_warc",
+                    "fallback_backend": "playwright_warc",
+                    "resume_policy": "fresh_only",
+                    "max_fresh_failures_before_fallback": 2,
+                    "primary_backend": "browsertrix",
+                    "last_promoted_from_backend": "browsertrix",
+                    "last_promotion_reason": "fresh_failure_budget_exhausted",
+                },
+            },
+            last_stats_json={"backend": {"name": "playwright_warc"}},
+        )
+        session.add(job)
+        session.flush()
+        return int(job.id)
+
+
 def test_create_job_injects_zimit_passthrough_args(tmp_path, monkeypatch) -> None:
     """
     create-job should accept dev-only page/depth flags and persist them as
@@ -130,6 +167,7 @@ def test_register_job_dir_creates_completed_job(tmp_path, monkeypatch) -> None:
 def test_list_jobs_outputs_rows(tmp_path, monkeypatch) -> None:
     _init_test_db(tmp_path, monkeypatch)
     _seed_jobs()
+    _seed_rescue_job()
 
     parser = cli_module.build_parser()
     args = parser.parse_args(["list-jobs"])
@@ -143,17 +181,18 @@ def test_list_jobs_outputs_rows(tmp_path, monkeypatch) -> None:
         sys.stdout = old_stdout
 
     out = stdout.getvalue()
+    assert "Backend" in out
+    assert "Rescue" in out
     assert "job1" in out
     assert "job2" in out
+    assert "phac-fallback" in out
+    assert "playwright_warc" in out
+    assert "fallback-active" in out
 
 
 def test_show_job_displays_details(tmp_path, monkeypatch) -> None:
     _init_test_db(tmp_path, monkeypatch)
-    _seed_jobs()
-
-    with get_session() as session:
-        job = session.query(ArchiveJob).filter_by(name="job1").one()
-        job_id = job.id
+    job_id = _seed_rescue_job()
 
     parser = cli_module.build_parser()
     args = parser.parse_args(["show-job", "--id", str(job_id)])
@@ -168,7 +207,15 @@ def test_show_job_displays_details(tmp_path, monkeypatch) -> None:
 
     out = stdout.getvalue()
     assert f"ID:              {job_id}" in out
-    assert "job1" in out
+    assert "phac-fallback" in out
+    assert "Crawler stage:   promoted_to_playwright_warc" in out
+    assert "Rescue:" in out
+    assert "Primary backend:      browsertrix" in out
+    assert "Configured backend:   playwright_warc" in out
+    assert "Effective backend:    playwright_warc" in out
+    assert "Fallback active:      yes" in out
+    assert "Promoted to fallback: yes" in out
+    assert "promoted from browsertrix to playwright_warc" in out
 
 
 def test_retry_job_marks_failed_as_retryable(tmp_path, monkeypatch) -> None:

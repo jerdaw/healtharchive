@@ -5,6 +5,7 @@ from pathlib import Path
 
 from ha_backend import db as db_module
 from ha_backend.archive_contract import ArchiveJobConfig
+from ha_backend.crawl_rescue_status import PROMOTION_REASON_FRESH_FAILURE_BUDGET
 from ha_backend.db import Base, get_engine, get_session
 from ha_backend.job_registry import create_job_for_source
 from ha_backend.models import ArchiveJob, Source
@@ -384,7 +385,13 @@ def test_worker_promotes_fresh_only_browsertrix_job_to_playwright_warc_after_sec
         assert job.status == "retryable"
         assert job.retry_count == 0
         assert job.crawler_stage == "promoted_to_playwright_warc"
+        assert cfg.execution_policy.primary_backend == "browsertrix"
         assert cfg.execution_policy.capture_backend == "playwright_warc"
+        assert cfg.execution_policy.last_promoted_from_backend == "browsertrix"
+        assert (
+            cfg.execution_policy.last_promotion_reason
+            == PROMOTION_REASON_FRESH_FAILURE_BUDGET
+        )
 
 
 def test_worker_marks_playwright_warc_jobs_fallback_exhausted_after_second_failure(

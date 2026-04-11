@@ -186,6 +186,15 @@ Treat the following as the current ops execution order:
       - the fallback backend now shows sustained healthy progress on prod
     - the remaining gap is observability/operator ergonomics, not the fallback
       control flow itself
+  - Repo update on 2026-04-11:
+    - initial rescue-observability follow-through is now implemented locally:
+      - `ha-backend list-jobs` surfaces effective backend + compact rescue state
+      - `ha-backend show-job` surfaces primary/configured/effective backend plus fallback/promotion details
+      - crawl textfile metrics now expose backend/fallback rescue state
+    - remaining follow-through is now narrower:
+      - add a compact annual rescue summary surface
+      - make intentional backoff vs active failure clearer
+      - update more operator/runbook docs once HC/PHAC rescue is calmer
   - Immediate next steps:
     - let HC continue on the fallback path while progress remains healthy
     - once HC reaches a checkpoint or terminal state, verify that:

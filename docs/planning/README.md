@@ -28,10 +28,15 @@ Treat the following as the current "what's next" order across roadmap docs:
    - Keep HC running and use the result to decide the PHAC next step.
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
    - Related active plan for broader source-level diagnosis: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
-2. Add rescue observability/operator ergonomics follow-through after the
-   current HC checkpoint is stable enough.
-   - Why this is now explicit: the rescue control flow worked, but the operator
-     still had to reconstruct state from logs/metrics by hand.
+2. Continue the rescue observability/operator ergonomics follow-through.
+   - Initial slice now exists in repo:
+     - `list-jobs` shows effective backend + compact rescue state
+     - `show-job` shows rescue details
+     - crawl textfile metrics expose backend/fallback rescue state
+   - Remaining work:
+     - add a compact annual rescue summary/report
+     - distinguish intentional backoff vs active failure more clearly
+     - update more operator/runbook surfaces after the HC/PHAC path is calmer
    - Canonical plan: `2026-04-10-crawl-rescue-observability-and-operator-ergonomics.md`
 3. Complete the job lock-dir cutover during a maintenance window once crawls are idle.
    - This is already implemented in repo; the remaining work is operator-run service restarts.

@@ -207,8 +207,11 @@ Current interpreted state after the 2026-04-10 checkpoint:
   - letting HC run far enough to validate end-to-end fallback behavior and
     final artifacts
   - deciding the PHAC next move based on the HC result
-  - improving rescue observability/operator ergonomics so this state is obvious
-    without manual log-forensics
+  - finishing the remaining rescue observability/operator ergonomics follow-up
+    so this state is obvious without manual log-forensics
+    - initial CLI/metrics/test support now exists in repo
+    - remaining work is the compact summary/report surface plus clearer
+      backoff-vs-failure operator visibility
 
 Resume from here in this order:
 
