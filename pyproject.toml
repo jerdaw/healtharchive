@@ -11,7 +11,7 @@ dependencies = [
   # Core runtime deps
   "SQLAlchemy>=2.0",
   "alembic>=1.13",
-  "warcio>=1.7",
+  "warcio>=1.8.1",
   "beautifulsoup4>=4.12",
   "fastapi>=0.110",
   "uvicorn[standard]>=0.30",
