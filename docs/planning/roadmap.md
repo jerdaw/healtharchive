@@ -157,6 +157,10 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 
 - Tighten GitHub merge discipline when there are multiple committers (PR-only + required checks).
   - See: `../operations/monitoring-and-ci-checklist.md`
+- Decide whether to rewrite published bot-authored / bot-coauthored git history to the human-only authorship standard.
+  - Current policy is implemented for new work: accepted dependency updates should land via new human-authored commits, and superseded bot PRs should be closed.
+  - Remaining gap: older published history still contains historical Dependabot authorship / co-author trailers.
+  - Do this only with an explicit migration + force-push plan, because it would rewrite shared history across clones and open branches.
 
 ## Quality, governance, and product backlog (cross-repo)
 
