@@ -2996,17 +2996,20 @@ def get_changes_rss(
 
 
 @router.get("/health")
-def health_check(db: Session = Depends(get_db)) -> JSONResponse:
+def health_check(
+    details: bool = Query(default=False, description="Include job and snapshot summary counts."),
+    db: Session = Depends(get_db),
+) -> JSONResponse:
     """
-    Health endpoint with basic database and summary checks.
+    Lightweight liveness endpoint with optional summary checks.
     """
     checks: Dict[str, Any] = {}
     status = "ok"
 
     # Database connectivity check
     try:
-        # Lightweight query just to exercise the connection.
-        db.query(Source.id).limit(1).first()
+        # Keep the default probe minimal so external uptime checks stay fast.
+        db.execute(text("SELECT 1"))
         checks["db"] = "ok"
     except Exception:
         checks["db"] = "error"
@@ -3016,15 +3019,24 @@ def health_check(db: Session = Depends(get_db)) -> JSONResponse:
             content={"status": status, "checks": checks},
         )
 
-    # Job status counts
-    job_rows = (
-        db.query(ArchiveJob.status, func.count(ArchiveJob.id)).group_by(ArchiveJob.status).all()
-    )
-    checks["jobs"] = {job_status: count for job_status, count in job_rows}
+    if details:
+        try:
+            job_rows = (
+                db.query(ArchiveJob.status, func.count(ArchiveJob.id))
+                .group_by(ArchiveJob.status)
+                .all()
+            )
+            checks["jobs"] = {job_status: count for job_status, count in job_rows}
 
-    # Snapshot totals
-    total_snapshots = db.query(func.count(Snapshot.id)).scalar() or 0
-    checks["snapshots"] = {"total": int(total_snapshots)}
+            total_snapshots = db.query(func.count(Snapshot.id)).scalar() or 0
+            checks["snapshots"] = {"total": int(total_snapshots)}
+        except Exception:
+            checks["details"] = "error"
+            status = "error"
+            return JSONResponse(
+                status_code=500,
+                content={"status": status, "checks": checks},
+            )
 
     return JSONResponse(content={"status": status, "checks": checks})
 

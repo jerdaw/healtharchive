@@ -64,6 +64,23 @@ def test_health_endpoint_includes_checks(tmp_path, monkeypatch) -> None:
     checks = body.get("checks") or {}
     # At minimum we expect a database check entry.
     assert "db" in checks
+    assert "jobs" not in checks
+    assert "snapshots" not in checks
+
+
+def test_health_endpoint_details_include_summary_checks(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    resp = client.get("/api/health?details=1")
+    assert resp.status_code == 200
+    body = resp.json()
+    checks = body.get("checks") or {}
+
+    assert body.get("status") == "ok"
+    assert checks.get("db") == "ok"
+    assert "jobs" in checks
+    assert "snapshots" in checks
+    assert isinstance(checks["snapshots"]["total"], int)
 
 
 def test_sources_endpoint_with_data(tmp_path, monkeypatch) -> None:

@@ -69,8 +69,23 @@ def test_health_endpoint_schema(tmp_path, monkeypatch):
     # Verify checks structure
     checks = data["checks"]
     assert "db" in checks
-    assert "snapshots" in checks
     assert checks["db"] in ("ok", "error")
+    assert "jobs" not in checks
+    assert "snapshots" not in checks
+
+
+def test_health_endpoint_detailed_schema(tmp_path, monkeypatch):
+    """Test that /api/health?details=1 returns summary fields."""
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    response = client.get("/api/health?details=1")
+
+    assert response.status_code == 200
+    data = response.json()
+    checks = data["checks"]
+
+    assert checks["db"] in ("ok", "error")
+    assert isinstance(checks["jobs"], dict)
     assert isinstance(checks["snapshots"], dict)
     assert "total" in checks["snapshots"]
     assert isinstance(checks["snapshots"]["total"], int)
