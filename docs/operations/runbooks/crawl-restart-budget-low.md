@@ -6,7 +6,8 @@
 ## Trigger
 
 This alert fires when a running crawl has consumed most of its adaptive restart
-budget for at least 30 minutes:
+budget for at least 30 minutes and the restart counter is still increasing over
+the last 12 hours:
 
 - `hc`: `container_restarts_done >= 19` (budget `24`)
 - `phac`: `container_restarts_done >= 24` (budget `30`)
@@ -23,6 +24,8 @@ usual root causes are:
 - stale running state or stale metrics after the crawl stopped making progress
 
 Treat this as a classification problem first, not a “raise the budget” problem.
+If the counter is already high but has been flat for hours while the crawl keeps
+making progress, prefer dashboard observation over repeated paging.
 
 ## Quick Diagnosis
 

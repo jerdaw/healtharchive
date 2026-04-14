@@ -4,12 +4,54 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import os
 import re
 import stat
+import sys
 from collections import Counter, deque
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse, urlunparse
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = REPO_ROOT / "src"
+
+
+def _reexec_into_repo_venv() -> None:
+    if __name__ != "__main__":
+        return
+
+    repo_python = REPO_ROOT / ".venv" / "bin" / "python3"
+    if not repo_python.is_file():
+        return
+
+    try:
+        current_python = Path(sys.executable).resolve()
+    except OSError:
+        current_python = Path(sys.executable)
+    try:
+        target_python = repo_python.resolve()
+    except OSError:
+        target_python = repo_python
+
+    if current_python == target_python:
+        return
+
+    os.execv(
+        str(target_python),
+        [str(target_python), str(Path(__file__).resolve()), *sys.argv[1:]],
+    )
+
+
+def _bootstrap_local_imports() -> None:
+    for entry in (REPO_ROOT, SRC_DIR):
+        entry_str = str(entry)
+        if entry_str not in sys.path:
+            sys.path.insert(0, entry_str)
+
+
+_reexec_into_repo_venv()
+_bootstrap_local_imports()
 
 from warcio.archiveiterator import ArchiveIterator
 
