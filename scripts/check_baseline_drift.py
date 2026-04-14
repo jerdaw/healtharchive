@@ -360,6 +360,27 @@ def evaluate(
             actual=env.get("HEALTHARCHIVE_ADMIN_TOKEN_present"),
             message="admin token is not configured in env file (required in production)",
         )
+        if env.get("HEALTHARCHIVE_ADMIN_TOKEN_present") is True:
+            _expect_true(
+                required,
+                level="FAIL",
+                key="env:PROMETHEUS_BACKEND_ADMIN_TOKEN_present",
+                actual=env.get("PROMETHEUS_BACKEND_ADMIN_TOKEN_present"),
+                message=(
+                    "Prometheus backend admin token file is missing, unreadable, or empty; "
+                    "metrics scrapes will fail"
+                ),
+            )
+            _expect_true(
+                required,
+                level="FAIL",
+                key="env:PROMETHEUS_BACKEND_ADMIN_TOKEN_matches_backend_env",
+                actual=env.get("PROMETHEUS_BACKEND_ADMIN_TOKEN_matches_backend_env"),
+                message=(
+                    "Prometheus backend admin token does not match HEALTHARCHIVE_ADMIN_TOKEN; "
+                    "scrape auth is drifted"
+                ),
+            )
 
     if observed.get("inputs", {}).get("mode") == "live":
         admin_checks = observed.get("http", {}).get("admin_checks", {})

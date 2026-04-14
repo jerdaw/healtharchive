@@ -7,6 +7,9 @@ from pathlib import Path
 from ha_backend.config import (
     DEFAULT_ARCHIVE_ROOT,
     DEFAULT_ARCHIVE_TOOL_CMD,
+    DEFAULT_DB_MAX_OVERFLOW,
+    DEFAULT_DB_POOL_SIZE,
+    DEFAULT_DB_POOL_TIMEOUT_SECONDS,
     DEFAULT_DATABASE_URL,
     ArchiveToolConfig,
     DatabaseConfig,
@@ -82,9 +85,15 @@ def test_database_config_default(monkeypatch) -> None:
     Default database URL should match the constant when no env override is set.
     """
     monkeypatch.delenv("HEALTHARCHIVE_DATABASE_URL", raising=False)
+    monkeypatch.delenv("HEALTHARCHIVE_DB_POOL_SIZE", raising=False)
+    monkeypatch.delenv("HEALTHARCHIVE_DB_MAX_OVERFLOW", raising=False)
+    monkeypatch.delenv("HEALTHARCHIVE_DB_POOL_TIMEOUT_SECONDS", raising=False)
     cfg = get_database_config()
     assert isinstance(cfg, DatabaseConfig)
     assert cfg.database_url == DEFAULT_DATABASE_URL
+    assert cfg.pool_size == DEFAULT_DB_POOL_SIZE
+    assert cfg.max_overflow == DEFAULT_DB_MAX_OVERFLOW
+    assert cfg.pool_timeout_seconds == DEFAULT_DB_POOL_TIMEOUT_SECONDS
 
 
 def test_database_config_env_override(monkeypatch) -> None:
@@ -93,8 +102,25 @@ def test_database_config_env_override(monkeypatch) -> None:
     """
     custom_url = "sqlite:///custom_test.db"
     monkeypatch.setenv("HEALTHARCHIVE_DATABASE_URL", custom_url)
+    monkeypatch.setenv("HEALTHARCHIVE_DB_POOL_SIZE", "12")
+    monkeypatch.setenv("HEALTHARCHIVE_DB_MAX_OVERFLOW", "34")
+    monkeypatch.setenv("HEALTHARCHIVE_DB_POOL_TIMEOUT_SECONDS", "45")
     cfg = get_database_config()
     assert cfg.database_url == custom_url
+    assert cfg.pool_size == 12
+    assert cfg.max_overflow == 34
+    assert cfg.pool_timeout_seconds == 45
+
+
+def test_database_config_env_override_clamps_invalid_values(monkeypatch) -> None:
+    monkeypatch.setenv("HEALTHARCHIVE_DB_POOL_SIZE", "0")
+    monkeypatch.setenv("HEALTHARCHIVE_DB_MAX_OVERFLOW", "-1")
+    monkeypatch.setenv("HEALTHARCHIVE_DB_POOL_TIMEOUT_SECONDS", "9999")
+
+    cfg = get_database_config()
+    assert cfg.pool_size == 1
+    assert cfg.max_overflow == 0
+    assert cfg.pool_timeout_seconds == 300
 
 
 def test_exports_config_defaults(monkeypatch) -> None:

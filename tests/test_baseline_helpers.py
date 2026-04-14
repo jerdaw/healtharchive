@@ -153,3 +153,56 @@ def test_baseline_drift_checks_dependencies() -> None:
     required3, _warned3 = check_baseline_drift.evaluate(policy, observed_none)
     keys3 = {f.key for f in required3}
     assert "dependencies" in keys3
+
+
+def test_baseline_drift_fails_when_prometheus_token_missing_or_drifted() -> None:
+    _add_scripts_to_path()
+    import check_baseline_drift
+
+    policy: dict[str, Any] = {"security": {"admin_token_required": True}}
+
+    observed_missing: dict[str, Any] = {
+        "inputs": {"mode": "local"},
+        "env": {
+            "HEALTHARCHIVE_ADMIN_TOKEN_present": True,
+            "PROMETHEUS_BACKEND_ADMIN_TOKEN_present": False,
+            "PROMETHEUS_BACKEND_ADMIN_TOKEN_matches_backend_env": None,
+        },
+    }
+    required_missing, _warned_missing = check_baseline_drift.evaluate(policy, observed_missing)
+    missing_keys = {f.key for f in required_missing}
+    assert "env:PROMETHEUS_BACKEND_ADMIN_TOKEN_present" in missing_keys
+    assert "env:PROMETHEUS_BACKEND_ADMIN_TOKEN_matches_backend_env" in missing_keys
+
+    observed_drifted: dict[str, Any] = {
+        "inputs": {"mode": "local"},
+        "env": {
+            "HEALTHARCHIVE_ADMIN_TOKEN_present": True,
+            "PROMETHEUS_BACKEND_ADMIN_TOKEN_present": True,
+            "PROMETHEUS_BACKEND_ADMIN_TOKEN_matches_backend_env": False,
+        },
+    }
+    required_drifted, _warned_drifted = check_baseline_drift.evaluate(policy, observed_drifted)
+    drifted_keys = {f.key for f in required_drifted}
+    assert "env:PROMETHEUS_BACKEND_ADMIN_TOKEN_present" not in drifted_keys
+    assert "env:PROMETHEUS_BACKEND_ADMIN_TOKEN_matches_backend_env" in drifted_keys
+
+
+def test_baseline_drift_passes_when_prometheus_token_matches_backend_env() -> None:
+    _add_scripts_to_path()
+    import check_baseline_drift
+
+    policy: dict[str, Any] = {"security": {"admin_token_required": True}}
+    observed: dict[str, Any] = {
+        "inputs": {"mode": "local"},
+        "env": {
+            "HEALTHARCHIVE_ADMIN_TOKEN_present": True,
+            "PROMETHEUS_BACKEND_ADMIN_TOKEN_present": True,
+            "PROMETHEUS_BACKEND_ADMIN_TOKEN_matches_backend_env": True,
+        },
+    }
+
+    required, _warned = check_baseline_drift.evaluate(policy, observed)
+    keys = {f.key for f in required}
+    assert "env:PROMETHEUS_BACKEND_ADMIN_TOKEN_present" not in keys
+    assert "env:PROMETHEUS_BACKEND_ADMIN_TOKEN_matches_backend_env" not in keys

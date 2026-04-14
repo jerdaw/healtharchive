@@ -200,6 +200,9 @@ def get_archive_tool_config() -> ArchiveToolConfig:
 # By default we keep things simple and use a SQLite database file in the
 # repository root. This can be overridden via HEALTHARCHIVE_DATABASE_URL.
 DEFAULT_DATABASE_URL = f"sqlite:///{REPO_ROOT / 'healtharchive.db'}"
+DEFAULT_DB_POOL_SIZE = 5
+DEFAULT_DB_MAX_OVERFLOW = 10
+DEFAULT_DB_POOL_TIMEOUT_SECONDS = 30
 
 # === CORS / frontend integration ===
 
@@ -240,11 +243,22 @@ class DatabaseConfig:
     Database connection settings.
 
     For now this is a very small wrapper around a single DATABASE_URL string,
-    but it gives us a stable place to grow later (pool settings, echo flags,
-    etc.).
+    but it gives us a stable place to grow later.
     """
 
     database_url: str = DEFAULT_DATABASE_URL
+    pool_size: int = DEFAULT_DB_POOL_SIZE
+    max_overflow: int = DEFAULT_DB_MAX_OVERFLOW
+    pool_timeout_seconds: int = DEFAULT_DB_POOL_TIMEOUT_SECONDS
+
+
+def _parse_bounded_int_env(name: str, default: int, *, minimum: int, maximum: int) -> int:
+    raw = os.environ.get(name, str(default)).strip()
+    try:
+        value = int(raw)
+    except ValueError:
+        value = default
+    return max(minimum, min(value, maximum))
 
 
 def get_database_config() -> DatabaseConfig:
@@ -252,7 +266,27 @@ def get_database_config() -> DatabaseConfig:
     Return the current database configuration, honouring environment overrides.
     """
     url = os.environ.get("HEALTHARCHIVE_DATABASE_URL", DEFAULT_DATABASE_URL)
-    return DatabaseConfig(database_url=url)
+    return DatabaseConfig(
+        database_url=url,
+        pool_size=_parse_bounded_int_env(
+            "HEALTHARCHIVE_DB_POOL_SIZE",
+            DEFAULT_DB_POOL_SIZE,
+            minimum=1,
+            maximum=100,
+        ),
+        max_overflow=_parse_bounded_int_env(
+            "HEALTHARCHIVE_DB_MAX_OVERFLOW",
+            DEFAULT_DB_MAX_OVERFLOW,
+            minimum=0,
+            maximum=200,
+        ),
+        pool_timeout_seconds=_parse_bounded_int_env(
+            "HEALTHARCHIVE_DB_POOL_TIMEOUT_SECONDS",
+            DEFAULT_DB_POOL_TIMEOUT_SECONDS,
+            minimum=1,
+            maximum=300,
+        ),
+    )
 
 
 def get_cors_origins() -> List[str]:
