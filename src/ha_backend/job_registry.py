@@ -54,6 +54,18 @@ PHAC_CANADA_CA_SCOPE_INCLUDE_RX = (
     r")$"
 )
 
+CIHR_SCOPE_INCLUDE_RX = (
+    r"^https://cihr-irsc[.]gc[.]ca/"
+    r"(?:"
+    # Exclude query-string and fragment variants of HTML pages to avoid
+    # duplicate/trap-like frontier expansion (for example: ?wbdisable=false).
+    r"[^?#]*"
+    # Still allow cache-busted render-critical assets when the site serves them
+    # with query parameters.
+    r"|.*[.](?:css|js|json|svg|png|jpe?g|gif|ico|webp|avif|woff2?|ttf|eot)(?:\?[^#]*)?"
+    r")$"
+)
+
 # Exclude binary/document URLs from top-level page queueing. These files can
 # still be captured as subresources from crawled HTML pages, but avoiding direct
 # page navigation to them reduces timeout thrashing substantially.
@@ -92,6 +104,12 @@ _PHAC_CANADIAN_IMMUNIZATION_GUIDE_EXCLUDE_RX_BODY = (
     r"https://www[.]canada[.]ca/en/public-health/services/canadian-immunization-guide"
     r"(?:/[^?#]*)?(?:[?#].*)?"
 )
+_CIHR_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY = (
+    r"https://cihr-irsc[.]gc[.]ca/.*[.](?:pdf|mp4|zip|docx?|pptx?|xlsx?|avi|m4a|mov|mp3|ogg|wav|webm)(?:[?#].*)?"
+)
+_CIHR_ASL_VIDEO_EXCLUDE_RX_BODY = (
+    r"https://cihr-irsc[.]gc[.]ca/(?:[^?#]*/)?asl-video(?:/[^?#]*)?(?:[?#].*)?"
+)
 
 _CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX = rf"^(?:{_CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY})$"
 
@@ -108,20 +126,29 @@ PHAC_CANADA_CA_SCOPE_EXCLUDE_RX = (
     rf"|{_PHAC_CCDR_EXCLUDE_RX_BODY}"
     rf"|{_PHAC_CANADIAN_IMMUNIZATION_GUIDE_EXCLUDE_RX_BODY})$"
 )
+CIHR_SCOPE_EXCLUDE_RX = (
+    rf"^(?:{_CIHR_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY}"
+    # CIHR live sampling showed large media-heavy frontier expansion under
+    # asl-video/* with little archival value relative to crawl cost.
+    rf"|{_CIHR_ASL_VIDEO_EXCLUDE_RX_BODY})$"
+)
 
 
 def canonical_scope_filters_for_source(source_code: str) -> tuple[str, str] | None:
     """
     Return canonical scope include/exclude regexes for sources with managed scope.
 
-    Only HC and PHAC currently use custom canada.ca scope filters that may need
-    backfilling on older annual jobs.
+    HC/PHAC use managed canada.ca scope filters. CIHR now also uses managed
+    host-local filters to suppress query-variant duplication and media-heavy
+    frontier expansion on future annual runs.
     """
     code = str(source_code or "").strip().lower()
     if code == "hc":
         return HC_CANADA_CA_SCOPE_INCLUDE_RX, HC_CANADA_CA_SCOPE_EXCLUDE_RX
     if code == "phac":
         return PHAC_CANADA_CA_SCOPE_INCLUDE_RX, PHAC_CANADA_CA_SCOPE_EXCLUDE_RX
+    if code == "cihr":
+        return CIHR_SCOPE_INCLUDE_RX, CIHR_SCOPE_EXCLUDE_RX
     return None
 
 
@@ -343,7 +370,11 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
         ],
         default_zimit_passthrough_args=[
             "--scopeType",
-            "host",
+            "custom",
+            "--scopeIncludeRx",
+            CIHR_SCOPE_INCLUDE_RX,
+            "--scopeExcludeRx",
+            CIHR_SCOPE_EXCLUDE_RX,
         ],
         default_tool_options={
             "cleanup": False,
