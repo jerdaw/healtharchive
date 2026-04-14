@@ -29,7 +29,8 @@ HealthArchive provides a RESTful JSON API for searching and retrieving archived 
 
 | Endpoint | Purpose | Auth Required |
 |----------|---------|---------------|
-| `GET /api/health` | Health check | No |
+| `GET /api/health` | Fast liveness check | No |
+| `GET /api/health?details=1` | Health check with summary counts | No |
 | `GET /api/stats` | Archive statistics | No |
 | `GET /api/sources` | List archived sources | No |
 | `GET /api/search` | Search snapshots | No |

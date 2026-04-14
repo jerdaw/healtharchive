@@ -5,6 +5,7 @@ These files are **templates** meant to be copied onto the production VPS under
 
 They implement:
 
+- API service template (uvicorn on loopback; defaults to 2 workers)
 - Annual scheduling timer (Jan 01 UTC)
 - Worker priority lowering during campaign (always-on, low-risk)
 - Storage Box mount (sshfs) for cold WARC storage (optional but recommended for tiering)
@@ -65,6 +66,10 @@ or stage the cutover manually (no restarts required until your maintenance windo
 
 ## Files
 
+- `healtharchive-api.service`
+  - Repo-managed FastAPI/uvicorn service template for the public API.
+  - Binds to loopback (`127.0.0.1:8001`) for Caddy to proxy.
+  - Defaults to `HEALTHARCHIVE_API_WORKERS=2`; override in `/etc/healtharchive/backend.env` if needed.
 - `healtharchive-schedule-annual.service`
   - **Apply mode**: enqueues annual jobs (`--apply`) for the current UTC year.
   - Gated by `ConditionPathExists=/etc/healtharchive/automation-enabled`.
@@ -216,7 +221,7 @@ If a timer is enabled, also ensure its sentinel file exists under
 
 ## Install / update on the VPS
 
-Preferred (one command; installs templates + worker priority drop-in):
+Preferred (one command; installs the managed API template, timer templates, and the worker priority drop-in):
 
 ```bash
 cd /opt/healtharchive-backend

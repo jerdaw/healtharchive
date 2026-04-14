@@ -213,7 +213,11 @@ From a machine that can reach the backend host:
    - HTTP 200.
    - JSON body like:
      ```json
-     {"status":"ok","checks":{"db":"ok","jobs":{...},"snapshots":{"total":...}}}
+     {"status":"ok","checks":{"db":"ok"}}
+     ```
+   - If you want the old summary payload, probe:
+     ```bash
+     curl -i "https://api.healtharchive.ca/api/health?details=1"
      ```
 
 2. **CORS headers**

@@ -123,3 +123,14 @@ def test_public_surface_verify_systemd_template_uses_canonical_frontend_domain()
     text = unit_path.read_text(encoding="utf-8")
     assert "--frontend-base https://healtharchive.ca" in text
     assert "--frontend-base https://www.healtharchive.ca" not in text
+
+
+def test_api_systemd_template_defaults_to_multiple_workers() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    unit_path = repo_root / "docs" / "deployment" / "systemd" / "healtharchive-api.service"
+    text = unit_path.read_text(encoding="utf-8")
+    assert "ConditionPathExists=/etc/healtharchive/backend.env" in text
+    assert "ConditionPathExists=/opt/healtharchive-backend/.venv/bin/uvicorn" in text
+    assert "Environment=HEALTHARCHIVE_API_WORKERS=2" in text
+    assert '--workers "${HEALTHARCHIVE_API_WORKERS}"' in text
+    assert "--proxy-headers" in text

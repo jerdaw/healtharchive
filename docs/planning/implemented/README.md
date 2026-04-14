@@ -4,11 +4,13 @@ This folder contains **historical implementation plans** that have already been 
 
 Implemented plans:
 
+- `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
 - `2026-03-21-docs-boundary-and-ci-followthrough.md`
 - `2026-03-17-repo-governance-and-ci-maintenance.md`
 - `2026-02-25-crawl-health-remediation.md`
 - `2026-02-23-automation-first-crawl-alerting-and-dashboarding.md`
 - `2026-02-19-alerting-noise-reduction-and-routing-tuning.md`
+- `2026-02-06-crawl-operability-locks-and-retry-controls.md`
 - `2025-12-24-6-phase-upgrade-roadmap-2025.md`
 - `2025-12-24-sequential-implementation-plan.md`
 - `2025-12-24-ops-observability-and-private-usage.md`

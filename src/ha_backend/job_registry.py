@@ -104,9 +104,7 @@ _PHAC_CANADIAN_IMMUNIZATION_GUIDE_EXCLUDE_RX_BODY = (
     r"https://www[.]canada[.]ca/en/public-health/services/canadian-immunization-guide"
     r"(?:/[^?#]*)?(?:[?#].*)?"
 )
-_CIHR_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY = (
-    r"https://cihr-irsc[.]gc[.]ca/.*[.](?:pdf|mp4|zip|docx?|pptx?|xlsx?|avi|m4a|mov|mp3|ogg|wav|webm)(?:[?#].*)?"
-)
+_CIHR_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY = r"https://cihr-irsc[.]gc[.]ca/.*[.](?:pdf|mp4|zip|docx?|pptx?|xlsx?|avi|m4a|mov|mp3|ogg|wav|webm)(?:[?#].*)?"
 _CIHR_ASL_VIDEO_EXCLUDE_RX_BODY = (
     r"https://cihr-irsc[.]gc[.]ca/(?:[^?#]*/)?asl-video(?:/[^?#]*)?(?:[?#].*)?"
 )

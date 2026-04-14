@@ -7,10 +7,10 @@ from pathlib import Path
 from ha_backend.config import (
     DEFAULT_ARCHIVE_ROOT,
     DEFAULT_ARCHIVE_TOOL_CMD,
+    DEFAULT_DATABASE_URL,
     DEFAULT_DB_MAX_OVERFLOW,
     DEFAULT_DB_POOL_SIZE,
     DEFAULT_DB_POOL_TIMEOUT_SECONDS,
-    DEFAULT_DATABASE_URL,
     ArchiveToolConfig,
     DatabaseConfig,
     get_archive_tool_config,

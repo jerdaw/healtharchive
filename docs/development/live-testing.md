@@ -116,7 +116,8 @@ curl "http://localhost:8001/api/search?q=test"
 
 Expect:
 
-- `/api/health` → `{"status":"ok", ... "db":"ok" ...}`.
+- `/api/health` → `{"status":"ok","checks":{"db":"ok"}}`.
+- `/api/health?details=1` → includes `jobs` and `snapshots.total` summary fields.
 - `/api/sources` → `[]` (no data yet).
 - `/api/search` → empty results, but HTTP 200.
 

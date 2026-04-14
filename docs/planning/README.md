@@ -12,9 +12,7 @@ When complete, move them to `docs/planning/implemented/` and date them.
 Active plans:
 
 - Admissions strengthening (OMSAS ABS + CanMEDS, ~12 weeks): `2026-02-admissions-strengthening-plan.md`
-- Crawl operability (locks, writability, retry controls): `2026-02-06-crawl-operability-locks-and-retry-controls.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
-- Annual crawl content-cost and scope diagnosis: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
 
 ## Current priority sequence
 
@@ -27,20 +25,14 @@ Treat the following as the current "what's next" order across roadmap docs:
    - Continue repo-side PHAC root-cause mitigation work before any further
      controlled restart.
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
-   - Related active plan for broader source-level diagnosis: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
-2. Complete the job lock-dir cutover during a maintenance window once crawls are idle.
-   - This is already implemented in repo; the remaining work is operator-run service restarts.
-   - Canonical plan: `2026-02-06-crawl-operability-locks-and-retry-controls.md`
-3. Convert annual output dirs from direct `sshfs` mounts to bind mounts during a later maintenance window.
+2. Convert annual output dirs from direct `sshfs` mounts to bind mounts during a later maintenance window.
    - This remains intentionally deferred until the active annual crawl is idle.
+   - Canonical plan: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
-4. Diagnose which content classes and URL families are actually driving annual crawl time, storage, and restart churn.
-   - Current evidence split:
-     - PHAC points to HTML/runtime friction first.
-     - CIHR now shows a media-heavy frontier under broad host scope.
-   - Treat this as evidence gathering first; use it to decide whether more source-specific download/media/data exclusions are justified.
-   - Canonical plan: `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
-5. After the crawl/ops path is stabilized, the main project emphasis is the active admissions-strengthening plan.
+3. Keep CIHR under observation on the repaired 2026-04-14 scoped attempt; no further live intervention is planned unless it regresses.
+   - Settled outcome: the scope/content-cost diagnosis loop is complete and the maintenance-window remediation is already live.
+   - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
+4. After the crawl/ops path is stabilized, the main project emphasis is the active admissions-strengthening plan.
    - That plan is the canonical home for the next external-validation, methods-paper, and dataset-release work.
    - Canonical plan: `2026-02-admissions-strengthening-plan.md`
 
@@ -61,11 +53,14 @@ Current known items:
   - Why this is first: further PHAC recover/restart attempts should stay
     blocked until there is a new hypothesis to test.
   - Status tracking + next-step guidance: `../operations/healtharchive-ops-roadmap.md`
-- Job lock-dir cutover:
-  - Current state: the env change is already staged on the VPS, but services still need a maintenance-window restart to pick it up.
-  - Next action: restart the services that read `/etc/healtharchive/backend.env` after crawls are idle.
-  - Why deferred: do not restart the worker mid-crawl unless you explicitly accept interrupting crawls.
-  - Plan: `2026-02-06-crawl-operability-locks-and-retry-controls.md` (Phase 4)
+- CIHR scope/content-cost follow-through:
+  - Current state: completed on 2026-04-14 via a controlled maintenance window.
+  - Settled outcome: job `8` restarted under source-managed custom scope and
+    the new combined log shows clean HTML frontier pages without live
+    `wbdisable=false`, `asl-video`, or document/media frontier expansion.
+  - Next action: monitor only; no further maintenance step is queued unless the
+    repaired run regresses.
+  - Historical plan: `implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
 - Annual output-dir mount topology conversion (direct `sshfs` mounts → bind mounts):
   - Current state: the active 2026 annual job output dirs are mounted directly via `sshfs` (higher Errno 107/staleness risk).
   - Next action: convert to bind mounts after the 2026 annual crawl is idle.
@@ -75,6 +70,8 @@ Current known items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Annual crawl content-cost and scope diagnosis: `implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
+- Crawl operability (locks, writability, retry controls): `implemented/2026-02-06-crawl-operability-locks-and-retry-controls.md`
 - Crawl health remediation (scope regex, circuit breaker, dep separation, alerts): `implemented/2026-02-25-crawl-health-remediation.md`
 - Automation-first crawl alerting and dashboarding: `implemented/2026-02-23-automation-first-crawl-alerting-and-dashboarding.md`
 - Alerting noise reduction + routing tuning: `implemented/2026-02-19-alerting-noise-reduction-and-routing-tuning.md`

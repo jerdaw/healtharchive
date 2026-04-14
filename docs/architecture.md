@@ -861,7 +861,18 @@ Public Pydantic models:
 
 - `GET /api/health`:
 
-  - Returns JSON with:
+  - Returns lightweight JSON with:
+
+    ```json
+    {
+      "status": "ok",
+      "checks": {
+        "db": "ok"
+      }
+    }
+    ```
+
+  - `GET /api/health?details=1` adds summary counts:
 
     ```json
     {
@@ -870,8 +881,7 @@ Public Pydantic models:
         "db": "ok",
         "jobs": {
           "queued": 1,
-          "indexed": 5,
-          ...
+          "indexed": 5
         },
         "snapshots": {
           "total": 12345

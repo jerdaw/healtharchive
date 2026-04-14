@@ -89,10 +89,10 @@ Objective: reduce weekly maintenance overhead while preserving CI gating and hum
 
 Current repo policy:
 
-- Dependabot PRs stay open for human review and human merge.
-- `semver-patch` and `semver-minor` updates may still be merged quickly once CI passes, but they are not bot-auto-merged.
+- Dependabot PRs stay open for human review and human-authored landing commits.
+- `semver-patch` and `semver-minor` updates may still be accepted quickly once CI passes, but they should be recreated in a human-authored commit or branch instead of merging the bot-authored branch directly.
 - `semver-major` updates remain manual review by default.
-- When merging dependency PRs, keep the resulting commit human-authored and remove any bot `Co-authored-by:` trailer before completing the merge.
+- Close superseded or declined bot PRs after the human-authored replacement lands (or after you decide not to take the update).
 - Backend required checks on `main` remain `Backend CI / test` and `Backend CI / api-health`.
 - Frontend required checks on `main` remain `lint-and-test` and `e2e-smoke`.
 - Backend and frontend `main` no longer rely on broad CODEOWNERS review requests for dependency PRs, which avoids reviewer-notification noise while still keeping merge control with a human.
@@ -369,18 +369,13 @@ Expected behavior:
   {
     "status": "ok",
     "checks": {
-      "db": "ok",
-      "jobs": {
-        "queued": 0,
-        "indexed": 5,
-        "failed": 0
-      },
-      "snapshots": {
-        "total": 123
-      }
+      "db": "ok"
     }
   }
   ```
+- Optional operator detail view:
+  - `GET https://api.healtharchive.ca/api/health?details=1`
+  - Includes `jobs` status counts and `snapshots.total`
 
 Suggested uptime monitor:
 

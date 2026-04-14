@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterable, Iterator, Literal, Sequence, cast
+from typing import Iterable, Iterator, Literal, Sequence
 
 FieldName = Literal["title", "snippet", "url"]
 
@@ -248,7 +248,7 @@ class _Parser:
             field_value = (tok.value or "").lower()
             if field_value not in _FIELD_SET:
                 raise QueryParseError(f"Unknown field: {field_value}")
-            field = cast(FieldName, field_value)
+            field = field_value
 
             rhs = self._advance()
             if rhs.type == TokenType.phrase:

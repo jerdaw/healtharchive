@@ -109,9 +109,7 @@ def test_classify_content_uses_extension_and_mime_heuristics() -> None:
     assert mod.classify_content("https://example.com/download", "application/pdf") == "document"
 
 
-def test_load_backend_env_file_sets_database_url_when_missing(
-    monkeypatch, tmp_path: Path
-) -> None:
+def test_load_backend_env_file_sets_database_url_when_missing(monkeypatch, tmp_path: Path) -> None:
     mod = _load_script_module(
         "vps-crawl-content-report.py",
         module_name="ha_test_vps_crawl_content_report_env_autoload",
