@@ -1,0 +1,53 @@
+{
+  "name": "web",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=20.19.0"
+  },
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "generate:api-types": "openapi-typescript ../docs/openapi.json -o src/lib/api-contract.generated.ts && prettier --write src/lib/api-contract.generated.ts",
+    "lint": "eslint --max-warnings=0",
+    "lint:fix": "eslint --fix",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "typecheck": "tsc --noEmit",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "postinstall": "patch-package"
+  },
+  "dependencies": {
+    "diff": "^8.0.4",
+    "next": "16.2.3",
+    "react": "^19.2.5",
+    "react-dom": "19.2.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@testing-library/dom": "^10",
+    "@testing-library/jest-dom": "^6",
+    "@testing-library/react": "^16",
+    "@types/node": "^25.6.0",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "eslint": "^10.2.0",
+    "eslint-config-next": "^16.2.3",
+    "eslint-plugin-react": "^7.37.5",
+    "jsdom": "^29",
+    "openapi-typescript": "^7.13.0",
+    "patch-package": "^8.0.0",
+    "prettier": "^3.8.2",
+    "prettier-plugin-tailwindcss": "^0.7.2",
+    "tailwindcss": "^4",
+    "typescript": "^6",
+    "vitest": "^4",
+    "vitest-axe": "^0.1.0"
+  },
+  "overrides": {
+    "eslint-plugin-react": "^7.37.5"
+  }
+}

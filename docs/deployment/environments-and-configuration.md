@@ -1,8 +1,8 @@
 # Environments and configuration (frontend + backend)
 
-This document is the **canonical cross-repo reference** for how the backend
-(`healtharchive-backend`) and frontend (`healtharchive-frontend`) are wired
-together across environments.
+This document is the **canonical frontend/backend wiring reference** for how
+the backend at the repo root and the in-tree frontend under `frontend/` are
+wired together across environments.
 
 Shared-VPS ownership note:
 
@@ -30,8 +30,8 @@ For deeper operational details, see:
 - `hosting-and-live-server-to-dos.md` (high-level deployment checklist)
 - `../operations/monitoring-and-ci-checklist.md` (uptime/monitoring guidance)
 - `../operations/baseline-drift.md` (production drift checks: policy vs observed)
-- Frontend docs: https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/implementation-guide.md
-- Frontend verification: https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/deployment/verification.md
+- Frontend docs: https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/implementation-guide.md
+- Frontend verification: https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/deployment/verification.md
 
 ---
 
@@ -68,7 +68,7 @@ This validates:
 | --- | --- | --- | --- |
 | Local dev | `http://localhost:3000` | `http://127.0.0.1:8001` | Local dev flow. |
 | Production | `https://healtharchive.ca` / `https://www.healtharchive.ca` | `https://api.healtharchive.ca` | Current public site on the VPS. |
-| Historical preview | `https://healtharchive.vercel.app` | `https://api.healtharchive.ca` | Retain only if you intentionally keep a legacy preview workflow. |
+| Historical preview (retired) | `https://healtharchive.vercel.app` | `https://api.healtharchive.ca` | Historical only; not part of the current deployment model. |
 
 Optional future:
 
@@ -187,13 +187,13 @@ export HEALTHARCHIVE_PUBLIC_SITE_URL=https://healtharchive.ca
 
 ---
 
-## 3) Frontend configuration (healtharchive-frontend)
+## 3) Frontend configuration (`frontend/`)
 
 The frontend reads env vars at **build time**.
 
 ### 3.1 Local development
 
-Frontend repo `.env.local` (git-ignored):
+Frontend `frontend/.env.local` (git-ignored):
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001
@@ -213,10 +213,10 @@ NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=false
 NEXT_PUBLIC_SHOW_API_BASE_HINT=false
 ```
 
-### 3.3 Optional historical preview env
+### 3.3 Optional historical preview env (legacy only)
 
-If you still keep an old preview frontend path, use the same API base and make
-sure the backend CORS allowlist is updated deliberately before relying on it:
+Only use this if you intentionally recreate a preview path later. It is not
+part of the current canonical deploy model:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca

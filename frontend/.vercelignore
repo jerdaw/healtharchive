@@ -1,0 +1,29 @@
+# Documentation
+*.md
+!README.md
+docs/**
+CLAUDE.md
+AGENTS.md
+
+# Tests
+**/*.test.*
+**/*.spec.*
+**/__tests__/**
+test-results/**
+playwright-report/**
+coverage/**
+
+# Development
+.env.example
+.vscode/**
+.idea/**
+.github/**
+.husky/**
+scripts/**
+*.log
+
+# Build artifacts
+.next/cache/**
+node_modules/**
+*.tsbuildinfo
+.eslintcache

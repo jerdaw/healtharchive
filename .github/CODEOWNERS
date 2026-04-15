@@ -1,0 +1,15 @@
+# Minimal monorepo ownership baseline.
+# Keep this explicit even in a single-maintainer repo so future rulesets and
+# review routing have stable path coverage.
+
+/.github/ @jerdaw
+/docs/ @jerdaw
+/frontend/ @jerdaw
+/src/ @jerdaw
+/alembic/ @jerdaw
+/tests/ @jerdaw
+/scripts/ @jerdaw
+/Makefile @jerdaw
+/README.md @jerdaw
+/AGENTS.md @jerdaw
+/mkdocs.yml @jerdaw

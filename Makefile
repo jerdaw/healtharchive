@@ -1,8 +1,12 @@
-.PHONY: venv format format-check lint precommit typecheck test-fast test-all test security audit audit-ci migration-guard ci-api-health-local check check-full ci prepush docs-serve docs-build docs-build-strict docs-refs docs-coverage docs-coverage-strict docs-check
+.PHONY: venv format format-check lint precommit typecheck test-fast test-all test security audit audit-ci migration-guard ci-api-health-local check check-full ci backend-ci frontend-install frontend-ci contract-sync contract-check integration-e2e monorepo-ci prepush docs-serve docs-build docs-build-strict docs-refs docs-coverage docs-coverage-strict docs-check
 
 VENV ?= .venv
 VENV_BIN := $(VENV)/bin
 PYTHON ?= python3
+NPM ?= npm
+FRONTEND_DIR ?= frontend
+FRONTEND_TMPDIR ?= $(abspath .tmp/frontend-tmp)
+BACKEND_TMPDIR ?= $(abspath .tmp/backend-tmp)
 
 RUFF := $(if $(wildcard $(VENV_BIN)/ruff),$(VENV_BIN)/ruff,ruff)
 MYPY := $(if $(wildcard $(VENV_BIN)/mypy),$(VENV_BIN)/mypy,mypy)
@@ -39,6 +43,8 @@ typecheck:
 	$(MYPY) src tests
 
 test-fast:
+	mkdir -p $(BACKEND_TMPDIR)
+	TMPDIR="$(BACKEND_TMPDIR)" TMP="$(BACKEND_TMPDIR)" TEMP="$(BACKEND_TMPDIR)" \
 	$(PYTEST) -q \
 		tests/test_ci_migration_guard.py \
 		tests/test_ci_schema_parity.py \
@@ -52,14 +58,20 @@ test-fast:
 		tests/test_api_health_and_sources.py
 
 test-all:
+	mkdir -p $(BACKEND_TMPDIR)
+	TMPDIR="$(BACKEND_TMPDIR)" TMP="$(BACKEND_TMPDIR)" TEMP="$(BACKEND_TMPDIR)" \
 	$(PYTEST) -q
 
 test: test-all
 
 coverage:
+	mkdir -p $(BACKEND_TMPDIR)
+	TMPDIR="$(BACKEND_TMPDIR)" TMP="$(BACKEND_TMPDIR)" TEMP="$(BACKEND_TMPDIR)" \
 	$(PYTEST) --cov=src --cov-report=term-missing --cov-report=html
 
 coverage-critical:
+	mkdir -p $(BACKEND_TMPDIR)
+	TMPDIR="$(BACKEND_TMPDIR)" TMP="$(BACKEND_TMPDIR)" TEMP="$(BACKEND_TMPDIR)" \
 	$(PYTEST) \
 		--cov=src/ha_backend/api \
 		--cov=src/ha_backend/indexing \
@@ -125,6 +137,34 @@ docs-check: docs-refs docs-coverage-strict docs-build-strict
 check: format-check lint typecheck test-fast
 
 ci: check
+
+backend-ci: ci
+
+frontend-install:
+	mkdir -p $(FRONTEND_TMPDIR)
+	TMPDIR="$(FRONTEND_TMPDIR)" TMP="$(FRONTEND_TMPDIR)" TEMP="$(FRONTEND_TMPDIR)" \
+		$(NPM) --prefix $(FRONTEND_DIR) ci
+
+frontend-ci:
+	mkdir -p $(FRONTEND_TMPDIR)
+	TMPDIR="$(FRONTEND_TMPDIR)" TMP="$(FRONTEND_TMPDIR)" TEMP="$(FRONTEND_TMPDIR)" \
+		$(NPM) --prefix $(FRONTEND_DIR) run check
+
+contract-sync:
+	PYTHONPATH=src $(PYTHON_RUN) scripts/export_openapi.py
+	mkdir -p $(FRONTEND_TMPDIR)
+	TMPDIR="$(FRONTEND_TMPDIR)" TMP="$(FRONTEND_TMPDIR)" TEMP="$(FRONTEND_TMPDIR)" \
+		$(NPM) --prefix $(FRONTEND_DIR) run generate:api-types
+
+contract-check: contract-sync
+	git diff --exit-code -- docs/openapi.json $(FRONTEND_DIR)/src/lib/api-contract.generated.ts
+
+integration-e2e:
+	mkdir -p $(FRONTEND_TMPDIR)
+	TMPDIR="$(FRONTEND_TMPDIR)" TMP="$(FRONTEND_TMPDIR)" TEMP="$(FRONTEND_TMPDIR)" \
+		bash scripts/ci-e2e-smoke.sh --frontend-dir $(FRONTEND_DIR)
+
+monorepo-ci: backend-ci frontend-ci integration-e2e docs-check
 
 prepush: ci ci-api-health-local audit-ci
 

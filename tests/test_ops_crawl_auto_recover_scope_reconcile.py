@@ -77,15 +77,15 @@ def test_compute_scope_args_noop_when_phac_scope_is_canonical() -> None:
     assert normalized == args
 
 
-def test_compute_scope_args_ignores_non_scoped_sources() -> None:
+def test_compute_scope_args_ignores_unmanaged_sources() -> None:
     mod = _load_script_module()
     args = ["--scopeType", "host"]
     job = ArchiveJob(
-        name="cihr-20260101",
+        name="example-20260101",
         status="running",
         config={"zimit_passthrough_args": list(args)},
     )
 
-    normalized, drifted = mod._compute_scope_args_for_job(job, source_code="cihr")
+    normalized, drifted = mod._compute_scope_args_for_job(job, source_code="example")
     assert drifted is False
     assert normalized == args

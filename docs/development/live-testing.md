@@ -717,9 +717,9 @@ Once the above is stable, you can incrementally increase realism:
   - Enable `enable_monitoring`, `enable_adaptive_workers`,
     `enable_vpn_rotation` and confirm they affect archive_tool behavior.
 
-- **Frontend integration** by running the separate `healtharchive-frontend`
-  against your local backend (`NEXT_PUBLIC_BACKEND_URL=http://localhost:8001`)
-  and exercising the full UI → API → DB → WARC stack.
+- **Frontend integration** by running the in-tree `frontend/` app against your
+  local backend (`NEXT_PUBLIC_API_BASE_URL=http://localhost:8001`) and
+  exercising the full UI → API → DB → WARC stack.
 
 > **Note on real WARCs:** At time of writing, the default Zimit image may
 > not leave WARCs in the expected `/output/.tmp*/collections/.../archive`

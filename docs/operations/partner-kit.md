@@ -7,11 +7,11 @@ Do not include private emails or contact lists here.
 
 Canonical public assets (do not duplicate copy here):
 
-- One-page brief (source file): https://github.com/jerdaw/healtharchive-frontend/blob/main/public/partner-kit/healtharchive-brief.md
-- Citation handout (source file): https://github.com/jerdaw/healtharchive-frontend/blob/main/public/partner-kit/healtharchive-citation.md
+- One-page brief (source file): https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/public/partner-kit/healtharchive-brief.md
+- Citation handout (source file): https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/public/partner-kit/healtharchive-citation.md
 - Live pages: `https://healtharchive.ca/brief` and `https://healtharchive.ca/cite`
 
-If you need to update public copy, edit the frontend assets above and deploy the frontend.
+If you need to update public copy, edit the in-tree frontend assets above and deploy the frontend.
 
 ---
 

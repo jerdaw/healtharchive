@@ -53,6 +53,13 @@ def _git_ls_files_md(repo_root: Path) -> list[Path]:
     return paths
 
 
+def _should_scan_markdown_file(repo_root: Path, file_path: Path) -> bool:
+    docs_root = repo_root / "docs"
+    if file_path.parent == repo_root:
+        return True
+    return file_path.is_relative_to(docs_root)
+
+
 def _iter_non_fenced_lines(text: str) -> Iterator[tuple[int, str]]:
     in_fence = False
     fence_char = ""
@@ -236,7 +243,9 @@ def _iter_code_tokens(line: str) -> Iterator[str]:
 
 def check_docs_references(repo_root: Path) -> list[Finding]:
     docs_root = repo_root / "docs"
-    md_files = _git_ls_files_md(repo_root)
+    md_files = [
+        path for path in _git_ls_files_md(repo_root) if _should_scan_markdown_file(repo_root, path)
+    ]
 
     findings: list[Finding] = []
     for file_path in md_files:

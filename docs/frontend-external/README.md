@@ -1,15 +1,15 @@
 # Frontend documentation
 
-The HealthArchive frontend lives in the separate repository:
+This is a legacy pointer page retained so older docs-nav links continue to
+work during monorepo consolidation.
 
-- https://github.com/jerdaw/healtharchive-frontend
+The HealthArchive frontend now lives in:
 
-This backend repo’s documentation site includes a minimal “Frontend” section that
-links out to the canonical docs (we intentionally do not mirror frontend docs
-into this site).
+- https://github.com/jerdaw/healtharchive-backend/tree/main/frontend
 
-For the canonical, up-to-date frontend docs, see:
+This docs site still does not mirror the frontend docs into `docs/`; use the
+canonical frontend docs directly:
 
-- Frontend overview: https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/README.md
-- I18n: https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/i18n.md
-- Implementation guide: https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/implementation-guide.md
+- Frontend overview: https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/README.md
+- I18n: https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/i18n.md
+- Implementation guide: https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/implementation-guide.md

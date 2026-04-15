@@ -1,6 +1,6 @@
 # HealthArchive Documentation Hub
 
-HealthArchive is a **multi-repo project** that archives Canadian health government websites for research and accountability. This page helps you navigate the documentation across all repositories.
+HealthArchive is a **monorepo app project with a separate datasets repo** that archives Canadian health government websites for research and accountability. This page helps you navigate the documentation and code boundaries.
 
 ---
 
@@ -81,11 +81,12 @@ curl "https://api.healtharchive.ca/api/search?q=vaccines&source=hc"
 
 ---
 
-## 📦 Multi-Repo Architecture
+## 📦 Monorepo + Dataset Architecture
 
-HealthArchive is split across three repositories with clear boundaries:
+HealthArchive keeps app code in one repository and dataset releases in a
+separate repository:
 
-### 🔙 Backend (This Repo)
+### 🔙 Backend (This Repo Root)
 
 **Purpose**: API, crawler, database, operations, and all internal infrastructure
 
@@ -106,11 +107,11 @@ HealthArchive is split across three repositories with clear boundaries:
 
 ---
 
-### 🌐 Frontend
+### 🌐 Frontend (`frontend/`)
 
 **Purpose**: Public-facing website and user interface
 
-**Location**: [github.com/jerdaw/healtharchive-frontend](https://github.com/jerdaw/healtharchive-frontend)
+**Location**: [`frontend/`](https://github.com/jerdaw/healtharchive-backend/tree/main/frontend) inside the app monorepo
 
 **Live Site**: [healtharchive.ca](https://healtharchive.ca)
 
@@ -122,12 +123,7 @@ HealthArchive is split across three repositories with clear boundaries:
 
 **Tech Stack**: Next.js 16, React, TypeScript, Tailwind CSS
 
-**Frontend Docs in This Repo** (pointers only):
-- [Frontend Overview](frontend-external/README.md)
-- [I18n Guide](frontend-external/i18n.md)
-- [Implementation Guide](frontend-external/implementation-guide.md)
-
-**Canonical Frontend Docs**: [frontend/docs/](https://github.com/jerdaw/healtharchive-frontend/tree/main/docs)
+**Canonical Frontend Docs**: [frontend/docs/](https://github.com/jerdaw/healtharchive-backend/tree/main/frontend/docs)
 
 ---
 
@@ -158,17 +154,17 @@ HealthArchive is split across three repositories with clear boundaries:
 | **Operations & Runbooks** | Backend repo | [docs.healtharchive.ca/operations](https://docs.healtharchive.ca/operations/) |
 | **Architecture & Dev Guides** | Backend repo | [docs.healtharchive.ca/architecture](https://docs.healtharchive.ca/architecture/) |
 | **API Documentation** | Backend repo | [docs.healtharchive.ca/api](https://docs.healtharchive.ca/api/) |
-| **Public Changelog** | Frontend repo | [github.com/jerdaw/healtharchive-frontend/.../changelog-process.md](https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/changelog-process.md) |
-| **Status Page** | Frontend repo (code) | [github.com/jerdaw/healtharchive-frontend/.../status/page.tsx](https://github.com/jerdaw/healtharchive-frontend/blob/main/src/app/%5Blocale%5D/status/page.tsx) |
-| **Impact Statement** | Frontend repo (code) | [github.com/jerdaw/healtharchive-frontend/.../impact/page.tsx](https://github.com/jerdaw/healtharchive-frontend/blob/main/src/app/%5Blocale%5D/impact/page.tsx) |
+| **Public Changelog** | Monorepo frontend docs | [github.com/jerdaw/healtharchive-backend/.../frontend/docs/changelog-process.md](https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/changelog-process.md) |
+| **Status Page** | Monorepo frontend code | [github.com/jerdaw/healtharchive-backend/.../frontend/src/app/%5Blocale%5D/status/page.tsx](https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/src/app/%5Blocale%5D/status/page.tsx) |
+| **Impact Statement** | Monorepo frontend code | [github.com/jerdaw/healtharchive-backend/.../frontend/src/app/%5Blocale%5D/impact/page.tsx](https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/src/app/%5Blocale%5D/impact/page.tsx) |
 | **Dataset Releases** | Datasets repo | [github.com/jerdaw/healtharchive-datasets](https://github.com/jerdaw/healtharchive-datasets) |
-| **I18n Guidelines** | Frontend repo | [github.com/jerdaw/healtharchive-frontend/.../i18n.md](https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/i18n.md) |
+| **I18n Guidelines** | Monorepo frontend docs | [github.com/jerdaw/healtharchive-backend/.../frontend/docs/i18n.md](https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/i18n.md) |
 
 **Principle**: Each doc has one canonical source. Other repos link to it.
 
 ---
 
-## 🔗 Cross-Repo Linking
+## 🔗 Linking Conventions
 
 ### In GitHub Issues/PRs
 
@@ -184,22 +180,22 @@ See the [production runbook](https://github.com/jerdaw/healtharchive-backend/blo
 See the [Production Runbook](https://docs.healtharchive.ca/deployment/production-single-vps/)
 ```
 
-**For cross-repo references**: Use full GitHub URLs:
+**For frontend paths in the monorepo or cross-repo references**: Use full GitHub URLs:
 ```markdown
-Frontend changelog process: [changelog-process.md](https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/changelog-process.md)
+Frontend changelog process: [changelog-process.md](https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/changelog-process.md)
 ```
 
-### Local Development (Multi-Repo Workspace)
+### Local Development (Monorepo Workspace)
 
-If you have all repos cloned as siblings:
+Recommended local layout:
 ```
 /home/user/healtharchive/
 ├── healtharchive-backend/
-├── healtharchive-frontend/
 └── healtharchive-datasets/
 ```
 
-Some docs use workspace paths like `healtharchive-frontend/...` for convenience.
+Some docs use workspace paths like `frontend/...` or `healtharchive-datasets/...`
+for convenience.
 
 **Note**: These paths only work in local workspaces, not on GitHub.
 
@@ -272,8 +268,8 @@ This documentation follows the [Diátaxis framework](https://diataxis.fr/) for c
 
 ### Community
 
-- **GitHub Discussions**: [backend](https://github.com/jerdaw/healtharchive-backend/discussions) | [frontend](https://github.com/jerdaw/healtharchive-frontend/discussions)
-- **Issues**: [backend](https://github.com/jerdaw/healtharchive-backend/issues) | [frontend](https://github.com/jerdaw/healtharchive-frontend/issues) | [datasets](https://github.com/jerdaw/healtharchive-datasets/issues)
+- **GitHub Discussions**: [app monorepo](https://github.com/jerdaw/healtharchive-backend/discussions)
+- **Issues**: [app monorepo](https://github.com/jerdaw/healtharchive-backend/issues) | [datasets](https://github.com/jerdaw/healtharchive-datasets/issues)
 - **Contributor Guide**: [contributing.md](contributing.md)
 
 ---
@@ -282,8 +278,8 @@ This documentation follows the [Diátaxis framework](https://diataxis.fr/) for c
 
 **Found something wrong?** Documentation lives in git and accepts pull requests!
 
-1. **Backend docs**: Edit files in [`docs/`](https://github.com/jerdaw/healtharchive-backend/tree/main/docs)
-2. **Frontend docs**: Edit files in [frontend `docs/`](https://github.com/jerdaw/healtharchive-frontend/tree/main/docs)
+1. **Backend/docs hub**: Edit files in [`docs/`](https://github.com/jerdaw/healtharchive-backend/tree/main/docs)
+2. **Frontend docs**: Edit files in [`frontend/docs/`](https://github.com/jerdaw/healtharchive-backend/tree/main/frontend/docs)
 3. **Datasets docs**: Edit [datasets README](https://github.com/jerdaw/healtharchive-datasets/blob/main/README.md)
 
 **Guidelines**: [Documentation Guidelines](documentation-guidelines.md)

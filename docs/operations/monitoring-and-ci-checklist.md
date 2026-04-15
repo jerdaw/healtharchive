@@ -74,13 +74,12 @@ Verification:
 Use stable workflow/job check names shown in GitHub’s UI. Avoid renaming workflow/job IDs after
 you start requiring them.
 
-As of 2026-03-21 (solo-dev profile), the checks are used as follows:
+As of the monorepo migration branch, the checks are used as follows:
 
-- Backend repo (required on `main`): `Backend CI / test`, `Backend CI / api-health`
-- Backend repo (non-required, workflow-file changes only): `actionlint`
-- Backend repo (not required): `Backend CI / e2e-smoke` (push/manual only), `Backend CI (Full) / test-full` (nightly/manual)
-- Frontend repo (required on `main`): `lint-and-test`, `e2e-smoke`
-- Frontend repo (not required): `docker-build-smoke`, external `Vercel` status
+- Monorepo required on `main`: `Backend CI / test`, `Backend CI / api-health`, `Frontend CI / contract-sync`, `Frontend CI / lint-and-test`
+- Monorepo non-required, but useful: `Backend CI / e2e-smoke`, `Frontend CI / docker-build-smoke`
+- Backend-only optional broader gate: `Backend CI (Full) / test-full` (nightly/manual)
+- Workflow-file hygiene when enabled: `actionlint`
 - Datasets repo (when protecting datasets `main`): `Datasets CI / lint` (required)
 
 ### Step 1a — Dependabot review/merge policy (operator + repo config)
@@ -93,9 +92,9 @@ Current repo policy:
 - `semver-patch` and `semver-minor` updates may still be accepted quickly once CI passes, but they should be recreated in a human-authored commit or branch instead of merging the bot-authored branch directly.
 - `semver-major` updates remain manual review by default.
 - Close superseded or declined bot PRs after the human-authored replacement lands (or after you decide not to take the update).
-- Backend required checks on `main` remain `Backend CI / test` and `Backend CI / api-health`.
-- Frontend required checks on `main` remain `lint-and-test` and `e2e-smoke`.
-- Backend and frontend `main` no longer rely on broad CODEOWNERS review requests for dependency PRs, which avoids reviewer-notification noise while still keeping merge control with a human.
+- Monorepo required checks on `main` should include `Backend CI / test`, `Backend CI / api-health`, `Frontend CI / contract-sync`, and `Frontend CI / lint-and-test`.
+- `Backend CI / e2e-smoke` and `Frontend CI / docker-build-smoke` remain useful non-required signals unless branch-protection appetite changes later.
+- The main branch no longer relies on broad CODEOWNERS review requests for dependency PRs, which avoids reviewer-notification noise while still keeping merge control with a human.
 
 ### Step 1b — End-to-end smoke checks (CI)
 
@@ -115,31 +114,27 @@ What the smoke does:
 
 Where it runs:
 
-- Backend repo CI: `.github/workflows/backend-ci.yml` job `e2e-smoke`
-  - Tests backend changes against latest frontend `main`.
-  - Runs on `main` pushes / manual runs (kept out of the PR gate to avoid blocking development on flaky cross-repo or environment issues).
-- Frontend repo CI: https://github.com/jerdaw/healtharchive-frontend/blob/main/.github/workflows/frontend-ci.yml (job: `e2e-smoke`)
-  - Tests frontend changes against latest backend `main`.
-- If cross-repo checkout fails (private repo), set a repo secret:
-  - `HEALTHARCHIVE_CI_READ_TOKEN` (PAT with read access)
+- Monorepo backend workflow: `.github/workflows/backend-ci.yml` job `e2e-smoke`
+  - Tests backend changes against the in-tree `frontend/`.
+  - Runs on pushes, pull requests, and manual runs from one checkout.
+- Monorepo frontend workflow: `.github/workflows/frontend-ci.yml`
+  - Verifies contract sync, `make frontend-ci`, and a frontend Docker build smoke.
 
-Local reproduction (from the mono‑repo workspace where the repos are siblings):
+Local reproduction (from the monorepo root):
 
 ```bash
-cd healtharchive-frontend && npm ci
-cd ../healtharchive-backend
 make venv
-./scripts/ci-e2e-smoke.sh --frontend-dir ../healtharchive-frontend
+make frontend-install
+make integration-e2e
 ```
 
 On failure, the script prints the tail of the backend/frontend logs that it writes under:
 
 - `healtharchive-backend/.tmp/ci-e2e-smoke/`
 
-CI also uploads the smoke logs as a GitHub Actions artifact on failure:
+CI uploads the backend smoke logs as a GitHub Actions artifact on failure:
 
 - Backend repo: `backend-e2e-smoke-artifacts`
-- Frontend repo: `frontend-e2e-smoke-artifacts`
 
 ### Step 2 — Solo-fast deploy gate (operator; recommended)
 
@@ -149,15 +144,16 @@ Workflow (recommended):
 
 0. Local guardrails (recommended while branch protections are relaxed):
    - Run checks before you push:
-     - From the mono-repo root: `make check`
-     - Or per-repo:
-       - `healtharchive-backend: make check`
-       - `healtharchive-frontend: npm run check`
-       - `healtharchive-datasets: make check`
+     - From the monorepo root:
+       - `make backend-ci`
+       - `make contract-check`
+       - `make frontend-ci`
+       - optional broader gate: `make monorepo-ci`
+     - Datasets repo still runs its own checks separately.
      - Optional before deploys: `healtharchive-backend: make check-full`
    - Optional but recommended: install pre-push hooks so you can't forget:
      - Backend: `scripts/install-pre-push-hook.sh` (set `HA_PRE_PUSH_FULL=1` for `make check-full`)
-     - Frontend: https://github.com/jerdaw/healtharchive-frontend/blob/main/scripts/install-pre-push-hook.sh
+     - Frontend: `frontend/scripts/install-pre-push-hook.sh`
      - Datasets: https://github.com/jerdaw/healtharchive-datasets/blob/main/scripts/install-pre-push-hook.sh
 1. Push to `main`.
 2. Wait for GitHub Actions to go green on that commit.
@@ -538,16 +534,17 @@ Tune these based on actual volumes and acceptable thresholds.
 Workflows live at:
 
 - Backend: `.github/workflows/backend-ci.yml`
-- Frontend: https://github.com/jerdaw/healtharchive-frontend/blob/main/.github/workflows/frontend-ci.yml
+- Frontend: `.github/workflows/frontend-ci.yml`
 
 Each should:
 
 - Backend:
   - Run `make check`.
 - Frontend:
+  - Verify `make contract-check`.
   - Install deps via `npm ci`.
-  - Run `npm run check`.
-  - Optionally run `npm audit --audit-level=high`.
+  - Run `make frontend-ci`.
+  - Build the frontend Docker image.
 
 Checklist:
 
@@ -561,7 +558,7 @@ Checklist:
 
 Backend enforcement is currently maintained as a GitHub ruleset.
 
-As configured on 2026-02-06:
+For the monorepo target state:
 
 - Ruleset name: `main-protection`
 - Target branch: `main`
@@ -569,7 +566,7 @@ As configured on 2026-02-06:
 - Bypass list: `Repository admin Role` (always allow)
 - Enabled rules:
   - `Restrict deletions`
-  - `Require status checks to pass` with required checks `Backend CI / test` and `Backend CI / api-health`
+  - `Require status checks to pass` with required checks `Backend CI / test`, `Backend CI / api-health`, `Frontend CI / contract-sync`, and `Frontend CI / lint-and-test`
   - `Block force pushes`
 - Disabled rules (intentional for solo-dev speed):
   - `Require a pull request before merging`

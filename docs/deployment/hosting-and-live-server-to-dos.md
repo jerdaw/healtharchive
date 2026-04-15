@@ -4,6 +4,9 @@
 > This file documents the earlier Vercel-era wiring work. The implemented
 > production model is the direct VPS + host Caddy path in
 > `production-single-vps.md`.
+> Any references below to a separate frontend repo or Vercel preview wiring are
+> retained only as historical context and should not be treated as the current
+> deployment model.
 
 This document tracks the remaining **infrastructure / hosting steps** needed to
 run HealthArchive.ca with a fully wired frontend + backend in production
@@ -21,8 +24,8 @@ DNS, and manual verification.
 ## 0. Quick index of “remote‑only” tasks
 
 Use this as a map of everything that must be done **outside** your local dev
-environment (i.e., on live servers, in Vercel, or in the GitHub UI). Each item
-links to the detailed checklist later in this file.
+environment (i.e., on live servers or in the GitHub UI). Historical Vercel
+notes are preserved below only so older rollout notes remain interpretable.
 
 - **On the backend server (production)** – see §2 and §4:
   - [ ] Provision a Postgres DB and set `HEALTHARCHIVE_DATABASE_URL`.
@@ -38,25 +41,20 @@ links to the detailed checklist later in this file.
         `api-staging.healtharchive.ca` if you later create a staging API)
         pointing at the backend.
 
-- **In Vercel for the frontend** – see §3 and §5:
-  - [ ] Ensure the `healtharchive-frontend` GitHub repo is connected to a
-        Vercel project.
-  - [ ] Set `NEXT_PUBLIC_API_BASE_URL` for **Production** and **Preview**
-        environments.
-  - [ ] Configure diagnostics flags
-        (`NEXT_PUBLIC_SHOW_API_HEALTH_BANNER`,
-        `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE`,
-        `NEXT_PUBLIC_SHOW_API_BASE_HINT`) per environment.
-  - [ ] Trigger deployments and run the browser‑side smoke checks on
-        `/archive`, `/archive/browse-by-source`, and `/snapshot/[id]`.
+- **Historical frontend preview path** – see §3 and §5:
+  - [ ] Keep this section for archival context only; do not recreate the old
+        Vercel production/preview wiring as part of the current VPS deployment.
+  - [ ] If a future preview environment is ever reintroduced, document it in a
+        new runbook instead of reviving this retired path.
 
-- **In GitHub for both repos** – see §7:
-  - [ ] Commit and push CI workflows:
-        `.github/workflows/backend-ci.yml` and
-        https://github.com/jerdaw/healtharchive-frontend/blob/main/.github/workflows/frontend-ci.yml
+- **In GitHub for the monorepo** – see §7:
+  - [ ] Commit and push the root CI workflows:
+        `.github/workflows/backend-ci.yml`,
+        `.github/workflows/frontend-ci.yml`, and
+        `.github/workflows/production-smoke.yml`.
   - [ ] Enable Actions in the GitHub UI if prompted.
-  - [ ] Configure branch protection on `main` to require the CI checks before
-        merging.
+  - [ ] Configure branch protection on `main` to require the monorepo CI checks
+        before merging.
 
 You can tick off these high‑level items as you go, using the later sections for
 the exact commands and UI steps.
@@ -71,9 +69,9 @@ Before configuring env vars, confirm the URLs you want to use:
   - `https://healtharchive.ca`
   - `https://www.healtharchive.ca`
 
-- **Frontend – preview**
-  - `https://healtharchive.vercel.app` (Vercel default)
-  - plus any branch‑preview URLs Vercel creates
+- **Frontend – preview (historical only)**
+  - The old Vercel preview host was `https://healtharchive.vercel.app`
+  - Current production does not depend on that path
 
 - **Backend – production API (current choice: single API for everything)**
   - `https://api.healtharchive.ca` (used by both Preview and Production frontends)
@@ -300,67 +298,20 @@ want a clean slate.
 
 ---
 
-## 3. Frontend configuration (Vercel env vars)
+## 3. Frontend environment shape (historical preview notes + current local dev)
 
 The Next.js app reads `NEXT_PUBLIC_API_BASE_URL` at build time and uses it for
-all backend requests. It must be set separately for each environment in Vercel.
+all backend requests. The old Vercel preview model also set the diagnostics
+flags below per environment, but that production/preview split is retired.
 
-### 3.1. Production env vars (Vercel)
+For the current deployment model, set the same variables in the VPS/frontend
+release environment described in `production-single-vps.md` and
+`../../frontend/README.md`. Keep any future preview environment documented in a
+new runbook rather than reviving the retired Vercel workflow captured here.
 
-In the Vercel dashboard for the `healtharchive-frontend` project:
+### 3.1. Current local development env
 
-1. Log in to https://vercel.com with the GitHub account that owns
-   `healtharchive-frontend`.
-2. From the Vercel dashboard, click the **healtharchive-frontend** project.
-3. Go to **Settings → Environment Variables**.
-4. Under **Production**, add:
-
-   ```env
-   NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca
-   ```
-
-5. (Optional, but recommended) keep diagnostics **off** in production:
-
-   ```env
-   NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=false
-   NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=false
-   NEXT_PUBLIC_SHOW_API_BASE_HINT=false
-   ```
-
-6. Trigger a new deployment of the `main` branch:
-   - Either click **Deploy** for the latest `main` commit in Vercel, or push a
-     new commit to `main` so Vercel automatically builds and deploys.
-
-### 3.2. Preview env vars (Vercel)
-
-Still in Vercel:
-
-1. In the same **Settings → Environment Variables** screen, switch to the
-   **Preview** tab.
-2. Under **Preview** environment variables, add:
-
-   ```env
-   NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca
-   ```
-
-3. Enable diagnostics to make issues more obvious:
-
-   ```env
-   NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=true
-   NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true
-   NEXT_PUBLIC_SHOW_API_BASE_HINT=true
-   ```
-
-4. Deploy a preview build (push a commit to a non-`main` branch) and note the
-   preview URL Vercel creates.
-
-   Expected limitation (by design): because the backend uses a strict CORS
-   allowlist, branch preview URLs like `https://healtharchive-git-...vercel.app`
-   may fall back to demo mode until you explicitly allow those origins.
-
-### 3.3. Local development env (already mostly done)
-
-In the frontend repo `.env.local` (not committed):
+In `frontend/.env.local` (not committed):
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001
@@ -369,9 +320,9 @@ NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true
 NEXT_PUBLIC_SHOW_API_BASE_HINT=true
 ```
 
-This is the template for your local dev; Vercel envs for Preview/Production
-should mirror the same shape but with different API URLs and diagnostics
-typically disabled in production.
+This is the template for local dev. The same variable shape applies in
+production, usually with diagnostics disabled unless you are actively debugging
+an integration problem.
 
 ---
 
@@ -431,12 +382,12 @@ After DNS is configured:
 
 ## 5. End‑to‑end smoke checklist (staging/prod)
 
-Once backend env vars, Vercel env vars, and DNS are in place:
+Once backend env vars, frontend release env vars, and DNS are in place:
 
 ### 5.1. From the frontend domain
 
-On **production** (`https://healtharchive.ca`) and the Vercel domain
-(`https://healtharchive.vercel.app`):
+On **production** (`https://healtharchive.ca`), and on any intentionally
+introduced non-production preview environment:
 
 1. Visit `/archive`:
    - With backend up:
@@ -468,9 +419,9 @@ On **production** (`https://healtharchive.ca`) and the Vercel domain
     - Metadata comes from the bundled demo dataset, and the iframe points
        into `/demo-archive/**`.
 
-### 5.2. Console diagnostics (Preview)
+### 5.2. Console diagnostics (non-production when enabled)
 
-On a Preview deployment, with diagnostics enabled:
+On a non-production deployment, with diagnostics enabled:
 
 - Open `/archive` and check the browser console:
   - You should see something like:
@@ -494,10 +445,10 @@ For a more detailed production rollout, see:
 
 - `production-rollout-checklist.md`
 
-For a more detailed Preview/Production verification of CSP, headers, CORS, and
-the snapshot viewer iframe behavior, see:
+For a more detailed verification of CSP, headers, CORS, and the snapshot
+viewer iframe behavior, see:
 
-- https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/deployment/verification.md
+- https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/deployment/verification.md
 
 ---
 
@@ -551,36 +502,38 @@ the snapshot viewer iframe behavior, see:
 
 ## 7. GitHub Actions & branch protection TODOs
 
-Continuous integration is wired via workflow files in each repo, but it only
-becomes effective once you commit/push them and (optionally) protect branches.
+Continuous integration is now wired through the root workflow files in the
+monorepo and only becomes effective once you commit/push them and (optionally)
+protect branches.
 
-### 6.1. Enable and verify GitHub Actions
+### 7.1. Enable and verify GitHub Actions
 
-For each repo (`healtharchive-backend` and `healtharchive-frontend`):
+For the canonical repo (`healtharchive-backend`):
 
-1. Ensure the workflow files are present (already true in this repo) and
-   enabled in the GitHub UI:
+1. Ensure the root workflow files are present and enabled in the GitHub UI:
 
+   - `.github/workflows/backend-ci.yml`
+   - `.github/workflows/frontend-ci.yml`
+   - `.github/workflows/production-smoke.yml`
    - Navigate to the repository on https://github.com.
    - Click the **Actions** tab.
    - If GitHub shows a banner like “Workflows are disabled for this fork,”
      click **Enable workflows**.
 
-2. Push a test commit or re‑run the latest workflow to verify that a run is
+2. Push a test commit or re-run the latest workflows to verify that runs are
    triggered for branch `main` and for pull requests:
 
-   - Backend CI should:
-     - Run `make check`.
-   - Frontend CI should:
-     - Install deps via `npm ci`.
-     - Run `npm run check`.
+   - Backend CI should run the backend check surface.
+   - Frontend CI should install frontend deps, verify generated contracts, and
+     run the frontend check surface.
+   - Production smoke should remain available for manual or scheduled
+     end-to-end verification.
 
-### 6.2. Configure branch protection (optional but recommended)
+### 7.2. Configure branch protection (optional but recommended)
 
 To prevent merging changes that break tests or linting:
 
-1. For each GitHub repo, open the repository page and go to
-   **Settings → Branches**.
+1. Open the repository page and go to **Settings → Branches**.
 2. Under **Branch protection rules**, click **Add rule** (or edit an existing
    rule) and set:
 
@@ -588,18 +541,15 @@ To prevent merging changes that break tests or linting:
    - Enable **Require a pull request before merging** (tune review settings as
      you prefer).
    - Enable **Require status checks to pass before merging** and select the CI
-     workflows:
-     - In the backend repo, select the check corresponding to
-       `.github/workflows/backend-ci.yml` (e.g., `Backend CI`).
-     - In the frontend repo, select the check corresponding to
-       https://github.com/jerdaw/healtharchive-frontend/blob/main/.github/workflows/frontend-ci.yml (e.g., `Frontend CI`).
-   - Optionally enable **Include administrators** so even admin users must
-     wait for green CI.
+     workflows wired from the root `.github/workflows/` directory, at minimum
+     `Backend CI` and `Frontend CI`.
+   - Optionally enable **Include administrators** so even admin users must wait
+     for green CI.
 
 3. Click **Create** or **Save changes** to persist the rule.
 
 After this, any PR targeting `main` will need green CI checks before it can be
 merged, ensuring that:
 
-- Backend changes don’t break the pytest suite.
-- Frontend changes don’t break linting or Vitest tests.
+- Backend changes don’t break the backend verification surface.
+- Frontend changes don’t break contract sync, linting, or frontend tests.
