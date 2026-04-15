@@ -84,7 +84,7 @@ For each active annual job, verify the output directory is accessible:
 
 ```bash
 # Example for 2025 annual jobs
-ha-backend show-job --id <annual_job_id> --warc-details
+healtharchive show-job --id <annual_job_id> --warc-details
 ```
 
 **Expected**:
@@ -100,8 +100,8 @@ ha-backend show-job --id <annual_job_id> --warc-details
 
 ```bash
 # This will detect and report any issues
-/opt/healtharchive-backend/.venv/bin/python3 \
-  /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py \
+/opt/healtharchive/.venv/bin/python3 \
+  /opt/healtharchive/scripts/vps-annual-output-tiering.py \
   --year 2025
 ```
 
@@ -115,8 +115,8 @@ ha-backend show-job --id <annual_job_id> --warc-details
 ```bash
 # Load environment and retry
 export $(cat /etc/healtharchive/env.production | xargs)
-/opt/healtharchive-backend/.venv/bin/python3 \
-  /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py \
+/opt/healtharchive/.venv/bin/python3 \
+  /opt/healtharchive/scripts/vps-annual-output-tiering.py \
   --year 2025
 ```
 
@@ -131,8 +131,8 @@ If step 5 shows `STALE (Errno 107)` entries:
 sudo systemctl stop healtharchive-worker
 
 # Run tiering script with repair flag
-sudo /opt/healtharchive-backend/.venv/bin/python3 \
-  /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py \
+sudo /opt/healtharchive/.venv/bin/python3 \
+  /opt/healtharchive/scripts/vps-annual-output-tiering.py \
   --year 2025 \
   --apply \
   --repair-stale-mounts \
@@ -140,8 +140,8 @@ sudo /opt/healtharchive-backend/.venv/bin/python3 \
 
 # If step 5 shows `WARN ... reason=unexpected_mount_type` entries:
 # (maintenance only; converts direct sshfs mounts into bind mounts)
-sudo /opt/healtharchive-backend/.venv/bin/python3 \
-  /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py \
+sudo /opt/healtharchive/.venv/bin/python3 \
+  /opt/healtharchive/scripts/vps-annual-output-tiering.py \
   --year 2025 \
   --apply \
   --repair-unexpected-mounts \
@@ -170,7 +170,7 @@ sudo journalctl -u healtharchive-worker -f
 
 ### Issue: "Cannot connect to database"
 
-**Symptom**: Tiering script or `ha-backend` commands fail with Postgres connection error.
+**Symptom**: Tiering script or `healtharchive` commands fail with Postgres connection error.
 
 **Fix**:
 ```bash
@@ -198,8 +198,8 @@ export $(cat /etc/healtharchive/env.production | xargs)
 sudo umount -l /srv/healtharchive/jobs/2025_annual_hc
 
 # Re-run tiering script
-sudo /opt/healtharchive-backend/.venv/bin/python3 \
-  /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py \
+sudo /opt/healtharchive/.venv/bin/python3 \
+  /opt/healtharchive/scripts/vps-annual-output-tiering.py \
   --year 2025 \
   --apply
 ```

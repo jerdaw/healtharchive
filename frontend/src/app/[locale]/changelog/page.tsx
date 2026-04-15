@@ -70,7 +70,7 @@ export default async function ChangelogPage({ params }: { params: Promise<{ loca
           </p>
           <p className="mt-3 text-xs leading-relaxed sm:text-sm">
             <Link
-              href="https://github.com/jerdaw/healtharchive-backend/tree/main/frontend"
+              href="https://github.com/jerdaw/healtharchive/tree/main/frontend"
               className="ha-link"
             >
               {locale === "fr"
@@ -78,7 +78,7 @@ export default async function ChangelogPage({ params }: { params: Promise<{ loca
                 : "frontend subtree in the app monorepo"}
             </Link>{" "}
             {locale === "fr" ? "et" : "and"}{" "}
-            <Link href="https://github.com/jerdaw/healtharchive-backend" className="ha-link">
+            <Link href="https://github.com/jerdaw/healtharchive" className="ha-link">
               {locale === "fr" ? "dépôt backend" : "backend repository"}
             </Link>{" "}
             {locale === "fr" ? "et" : "and"}{" "}

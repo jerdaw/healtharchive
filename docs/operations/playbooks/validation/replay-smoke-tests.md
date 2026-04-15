@@ -32,7 +32,7 @@ The `hc_canary` source is a small, local-only job (2 pages, ~5 MB) that:
 **Creating the canary:**
 
 ```bash
-ha-backend create-canary-job
+healtharchive create-canary-job
 ```
 
 This is idempotent and safe to re-run.

@@ -14,7 +14,7 @@ This script is intentionally limited to "Phase 2" scaffolding:
 It does NOT install Prometheus/Grafana/exporters and does NOT open any ports.
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
   sudo ./scripts/vps-bootstrap-observability-scaffold.sh
 
 Options:

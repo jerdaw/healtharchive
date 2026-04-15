@@ -10,7 +10,7 @@ import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-DEFAULT_DEPLOY_LOCK_FILE = "/tmp/healtharchive-backend-deploy.lock"
+DEFAULT_DEPLOY_LOCK_FILE = "/tmp/healtharchive-deploy.lock"
 
 
 def _utc_now() -> datetime:

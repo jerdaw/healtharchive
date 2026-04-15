@@ -1,7 +1,7 @@
 # HealthArchive Backend – Live Testing Guide
 
 This document describes a practical, incremental way to live‑test the
-`healtharchive-backend` in a local development environment, starting with
+`healtharchive` in a local development environment, starting with
 the smallest checks and working up to more realistic scenarios.
 
 It assumes you are working from the repo root and are comfortable with a
@@ -23,7 +23,7 @@ make venv
 
 This provides:
 
-- `ha-backend` – backend CLI
+- `healtharchive` – backend CLI
 - `archive-tool` – crawler CLI implemented by the in-repo `archive_tool` package (uses Docker + Zimit)
 
 ### 0.2 Configure environment variables
@@ -71,7 +71,7 @@ All tests should pass. (At time of writing, a 422 around
 ### 1.2 Check DB connectivity
 
 ```bash
-ha-backend check-db
+healtharchive check-db
 ```
 
 You should see:
@@ -82,7 +82,7 @@ You should see:
 ### 1.3 Check environment / archive root
 
 ```bash
-ha-backend check-env
+healtharchive check-env
 ```
 
 Confirms:
@@ -188,7 +188,7 @@ crawls.
 ### 3.1 Verify archive_tool & Docker
 
 ```bash
-ha-backend check-archive-tool
+healtharchive check-archive-tool
 ```
 
 This runs `archive-tool --help` via the configured command (by default
@@ -220,13 +220,13 @@ Zimit image may not leave WARCs accessible (see notes below).
 ### 4.1 Seed sources
 
 ```bash
-ha-backend seed-sources
+healtharchive seed-sources
 ```
 
 This inserts baseline `Source` rows (e.g., `hc`, `phac`).
 
 ```bash
-ha-backend list-jobs
+healtharchive list-jobs
 ```
 
 Should still show no `ArchiveJob` rows initially.
@@ -236,7 +236,7 @@ Should still show no `ArchiveJob` rows initially.
 Start with Health Canada:
 
 ```bash
-ha-backend create-job --source hc
+healtharchive create-job --source hc
 ```
 
 Note the printed job ID (call it `JOB_ID`). At this point:
@@ -247,7 +247,7 @@ Note the printed job ID (call it `JOB_ID`). At this point:
 ### 4.3 Run the crawl once
 
 ```bash
-ha-backend run-db-job --id JOB_ID
+healtharchive run-db-job --id JOB_ID
 ```
 
 This:
@@ -258,7 +258,7 @@ This:
 
 It can take a minute or more depending on seeds and limits. If it fails:
 
-- Inspect `ha-backend show-job --id JOB_ID` for `crawler_exit_code`,
+- Inspect `healtharchive show-job --id JOB_ID` for `crawler_exit_code`,
   `status`, and `output_dir`.
 - Check logs under that `output_dir` with `ls` and `less`.
 
@@ -273,7 +273,7 @@ It can take a minute or more depending on seeds and limits. If it fails:
 Once a job has `status="completed"`, you can attempt:
 
 ```bash
-ha-backend index-job --id JOB_ID
+healtharchive index-job --id JOB_ID
 ```
 
 This:
@@ -290,7 +290,7 @@ expected when the crawler leaves no accessible WARCs.
 CLI:
 
 ```bash
-ha-backend show-job --id JOB_ID
+healtharchive show-job --id JOB_ID
 ```
 
 Look for:
@@ -317,9 +317,9 @@ Goal: test the long‑running worker process that automates job execution.
 ### 5.1 Queue a couple of jobs
 
 ```bash
-ha-backend create-job --source hc
-ha-backend create-job --source phac
-ha-backend list-jobs
+healtharchive create-job --source hc
+healtharchive create-job --source phac
+healtharchive list-jobs
 ```
 
 You should see the new jobs in `status="queued"`.
@@ -327,7 +327,7 @@ You should see the new jobs in `status="queued"`.
 ### 5.2 Run worker in single‑cycle mode
 
 ```bash
-ha-backend start-worker --once
+healtharchive start-worker --once
 ```
 
 The worker:
@@ -340,7 +340,7 @@ The worker:
 Check transitions:
 
 ```bash
-ha-backend list-jobs
+healtharchive list-jobs
 ```
 
 Statuses should move (e.g., `queued` → `completed`/`index_failed`).
@@ -356,9 +356,9 @@ export HEALTHARCHIVE_TOOL_CMD=echo
 Then:
 
 ```bash
-ha-backend create-job --source hc
-ha-backend start-worker --once
-ha-backend list-jobs
+healtharchive create-job --source hc
+healtharchive start-worker --once
+healtharchive list-jobs
 ```
 
 You will see jobs flip from `queued` to `completed` (crawl RC 0) and then to
@@ -480,7 +480,7 @@ WARCs into snapshots for use via the HTTP API.
 This section assumes you have already run a small crawl with something like:
 
 ```bash
-ha-backend run-job \
+healtharchive run-job \
   --name hc-dev-warcs \
   --seeds https://www.canada.ca/en/health-canada.html \
   --initial-workers 1 \
@@ -561,7 +561,7 @@ Note the printed `JOB_ID` (e.g. `11`).
 **Alternative (CLI):** you can now do the same with a helper command:
 
 ```bash
-ha-backend register-job-dir \
+healtharchive register-job-dir \
   --source hc \
   --output-dir .dev-archive-root/20251210T013134Z__hc-dev-warcs \
   --name hc-dev-warcs
@@ -574,8 +574,8 @@ This creates a DB row in `status="completed"` so it is ready for indexing.
 Index the WARCs:
 
 ```bash
-ha-backend index-job --id JOB_ID
-ha-backend show-job --id JOB_ID
+healtharchive index-job --id JOB_ID
+healtharchive show-job --id JOB_ID
 ```
 
 You should see:
@@ -604,8 +604,8 @@ Goal: exercise non‑happy‑path and maintenance commands.
 If a job has `status="failed"` or `status="index_failed"`:
 
 ```bash
-ha-backend retry-job --id JOB_ID
-ha-backend show-job --id JOB_ID
+healtharchive retry-job --id JOB_ID
+healtharchive show-job --id JOB_ID
 ```
 
 Behavior:
@@ -618,8 +618,8 @@ Behavior:
 Only allowed for `status in {"indexed", "index_failed"}`:
 
 ```bash
-ha-backend cleanup-job --id JOB_ID --mode temp
-ha-backend show-job --id JOB_ID
+healtharchive cleanup-job --id JOB_ID --mode temp
+healtharchive show-job --id JOB_ID
 ```
 
 This:
@@ -690,7 +690,7 @@ Look for:
   healtharchive_jobs_pages_failed_total{source="hc"} 3
   ```
 
-Counts should roughly match `ha-backend list-jobs`, `/api/sources` /
+Counts should roughly match `healtharchive list-jobs`, `/api/sources` /
 `/api/search`, and the page counters shown in `/api/admin/jobs/{id}`.
 
 ---
@@ -702,7 +702,7 @@ Once the above is stable, you can incrementally increase realism:
 - **Multiple jobs with the worker running continuously.**
 
   ```bash
-  ha-backend start-worker --poll-interval 30
+  healtharchive start-worker --poll-interval 30
   ```
 
   In another terminal, periodically run `create-job` and watch statuses

@@ -50,7 +50,12 @@ Shared documentation boundary:
 
 For the explicit boundary, see:
 
-- `/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md`
+- `/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+
+Historical identity note:
+
+- Preserved older records may still mention the former repo slug, checkout
+  path, or CLI name from before the 2026-04 repo/runtime identity rename.
 
 Production entrypoints (VPS):
 
@@ -83,7 +88,7 @@ Production entrypoints (VPS):
 ├── src/
 │   ├── ha_backend/           # Backend package
 │   │   ├── api/              # FastAPI app, public + admin routes
-│   │   ├── cli.py            # ha-backend CLI entrypoint
+│   │   ├── cli.py            # healtharchive CLI entrypoint
 │   │   ├── config.py         # Archive root + DB + tool config
 │   │   ├── db.py             # SQLAlchemy engine/session helpers
 │   │   ├── indexing/         # WARC discovery, parsing, text extraction, mapping
@@ -123,7 +128,7 @@ make venv
 
 This provides:
 
-- `ha-backend` – backend CLI
+- `healtharchive` – backend CLI
 - `archive-tool` – console script pointing at the in-repo `archive_tool` package
 
 For the in-tree frontend:
@@ -153,7 +158,7 @@ the repo root, or whatever you point `HEALTHARCHIVE_DATABASE_URL` at.
 To verify connectivity:
 
 ```bash
-ha-backend check-db
+healtharchive check-db
 ```
 
 For production, you will typically point `HEALTHARCHIVE_DATABASE_URL` at a
@@ -198,8 +203,8 @@ The backend writes job output under an archive root directory:
 To verify the archive root and `archive_tool`:
 
 ```bash
-ha-backend check-env           # shows archive root and checks writability
-ha-backend check-archive-tool  # runs 'archive-tool --help'
+healtharchive check-env           # shows archive root and checks writability
+healtharchive check-archive-tool  # runs 'archive-tool --help'
 ```
 
 ### 5. Optional Git hooks
@@ -363,7 +368,7 @@ and indexing pipeline.
 Start it via the CLI:
 
 ```bash
-ha-backend start-worker
+healtharchive start-worker
 ```
 
 Options:
@@ -390,7 +395,7 @@ The backend exposes a small CLI layer for managing `ArchiveJob` rows.
 Ensure `Source` rows for `hc` and `phac` exist:
 
 ```bash
-ha-backend seed-sources
+healtharchive seed-sources
 ```
 
 ### Create a job from registry defaults
@@ -398,7 +403,7 @@ ha-backend seed-sources
 For example, a monthly Health Canada job:
 
 ```bash
-ha-backend create-job --source hc
+healtharchive create-job --source hc
 ```
 
 This:
@@ -409,7 +414,7 @@ This:
 ### Run a specific DB-backed job once
 
 ```bash
-ha-backend run-db-job --id 42
+healtharchive run-db-job --id 42
 ```
 
 This calls `archive_tool` with the stored seeds, `output_dir`, and tool
@@ -420,15 +425,15 @@ options. It updates `status`, timestamps, and `crawler_exit_code`.
 If you ran a crawl separately and just want to index WARCs:
 
 ```bash
-ha-backend index-job --id 42
+healtharchive index-job --id 42
 ```
 
 If you have an existing `archive_tool` output directory on disk (e.g. from a
 manual run) and want to attach it to the DB for indexing, use:
 
 ```bash
-ha-backend register-job-dir --source hc --output-dir /path/to/job_dir [--name NAME]
-ha-backend index-job --id <printed ID>
+healtharchive register-job-dir --source hc --output-dir /path/to/job_dir [--name NAME]
+healtharchive index-job --id <printed ID>
 ```
 
 **Permissions note:** crawls run as root inside Docker. The registry defaults now
@@ -442,10 +447,10 @@ Change tracking is computed off the request path using precomputed events.
 
 ```bash
 # Incremental (last 30 days by default)
-ha-backend compute-changes --max-events 200
+healtharchive compute-changes --max-events 200
 
 # Backfill historical changes
-ha-backend compute-changes --backfill --max-events 500
+healtharchive compute-changes --backfill --max-events 500
 ```
 
 These commands populate `snapshot_changes` rows used by `/api/changes` and
@@ -454,8 +459,8 @@ These commands populate `snapshot_changes` rows used by `/api/changes` and
 ### List and inspect jobs
 
 ```bash
-ha-backend list-jobs
-ha-backend show-job --id 42
+healtharchive list-jobs
+healtharchive show-job --id 42
 ```
 
 ### Validate a job's configuration (dry-run)
@@ -465,7 +470,7 @@ zimit args) without actually running a crawl, you can invoke the integrated
 `archive_tool` CLI in dry-run mode via:
 
 ```bash
-ha-backend validate-job-config --id 42
+healtharchive validate-job-config --id 42
 ```
 
 This:
@@ -480,7 +485,7 @@ This:
 - Retry a failed crawl or reindex:
 
   ```bash
-  ha-backend retry-job --id 42
+  healtharchive retry-job --id 42
   ```
 
   - For `status="failed"` → sets `status="retryable"` for another crawl.
@@ -490,7 +495,7 @@ This:
 - Cleanup temp dirs and state for an **indexed** or **index_failed** job:
 
   ```bash
-  ha-backend cleanup-job --id 42
+  healtharchive cleanup-job --id 42
   ```
 
   This:

@@ -9,7 +9,7 @@ export function JsonLd() {
     description:
       "Independent archive of Canadian public health information from federal and provincial government sources",
     sameAs: [
-      "https://github.com/jerdaw/healtharchive-backend",
+      "https://github.com/jerdaw/healtharchive",
       "https://github.com/jerdaw/healtharchive-datasets",
     ],
   };

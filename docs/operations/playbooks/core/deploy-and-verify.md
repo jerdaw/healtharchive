@@ -23,12 +23,12 @@ Canonical references:
 
 2. Run the deploy gate (recommended one command):
 
-   - `cd /opt/healtharchive-backend && ./scripts/vps-deploy.sh --apply --baseline-mode live`
-   - Or pinned: `cd /opt/healtharchive-backend && ./scripts/vps-deploy.sh --apply --baseline-mode live --ref <GIT_SHA>`
+   - `cd /opt/healtharchive && ./scripts/vps-deploy.sh --apply --baseline-mode live`
+   - Or pinned: `cd /opt/healtharchive && ./scripts/vps-deploy.sh --apply --baseline-mode live --ref <GIT_SHA>`
 
    Recommended wrapper (routine use):
 
-   - `cd /opt/healtharchive-backend && ./scripts/vps-hetzdeploy.sh`
+   - `cd /opt/healtharchive && ./scripts/vps-hetzdeploy.sh`
 
    This includes:
 
@@ -46,7 +46,7 @@ Canonical references:
 
    - `./scripts/vps-hetzdeploy.sh --mode backend-only`
 
-   Optional: install the wrapper outside the repo so it never dirties `/opt/healtharchive-backend`:
+   Optional: install the wrapper outside the repo so it never dirties `/opt/healtharchive`:
 
    - `sudo ./scripts/vps-install-hetzdeploy.sh --apply`
    - Then run: `hetzdeploy` or `hetzdeploy --mode backend-only`

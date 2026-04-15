@@ -35,7 +35,7 @@ Canonical docs to consult first:
 - `docs/planning/implemented/` – historical implementation plans (executed).
 - Frontend bilingual/dev architecture: `frontend/docs/development/bilingual-dev-guide.md`
 - `/home/jer/repos/platform-ops` – shared VPS inventory, roadmap, handoff, and cross-project runbooks
-- `/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md` – canonical boundary for what belongs in `platform-ops` vs this repo
+- `/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md` – canonical boundary for what belongs in `platform-ops` vs this repo
 
 Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
 operations state live in `/home/jer/repos/platform-ops`. Use
@@ -353,7 +353,7 @@ Do **not** weaken this behavior:
 
 ## Cleanup & retention
 
-- Cleanup is done per job via `ha-backend cleanup-job --id ID --mode temp`.
+- Cleanup is done per job via `healtharchive cleanup-job --id ID --mode temp`.
 - It removes:
 
   - temp crawl dirs (`.tmp*`),

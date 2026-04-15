@@ -18,7 +18,7 @@ Usage:
                          [--allow-dirty] [--no-pull] [--lock-file FILE]
 
 Examples (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run (prints what would happen):
   ./scripts/vps-deploy.sh
@@ -32,7 +32,7 @@ Examples (on the VPS):
 Notes:
   - This script never prints secrets; it only sources the env file to run Alembic.
   - It refuses to run with a dirty git working tree unless you pass --allow-dirty.
-  - It uses a lock file to avoid concurrent deploys (default: /tmp/healtharchive-backend-deploy.lock).
+  - It uses a lock file to avoid concurrent deploys (default: /tmp/healtharchive-deploy.lock).
   - By default it will NOT restart the worker if there are running crawl jobs (to avoid SIGTERMing crawls).
     Use --force-worker-restart to override.
 EOF
@@ -43,7 +43,7 @@ REF=""
 REPO_DIR=""
 ENV_FILE="/etc/healtharchive/backend.env"
 HEALTH_URL="http://127.0.0.1:8001/api/health"
-LOCK_FILE="/tmp/healtharchive-backend-deploy.lock"
+LOCK_FILE="/tmp/healtharchive-deploy.lock"
 
 ALLOW_DIRTY="false"
 NO_PULL="false"
@@ -208,13 +208,13 @@ has_running_jobs() {
   #
   # NOTE: This intentionally sources the env file (DB URL) but never prints it.
   # If the DB isn't reachable, we conservatively assume "yes" to avoid killing crawls.
-  if [[ ! -x "${VENV_BIN}/ha-backend" ]]; then
-    echo "WARN: ha-backend not found at ${VENV_BIN}/ha-backend; assuming running jobs exist (will not restart worker)." >&2
+  if [[ ! -x "${VENV_BIN}/healtharchive" ]]; then
+    echo "WARN: healtharchive not found at ${VENV_BIN}/healtharchive; assuming running jobs exist (will not restart worker)." >&2
     return 0
   fi
 
   local out=""
-  out="$(bash -lc "set -a; source \"${ENV_FILE}\"; set +a; \"${VENV_BIN}/ha-backend\" list-jobs --status running --limit 1" 2>/dev/null || true)"
+  out="$(bash -lc "set -a; source \"${ENV_FILE}\"; set +a; \"${VENV_BIN}/healtharchive\" list-jobs --status running --limit 1" 2>/dev/null || true)"
   if [[ -z "${out}" ]]; then
     echo "WARN: Could not query running jobs (DB unreachable?); assuming running jobs exist (will not restart worker)." >&2
     return 0

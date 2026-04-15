@@ -246,7 +246,7 @@ Baselines should be measured:
 
 - **Location:** `docs/operations/service-levels.md`
 - **Owner:** Primary operator
-- **Format:** Markdown, version-controlled in healtharchive-backend repo
+- **Format:** Markdown, version-controlled in healtharchive repo
 - **Navigation:** Linked from operations index and docs site navigation
 
 ---

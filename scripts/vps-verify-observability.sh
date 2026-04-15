@@ -11,7 +11,7 @@ This script checks:
 - Prometheus sees expected targets as UP
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
   ./scripts/vps-verify-observability.sh
 
 Notes:

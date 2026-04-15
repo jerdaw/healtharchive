@@ -52,7 +52,7 @@ def _init_fake_repo(tmp_path: Path) -> tuple[Path, Path]:
             "#!/usr/bin/env bash\nexit 0\n",
         )
     _write_executable(
-        venv_bin / "ha-backend",
+        venv_bin / "healtharchive",
         """#!/usr/bin/env bash
 set -euo pipefail
 if [[ "${1:-}" == "list-jobs" ]]; then

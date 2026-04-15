@@ -17,23 +17,23 @@ Rationale (given current project goals/resources):
 
 ## 1) Recommended production rollout steps (single VPS)
 
-On the VPS (as `haadmin`) in the backend repo checkout (e.g. `/opt/healtharchive-backend`):
+On the VPS (as `haadmin`) in the backend repo checkout (e.g. `/opt/healtharchive`):
 
 1) Pull the new backend revision.
 2) Apply migrations:
    - `./.venv/bin/alembic upgrade head`
 3) Recompute link signals (populates `inlink_count`, `outlink_count`, and `pagerank` when present):
-   - `./.venv/bin/ha-backend recompute-page-signals`
+   - `./.venv/bin/healtharchive recompute-page-signals`
 4) Enable v2 by default:
    - Edit `/etc/healtharchive/backend.env` and set `HA_SEARCH_RANKING_VERSION=v2`
 5) Restart only the API process (worker does not need the ranking env var):
    - `sudo systemctl restart healtharchive-api`
 
 Notes:
-- `ha-backend recompute-page-signals` can take a while on large graphs; run it in `tmux` and consider off-peak hours.
+- `healtharchive recompute-page-signals` can take a while on large graphs; run it in `tmux` and consider off-peak hours.
 - If you have not yet backfilled outlinks for existing WARCs, do that first (per job):
-  - `./.venv/bin/ha-backend backfill-outlinks --job-id <JOB_ID> --update-signals`
-  - Then run `./.venv/bin/ha-backend recompute-page-signals` once after the backfills finish.
+  - `./.venv/bin/healtharchive backfill-outlinks --job-id <JOB_ID> --update-signals`
+  - Then run `./.venv/bin/healtharchive recompute-page-signals` once after the backfills finish.
 
 ## 2) Verification checklist (production)
 

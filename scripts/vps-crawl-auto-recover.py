@@ -18,7 +18,7 @@ from ha_backend.db import get_session
 from ha_backend.job_registry import SOURCE_JOB_CONFIGS, reconcile_scope_passthrough_args
 from ha_backend.models import ArchiveJob, Source
 
-DEFAULT_DEPLOY_LOCK_FILE = "/tmp/healtharchive-backend-deploy.lock"
+DEFAULT_DEPLOY_LOCK_FILE = "/tmp/healtharchive-deploy.lock"
 DEFAULT_STATE_FILE = "/srv/healtharchive/ops/watchdog/crawl-auto-recover.json"
 DEFAULT_LOCK_FILE = "/srv/healtharchive/ops/watchdog/crawl-auto-recover.lock"
 DEFAULT_TEXTFILE_OUT_DIR = "/var/lib/node_exporter/textfile_collector"
@@ -26,11 +26,11 @@ DEFAULT_TEXTFILE_OUT_FILE = "healtharchive_crawl_auto_recover.prom"
 DEFAULT_JOB_LOCK_DIR = Path("/tmp/healtharchive-job-locks")
 JOB_LOCK_DIR_ENV = "HEALTHARCHIVE_JOB_LOCK_DIR"
 
-DEFAULT_START_WORKING_DIR = "/opt/healtharchive-backend"
+DEFAULT_START_WORKING_DIR = "/opt/healtharchive"
 DEFAULT_START_ENV_FILE = "/etc/healtharchive/backend.env"
 DEFAULT_START_USER = "haadmin"
 DEFAULT_START_GROUP = "haadmin"
-DEFAULT_START_HA_BACKEND = "/opt/healtharchive-backend/.venv/bin/ha-backend"
+DEFAULT_START_HEALTHARCHIVE = "/opt/healtharchive/.venv/bin/healtharchive"
 DEFAULT_START_UNIT_PREFIX = "healtharchive-job"
 DEFAULT_START_DOCKER_CPU_LIMIT = "1.0"
 DEFAULT_START_DOCKER_MEMORY_LIMIT = "3g"
@@ -548,7 +548,7 @@ def _ps_args_for_pid(pid: int) -> str | None:
 
 def _find_running_job_unit(job_id: int) -> str | None:
     """
-    Attempt to find a running systemd unit whose MainPID is `ha-backend run-db-job --id <job_id>`.
+    Attempt to find a running systemd unit whose MainPID is `healtharchive run-db-job --id <job_id>`.
 
     This is the safest way to stop/restart a detached job without touching the worker.
     """
@@ -1144,7 +1144,7 @@ def main(argv: list[str] | None = None) -> int:
         "--recover-older-than-minutes",
         type=int,
         default=5,
-        help="Pass-through to ha-backend recover-stale-jobs --older-than-minutes.",
+        help="Pass-through to healtharchive recover-stale-jobs --older-than-minutes.",
     )
     parser.add_argument(
         "--max-recoveries-per-job-per-day",
@@ -1290,9 +1290,9 @@ def main(argv: list[str] | None = None) -> int:
         "--start-group", default=DEFAULT_START_GROUP, help="Group for auto-started units."
     )
     parser.add_argument(
-        "--start-ha-backend",
-        default=DEFAULT_START_HA_BACKEND,
-        help="Path to ha-backend CLI for auto-started units.",
+        "--start-healtharchive",
+        default=DEFAULT_START_HEALTHARCHIVE,
+        help="Path to healtharchive CLI for auto-started units.",
     )
     parser.add_argument(
         "--start-docker-cpu-limit",
@@ -2164,7 +2164,7 @@ def main(argv: list[str] | None = None) -> int:
         if mem:
             systemd_run_cmd.append(f"--setenv=HEALTHARCHIVE_DOCKER_MEMORY_LIMIT={mem}")
         systemd_run_cmd += [
-            str(args.start_ha_backend),
+            str(args.start_healtharchive),
             "run-db-job",
             "--id",
             str(candidate_id),
@@ -2304,7 +2304,7 @@ def main(argv: list[str] | None = None) -> int:
                     print("Planned actions (dry-run):")
                     print("  1) (skip) do not restart the worker (guard window active)")
                     print(
-                        "  2) /opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs "
+                        "  2) /opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs "
                         f"--older-than-minutes {int(args.recover_older_than_minutes)} "
                         f"--require-no-progress-seconds {int(args.stall_threshold_seconds)} "
                         f"--apply --source {job.source_code} --limit 5"
@@ -2394,7 +2394,7 @@ def main(argv: list[str] | None = None) -> int:
 
                 _run(
                     [
-                        "/opt/healtharchive-backend/.venv/bin/ha-backend",
+                        "/opt/healtharchive/.venv/bin/healtharchive",
                         "recover-stale-jobs",
                         "--older-than-minutes",
                         str(int(args.recover_older_than_minutes)),
@@ -2481,7 +2481,7 @@ def main(argv: list[str] | None = None) -> int:
             step += 1
 
         print(
-            f"  {step}) /opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs "
+            f"  {step}) /opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs "
             f"--older-than-minutes {int(args.recover_older_than_minutes)} "
             f"--require-no-progress-seconds {int(args.stall_threshold_seconds)} "
             f"--apply --source {job.source_code} --limit 5"
@@ -2551,7 +2551,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
     _run(
         [
-            "/opt/healtharchive-backend/.venv/bin/ha-backend",
+            "/opt/healtharchive/.venv/bin/healtharchive",
             "recover-stale-jobs",
             "--older-than-minutes",
             str(int(args.recover_older_than_minutes)),

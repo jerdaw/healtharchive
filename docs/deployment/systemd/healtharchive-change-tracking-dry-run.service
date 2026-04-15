@@ -7,7 +7,7 @@ ConditionPathExists=/etc/healtharchive/backend.env
 [Service]
 Type=oneshot
 User=haadmin
-WorkingDirectory=/opt/healtharchive-backend
+WorkingDirectory=/opt/healtharchive
 EnvironmentFile=/etc/healtharchive/backend.env
 EnvironmentFile=-/etc/healtharchive/healthchecks.env
 
@@ -18,4 +18,4 @@ IOSchedulingPriority=6
 
 TimeoutStartSec=2h
 
-ExecStart=/opt/healtharchive-backend/scripts/systemd-healthchecks-wrapper.sh --ping-var HEALTHARCHIVE_HC_PING_CHANGE_TRACKING -- /opt/healtharchive-backend/.venv/bin/ha-backend compute-changes --since-days 400 --max-events 200 --dry-run
+ExecStart=/opt/healtharchive/scripts/systemd-healthchecks-wrapper.sh --ping-var HEALTHARCHIVE_HC_PING_CHANGE_TRACKING -- /opt/healtharchive/.venv/bin/healtharchive compute-changes --since-days 400 --max-events 200 --dry-run

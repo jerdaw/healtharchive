@@ -20,7 +20,7 @@ Status: accepted
   - `error_threshold_timeout = 50`
   - `error_threshold_http = 50`
   - `backoff_delay_minutes = 2`
-- `ha-backend schedule-annual` will stagger per-source `queued_at` timestamps so the single-worker pick order is deterministic (hc → phac → cihr).
+- `healtharchive schedule-annual` will stagger per-source `queued_at` timestamps so the single-worker pick order is deterministic (hc → phac → cihr).
 - We will treat invalid CLI / config failures (e.g., “unrecognized arguments”) as `infra_error_config` so the worker does not churn retry budgets.
 - Annual campaign policy remains: **no page/depth caps**. Use scope rules to bound crawls, not limits that risk incompleteness.
 

@@ -49,7 +49,7 @@ Do not use this playbook for:
 
 - Default to read-only diagnosis.
 - Keep the human operator in the loop for every state-changing command.
-- Do not edit `/opt/healtharchive-backend` directly during the session.
+- Do not edit `/opt/healtharchive` directly during the session.
 - Do not run `git pull` on the VPS as a substitute for the deploy helper.
 - Use repo-first remediation for code, config logic, crawler behavior, watchdog
   behavior, and CLI changes: fix locally, validate locally, deploy a pinned
@@ -79,9 +79,9 @@ Normal commands in this mode include:
 - service state: `systemctl status healtharchive-api healtharchive-worker --no-pager -l`,
   `docker ps`
 - HealthArchive inspection:
-  - `/opt/healtharchive-backend/.venv/bin/ha-backend list-jobs --limit 50`
-  - `/opt/healtharchive-backend/.venv/bin/ha-backend show-job --id <JOB_ID>`
-  - `cd /opt/healtharchive-backend && ./scripts/vps-crawl-status.sh --year <YEAR>`
+  - `/opt/healtharchive/.venv/bin/healtharchive list-jobs --limit 50`
+  - `/opt/healtharchive/.venv/bin/healtharchive show-job --id <JOB_ID>`
+  - `cd /opt/healtharchive && ./scripts/vps-crawl-status.sh --year <YEAR>`
 - bounded diagnostics:
   - `timeout 120 ./scripts/vps-crawl-content-report.py ...`
   - `sudo systemd-run --scope -p CPUQuota=25% -p MemoryHigh=512M -p MemoryMax=1G timeout 120 <command>`
@@ -112,10 +112,10 @@ Commands that always require explicit approval:
 
 - `sudo systemctl stop|start|restart ...`
 - `./scripts/vps-deploy.sh --apply ...`
-- `/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --apply ...`
-- `/opt/healtharchive-backend/.venv/bin/ha-backend retry-job ...`
-- `/opt/healtharchive-backend/.venv/bin/ha-backend patch-job-config ...`
-- `/opt/healtharchive-backend/.venv/bin/ha-backend cleanup-job ...`
+- `/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --apply ...`
+- `/opt/healtharchive/.venv/bin/healtharchive retry-job ...`
+- `/opt/healtharchive/.venv/bin/healtharchive patch-job-config ...`
+- `/opt/healtharchive/.venv/bin/healtharchive cleanup-job ...`
 - `docker stop`, `docker rm`
 - mount/unmount actions
 - package installation
@@ -125,7 +125,7 @@ Commands that always require explicit approval:
 ## Never do this during an assistant-guided prod session
 
 - use the production VPS as the main coding workspace
-- hotfix the backend by editing files under `/opt/healtharchive-backend`
+- hotfix the backend by editing files under `/opt/healtharchive`
 - rely on ad hoc retries before verifying whether the repo needs a fix
 - restart `healtharchive-worker` during an active crawl unless interruption is
   explicitly accepted
@@ -191,8 +191,8 @@ Cmnd_Alias HA_SESSION_COMMANDS = \
     /usr/bin/systemctl, \
     /usr/bin/journalctl, \
     /usr/bin/docker, \
-    /opt/healtharchive-backend/.venv/bin/ha-backend, \
-    /opt/healtharchive-backend/scripts/vps-deploy.sh
+    /opt/healtharchive/.venv/bin/healtharchive, \
+    /opt/healtharchive/scripts/vps-deploy.sh
 
 Defaults:haadmin use_pty, env_reset
 Defaults:haadmin iolog_dir="/var/log/projects-merge/sudo-io/%{user}"
@@ -225,7 +225,7 @@ Recommended follow-ups:
 6. Open an incident note or scratchpad timeline if the issue is more than
    routine maintenance.
 7. Capture a baseline snapshot before touching anything:
-   `cd /opt/healtharchive-backend && ./scripts/vps-crawl-status.sh --year <YEAR>`
+   `cd /opt/healtharchive && ./scripts/vps-crawl-status.sh --year <YEAR>`
 8. Classify the next step:
    - read-only diagnosis
    - repo fix needed

@@ -6,7 +6,7 @@ on:
   workflow_dispatch: {}
 
 concurrency:
-  group: healtharchive-backend-full-${{ github.ref }}
+  group: healtharchive-full-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:

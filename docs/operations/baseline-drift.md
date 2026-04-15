@@ -20,7 +20,7 @@ This is implemented as:
 On the VPS (as `haadmin`):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/check_baseline_drift.py --mode live
 ```
 

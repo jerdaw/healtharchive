@@ -94,10 +94,10 @@ pgrep -af 'vps-deploy\\.sh' || true
 
 # 1) Preflight: confirm the worker is idle (no running jobs)
 set -a; source "${ENV_FILE}"; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend list-jobs --status running --limit 5
+/opt/healtharchive/.venv/bin/healtharchive list-jobs --status running --limit 5
 
 # 2) Ensure ops dirs exist (creates ${NEW_LOCK_DIR} with expected perms)
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo ./scripts/vps-bootstrap-ops-dirs.sh
 
 # 3) Backup env file

@@ -110,7 +110,7 @@ Ensure the backend’s canonical configuration matches the annual campaign:
 
 **Implementation steps**
 
-1. Add/confirm `cihr` in source seeding (`ha-backend seed-sources`).
+1. Add/confirm `cihr` in source seeding (`healtharchive seed-sources`).
 2. Add a `SourceJobConfig` entry for `cihr` in `job_registry.py`:
    - seeds from `annual-campaign.md`
    - conservative safety defaults (monitoring off by default unless you choose
@@ -151,7 +151,7 @@ given year (Jan 01 UTC), exactly once.
 
 **Proposed CLI**
 
-- `ha-backend schedule-annual`
+- `healtharchive schedule-annual`
 
 Flags (opinionated):
 
@@ -221,7 +221,7 @@ Make it trivial to answer:
 
 **Proposed CLI**
 
-- `ha-backend annual-status --year YYYY [--json] [--sources ...]`
+- `healtharchive annual-status --year YYYY [--json] [--sources ...]`
 
 Reports per source:
 
@@ -267,7 +267,7 @@ Run the annual scheduler automatically on Jan 01 UTC, reliably.
 Templates live in: `../deployment/systemd/`
 
 - `healtharchive-schedule-annual.service` (apply)
-  - Runs: `ha-backend schedule-annual --apply --year <UTC_YEAR> --sources hc phac cihr`
+  - Runs: `healtharchive schedule-annual --apply --year <UTC_YEAR> --sources hc phac cihr`
     - `<UTC_YEAR>` is computed at runtime (`date -u +%Y`) so that
       `Persistent=true` can safely run a missed activation after a reboot.
   - Uses `EnvironmentFile=/etc/healtharchive/backend.env`
@@ -342,7 +342,7 @@ Implementation (v1):
   captures under a stable, year-tagged path (instead of a nested timestamp you
   need to “discover” after the fact).
 - `scripts/annual-search-verify.sh` wraps the flow safely:
-  - runs `ha-backend annual-status --year YYYY --json`,
+  - runs `healtharchive annual-status --year YYYY --json`,
   - refuses to capture unless `summary.readyForSearch=true` (unless you pass
     `--allow-not-ready`),
   - writes `annual-status.json`/`annual-status.txt` into the same capture dir as
@@ -362,7 +362,7 @@ Operator command (production example):
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/annual-search-verify.sh --year 2026 --out-root /srv/healtharchive/ops/search-eval --base-url http://127.0.0.1:8001
 ```
 
@@ -386,7 +386,7 @@ availability.
 
 Implementation (v1) (aligns with `replay-and-preview-automation-plan.md`):
 
-- New ops command: `ha-backend replay-reconcile`
+- New ops command: `healtharchive replay-reconcile`
   - default mode is **dry-run** (safe): prints what it would do.
   - `--apply` performs the actions.
   - global lock file prevents concurrent runs (default:
@@ -401,7 +401,7 @@ Implementation (v1) (aligns with `replay-and-preview-automation-plan.md`):
     - optional `--campaign-year YYYY` for annual-only reconciliation.
 
 - Replay indexing metadata:
-  - `ha-backend replay-index-job --id <id>` now writes a marker file under the
+  - `healtharchive replay-index-job --id <id>` now writes a marker file under the
     collection root: `replay-index.meta.json` (WARC count + hash + timestamps).
   - `replay-reconcile --verify-warc-hash` can use the marker to detect drift
     (slower; optional).
@@ -409,9 +409,9 @@ Implementation (v1) (aligns with `replay-and-preview-automation-plan.md`):
 Staged rollout:
 
 1. Dry-run:
-   - `ha-backend replay-reconcile --collections-dir /srv/healtharchive/replay/collections`
+   - `healtharchive replay-reconcile --collections-dir /srv/healtharchive/replay/collections`
 2. Apply for one job (manual allowlist):
-   - `ha-backend replay-reconcile --apply --job-id <JOB_ID> --max-jobs 1`
+   - `healtharchive replay-reconcile --apply --job-id <JOB_ID> --max-jobs 1`
 3. Timer with caps (templates under `docs/deployment/systemd/`; disabled by default).
 4. Optional previews (still capped; failures are surfaced clearly).
 
@@ -440,7 +440,7 @@ Implementation (v1)
 Operator usage (production):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 
 # Dry-run:
 ./scripts/vps-deploy.sh

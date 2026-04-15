@@ -9,7 +9,7 @@ import subprocess
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-DEFAULT_DEPLOY_LOCK_FILE = "/tmp/healtharchive-backend-deploy.lock"
+DEFAULT_DEPLOY_LOCK_FILE = "/tmp/healtharchive-deploy.lock"
 
 
 def _utc_now() -> datetime:
@@ -173,7 +173,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument(
         "--deploy-script",
-        default="/opt/healtharchive-backend/scripts/vps-deploy.sh",
+        default="/opt/healtharchive/scripts/vps-deploy.sh",
         help="Path to the deployment script.",
     )
     p.add_argument(

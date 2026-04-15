@@ -29,12 +29,12 @@ if [[ -f ".venv/bin/activate" ]]; then
     # Source production env for DB access/credentials
     ENV_FILE="/etc/healtharchive/backend.env"
     if [[ -f "${ENV_FILE}" ]]; then
-        echo "Sourcing ${ENV_FILE} for ha-backend access..." | tee -a "$LOGFILE"
+        echo "Sourcing ${ENV_FILE} for healtharchive access..." | tee -a "$LOGFILE"
         set -a; source "${ENV_FILE}"; set +a
     fi
-    check_cmd "ha-backend show-campaign 2026"
+    check_cmd "healtharchive show-campaign 2026"
 else
-    echo "WARN: .venv not found, skipping ha-backend commands" | tee -a "$LOGFILE"
+    echo "WARN: .venv not found, skipping healtharchive commands" | tee -a "$LOGFILE"
 fi
 
 # 1.2 Git State

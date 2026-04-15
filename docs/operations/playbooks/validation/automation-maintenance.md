@@ -11,7 +11,7 @@ Canonical references:
 
 On the VPS:
 
-- `cd /opt/healtharchive-backend`
+- `cd /opt/healtharchive`
 - `sudo ./scripts/vps-install-systemd-units.sh --apply --restart-worker`
 
 ## Bootstrap ops directories (one-time)

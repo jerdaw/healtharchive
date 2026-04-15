@@ -19,8 +19,8 @@ They implement:
 
 Assumptions (adjust paths/user if your VPS differs):
 
-- Repo is deployed at: `/opt/healtharchive-backend`
-- Venv exists at: `/opt/healtharchive-backend/.venv`
+- Repo is deployed at: `/opt/healtharchive`
+- Venv exists at: `/opt/healtharchive/.venv`
 - Backend env file: `/etc/healtharchive/backend.env`
 - Backend system user: `haadmin`
 
@@ -40,20 +40,20 @@ Enablement (on the VPS):
 
 1. Ensure ops dirs exist:
 
-   - `cd /opt/healtharchive-backend && sudo ./scripts/vps-bootstrap-ops-dirs.sh`
+   - `cd /opt/healtharchive && sudo ./scripts/vps-bootstrap-ops-dirs.sh`
 2. Set the env var in `/etc/healtharchive/backend.env`:
 
    - `export HEALTHARCHIVE_JOB_LOCK_DIR=/srv/healtharchive/ops/locks/jobs`
 3. Restart the worker and any watchdog timers/services that read `backend.env`
    during a safe window.
 
-Hard requirement: do not restart the worker while crawls are running unless you accept interruption. Confirm `ha-backend list-jobs --status running` is empty before restarting.
+Hard requirement: do not restart the worker while crawls are running unless you accept interruption. Confirm `healtharchive list-jobs --status running` is empty before restarting.
 
 Recommended (safe, copy/paste checklist):
 
-- `cd /opt/healtharchive-backend && ./scripts/vps-job-lock-dir-cutover.sh`
+- `cd /opt/healtharchive && ./scripts/vps-job-lock-dir-cutover.sh`
 
-If the script is missing on the VPS, your `/opt/healtharchive-backend` checkout is behind the repo. You can either deploy/pull first,
+If the script is missing on the VPS, your `/opt/healtharchive` checkout is behind the repo. You can either deploy/pull first,
 or stage the cutover manually (no restarts required until your maintenance window):
 
 - `sudo cp -av /etc/healtharchive/backend.env /etc/healtharchive/backend.env.bak.$(date -u +%Y%m%dT%H%M%SZ)`
@@ -83,7 +83,7 @@ or stage the cutover manually (no restarts required until your maintenance windo
 - `healtharchive-worker.service.override.conf`
   - Drop-in that lowers worker CPU/IO priority to keep the API responsive.
 - `healtharchive-replay-reconcile.service`
-  - **Apply mode**: runs `ha-backend replay-reconcile --apply --max-jobs 1`.
+  - **Apply mode**: runs `healtharchive replay-reconcile --apply --max-jobs 1`.
   - Gated by `ConditionPathExists=/etc/healtharchive/replay-automation-enabled`.
   - Uses a lock file under `/srv/healtharchive/replay/.locks/` to prevent concurrent runs.
 - `healtharchive-replay-reconcile.timer`
@@ -92,7 +92,7 @@ or stage the cutover manually (no restarts required until your maintenance windo
 - `healtharchive-replay-reconcile-dry-run.service`
   - Safe validation service (no docker exec, no filesystem writes beyond the lock file dir).
 - `healtharchive-change-tracking.service`
-  - **Apply mode**: runs `ha-backend compute-changes` (edition-aware diffs).
+  - **Apply mode**: runs `healtharchive compute-changes` (edition-aware diffs).
   - Gated by `ConditionPathExists=/etc/healtharchive/change-tracking-enabled`.
 - `healtharchive-change-tracking.timer`
   - Daily at `*-*-* 03:40:00 UTC`
@@ -224,7 +224,7 @@ If a timer is enabled, also ensure its sentinel file exists under
 Preferred (one command; installs the managed API template, timer templates, and the worker priority drop-in):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo ./scripts/vps-install-systemd-units.sh --apply --restart-worker
 ```
 
@@ -235,7 +235,7 @@ recovery), prefer launching it as a transient systemd unit so your SSH session
 doesn’t need to stay open:
 
 ```bash
-sudo /opt/healtharchive-backend/scripts/vps-run-db-job-detached.py --id 7 --retry-first
+sudo /opt/healtharchive/scripts/vps-run-db-job-detached.py --id 7 --retry-first
 ```
 
 Follow the printed `journalctl -u <unit>.service -f` command to tail logs.
@@ -253,7 +253,7 @@ Before enabling timers that write artifacts under `/srv/healtharchive/ops/`, ens
 the ops directories exist with the expected permissions:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo ./scripts/vps-bootstrap-ops-dirs.sh
 ```
 
@@ -263,71 +263,71 @@ Copy unit files:
 
 ```bash
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-schedule-annual.service \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-schedule-annual.service \
   /etc/systemd/system/healtharchive-schedule-annual.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-schedule-annual.timer \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-schedule-annual.timer \
   /etc/systemd/system/healtharchive-schedule-annual.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-schedule-annual-dry-run.service \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-schedule-annual-dry-run.service \
   /etc/systemd/system/healtharchive-schedule-annual-dry-run.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-replay-reconcile.service \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-replay-reconcile.service \
   /etc/systemd/system/healtharchive-replay-reconcile.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-replay-reconcile.timer \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-replay-reconcile.timer \
   /etc/systemd/system/healtharchive-replay-reconcile.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-replay-reconcile-dry-run.service \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-replay-reconcile-dry-run.service \
   /etc/systemd/system/healtharchive-replay-reconcile-dry-run.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-change-tracking.service \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-change-tracking.service \
   /etc/systemd/system/healtharchive-change-tracking.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-change-tracking.timer \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-change-tracking.timer \
   /etc/systemd/system/healtharchive-change-tracking.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-change-tracking-dry-run.service \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-change-tracking-dry-run.service \
   /etc/systemd/system/healtharchive-change-tracking-dry-run.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-annual-search-verify.service \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-annual-search-verify.service \
   /etc/systemd/system/healtharchive-annual-search-verify.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-annual-search-verify.timer \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-annual-search-verify.timer \
   /etc/systemd/system/healtharchive-annual-search-verify.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-baseline-drift-check.service \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-baseline-drift-check.service \
   /etc/systemd/system/healtharchive-baseline-drift-check.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-baseline-drift-check.timer \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-baseline-drift-check.timer \
   /etc/systemd/system/healtharchive-baseline-drift-check.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-public-surface-verify.service \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-public-surface-verify.service \
   /etc/systemd/system/healtharchive-public-surface-verify.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-public-surface-verify.timer \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-public-surface-verify.timer \
   /etc/systemd/system/healtharchive-public-surface-verify.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-drift-auto-reconcile.service \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-drift-auto-reconcile.service \
   /etc/systemd/system/healtharchive-drift-auto-reconcile.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-drift-auto-reconcile.timer \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-drift-auto-reconcile.timer \
   /etc/systemd/system/healtharchive-drift-auto-reconcile.timer
 ```
 
@@ -336,7 +336,7 @@ Install the worker priority drop-in:
 ```bash
 sudo install -d -m 0755 -o root -g root /etc/systemd/system/healtharchive-worker.service.d
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive-backend/docs/deployment/systemd/healtharchive-worker.service.override.conf \
+  /opt/healtharchive/docs/deployment/systemd/healtharchive-worker.service.override.conf \
   /etc/systemd/system/healtharchive-worker.service.d/override.conf
 ```
 
@@ -420,7 +420,7 @@ This script compares:
 Run on the VPS:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo python3 ./scripts/verify_healthchecks_alignment.py
 ```
 
@@ -475,8 +475,8 @@ If you see an error like `relation "snapshot_changes" does not exist`, apply
 migrations first (idempotent):
 
 ```bash
-cd /opt/healtharchive-backend
-sudo -u haadmin /opt/healtharchive-backend/.venv/bin/alembic upgrade head
+cd /opt/healtharchive
+sudo -u haadmin /opt/healtharchive/.venv/bin/alembic upgrade head
 ```
 
 ---
@@ -724,7 +724,7 @@ the command manually.
 Precondition: ops directories exist (idempotent):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo ./scripts/vps-bootstrap-ops-dirs.sh
 ```
 

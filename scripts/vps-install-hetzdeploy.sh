@@ -17,7 +17,7 @@ Why:
   - Ensure `hetzdeploy --mode backend-only` works as expected.
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run (prints what would happen):
   ./scripts/vps-install-hetzdeploy.sh

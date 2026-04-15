@@ -29,9 +29,9 @@
 - Shared cross-project VPS ops:
   - `/home/jer/repos/platform-ops` → shared inventory, roadmap, handoff, and runbooks
 - Central Documentation (Backend Repo):
-  - `../healtharchive-backend/mkdocs.yml` (navigation source of truth)
-  - `../healtharchive-backend/docs/documentation-guidelines.md`
-  - `../healtharchive-backend/docs/planning/roadmap.md`
+  - `../healtharchive/mkdocs.yml` (navigation source of truth)
+  - `../healtharchive/docs/documentation-guidelines.md`
+  - `../healtharchive/docs/planning/roadmap.md`
 - Canonical public-facing copy (mission + workflow disclaimers) lives in `src/lib/siteCopy.ts` and should be reused rather than duplicated across pages.
 - Localization:
   - Locale-aware routes live under `src/app/[locale]/...`.

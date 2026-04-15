@@ -340,8 +340,8 @@ def test_storage_hotpath_watchdog_apply_stops_and_restarts_worker_when_active(
             str(tiering_script),
             "--annual-output-tiering-script",
             str(annual_script),
-            "--ha-backend",
-            str(tmp_path / "ha-backend"),
+            "--healtharchive",
+            str(tmp_path / "healtharchive"),
             "--textfile-out-dir",
             str(out_dir),
             "--textfile-out-file",
@@ -359,7 +359,7 @@ def test_storage_hotpath_watchdog_apply_stops_and_restarts_worker_when_active(
     assert any(c.startswith("umount ") and str(output_dir) in c for c in flattened)
     assert any(c.startswith(str(tiering_script)) for c in flattened)
     assert any(
-        c.startswith(f"/opt/healtharchive-backend/.venv/bin/python3 {annual_script}")
+        c.startswith(f"/opt/healtharchive/.venv/bin/python3 {annual_script}")
         and "--repair-stale-mounts" in c
         and "--allow-repair-running-jobs" in c
         for c in flattened
@@ -415,7 +415,7 @@ def test_storage_hotpath_watchdog_starts_worker_even_if_annual_tiering_fails_whe
         calls.append(cmd)
         if cmd and cmd[0] == str(tiering_script):
             repaired["ok"] = True
-        if cmd[:2] == ["/opt/healtharchive-backend/.venv/bin/python3", str(annual_script)]:
+        if cmd[:2] == ["/opt/healtharchive/.venv/bin/python3", str(annual_script)]:
             return subprocess.CompletedProcess(cmd, 1, stdout="", stderr="boom")
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
@@ -464,8 +464,8 @@ def test_storage_hotpath_watchdog_starts_worker_even_if_annual_tiering_fails_whe
             str(tiering_script),
             "--annual-output-tiering-script",
             str(annual_script),
-            "--ha-backend",
-            str(tmp_path / "ha-backend"),
+            "--healtharchive",
+            str(tmp_path / "healtharchive"),
             "--textfile-out-dir",
             str(out_dir),
             "--textfile-out-file",
@@ -575,8 +575,8 @@ def test_storage_hotpath_watchdog_apply_does_not_start_worker_if_inactive(
             str(tiering_script),
             "--annual-output-tiering-script",
             str(annual_script),
-            "--ha-backend",
-            str(tmp_path / "ha-backend"),
+            "--healtharchive",
+            str(tmp_path / "healtharchive"),
             "--textfile-out-dir",
             str(out_dir),
             "--textfile-out-file",
@@ -702,8 +702,8 @@ def test_storage_hotpath_watchdog_repairs_next_job_output_dir_without_stopping_w
             str(tiering_script),
             "--annual-output-tiering-script",
             str(annual_script),
-            "--ha-backend",
-            str(tmp_path / "ha-backend"),
+            "--healtharchive",
+            str(tmp_path / "healtharchive"),
             "--textfile-out-dir",
             str(out_dir),
             "--textfile-out-file",
@@ -728,7 +728,7 @@ def test_storage_hotpath_watchdog_repairs_next_job_output_dir_without_stopping_w
     annual_calls = [
         c
         for c in flattened
-        if c.startswith(f"/opt/healtharchive-backend/.venv/bin/python3 {annual_script}")
+        if c.startswith(f"/opt/healtharchive/.venv/bin/python3 {annual_script}")
     ]
     assert annual_calls
     assert any("--repair-stale-mounts" in c for c in annual_calls)
@@ -934,8 +934,8 @@ def test_storage_hotpath_watchdog_running_job_errno107_with_missing_mount_info_i
             str(tiering_script),
             "--annual-output-tiering-script",
             str(annual_script),
-            "--ha-backend",
-            str(tmp_path / "ha-backend"),
+            "--healtharchive",
+            str(tmp_path / "healtharchive"),
             "--textfile-out-dir",
             str(out_dir),
             "--textfile-out-file",
@@ -1056,8 +1056,8 @@ def test_storage_hotpath_watchdog_next_job_errno107_with_missing_mount_info_is_r
             str(tiering_script),
             "--annual-output-tiering-script",
             str(annual_script),
-            "--ha-backend",
-            str(tmp_path / "ha-backend"),
+            "--healtharchive",
+            str(tmp_path / "healtharchive"),
             "--textfile-out-dir",
             str(out_dir),
             "--textfile-out-file",
@@ -1193,8 +1193,8 @@ def test_storage_hotpath_watchdog_dry_run_apply_parity_for_same_stale_target(
             str(tiering_script),
             "--annual-output-tiering-script",
             str(annual_script),
-            "--ha-backend",
-            str(tmp_path / "ha-backend"),
+            "--healtharchive",
+            str(tmp_path / "healtharchive"),
             "--textfile-out-dir",
             str(out_dir),
             "--textfile-out-file",
@@ -1293,8 +1293,8 @@ def test_storage_hotpath_watchdog_apply_sets_last_apply_ok_zero_when_mount_stays
             str(tiering_script),
             "--annual-output-tiering-script",
             str(annual_script),
-            "--ha-backend",
-            str(tmp_path / "ha-backend"),
+            "--healtharchive",
+            str(tmp_path / "healtharchive"),
             "--textfile-out-dir",
             str(out_dir),
             "--textfile-out-file",

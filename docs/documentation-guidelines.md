@@ -14,7 +14,7 @@ monorepo and the separate datasets repo.
 - Future roadmap backlog (not-yet-implemented work): `docs/planning/roadmap.md`
 - Implemented plans archive (historical records): `docs/planning/implemented/`
 - Docs-platform migration prep: `docs/planning/2026-04-15-zensical-migration-prep.md`
-- Frontend documentation (canonical files): https://github.com/jerdaw/healtharchive-backend/tree/main/frontend/docs
+- Frontend documentation (canonical files): https://github.com/jerdaw/healtharchive/tree/main/frontend/docs
 - Datasets documentation (canonical): https://github.com/jerdaw/healtharchive-datasets
 
 ## App/docs boundary (avoid bleed)
@@ -34,7 +34,7 @@ When referencing frontend paths or another repo from docs in this repo:
 - **For documentation references**: Use GitHub URLs
   ```markdown
   # Good
-  See the [frontend i18n guide](https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/i18n.md)
+  See the [frontend i18n guide](https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/i18n.md)
 
   # Avoid
   See `frontend/docs/i18n.md`
@@ -205,7 +205,7 @@ For anything public-facing (policy pages, changelog, partner kit):
 - Keep it **public-safe** (no secrets/emails/internal hostnames; avoid sensitive incident details).
 - Prefer stable claims tied to stable artifacts (URLs, tags, filenames, commit SHAs).
 - Record meaningful changes in the public changelog:
-  - Process: https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/changelog-process.md
+  - Process: https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/changelog-process.md
 
 ## Lifecycle (avoid drift)
 

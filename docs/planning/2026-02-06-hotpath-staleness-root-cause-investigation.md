@@ -32,7 +32,7 @@ bind mounts yet, even though this is likely a contributor to hot-path staleness 
   - Benefit of fixing: reduce Errno 107 blast radius and make hot-path recovery simpler/more deterministic.
   - Why deferred: fixing requires unmount/re-mount of job output dirs and risks interrupting active crawls.
 - Deploy-lock suppression was observed and cleared:
-  - A stale `/tmp/healtharchive-backend-deploy.lock` existed and caused apply-mode watchdogs to skip.
+  - A stale `/tmp/healtharchive-deploy.lock` existed and caused apply-mode watchdogs to skip.
   - The lock file was removed; metrics now show deploy lock inactive.
 
 ## Implementation Progress
@@ -185,7 +185,7 @@ Evidence closure criteria:
 When you see Errno 107 alerts or symptoms (before unmounting/repairing):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-capture-hotpath-staleness-evidence.sh --tag pre-repair
 ```
 
@@ -224,7 +224,7 @@ Then proceed with state-changing recovery steps in:
 Use this to capture pre/post bundles and optionally run the watchdog in **dry-run simulation mode** (no service changes, no unmounts).
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-hotpath-staleness-drill.sh \
   --simulate-broken-path /srv/healtharchive/jobs/hc/<JOB_DIR> \
   --note "phase2 drill (dry-run)"

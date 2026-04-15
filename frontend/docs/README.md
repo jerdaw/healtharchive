@@ -11,7 +11,7 @@ Shared VPS facts that are not specific to the frontend alone are canonical in:
 ## Start here
 
 - Project docs portal (multi-repo navigation):
-  - https://github.com/jerdaw/healtharchive-backend/blob/main/docs/project.md
+  - https://github.com/jerdaw/healtharchive/blob/main/docs/project.md
 - Current docs portal bridge path:
   - `docs/frontend/` in the backend docs portal navigation
 - Main guide (architecture, design system, routes, deployment notes):
@@ -33,7 +33,7 @@ Shared VPS facts that are not specific to the frontend alone are canonical in:
 - Testing guidelines:
   - `development/testing-guidelines.md`
 - Documentation guidelines (canonical, cross-repo):
-  - https://github.com/jerdaw/healtharchive-backend/blob/main/docs/documentation-guidelines.md
+  - https://github.com/jerdaw/healtharchive/blob/main/docs/documentation-guidelines.md
 
 ## Deployment
 

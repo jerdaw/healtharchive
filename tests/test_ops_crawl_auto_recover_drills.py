@@ -392,7 +392,7 @@ def test_apply_syncs_db_status_when_crawl_process_running(tmp_path, monkeypatch,
         module.PsRow(
             pid=123,
             ppid=1,
-            args=f"/opt/healtharchive-backend/.venv/bin/archive-tool --output-dir {output_dir} --name hc-test",
+            args=f"/opt/healtharchive/.venv/bin/archive-tool --output-dir {output_dir} --name hc-test",
         )
     ]
     monkeypatch.setattr(module, "_ps_snapshot", lambda: fake_ps)

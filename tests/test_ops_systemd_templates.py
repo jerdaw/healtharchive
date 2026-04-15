@@ -36,10 +36,10 @@ def test_storage_hotpath_auto_recover_systemd_template_requires_venv() -> None:
         / "healtharchive-storage-hotpath-auto-recover.service"
     )
     text = unit_path.read_text(encoding="utf-8")
-    assert "ConditionPathExists=/opt/healtharchive-backend/.venv/bin/python3" in text
+    assert "ConditionPathExists=/opt/healtharchive/.venv/bin/python3" in text
     assert (
-        "ExecStart=/opt/healtharchive-backend/.venv/bin/python3 "
-        "/opt/healtharchive-backend/scripts/vps-storage-hotpath-auto-recover.py --apply"
+        "ExecStart=/opt/healtharchive/.venv/bin/python3 "
+        "/opt/healtharchive/scripts/vps-storage-hotpath-auto-recover.py --apply"
     ) in text
 
 
@@ -69,7 +69,7 @@ def test_disk_threshold_cleanup_systemd_template_is_sentinel_and_env_gated() -> 
     text = unit_path.read_text(encoding="utf-8")
     assert "ConditionPathExists=/etc/healtharchive/backend.env" in text
     assert "ConditionPathExists=/etc/healtharchive/cleanup-automation-enabled" in text
-    assert "ConditionPathExists=/opt/healtharchive-backend/.venv/bin/python3" in text
+    assert "ConditionPathExists=/opt/healtharchive/.venv/bin/python3" in text
     assert "EnvironmentFile=/etc/healtharchive/backend.env" in text
     assert "scripts/vps-cleanup-automation.py" in text
     assert "--threshold-mode" in text
@@ -103,10 +103,10 @@ def test_worker_auto_start_systemd_template_requires_venv() -> None:
     )
     text = unit_path.read_text(encoding="utf-8")
     assert "ConditionPathExists=/etc/healtharchive/worker-auto-start-enabled" in text
-    assert "ConditionPathExists=/opt/healtharchive-backend/.venv/bin/python3" in text
+    assert "ConditionPathExists=/opt/healtharchive/.venv/bin/python3" in text
     assert (
-        "ExecStart=/opt/healtharchive-backend/.venv/bin/python3 "
-        "/opt/healtharchive-backend/scripts/vps-worker-auto-start.py --apply"
+        "ExecStart=/opt/healtharchive/.venv/bin/python3 "
+        "/opt/healtharchive/scripts/vps-worker-auto-start.py --apply"
     ) in text
     assert "--reconcile-running-drift" in text
 
@@ -130,7 +130,7 @@ def test_api_systemd_template_defaults_to_multiple_workers() -> None:
     unit_path = repo_root / "docs" / "deployment" / "systemd" / "healtharchive-api.service"
     text = unit_path.read_text(encoding="utf-8")
     assert "ConditionPathExists=/etc/healtharchive/backend.env" in text
-    assert "ConditionPathExists=/opt/healtharchive-backend/.venv/bin/uvicorn" in text
+    assert "ConditionPathExists=/opt/healtharchive/.venv/bin/uvicorn" in text
     assert "Environment=HEALTHARCHIVE_API_WORKERS=2" in text
     assert '--workers "${HEALTHARCHIVE_API_WORKERS}"' in text
     assert "--proxy-headers" in text

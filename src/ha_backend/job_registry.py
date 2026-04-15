@@ -549,7 +549,7 @@ def create_job_for_source(
     if source is None:
         raise ValueError(
             f"Source with code {cfg.source_code!r} does not exist in the database. "
-            "Run 'ha-backend seed-sources' or insert it manually."
+            "Run 'healtharchive seed-sources' or insert it manually."
         )
 
     tool_cfg = get_archive_tool_config()

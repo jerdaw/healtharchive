@@ -32,7 +32,7 @@ Prereqs:
 - Phase 3 exporters are installed and loopback-only on 9100/9187.
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run:
   ./scripts/vps-install-observability-prometheus.sh

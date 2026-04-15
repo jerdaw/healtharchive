@@ -71,7 +71,7 @@ time as you navigate within the backup.
 
 Replay reads from the WARC files referenced by each job.
 
-Important: `ha-backend cleanup-job --mode temp` currently removes archive_tool temp dirs **including WARCs**
+Important: `healtharchive cleanup-job --mode temp` currently removes archive_tool temp dirs **including WARCs**
 (see `src/ha_backend/cli.py:cmd_cleanup_job`).
 
 If you run cleanup on a replayable job, replay will break.
@@ -293,7 +293,7 @@ Deploy on the VPS:
 ```bash
 sudo mkdir -p /srv/healtharchive/replay/templates
 sudo install -o hareplay -g healtharchive -m 0640 \
-  /opt/healtharchive-backend/docs/deployment/pywb/custom_banner.html \
+  /opt/healtharchive/docs/deployment/pywb/custom_banner.html \
   /srv/healtharchive/replay/templates/custom_banner.html
 
 sudo systemctl restart healtharchive-replay.service
@@ -347,7 +347,7 @@ If the backend and pywb run on the same VPS, you can make a job replayable via:
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive-backend/.venv/bin/ha-backend replay-index-job --id 1
+  /opt/healtharchive/.venv/bin/healtharchive replay-index-job --id 1
 ```
 
 Dry-run (prints actions without changes):
@@ -355,7 +355,7 @@ Dry-run (prints actions without changes):
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive-backend/.venv/bin/ha-backend replay-index-job --id 1 --dry-run
+  /opt/healtharchive/.venv/bin/healtharchive replay-index-job --id 1 --dry-run
 ```
 
 ### 6.1 Initialize collection for job 1
@@ -371,7 +371,7 @@ sudo docker exec healtharchive-replay wb-manager init job-1
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive-backend/.venv/bin/ha-backend show-job --id 1
+  /opt/healtharchive/.venv/bin/healtharchive show-job --id 1
 ```
 
 2) Find WARCs under that output directory:
@@ -430,7 +430,7 @@ Once the CIHR legacy WARCs are imported and indexed as an `ArchiveJob` (see
 ID:
 
 - Recommended:
-  - `ha-backend replay-index-job --id <id>`
+  - `healtharchive replay-index-job --id <id>`
 - `wb-manager init job-<id>`
 - Symlink that job’s WARCs into `/srv/healtharchive/replay/collections/job-<id>/archive/`
 - `wb-manager reindex job-<id>`
@@ -479,11 +479,11 @@ inside replay.
 
 Frontend-side details and verification are documented in:
 
-- https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/deployment/verification.md
+- https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/deployment/verification.md
 
 Frontend verification (recommended):
 
-- See https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/deployment/verification.md for the end-to-end
+- See https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/deployment/verification.md for the end-to-end
   checks that confirm:
   - snapshot pages embed replay correctly, and
   - `/browse/<snapshotId>` provides a full-screen browsing wrapper with a
@@ -530,7 +530,7 @@ Generate (or refresh) previews for all sources with:
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive-backend/.venv/bin/ha-backend replay-generate-previews
+  /opt/healtharchive/.venv/bin/healtharchive replay-generate-previews
 ```
 
 This uses a Playwright container to screenshot each source’s `entryBrowseUrl`

@@ -32,7 +32,7 @@ making progress, prefer dashboard observation over repeated paging.
 Start with a read-only snapshot on the VPS:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 
 ./scripts/vps-crawl-status.sh --year 2026 --job-id <JOB_ID> --recent-lines 20000
 ./scripts/vps-crawl-content-report.py --job-id <JOB_ID>
@@ -40,7 +40,7 @@ cd /opt/healtharchive-backend
 curl -s http://127.0.0.1:9100/metrics | rg 'healtharchive_crawl_running_job_(container_restarts_done|last_progress_age_seconds|stalled|crawl_rate_ppm|output_dir_ok|output_dir_errno|log_probe_ok|log_probe_errno|state_file_ok|state_parse_ok|temp_dirs_count|errors_timeout|errors_http|errors_other)\{job_id="<JOB_ID>"'
 
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend show-job --id <JOB_ID>
+/opt/healtharchive/.venv/bin/healtharchive show-job --id <JOB_ID>
 sudo journalctl -u healtharchive-worker.service -n 400 --no-pager
 docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}'
 ```
@@ -101,7 +101,7 @@ output/log/state paths), follow the canonical storage repair flow:
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 5 --apply --source <source> --limit 1
+/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --source <source> --limit 1
 sudo systemctl start healtharchive-worker.service
 ```
 
@@ -116,7 +116,7 @@ progress:
 sudo systemctl stop healtharchive-worker.service
 
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs \
+/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs \
   --older-than-minutes 5 \
   --require-no-progress-seconds 3600 \
   --apply \
@@ -138,7 +138,7 @@ reconcile it before assuming the crawl is still active:
 sudo systemctl stop healtharchive-worker.service
 
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 5 --apply --source <source> --limit 1
+/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --source <source> --limit 1
 
 sudo systemctl start healtharchive-worker.service
 ```

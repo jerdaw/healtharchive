@@ -29,7 +29,7 @@ What this does NOT do:
 - Does not change Caddy.
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run (prints planned actions):
   ./scripts/vps-install-observability-exporters.sh

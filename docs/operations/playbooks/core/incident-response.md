@@ -46,7 +46,7 @@ retries against stale code.
 ## When the site/API looks broken
 
 1. Confirm what’s failing (public surface):
-   - `cd /opt/healtharchive-backend && ./scripts/verify_public_surface.py`
+   - `cd /opt/healtharchive && ./scripts/verify_public_surface.py`
 2. Check services:
    - `sudo systemctl status healtharchive-api healtharchive-worker --no-pager -l`
 3. Check recent logs:
@@ -63,13 +63,13 @@ If the worker is running but jobs never advance, check for a job stuck in
 0. Load production environment (so the CLI targets Postgres):
    - `set -a; source /etc/healtharchive/backend.env; set +a`
 1. Inspect recent jobs:
-   - `/opt/healtharchive-backend/.venv/bin/ha-backend list-jobs --limit 50`
+   - `/opt/healtharchive/.venv/bin/healtharchive list-jobs --limit 50`
 2. Decide whether recovery depends on undeployed repo changes:
    - If yes, stop here and follow `deploy-and-verify.md` first.
    - Verify the live checkout contains the intended change before continuing.
 3. Recover stale running jobs (safe dry-run first):
-   - `/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 180`
-   - Apply (sets `status=retryable`): `/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 180 --apply`
+   - `/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 180`
+   - Apply (sets `status=retryable`): `/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 180 --apply`
 4. Verify the worker picks them up:
    - `sudo journalctl -u healtharchive-worker -n 200 --no-pager`
 

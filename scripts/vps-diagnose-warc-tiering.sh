@@ -132,5 +132,5 @@ cat <<EOF
   - If ${UNIT_TIERING} is failed: sudo systemctl reset-failed ${UNIT_TIERING} && sudo systemctl start ${UNIT_TIERING}
   - If Storage Box is unmounted/unreadable: sudo systemctl restart ${UNIT_STORAGEBOX}
   - Manual repair/apply (will modify mounts; do this during a safe window):
-      sudo /opt/healtharchive-backend/scripts/vps-warc-tiering-bind-mounts.sh --apply --repair-stale-mounts
+      sudo /opt/healtharchive/scripts/vps-warc-tiering-bind-mounts.sh --apply --repair-stale-mounts
 EOF

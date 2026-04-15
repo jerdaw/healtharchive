@@ -29,7 +29,7 @@ Keyword searches (`q=...`) and date-range filters still run directly against
 2) Backfill the table once:
 
 ```bash
-./.venv/bin/ha-backend rebuild-pages --truncate
+./.venv/bin/healtharchive rebuild-pages --truncate
 ```
 
 Notes:

@@ -21,7 +21,7 @@ Pick the guide that matches your role:
 **Quick Deploy**:
 ```bash
 # On the VPS
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-deploy.sh --apply --baseline-mode live
 ```
 
@@ -33,8 +33,8 @@ cd /opt/healtharchive-backend
 
 1. **Clone and setup**:
    ```bash
-   git clone https://github.com/jerdaw/healtharchive-backend.git
-   cd healtharchive-backend
+   git clone https://github.com/jerdaw/healtharchive.git
+   cd healtharchive
    make venv
    ```
 
@@ -96,7 +96,7 @@ curl "https://api.healtharchive.ca/api/snapshot/42"
 HealthArchive now uses a single app monorepo plus a separate datasets repo:
 
 - **App monorepo** (this repo): backend API, crawler, docs hub, and the in-tree frontend under `frontend/`
-  - GitHub: [jerdaw/healtharchive-backend](https://github.com/jerdaw/healtharchive-backend)
+  - GitHub: [jerdaw/healtharchive](https://github.com/jerdaw/healtharchive)
   - Docs: [docs.healtharchive.ca](https://docs.healtharchive.ca)
   - Live Site: [healtharchive.ca](https://healtharchive.ca)
 
@@ -115,11 +115,11 @@ See the [Project Overview](project.md) for detailed navigation.
 | Run frontend checks | `make frontend-ci` |
 | Sync generated API contract | `make contract-sync` |
 | Start API server | `uvicorn ha_backend.api:app --reload --port 8001` |
-| Start worker | `ha-backend start-worker --poll-interval 30` |
-| Create a crawl job | `ha-backend create-job --source hc` |
-| Run a job | `ha-backend run-db-job --id 42` |
-| Index WARCs | `ha-backend index-job --id 42` |
-| List jobs | `ha-backend list-jobs` |
+| Start worker | `healtharchive start-worker --poll-interval 30` |
+| Create a crawl job | `healtharchive create-job --source hc` |
+| Run a job | `healtharchive run-db-job --id 42` |
+| Index WARCs | `healtharchive index-job --id 42` |
+| List jobs | `healtharchive list-jobs` |
 | Serve docs locally | `make docs-serve` |
 
 ---
@@ -130,7 +130,7 @@ See the [Project Overview](project.md) for detailed navigation.
 - **Local Development**: [Live Testing](development/live-testing.md)
 - **API Reference**: [API Documentation](api.md)
 - **Troubleshooting**: Check the [How-To Guides](operations/README.md)
-- **Report Issues**: [GitHub Issues](https://github.com/jerdaw/healtharchive-backend/issues)
+- **Report Issues**: [GitHub Issues](https://github.com/jerdaw/healtharchive/issues)
 
 ---
 

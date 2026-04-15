@@ -167,4 +167,4 @@ A: Run `make coverage-critical` and open `htmlcov-critical/index.html` in a brow
 **Related docs**:
 - [Testing Guidelines](testing-guidelines.md)
 - [Monitoring and CI Checklist](../operations/monitoring-and-ci-checklist.md)
-- [Contributing](https://github.com/jerdaw/healtharchive-backend/blob/main/CONTRIBUTING.md)
+- [Contributing](https://github.com/jerdaw/healtharchive/blob/main/CONTRIBUTING.md)

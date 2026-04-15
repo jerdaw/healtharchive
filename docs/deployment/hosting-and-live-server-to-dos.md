@@ -168,11 +168,11 @@ How you do this depends on your hosting stack:
 
 - **systemd unit**:
   - Add env vars to the unit file (`Environment=` lines) or a drop‑in
-    `EnvironmentFile=/etc/default/healtharchive-backend`.
+    `EnvironmentFile=/etc/default/healtharchive`.
   - Reload + restart:
     ```bash
     sudo systemctl daemon-reload
-    sudo systemctl restart healtharchive-backend.service
+    sudo systemctl restart healtharchive.service
     ```
 
 - **Docker / Docker Compose**:
@@ -190,7 +190,7 @@ How you do this depends on your hosting stack:
 In staging and production you will typically run **two** backend processes:
 
 - An API process (FastAPI + uvicorn) that serves `/api/**` and `/metrics`.
-- A worker process (`ha-backend start-worker --poll-interval 30`) that
+- A worker process (`healtharchive start-worker --poll-interval 30`) that
   continuously processes queued jobs.
 
 Both processes must see the same `HEALTHARCHIVE_DATABASE_URL`,
@@ -277,7 +277,7 @@ Checklist for each non‑dev environment:
 - [ ] Decide when it is safe to delete temporary crawl artifacts:
   - Only once jobs are `indexed` or `index_failed` *and* you have verified any
     desired ZIMs/exports.
-  - Use the `ha-backend cleanup-job --id JOB_ID --mode temp` command for this
+  - Use the `healtharchive cleanup-job --id JOB_ID --mode temp` command for this
     cleanup; it removes `.tmp*` directories and `.archive_state.json` but
     leaves the main job directory and any final ZIMs.
   - If you are using replay (pywb) for a job, do not run `cleanup-job --mode temp`
@@ -448,7 +448,7 @@ For a more detailed production rollout, see:
 For a more detailed verification of CSP, headers, CORS, and the snapshot
 viewer iframe behavior, see:
 
-- https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/deployment/verification.md
+- https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/deployment/verification.md
 
 ---
 
@@ -508,7 +508,7 @@ protect branches.
 
 ### 7.1. Enable and verify GitHub Actions
 
-For the canonical repo (`healtharchive-backend`):
+For the canonical repo (`healtharchive`):
 
 1. Ensure the root workflow files are present and enabled in the GitHub UI:
 

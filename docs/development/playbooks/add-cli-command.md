@@ -4,7 +4,7 @@ Purpose: add a backend CLI command that is testable, documented, and safe to ope
 
 ## When to use
 
-- You need a new `ha-backend <command>` for an operator or contributor workflow.
+- You need a new `healtharchive <command>` for an operator or contributor workflow.
 - You need to extend an existing command in a way that changes its contract.
 
 ## Preconditions
@@ -37,7 +37,7 @@ Purpose: add a backend CLI command that is testable, documented, and safe to ope
 
 ## Verification (“done” criteria)
 
-- Command appears in `ha-backend --help` and `ha-backend <command> --help`.
+- Command appears in `healtharchive --help` and `healtharchive <command> --help`.
 - Tests cover the expected behavior and key failure modes.
 - `make ci` passes.
 

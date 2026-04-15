@@ -6,7 +6,7 @@ usage() {
 Verify annual campaign search readiness and capture search eval artifacts.
 
 This is a light-weight ops helper for Phase 7 (post-campaign verification):
-  1) Runs `ha-backend annual-status --year YYYY --json` and verifies readyForSearch=true
+  1) Runs `healtharchive annual-status --year YYYY --json` and verifies readyForSearch=true
   2) Writes annual-status artifacts into a year-tagged capture directory
   3) Runs ./scripts/search-eval-capture.sh with a stable --run-id so artifacts live together
 
@@ -113,14 +113,14 @@ if [[ -z "${VIRTUAL_ENV:-}" ]]; then
 fi
 
 HA_BACKEND_BIN=""
-if [[ -x "${REPO_ROOT}/.venv/bin/ha-backend" ]]; then
+if [[ -x "${REPO_ROOT}/.venv/bin/healtharchive" ]]; then
   # Prefer the per-repo venv entrypoint to avoid accidentally using a globally
-  # installed ha-backend with a different version/command set.
-  HA_BACKEND_BIN="${REPO_ROOT}/.venv/bin/ha-backend"
-elif command -v ha-backend >/dev/null 2>&1; then
-  HA_BACKEND_BIN="ha-backend"
+  # installed healtharchive with a different version/command set.
+  HA_BACKEND_BIN="${REPO_ROOT}/.venv/bin/healtharchive"
+elif command -v healtharchive >/dev/null 2>&1; then
+  HA_BACKEND_BIN="healtharchive"
 else
-  echo "ERROR: ha-backend not found (no venv binary at ${REPO_ROOT}/.venv/bin/ha-backend and not in PATH)" >&2
+  echo "ERROR: healtharchive not found (no venv binary at ${REPO_ROOT}/.venv/bin/healtharchive and not in PATH)" >&2
   echo "Hint: activate the venv or install deps: pip install -e '.[dev]'" >&2
   exit 1
 fi

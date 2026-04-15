@@ -3,7 +3,7 @@
 Within the HealthArchive backend, the ``archive_tool`` package is the
 crawler/orchestrator subpackage responsible for driving Zimit + Docker and
 producing WARCs and final ZIMs. It started life as a standalone repository and
-is now maintained in-tree as part of the ``healtharchive-backend`` repo.
+is now maintained in-tree as part of the ``healtharchive`` repo.
 
 This project is an **orchestrator around Zimit** (the `ghcr.io/openzim/zimit` Docker image). It turns a raw `zimit` crawl into a **resumable, monitored, multi-stage pipeline** that:
 
@@ -255,7 +255,7 @@ It uses `parse_known_args()` to split:
     workers, monitoring/VPN flags, managed Browsertrix config, passthrough
     args), and then **exit without starting any Docker containers or crawl
     stages**. This is primarily useful for debugging job configs from the
-    backend (`ha-backend validate-job-config`) or from the CLI.
+    backend (`healtharchive validate-job-config`) or from the CLI.
 
 #### 3.1.3 Monitoring configuration
 

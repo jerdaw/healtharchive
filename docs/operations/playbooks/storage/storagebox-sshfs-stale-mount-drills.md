@@ -34,9 +34,9 @@ Good candidates:
 2) Run the watchdog in dry-run simulation mode (do not use `--apply`):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; \
-  /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-storage-hotpath-auto-recover.py \
+  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-storage-hotpath-auto-recover.py \
     --confirm-runs 1 \
     --min-failure-age-seconds 0 \
     --state-file /tmp/healtharchive-storage-hotpath-drill.state.json \
@@ -62,7 +62,7 @@ It captures a **pre** and **post** evidence bundle and diffs them. It also appen
 single TSV line you can use later for correlation across multiple drills/incidents.
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-hotpath-staleness-drill.sh \
   --simulate-broken-path /srv/healtharchive/jobs/hc/<JOB_DIR> \
   --note "phase2 drill (dry-run)"
@@ -129,7 +129,7 @@ rm -f /tmp/healtharchive_storage_hotpath_auto_recover.alertcheck.prom
 Optional syntax check (safe):
 
 ```bash
-promtool check rules /opt/healtharchive-backend/ops/observability/alerting/healtharchive-alerts.yml
+promtool check rules /opt/healtharchive/ops/observability/alerting/healtharchive-alerts.yml
 ```
 
 ## 3) Drill: alert pipeline (no paging)
@@ -144,7 +144,7 @@ Precondition:
 ### 3.1 Trigger the drill alert metric (auto-cleanup)
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo ./scripts/vps-alert-pipeline-drill.sh --apply --duration-seconds 600
 ```
 
@@ -184,7 +184,7 @@ High-level steps:
    - watchdog recovers (tiering re-apply, stale job recovery)
    - worker resumes and jobs make progress
 4) Run post-incident integrity checks:
-   - `ha-backend verify-warcs --job-id <ID> --level 1 --since-minutes <window>`
+   - `healtharchive verify-warcs --job-id <ID> --level 1 --since-minutes <window>`
    - follow `warc-integrity-verification.md` if anything fails
 
 ## 5) Phase 4 rollout and burn-in evidence capture
@@ -194,7 +194,7 @@ Use this during the first week after shipping watchdog/alert updates.
 ### 5.1 Daily snapshot (safe)
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 python3 scripts/vps-storage-watchdog-burnin-report.py --json > /tmp/storage-watchdog-burnin-$(date -u +%Y%m%d).json
 cat /tmp/storage-watchdog-burnin-$(date -u +%Y%m%d).json
 ```
@@ -203,7 +203,7 @@ Optional (recommended): enable the daily snapshot timer so you don’t rely on a
 human remembering.
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo ./scripts/vps-bootstrap-ops-dirs.sh
 sudo install -m 0644 -o root -g root /dev/null /etc/healtharchive/storage-watchdog-burnin-enabled
 sudo systemctl enable --now healtharchive-storage-watchdog-burnin-snapshot.timer
@@ -223,7 +223,7 @@ Expected:
 ### 5.2 End-of-week clean check gate
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 python3 scripts/vps-storage-watchdog-burnin-report.py --window-hours 168 --require-clean
 ```
 

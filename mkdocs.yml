@@ -1,7 +1,7 @@
 site_name: HealthArchive
 site_url: https://docs.healtharchive.ca
-repo_name: jerdaw/healtharchive-backend
-repo_url: https://github.com/jerdaw/healtharchive-backend
+repo_name: jerdaw/healtharchive
+repo_url: https://github.com/jerdaw/healtharchive
 edit_uri: edit/main/docs/
 
 theme:
@@ -62,7 +62,7 @@ markdown_extensions:
 extra:
   social:
     - icon: fontawesome/brands/github
-      link: https://github.com/jerdaw/healtharchive-backend
+      link: https://github.com/jerdaw/healtharchive
     - icon: fontawesome/brands/twitter
       link: https://twitter.com/healtharchive
 

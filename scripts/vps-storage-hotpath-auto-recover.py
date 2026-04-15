@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
-DEFAULT_DEPLOY_LOCK_FILE = "/tmp/healtharchive-backend-deploy.lock"
+DEFAULT_DEPLOY_LOCK_FILE = "/tmp/healtharchive-deploy.lock"
 
 
 @dataclass(frozen=True)
@@ -607,7 +607,7 @@ def main(argv: list[str] | None = None) -> int:
         "--recover-older-than-minutes",
         type=int,
         default=2,
-        help="Pass-through to ha-backend recover-stale-jobs --older-than-minutes.",
+        help="Pass-through to healtharchive recover-stale-jobs --older-than-minutes.",
     )
     p.add_argument(
         "--worker-unit",
@@ -631,18 +631,18 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument(
         "--annual-output-tiering-script",
-        default="/opt/healtharchive-backend/scripts/vps-annual-output-tiering.py",
+        default="/opt/healtharchive/scripts/vps-annual-output-tiering.py",
         help="Annual output tiering script to re-run after recovery.",
     )
     p.add_argument(
         "--tiering-apply-script",
-        default="/opt/healtharchive-backend/scripts/vps-warc-tiering-bind-mounts.sh",
+        default="/opt/healtharchive/scripts/vps-warc-tiering-bind-mounts.sh",
         help="Script to re-apply tiering bind mounts.",
     )
     p.add_argument(
-        "--ha-backend",
-        default="/opt/healtharchive-backend/.venv/bin/ha-backend",
-        help="Path to ha-backend CLI (used for recover-stale-jobs).",
+        "--healtharchive",
+        default="/opt/healtharchive/.venv/bin/healtharchive",
+        help="Path to healtharchive CLI (used for recover-stale-jobs).",
     )
     p.add_argument(
         "--tiering-unit",
@@ -1226,7 +1226,7 @@ def main(argv: list[str] | None = None) -> int:
 
         if annual_tiering_script.is_file():
             cmd = (
-                f"  5) /opt/healtharchive-backend/.venv/bin/python3 {annual_tiering_script} "
+                f"  5) /opt/healtharchive/.venv/bin/python3 {annual_tiering_script} "
                 f"--apply --repair-stale-mounts "
                 f"{'--allow-repair-running-jobs ' if allow_running_repairs else ''}"
                 f"--year {now.year}"
@@ -1238,7 +1238,7 @@ def main(argv: list[str] | None = None) -> int:
         if impacted_sources:
             for source_code in sorted(impacted_sources):
                 print(
-                    f"  6) {args.ha_backend} recover-stale-jobs --older-than-minutes {args.recover_older_than_minutes} --apply --source {source_code} --limit 10"
+                    f"  6) {args.healtharchive} recover-stale-jobs --older-than-minutes {args.recover_older_than_minutes} --apply --source {source_code} --limit 10"
                 )
         else:
             print("  6) (skip) no impacted sources detected; no recover-stale-jobs call planned")
@@ -1402,7 +1402,7 @@ def main(argv: list[str] | None = None) -> int:
         if Path(annual_tiering_script).is_file():
             cp = _run_apply(
                 [
-                    "/opt/healtharchive-backend/.venv/bin/python3",
+                    "/opt/healtharchive/.venv/bin/python3",
                     annual_tiering_script,
                     "--apply",
                     "--repair-stale-mounts",
@@ -1422,7 +1422,7 @@ def main(argv: list[str] | None = None) -> int:
     for source_code in sorted(impacted_sources):
         cp = _run_apply(
             [
-                str(args.ha_backend),
+                str(args.healtharchive),
                 "recover-stale-jobs",
                 "--older-than-minutes",
                 str(int(args.recover_older_than_minutes)),

@@ -16,7 +16,7 @@ First, find the job ID and understand what went wrong.
 ### Check Job Status
 
 ```bash
-ha-backend list-jobs
+healtharchive list-jobs
 ```
 
 **Example output:**
@@ -28,7 +28,7 @@ ID  Name            Source  Status  Queued              Started             Fini
 ### Get Detailed Job Info
 
 ```bash
-ha-backend show-job --id 42
+healtharchive show-job --id 42
 ```
 
 **Look for these key fields:**
@@ -65,8 +65,8 @@ The `combined_log_path` from `show-job` tells you where to look:
 
 ```bash
 JOB_ID=42
-OUTPUT_DIR=$(ha-backend show-job --id $JOB_ID | jq -r '.outputDir')
-LOG_PATH=$(ha-backend show-job --id $JOB_ID | jq -r '.combinedLogPath')
+OUTPUT_DIR=$(healtharchive show-job --id $JOB_ID | jq -r '.outputDir')
+LOG_PATH=$(healtharchive show-job --id $JOB_ID | jq -r '.combinedLogPath')
 
 # View the log
 less "$LOG_PATH"
@@ -140,7 +140,7 @@ df -h /mnt/nasd/nobak
 du -sh /mnt/nasd/nobak/healtharchive/jobs/* | sort -rh | head -10
 
 # Clean up old jobs (carefully!)
-ha-backend cleanup-job --id OLD_JOB_ID --mode temp
+healtharchive cleanup-job --id OLD_JOB_ID --mode temp
 
 # Or manually remove old temp directories
 rm -rf /mnt/nasd/nobak/healtharchive/jobs/hc/*/.tmp_*
@@ -202,7 +202,7 @@ htop
 
 # If stalled, kill and retry
 docker stop $(docker ps -q --filter ancestor=ghcr.io/openzim/zimit)
-ha-backend retry-job --id 42
+healtharchive retry-job --id 42
 ```
 
 **See**: Real incident report: [operations/incidents/2026-01-09-annual-crawl-hc-job-stalled.md](../operations/incidents/2026-01-09-annual-crawl-hc-job-stalled.md)
@@ -219,7 +219,7 @@ zimit: error: unrecognized arguments: --bad-flag
 
 **Fix**: Check job config:
 ```bash
-ha-backend show-job --id 42 | jq '.config.zimit_passthrough_args'
+healtharchive show-job --id 42 | jq '.config.zimit_passthrough_args'
 ```
 
 **Remove invalid flags** and recreate job with correct config
@@ -352,7 +352,7 @@ Now that you've identified the issue, let's fix it and retry.
 If the issue was transient (network blip, temporary resource exhaustion):
 
 ```bash
-ha-backend retry-job --id 42
+healtharchive retry-job --id 42
 ```
 
 This sets `status = "retryable"` and the worker will pick it up.
@@ -362,7 +362,7 @@ This sets `status = "retryable"` and the worker will pick it up.
 If you need to change job settings, create a new job with overrides:
 
 ```bash
-ha-backend create-job --source hc \
+healtharchive create-job --source hc \
   --override '{"tool_options": {"initial_workers": 2, "enable_monitoring": true, "stall_timeout_minutes": 60}}'
 ```
 
@@ -381,7 +381,7 @@ Archive tool can resume from existing state:
 
 ```bash
 # The output_dir still exists, so just retry
-ha-backend retry-job --id 42
+healtharchive retry-job --id 42
 ```
 
 Archive tool will detect `.archive_state.json` and resume.
@@ -401,7 +401,7 @@ After retrying, monitor the job closely.
 
 ```bash
 # Poll job status
-watch -n 30 'ha-backend show-job --id 42 | jq ".status, .pagesCrawled, .pagesTotal"'
+watch -n 30 'healtharchive show-job --id 42 | jq ".status, .pagesCrawled, .pagesTotal"'
 ```
 
 ### Tail the Logs
@@ -496,7 +496,7 @@ Use this checklist for systematic debugging:
 Create job with verbose logging:
 
 ```bash
-ha-backend create-job --source hc \
+healtharchive create-job --source hc \
   --override '{"tool_options": {"log_level": "DEBUG"}}'
 ```
 
@@ -556,7 +556,7 @@ If you're still stuck:
 
 1. **Check existing incidents**: [operations/incidents/](../operations/incidents/README.md)
 2. **Review playbooks**: [operations/playbooks/](../operations/playbooks/README.md)
-3. **Search GitHub issues**: [github.com/jerdaw/healtharchive-backend/issues](https://github.com/jerdaw/healtharchive-backend/issues)
+3. **Search GitHub issues**: [github.com/jerdaw/healtharchive/issues](https://github.com/jerdaw/healtharchive/issues)
 4. **Ask for help**: Open a new issue with:
    - Job ID and status output
    - Relevant log excerpts

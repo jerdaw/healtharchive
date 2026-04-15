@@ -62,7 +62,7 @@ See: `docs/operations/disk-baseline-and-cleanup.md` (current baseline + cleanup 
 | **Max jobs per run (weekly)** | 1 | `ops/automation/cleanup-automation.toml` (`max_jobs_per_run`) | Conservative incremental cleanup |
 | **Threshold trigger** | 80% | `ops/automation/cleanup-automation.toml` (`threshold_trigger_percent`) | Only run threshold cleanup when disk exceeds this |
 | **Max jobs per run (threshold)** | 5 | `ops/automation/cleanup-automation.toml` (`threshold_max_jobs_per_run`) | More aggressive cleanup under disk pressure |
-| **Cleanup mode** | `temp-nonwarc` | `scripts/vps-cleanup-automation.py` (`ha-backend cleanup-job --mode temp-nonwarc`) | Preserves WARCs (safe) |
+| **Cleanup mode** | `temp-nonwarc` | `scripts/vps-cleanup-automation.py` (`healtharchive cleanup-job --mode temp-nonwarc`) | Preserves WARCs (safe) |
 
 **Tuning guidance**:
 - Increase `threshold_max_jobs_per_run` to 7-10 only if disk pressure is chronic and the cleanup is consistently safe
@@ -239,7 +239,7 @@ See: `docs/planning/implemented/2026-02-01-operational-resilience-improvements.m
 | Parameter | Value | Location | Purpose |
 |-----------|-------|----------|---------|
 | **Max age** | 2 hours | `scripts/vps-crawl-auto-recover.py` + `scripts/vps-storage-hotpath-auto-recover.py` (`--deploy-lock-max-age-seconds`, default: 2h) | Stale lock detection |
-| **Lock file** | `/tmp/healtharchive-backend-deploy.lock` | Deploy script + watchdogs | Prevent watchdog/deploy conflicts |
+| **Lock file** | `/tmp/healtharchive-deploy.lock` | Deploy script + watchdogs | Prevent watchdog/deploy conflicts |
 | **Lock mechanism** | `flock` | `scripts/vps-deploy.sh` | Atomic lock acquisition |
 
 **Tuning guidance**:
@@ -310,10 +310,10 @@ When migrating an existing campaign from shared defaults to per-source tuning, r
 
 ```bash
 # Review changes first (dry-run)
-ha-backend reconcile-annual-tool-options --year 2026
+healtharchive reconcile-annual-tool-options --year 2026
 
 # Apply changes
-ha-backend reconcile-annual-tool-options --year 2026 --apply
+healtharchive reconcile-annual-tool-options --year 2026 --apply
 ```
 
 What this command does:

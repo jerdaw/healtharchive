@@ -21,7 +21,7 @@ Safe-by-default:
   - No DB writes are performed (unless you separately run schedule-annual --apply)
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
   ./scripts/vps-preflight-crawl.sh --year 2026
 
 Options:
@@ -238,7 +238,7 @@ fail() {
 
 require_venv() {
   local venv_bin="${REPO_DIR}/.venv/bin"
-  if [[ -x "${venv_bin}/python3" && -x "${venv_bin}/ha-backend" && -x "${venv_bin}/archive-tool" ]]; then
+  if [[ -x "${venv_bin}/python3" && -x "${venv_bin}/healtharchive" && -x "${venv_bin}/archive-tool" ]]; then
     echo "${venv_bin}"
     return 0
   fi
@@ -249,8 +249,8 @@ VENV_BIN=""
 if VENV_BIN="$(require_venv)"; then
   ok "venv present: ${VENV_BIN}"
 else
-  fail "missing venv at ${REPO_DIR}/.venv/bin (expected python3 + ha-backend + archive-tool)"
-  warn "Hint (VPS): cd /opt/healtharchive-backend && python3 -m venv .venv && .venv/bin/pip install -e '.[dev]' 'psycopg[binary]'"
+  fail "missing venv at ${REPO_DIR}/.venv/bin (expected python3 + healtharchive + archive-tool)"
+  warn "Hint (VPS): cd /opt/healtharchive && python3 -m venv .venv && .venv/bin/pip install -e '.[dev]' 'psycopg[binary]'"
 fi
 
 if [[ ! -f "${ENV_FILE}" ]]; then
@@ -527,7 +527,7 @@ step_campaign_tier_docker_probe() {
 
 step_db_check() {
   set -u -o pipefail
-  "${VENV_BIN}/ha-backend" check-db
+  "${VENV_BIN}/healtharchive" check-db
 }
 
 step_alembic_head_check() {
@@ -606,7 +606,7 @@ step_annual_status_json() {
   set -u -o pipefail
   local tmp
   tmp="$(mktemp)"
-  "${VENV_BIN}/ha-backend" annual-status --year "${YEAR}" --json >"${tmp}"
+  "${VENV_BIN}/healtharchive" annual-status --year "${YEAR}" --json >"${tmp}"
   cat "${tmp}"
 
   # Fail preflight if annual-status reports structural errors or blocking jobs
@@ -650,7 +650,7 @@ step_schedule_annual_dry_run() {
   set -u -o pipefail
   local tmp
   tmp="$(mktemp)"
-  "${VENV_BIN}/ha-backend" schedule-annual --year "${YEAR}" >"${tmp}"
+  "${VENV_BIN}/healtharchive" schedule-annual --year "${YEAR}" >"${tmp}"
   cat "${tmp}"
 
   # schedule-annual is read-only in dry-run mode but may still report errors (e.g. duplicates);

@@ -35,7 +35,7 @@ This guide covers the full observability stack installation in order:
 ### Procedure
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo ./scripts/vps-bootstrap-observability-scaffold.sh
 ```
 
@@ -75,7 +75,7 @@ sudo rm -rf /etc/healtharchive/observability
 ### Procedure
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-install-observability-exporters.sh          # Dry-run
 sudo ./scripts/vps-install-observability-exporters.sh --apply
 ```
@@ -118,7 +118,7 @@ sudo rm -f /etc/healtharchive/observability/postgres_exporter.env \
 ### Procedure
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-install-observability-prometheus.sh          # Dry-run
 sudo ./scripts/vps-install-observability-prometheus.sh --apply
 ```
@@ -158,7 +158,7 @@ sudo apt-get remove -y prometheus  # Optional
 ### Procedure
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-install-observability-grafana.sh          # Dry-run
 sudo ./scripts/vps-install-observability-grafana.sh --apply
 ```
@@ -219,7 +219,7 @@ sudo systemctl daemon-reload
 ### Procedure
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 git pull
 ./scripts/vps-install-observability-dashboards.sh          # Dry-run
 sudo ./scripts/vps-install-observability-dashboards.sh --apply
@@ -281,7 +281,7 @@ sudo ./scripts/vps-install-observability-pushover-relay.sh --apply
 ### Procedure
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 git pull
 ./scripts/vps-install-observability-alerting.sh          # Dry-run
 sudo ./scripts/vps-install-observability-alerting.sh --apply
@@ -342,7 +342,7 @@ sudo systemctl restart prometheus.service
 On VPS:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-verify-observability.sh
 ```
 
@@ -375,7 +375,7 @@ sudo systemctl restart prometheus prometheus-alertmanager \
 ### Dashboard Updates
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 git pull
 sudo ./scripts/vps-install-observability-dashboards.sh --apply
 ```

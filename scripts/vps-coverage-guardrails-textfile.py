@@ -105,7 +105,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--config",
-        default="/opt/healtharchive-backend/ops/automation/coverage-guardrails.toml",
+        default="/opt/healtharchive/ops/automation/coverage-guardrails.toml",
         help="Config TOML path.",
     )
     parser.add_argument(

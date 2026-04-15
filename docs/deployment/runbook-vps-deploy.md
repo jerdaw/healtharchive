@@ -1,6 +1,6 @@
 # Runbook: VPS Backend Deployment (operators)
 
-Purpose: This runbook provides the canonical workflow for deploying the latest `healtharchive-backend` and enabling automated incident recovery (drift auto-reconcile).
+Purpose: This runbook provides the canonical workflow for deploying the latest `healtharchive` and enabling automated incident recovery (drift auto-reconcile).
 
 ## Scope
 
@@ -35,7 +35,7 @@ ssh haadmin@vps-tailscale-alias
 Navigate to the repo root and run the safe-by-default deploy helper:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 
 # Dry-run (recommended first)
 ./scripts/vps-deploy.sh
@@ -102,7 +102,7 @@ What this changes:
 ## Troubleshooting
 
 - **502 Bad Gateway**: Check if the worker/API is dead: `sudo journalctl -u healtharchive-api -n 100`.
-- **Deploy Lock**: If the script says a lock is held, check for orphans: `ls -l /tmp/healtharchive-backend-deploy.lock`.
+- **Deploy Lock**: If the script says a lock is held, check for orphans: `ls -l /tmp/healtharchive-deploy.lock`.
 
 ## References
 

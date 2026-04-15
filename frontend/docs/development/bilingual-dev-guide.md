@@ -29,7 +29,7 @@ remain as-captured and are never translated.
 - Locale helpers: `src/lib/i18n.ts`
 - Metadata helpers: `src/lib/metadata.ts`
 - Routing + base metadata: `src/app/[locale]/layout.tsx`
-- Replay banner (direct replay pages): `healtharchive-backend/docs/deployment/pywb/custom_banner.html`
+- Replay banner (direct replay pages): `healtharchive/docs/deployment/pywb/custom_banner.html`
   - Keep EN/FR strings in sync; the banner infers UI language from the archived URL.
 
 Prefer reusing canonical copy to avoid drift. If a string is locale-invariant
@@ -58,7 +58,7 @@ in the PR if it is not obvious.
    - `localizeHref()` (`src/lib/i18n.ts`)
      Avoid hardcoded `/fr` or unprefixed paths.
 6. If the route is part of the “public surface” you rely on in production, add it to the backend verifier:
-   - `healtharchive-backend/scripts/verify_public_surface.py`
+   - `healtharchive/scripts/verify_public_surface.py`
    - Include both unprefixed (EN) and `/fr/...` (FR) variants when applicable.
 
 ## Policy and legal pages

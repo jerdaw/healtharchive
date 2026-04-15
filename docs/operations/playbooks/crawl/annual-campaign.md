@@ -36,8 +36,8 @@ Canonical references:
   - `sudo journalctl -u healtharchive-worker -n 200 --no-pager`
 - If the VPS reboots (or the worker/service is killed) mid-crawl, a job can be left in `status=running`. Recover safely:
   - Load env: `set -a; source /etc/healtharchive/backend.env; set +a`
-  - Dry-run: `/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 180`
-  - Apply: `/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 180 --apply`
+  - Dry-run: `/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 180`
+  - Apply: `/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 180 --apply`
 
 ## Manual trigger (day-of)
 

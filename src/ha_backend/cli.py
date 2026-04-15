@@ -3,7 +3,7 @@ from __future__ import annotations
 """
 ha_backend.cli - Command-line interface for HealthArchive backend
 
-Provides the 'ha-backend' command with subcommands for:
+Provides the 'healtharchive' command with subcommands for:
 
     - check-env: Verify environment configuration
     - serve: Start the FastAPI development server
@@ -15,7 +15,7 @@ Provides the 'ha-backend' command with subcommands for:
     - compute-changes: Compute change events between snapshots
     - refresh-snapshot-metadata: Re-extract metadata from WARCs
 
-Usage: ha-backend <command> [options]
+Usage: healtharchive <command> [options]
 
 See also:
     - docs/reference/cli-commands.md for command documentation
@@ -363,7 +363,7 @@ def cmd_watchdog_status(args: argparse.Namespace) -> None:
     # Check sentinel files
     crawl_sentinel = Path("/etc/healtharchive/crawl-auto-recover-enabled")
     storage_sentinel = Path("/etc/healtharchive/storage-hotpath-auto-recover-enabled")
-    cleanup_config = Path("/opt/healtharchive-backend/ops/automation/cleanup-automation.toml")
+    cleanup_config = Path("/opt/healtharchive/ops/automation/cleanup-automation.toml")
 
     crawl_enabled = crawl_sentinel.is_file()
     storage_enabled = storage_sentinel.is_file()
@@ -500,7 +500,7 @@ def cmd_run_job(args: argparse.Namespace) -> None:
 
         Example:
 
-        ha-backend run-job \\
+        healtharchive run-job \\
           --name hc-2025-12-09 \\
           --seeds https://www.canada.ca/en/health-canada.html \\
           --initial-workers 2 \\
@@ -836,7 +836,7 @@ def cmd_schedule_annual(args: argparse.Namespace) -> None:
                     {
                         "source": source_code,
                         "action": "error",
-                        "reason": "Missing Source row in DB; run 'ha-backend seed-sources'",
+                        "reason": "Missing Source row in DB; run 'healtharchive seed-sources'",
                     }
                 )
                 continue
@@ -1064,7 +1064,7 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
                         "sourceCode": source_code,
                         "expectedJobName": expected_job_name,
                         "status": "error",
-                        "error": "Missing Source row; run 'ha-backend seed-sources'",
+                        "error": "Missing Source row; run 'healtharchive seed-sources'",
                         "job": None,
                         "candidates": [],
                         "isSearchReady": False,
@@ -2835,7 +2835,7 @@ def cmd_recover_stale_jobs(args: argparse.Namespace) -> None:
                 print("No stale running jobs matched the progress requirement.")
                 return
 
-        # Safety: if a job lock is held, the job is still actively running under ha-backend.
+        # Safety: if a job lock is held, the job is still actively running under healtharchive.
         # Marking it retryable without stopping the runner would cause DB/process drift.
         filtered_jobs: list[ORMArchiveJob] = []
         skipped_locked: list[str] = []
@@ -5155,7 +5155,7 @@ def cmd_register_job_dir(args: argparse.Namespace) -> None:
         if src is None:
             print(
                 f"ERROR: Source with code {args.source!r} does not exist. "
-                "Run 'ha-backend seed-sources' or insert it manually.",
+                "Run 'healtharchive seed-sources' or insert it manually.",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -5183,7 +5183,7 @@ def cmd_register_job_dir(args: argparse.Namespace) -> None:
     print(f"  Output dir: {output_dir}")
     print("")
     print("You can now index this job with:")
-    print(f"  ha-backend index-job --id {job_id}")
+    print(f"  healtharchive index-job --id {job_id}")
 
 
 def cmd_start_worker(args: argparse.Namespace) -> None:
@@ -5198,7 +5198,7 @@ def cmd_start_worker(args: argparse.Namespace) -> None:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(
-        prog="ha-backend",
+        prog="healtharchive",
         description="HealthArchive backend CLI utilities.",
     )
     subparsers = parser.add_subparsers(

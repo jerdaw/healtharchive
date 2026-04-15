@@ -17,7 +17,7 @@ to avoid paging operators.
 Safe-by-default: dry-run unless you pass --apply.
 
 Usage:
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run:
   ./scripts/vps-alert-pipeline-drill.sh

@@ -15,7 +15,7 @@ Safe-by-default:
   - Does NOT print secrets from /etc/healtharchive/backend.env
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
   ./scripts/vps-crawl-status.sh --year 2026
 
 Options:
@@ -126,13 +126,13 @@ echo "year=${YEAR}"
 echo ""
 
 VENV_BIN="${REPO_DIR}/.venv/bin"
-HA_BIN="${VENV_BIN}/ha-backend"
+HA_BIN="${VENV_BIN}/healtharchive"
 METRICS_URL="http://127.0.0.1:9100/metrics"
 
 if [[ -x "${HA_BIN}" ]]; then
-  ok "ha-backend present: ${HA_BIN}"
+  ok "healtharchive present: ${HA_BIN}"
 else
-  fail "missing ha-backend at ${HA_BIN} (expected VPS deploy at /opt/healtharchive-backend)"
+  fail "missing healtharchive at ${HA_BIN} (expected VPS deploy at /opt/healtharchive)"
 fi
 
 if [[ -f "${ENV_FILE}" ]]; then
@@ -229,7 +229,7 @@ if [[ -x "${HA_BIN}" ]]; then
           done
           echo "Note: mtime is UNIX seconds; newest should be last."
         else
-          warn "ha-backend CLI not executable at ${HA_BIN}; skipping WARC listing"
+          warn "healtharchive CLI not executable at ${HA_BIN}; skipping WARC listing"
         fi
       else
         warn "no combined log found under job output dir: ${JOBDIR}"

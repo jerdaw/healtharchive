@@ -1,6 +1,6 @@
 # pyproject.toml
 [project]
-name = "healtharchive-backend"
+name = "healtharchive"
 version = "0.0.1"
 description = "Backend services and archiving pipeline for HealthArchive.ca"
 authors = [
@@ -21,7 +21,7 @@ dependencies = [
 
 [project.scripts]
 archive-tool = "archive_tool.main:main"
-ha-backend = "ha_backend.cli:main"
+healtharchive = "ha_backend.cli:main"
 
 [project.optional-dependencies]
 dev = [

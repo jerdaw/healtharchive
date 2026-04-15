@@ -899,7 +899,7 @@ We may introduce:
 - API keys for higher limits
 - Tiered access (free vs. paid)
 
-**Stay informed**: Monitor [github.com/jerdaw/healtharchive-backend](https://github.com/jerdaw/healtharchive-backend) for announcements
+**Stay informed**: Monitor [github.com/jerdaw/healtharchive](https://github.com/jerdaw/healtharchive) for announcements
 
 ---
 
@@ -933,8 +933,8 @@ A: Yes, use `<iframe src="https://api.healtharchive.ca/api/snapshots/raw/{id}"><
 
 ## Support & Contact
 
-- **Technical issues**: [GitHub Issues](https://github.com/jerdaw/healtharchive-backend/issues)
-- **General questions**: [GitHub Discussions](https://github.com/jerdaw/healtharchive-backend/discussions)
+- **Technical issues**: [GitHub Issues](https://github.com/jerdaw/healtharchive/issues)
+- **General questions**: [GitHub Discussions](https://github.com/jerdaw/healtharchive/discussions)
 - **API documentation**: [Interactive docs](https://api.healtharchive.ca/docs)
 
 ---
@@ -944,6 +944,6 @@ A: Yes, use `<iframe src="https://api.healtharchive.ca/api/snapshots/raw/{id}"><
 - **Explore the API**: Try [interactive documentation](https://api.healtharchive.ca/docs)
 - **Download datasets**: Visit [healtharchive-datasets](https://github.com/jerdaw/healtharchive-datasets)
 - **Read the architecture**: [Architecture Guide](architecture.md)
-- **Stay updated**: Watch the [backend repo](https://github.com/jerdaw/healtharchive-backend) for changes
+- **Stay updated**: Watch the [backend repo](https://github.com/jerdaw/healtharchive) for changes
 
 Happy researching! 📊

@@ -10,10 +10,10 @@ ConditionPathExists=/etc/healtharchive/automation-enabled
 Type=oneshot
 User=root
 Group=root
-WorkingDirectory=/opt/healtharchive-backend
+WorkingDirectory=/opt/healtharchive
 EnvironmentFile=/etc/healtharchive/backend.env
 EnvironmentFile=-/etc/healtharchive/healthchecks.env
-ExecStart=/opt/healtharchive-backend/scripts/systemd-healthchecks-wrapper.sh --ping-var HEALTHARCHIVE_HC_PING_ANNUAL_SENTINEL -- /usr/bin/bash -lc '/opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-annual-campaign-sentinel.py --year $(date -u +%%Y) --campaign-archive-root /srv/healtharchive/storagebox/jobs'
+ExecStart=/opt/healtharchive/scripts/systemd-healthchecks-wrapper.sh --ping-var HEALTHARCHIVE_HC_PING_ANNUAL_SENTINEL -- /usr/bin/bash -lc '/opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-campaign-sentinel.py --year $(date -u +%%Y) --campaign-archive-root /srv/healtharchive/storagebox/jobs'
 
 [Install]
 WantedBy=multi-user.target

@@ -1,7 +1,7 @@
 # HealthArchive Frontend – Implementation Guide
 
 This is the canonical “how it works” guide for the HealthArchive frontend
-subtree in `jerdaw/healtharchive-backend`. It covers:
+subtree in `jerdaw/healtharchive`. It covers:
 
 - Tech stack and environment variables
 - API integration + offline fallback behavior
@@ -180,7 +180,7 @@ npm run check
 
 ## 3. Git & branch history
 
-**Repo:** `github.com/jerdaw/healtharchive-backend` (`frontend/` subtree)
+**Repo:** `github.com/jerdaw/healtharchive` (`frontend/` subtree)
 
 Branches:
 
@@ -796,7 +796,7 @@ All text is stable, but can be refined later.
 
 - Two cards:
   - Email: `contact@healtharchive.ca` (forwarding to the maintainer).
-  - GitHub: `https://github.com/jerdaw/healtharchive-backend/tree/main/frontend`.
+  - GitHub: `https://github.com/jerdaw/healtharchive/tree/main/frontend`.
 
 ### 8.9 Governance & policy pages
 
@@ -908,7 +908,7 @@ All text is stable, but can be refined later.
 ### 9.1 Production runtime
 
 - Frontend app: HealthArchive monorepo frontend (`frontend/`).
-- Source repo: `jerdaw/healtharchive-backend` (`frontend/` subtree).
+- Source repo: `jerdaw/healtharchive` (`frontend/` subtree).
 - Production branch: `main`.
 - Packaging model:
   - Root Directory: frontend subtree root.
@@ -1054,7 +1054,7 @@ If you’re continuing development, some clear next steps could be:
 The goal is to dump only the core files someone would read to understand the project (no deps or build output). From the frontend subtree root:
 
 ```bash
-# From /path/to/healtharchive-backend/frontend
+# From /path/to/healtharchive/frontend
 files=(
   "README.md"
   "docs/README.md"

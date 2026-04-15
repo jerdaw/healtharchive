@@ -27,7 +27,7 @@ Notes:
 - This script does NOT configure Grafana data sources (do that once in the Grafana UI).
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run:
   ./scripts/vps-install-observability-dashboards.sh

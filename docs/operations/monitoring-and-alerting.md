@@ -198,7 +198,7 @@ In practice this means:
 
 - **Threshold:** `healtharchive_crawl_auto_recover_deploy_lock_present == 1` (for 4h).
 - **Meaning:** The deploy lock file has been held for over 4 hours, preventing crawl auto-recover from taking any recovery actions.
-- **Action:** Check whether a deploy is genuinely in progress. If the lock is stale (leftover from a failed deploy), remove it manually: `rm /tmp/healtharchive-backend-deploy.lock`.
+- **Action:** Check whether a deploy is genuinely in progress. If the lock is stale (leftover from a failed deploy), remove it manually: `rm /tmp/healtharchive-deploy.lock`.
 
 ### 8) Temp Directory Accumulation
 
@@ -206,7 +206,7 @@ In practice this means:
 
 - **Threshold:** `healtharchive_crawl_running_job_temp_dirs_count > 100` **and** the tracked temp-dir count has grown by at least 5 over the last 12 hours (for 1h).
 - **Meaning:** A running crawl job has accumulated over 100 tracked `.tmp*` directories and the count is still climbing, usually from repeated resume/new-crawl phases, adaptive restarts, or storage/permission churn. This count comes from `.archive_state.json`, so it reflects real crawl-state accumulation rather than a filesystem glob.
-- **Action:** If the job is still running, do **not** run `cleanup-job`; first classify the incident using `vps-crawl-status.sh`, per-job crawl metrics, and the combined log, then follow the storage/stall/restart-budget runbooks as appropriate. If the job is already `indexed` or `index_failed`, reclaim space with `ha-backend cleanup-job --id <ID> --mode temp-nonwarc` (prefer `--dry-run` first). Use legacy `--mode temp` only when you explicitly intend to discard WARCs/replay data.
+- **Action:** If the job is still running, do **not** run `cleanup-job`; first classify the incident using `vps-crawl-status.sh`, per-job crawl metrics, and the combined log, then follow the storage/stall/restart-budget runbooks as appropriate. If the job is already `indexed` or `index_failed`, reclaim space with `healtharchive cleanup-job --id <ID> --mode temp-nonwarc` (prefer `--dry-run` first). Use legacy `--mode temp` only when you explicitly intend to discard WARCs/replay data.
 
 ## Dashboard-heavy Crawl Performance Signals
 

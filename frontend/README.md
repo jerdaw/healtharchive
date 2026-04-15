@@ -21,8 +21,8 @@ This directory contains the **Next.js frontend** for the public site at:
 Public-facing narrative and workflow disclaimers (used across Home/Archive/Snapshot/Browse)
 are centralized in `src/lib/siteCopy.ts`.
 
-- Backend API + ops docs: https://github.com/jerdaw/healtharchive-backend
-- **Unified Documentation Site**: Documentation for the monorepo lives in the [backend/docs hub](https://github.com/jerdaw/healtharchive-backend). Run `make docs-serve` at the repo root to view the searchable UI.
+- Backend API + ops docs: https://github.com/jerdaw/healtharchive
+- **Unified Documentation Site**: Documentation for the monorepo lives in the [backend/docs hub](https://github.com/jerdaw/healtharchive). Run `make docs-serve` at the repo root to view the searchable UI.
 - **Shared VPS ops workspace**: `/home/jer/repos/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`) contains the shared inventory, roadmap, handoff, and cross-project runbooks.
 
 ## Shared documentation boundary
@@ -213,7 +213,7 @@ bash scripts/setup-hooks.sh
   - Live APIs (preferred): `/api/search`, `/api/sources`, `/api/snapshot/{id}`, `/api/snapshots/raw/{id}`, `/api/stats`, `/api/health`.
   - Offline fallback: bundled sample records under `src/data/demo-records.ts` and static snapshots under `public/demo-archive/**` when the API is unavailable.
 - API client: `src/lib/api.ts` (uses `NEXT_PUBLIC_API_BASE_URL`, defaulting to `http://localhost:8001`).
-- Production backend: single Hetzner VPS (Nuremberg) running Postgres + API + worker + Caddy; SSH is Tailscale-only; public ports are 80/443 only. Full runbook lives in `healtharchive-backend/docs/deployment/production-single-vps.md`.
+- Production backend: single Hetzner VPS (Nuremberg) running Postgres + API + worker + Caddy; SSH is Tailscale-only; public ports are 80/443 only. Full runbook lives in `healtharchive/docs/deployment/production-single-vps.md`.
 - Issue intake: `/report` posts to the same-origin API route `src/app/api/report/route.ts`, which forwards to the backend `/api/reports` endpoint.
 - Pages:
   - `/archive`: uses backend search with pagination and page-size selection; falls back to an offline sample dataset and shows a fallback notice.
@@ -275,7 +275,7 @@ This runs the Next.js/ESLint config for the app.
 
 Current target production model:
 
-- Canonical source path: [`frontend/`](https://github.com/jerdaw/healtharchive-backend/tree/main/frontend) in the app monorepo
+- Canonical source path: [`frontend/`](https://github.com/jerdaw/healtharchive/tree/main/frontend) in the app monorepo
 - Production branch: `main`
 - Runtime: direct Docker container on the Hetzner VPS
 - Public ingress: host Caddy

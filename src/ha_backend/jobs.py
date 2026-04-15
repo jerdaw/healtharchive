@@ -353,7 +353,7 @@ class RuntimeArchiveJob:
             return result.returncode
         except KeyboardInterrupt:
             # archive_tool will already have received SIGINT and tried to shut down.
-            print("\n[ha-backend] Job interrupted by user (Ctrl-C).", file=sys.stderr)
+            print("\n[healtharchive] Job interrupted by user (Ctrl-C).", file=sys.stderr)
             # Conventional code for SIGINT.
             return 130
 

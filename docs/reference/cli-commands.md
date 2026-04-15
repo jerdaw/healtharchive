@@ -1,12 +1,12 @@
 # CLI Commands Reference
 
-Complete reference for `ha-backend` command-line interface.
+Complete reference for `healtharchive` command-line interface.
 
 ---
 
 ## Installation
 
-The `ha-backend` command is installed when you install the package:
+The `healtharchive` command is installed when you install the package:
 
 ```bash
 pip install -e .
@@ -16,7 +16,7 @@ make venv
 
 Verify installation:
 ```bash
-ha-backend --help
+healtharchive --help
 ```
 
 ---
@@ -45,7 +45,7 @@ Check environment configuration and ensure archive root exists.
 
 **Usage**:
 ```bash
-ha-backend check-env
+healtharchive check-env
 ```
 
 **Output**:
@@ -67,7 +67,7 @@ Verify archive-tool is available and functional.
 
 **Usage**:
 ```bash
-ha-backend check-archive-tool
+healtharchive check-archive-tool
 ```
 
 **What it does**:
@@ -86,7 +86,7 @@ Test database connectivity.
 
 **Usage**:
 ```bash
-ha-backend check-db
+healtharchive check-db
 ```
 
 **Output**:
@@ -108,7 +108,7 @@ Create a new archive job using source defaults.
 
 **Usage**:
 ```bash
-ha-backend create-job --source SOURCE_CODE [--override JSON]
+healtharchive create-job --source SOURCE_CODE [--override JSON]
 ```
 
 **Arguments**:
@@ -119,16 +119,16 @@ ha-backend create-job --source SOURCE_CODE [--override JSON]
 
 ```bash
 # Create Health Canada job with defaults
-ha-backend create-job --source hc
+healtharchive create-job --source hc
 
 # Create with custom worker count
-ha-backend create-job --source hc --override '{"tool_options": {"initial_workers": 2}}'
+healtharchive create-job --source hc --override '{"tool_options": {"initial_workers": 2}}'
 
 # Create a "search-first" crawl (skip optional .zim build) with a larger Docker /dev/shm
-ha-backend create-job --source hc --override '{"tool_options": {"initial_workers": 2, "skip_final_build": true, "docker_shm_size": "1g"}}'
+healtharchive create-job --source hc --override '{"tool_options": {"initial_workers": 2, "skip_final_build": true, "docker_shm_size": "1g"}}'
 
 # Enable monitoring and stall detection
-ha-backend create-job --source phac --override '{
+healtharchive create-job --source phac --override '{
   "tool_options": {
     "enable_monitoring": true,
     "stall_timeout_minutes": 60
@@ -156,7 +156,7 @@ Execute a queued job by ID.
 
 **Usage**:
 ```bash
-ha-backend run-db-job --id JOB_ID
+healtharchive run-db-job --id JOB_ID
 ```
 
 **Arguments**:
@@ -164,7 +164,7 @@ ha-backend run-db-job --id JOB_ID
 
 **Example**:
 ```bash
-ha-backend run-db-job --id 42
+healtharchive run-db-job --id 42
 ```
 
 **What it does**:
@@ -185,7 +185,7 @@ Index WARCs from a completed job into the database.
 
 **Usage**:
 ```bash
-ha-backend index-job --id JOB_ID
+healtharchive index-job --id JOB_ID
 ```
 
 **Arguments**:
@@ -193,7 +193,7 @@ ha-backend index-job --id JOB_ID
 
 **Example**:
 ```bash
-ha-backend index-job --id 42
+healtharchive index-job --id 42
 ```
 
 **What it does**:
@@ -223,7 +223,7 @@ Attach an existing archive_tool output directory to a new database job.
 
 **Usage**:
 ```bash
-ha-backend register-job-dir --source SOURCE --output-dir PATH [--name NAME]
+healtharchive register-job-dir --source SOURCE --output-dir PATH [--name NAME]
 ```
 
 **Arguments**:
@@ -233,7 +233,7 @@ ha-backend register-job-dir --source SOURCE --output-dir PATH [--name NAME]
 
 **Example**:
 ```bash
-ha-backend register-job-dir \
+healtharchive register-job-dir \
   --source hc \
   --output-dir /mnt/nasd/nobak/healtharchive/jobs/hc/20260101T120000Z__hc-20260101
 ```
@@ -254,7 +254,7 @@ Run archive-tool directly without database persistence.
 
 **Usage**:
 ```bash
-ha-backend run-job \
+healtharchive run-job \
   --name NAME \
   --seeds URL [URL...] \
   [--initial-workers N] \
@@ -269,7 +269,7 @@ ha-backend run-job \
 
 **Example**:
 ```bash
-ha-backend run-job \
+healtharchive run-job \
   --name test-crawl \
   --seeds https://www.canada.ca/en/health-canada.html \
   --initial-workers 2
@@ -291,7 +291,7 @@ List recent jobs with summary information.
 
 **Usage**:
 ```bash
-ha-backend list-jobs [--limit N] [--status STATUS [STATUS ...]] [--source SOURCE]
+healtharchive list-jobs [--limit N] [--status STATUS [STATUS ...]] [--source SOURCE]
 ```
 
 **Arguments**:
@@ -302,16 +302,16 @@ ha-backend list-jobs [--limit N] [--status STATUS [STATUS ...]] [--source SOURCE
 **Examples**:
 ```bash
 # List 20 most recent jobs
-ha-backend list-jobs
+healtharchive list-jobs
 
 # Show only failed jobs
-ha-backend list-jobs --status failed
+healtharchive list-jobs --status failed
 
 # Show Health Canada jobs
-ha-backend list-jobs --source hc
+healtharchive list-jobs --source hc
 
 # Show last 50 jobs
-ha-backend list-jobs --limit 50
+healtharchive list-jobs --limit 50
 ```
 
 **Output**:
@@ -337,7 +337,7 @@ Display detailed information about a specific job.
 
 **Usage**:
 ```bash
-ha-backend show-job --id JOB_ID [--warc-details]
+healtharchive show-job --id JOB_ID [--warc-details]
 ```
 
 **Arguments**:
@@ -347,10 +347,10 @@ ha-backend show-job --id JOB_ID [--warc-details]
 **Examples**:
 ```bash
 # Human-readable output
-ha-backend show-job --id 42
+healtharchive show-job --id 42
 
 # Include WARC discovery details
-ha-backend show-job --id 42 --warc-details
+healtharchive show-job --id 42 --warc-details
 ```
 
 **Output** (text format):
@@ -403,7 +403,7 @@ Retry a failed or index-failed job.
 
 **Usage**:
 ```bash
-ha-backend retry-job --id JOB_ID
+healtharchive retry-job --id JOB_ID
 ```
 
 **Arguments**:
@@ -411,7 +411,7 @@ ha-backend retry-job --id JOB_ID
 
 **Example**:
 ```bash
-ha-backend retry-job --id 42
+healtharchive retry-job --id 42
 ```
 
 **What it does**:
@@ -432,7 +432,7 @@ Safe-by-default: dry-run unless `--apply` is passed.
 
 **Usage**:
 ```bash
-ha-backend reset-retry-count --id JOB_ID [--apply] [--reason "note"]
+healtharchive reset-retry-count --id JOB_ID [--apply] [--reason "note"]
 ```
 
 **Arguments**:
@@ -445,13 +445,13 @@ ha-backend reset-retry-count --id JOB_ID [--apply] [--reason "note"]
 **Examples**:
 ```bash
 # Dry-run (prints what would change)
-ha-backend reset-retry-count --id 42
+healtharchive reset-retry-count --id 42
 
 # Apply for one job
-ha-backend reset-retry-count --id 42 --apply --reason "storage recovered; re-attempt crawl"
+healtharchive reset-retry-count --id 42 --apply --reason "storage recovered; re-attempt crawl"
 
 # Bulk mode (requires --source, --status, and --limit)
-ha-backend reset-retry-count --source hc --status failed retryable --limit 25 --apply --reason "post-incident retry budget reset"
+healtharchive reset-retry-count --source hc --status failed retryable --limit 25 --apply --reason "post-incident retry budget reset"
 ```
 
 **Safety guardrails**:
@@ -467,7 +467,7 @@ Clean up temporary crawl artifacts.
 
 **Usage**:
 ```bash
-ha-backend cleanup-job --id JOB_ID [--mode MODE] [--force] [--dry-run]
+healtharchive cleanup-job --id JOB_ID [--mode MODE] [--force] [--dry-run]
 ```
 
 **Arguments**:
@@ -479,11 +479,11 @@ ha-backend cleanup-job --id JOB_ID [--mode MODE] [--force] [--dry-run]
 **Example**:
 ```bash
 # Safe cleanup for an indexed job (preserves WARCs / replayability)
-ha-backend cleanup-job --id 42 --mode temp-nonwarc --dry-run
-ha-backend cleanup-job --id 42 --mode temp-nonwarc
+healtharchive cleanup-job --id 42 --mode temp-nonwarc --dry-run
+healtharchive cleanup-job --id 42 --mode temp-nonwarc
 
 # Legacy destructive cleanup (use with caution)
-ha-backend cleanup-job --id 42 --mode temp --force
+healtharchive cleanup-job --id 42 --mode temp --force
 ```
 
 **What it does**:
@@ -514,7 +514,7 @@ Create/refresh pywb collection index for a job.
 
 **Usage**:
 ```bash
-ha-backend replay-index-job --id JOB_ID
+healtharchive replay-index-job --id JOB_ID
 ```
 
 **Arguments**:
@@ -522,7 +522,7 @@ ha-backend replay-index-job --id JOB_ID
 
 **Example**:
 ```bash
-ha-backend replay-index-job --id 42
+healtharchive replay-index-job --id 42
 ```
 
 **What it does**:
@@ -548,7 +548,7 @@ Initialize source records in the database.
 
 **Usage**:
 ```bash
-ha-backend seed-sources
+healtharchive seed-sources
 ```
 
 **What it does**:
@@ -557,7 +557,7 @@ ha-backend seed-sources
 
 **Example**:
 ```bash
-ha-backend seed-sources
+healtharchive seed-sources
 ```
 
 **Output**:
@@ -580,16 +580,16 @@ Plan or enqueue Jan 01 (UTC) annual campaign jobs for `hc`, `phac`, and `cihr`.
 
 **Usage**:
 ```bash
-ha-backend schedule-annual --year YEAR [--sources hc phac cihr] [--apply]
+healtharchive schedule-annual --year YEAR [--sources hc phac cihr] [--apply]
 ```
 
 **Examples**:
 ```bash
 # Show what would be created
-ha-backend schedule-annual --year 2026
+healtharchive schedule-annual --year 2026
 
 # Actually create jobs
-ha-backend schedule-annual --year 2026 --apply
+healtharchive schedule-annual --year 2026 --apply
 ```
 
 **Notes**:
@@ -603,13 +603,13 @@ Report annual campaign progress and search-readiness for a given year.
 
 **Usage**:
 ```bash
-ha-backend annual-status --year YEAR [--json] [--sources hc phac cihr]
+healtharchive annual-status --year YEAR [--json] [--sources hc phac cihr]
 ```
 
 **Examples**:
 ```bash
-ha-backend annual-status --year 2026
-ha-backend annual-status --year 2026 --json
+healtharchive annual-status --year 2026
+healtharchive annual-status --year 2026 --json
 ```
 
 **Text output**:
@@ -643,16 +643,16 @@ Reconcile existing annual jobs to source-specific crawl profiles.
 
 **Usage**:
 ```bash
-ha-backend reconcile-annual-tool-options --year YEAR [--sources ...] [--limit N] [--apply]
+healtharchive reconcile-annual-tool-options --year YEAR [--sources ...] [--limit N] [--apply]
 ```
 
 **Examples**:
 ```bash
 # Dry-run reconciliation for all annual sources
-ha-backend reconcile-annual-tool-options --year 2026
+healtharchive reconcile-annual-tool-options --year 2026
 
 # Apply only to HC annual jobs
-ha-backend reconcile-annual-tool-options --year 2026 --sources hc --apply
+healtharchive reconcile-annual-tool-options --year 2026 --sources hc --apply
 ```
 
 **What it does**:
@@ -670,13 +670,13 @@ server-side `playwright_warc` fallback backend.
 
 **Usage**:
 ```bash
-ha-backend probe-browser-fetch URL [URL ...]
+healtharchive probe-browser-fetch URL [URL ...]
 ```
 
 **Examples**:
 ```bash
-ha-backend probe-browser-fetch https://www.canada.ca/en/public-health.html
-ha-backend probe-browser-fetch \
+healtharchive probe-browser-fetch https://www.canada.ca/en/public-health.html
+healtharchive probe-browser-fetch \
   https://www.canada.ca/en/public-health.html \
   https://www.canada.ca/en/health-canada.html
 ```
@@ -693,16 +693,16 @@ stable WARCs.
 
 **Usage**:
 ```bash
-ha-backend reset-crawl-state --id JOB_ID [--apply]
+healtharchive reset-crawl-state --id JOB_ID [--apply]
 ```
 
 **Examples**:
 ```bash
 # Show what would be removed/preserved
-ha-backend reset-crawl-state --id 7
+healtharchive reset-crawl-state --id 7
 
 # Consolidate temp WARCs, remove stale .tmp*/state/resume files
-ha-backend reset-crawl-state --id 7 --apply
+healtharchive reset-crawl-state --id 7 --apply
 ```
 
 **What it does**:
@@ -726,7 +726,7 @@ Start the job processing worker loop.
 
 **Usage**:
 ```bash
-ha-backend start-worker [--poll-interval SECONDS] [--once]
+healtharchive start-worker [--poll-interval SECONDS] [--once]
 ```
 
 **Arguments**:
@@ -736,13 +736,13 @@ ha-backend start-worker [--poll-interval SECONDS] [--once]
 **Examples**:
 ```bash
 # Run continuously with 30s polling
-ha-backend start-worker
+healtharchive start-worker
 
 # Poll every 60 seconds
-ha-backend start-worker --poll-interval 60
+healtharchive start-worker --poll-interval 60
 
 # Process one job and exit (for testing)
-ha-backend start-worker --once
+healtharchive start-worker --once
 ```
 
 **What it does**:
@@ -763,7 +763,7 @@ Compute change events between adjacent snapshots.
 
 **Usage**:
 ```bash
-ha-backend compute-changes [--limit N] [--source SOURCE]
+healtharchive compute-changes [--limit N] [--source SOURCE]
 ```
 
 **Arguments**:
@@ -773,13 +773,13 @@ ha-backend compute-changes [--limit N] [--source SOURCE]
 **Example**:
 ```bash
 # Compute changes for all snapshots
-ha-backend compute-changes
+healtharchive compute-changes
 
 # Process 100 page groups
-ha-backend compute-changes --limit 100
+healtharchive compute-changes --limit 100
 
 # Only Health Canada changes
-ha-backend compute-changes --source hc
+healtharchive compute-changes --source hc
 ```
 
 **What it does**:
@@ -798,7 +798,7 @@ ha-backend compute-changes --source hc
 All commands support:
 
 ```bash
-ha-backend COMMAND --help  # Show command help
+healtharchive COMMAND --help  # Show command help
 ```
 
 ## Environment Variables
@@ -839,17 +839,17 @@ Standard exit codes:
 set -e
 
 # Create job
-JOB_ID=$(ha-backend create-job --source hc | grep "Created job ID:" | awk '{print $4}')
+JOB_ID=$(healtharchive create-job --source hc | grep "Created job ID:" | awk '{print $4}')
 echo "Created job $JOB_ID"
 
 # Run crawl
-ha-backend run-db-job --id $JOB_ID
+healtharchive run-db-job --id $JOB_ID
 
 # Index WARCs
-ha-backend index-job --id $JOB_ID
+healtharchive index-job --id $JOB_ID
 
 # Clean up
-ha-backend cleanup-job --id $JOB_ID --mode temp
+healtharchive cleanup-job --id $JOB_ID --mode temp
 
 echo "Job $JOB_ID complete"
 ```
@@ -862,7 +862,7 @@ echo "Job $JOB_ID complete"
 while true; do
   clear
   echo "=== Job Status ==="
-  ha-backend list-jobs --limit 10
+  healtharchive list-jobs --limit 10
   sleep 10
 done
 ```
@@ -872,11 +872,11 @@ done
 ```bash
 #!/bin/bash
 
-ha-backend list-jobs --status failed --limit 100 --format json | \
+healtharchive list-jobs --status failed --limit 100 --format json | \
   jq -r '.[].id' | \
   while read job_id; do
     echo "Retrying job $job_id"
-    ha-backend retry-job --id $job_id
+    healtharchive retry-job --id $job_id
   done
 ```
 

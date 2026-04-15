@@ -20,7 +20,7 @@ Manifest format (default: /etc/healtharchive/warc-tiering.binds):
 Lines beginning with # are ignored.
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
   ./scripts/vps-warc-tiering-bind-mounts.sh
 
   # Apply (requires sudo):

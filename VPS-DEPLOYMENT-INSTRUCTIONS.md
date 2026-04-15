@@ -18,7 +18,7 @@ This deploys the disk threshold cleanup automation that prevents disk pressure b
 ssh vps
 
 # Navigate to repo
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 
 # Pull latest code
 sudo -u haadmin git pull
@@ -59,8 +59,8 @@ healtharchive-disk-threshold-cleanup.timer        disabled
 ```bash
 # Load environment
 sudo -u haadmin bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; \
-  /opt/healtharchive-backend/.venv/bin/python3 \
-  /opt/healtharchive-backend/scripts/vps-cleanup-automation.py \
+  /opt/healtharchive/.venv/bin/python3 \
+  /opt/healtharchive/scripts/vps-cleanup-automation.py \
   --threshold-mode'
 ```
 
@@ -83,8 +83,8 @@ Disk usage at XX%, above threshold 80%. Running aggressive cleanup.
 ```bash
 # Apply cleanup
 sudo -u haadmin bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; \
-  /opt/healtharchive-backend/.venv/bin/python3 \
-  /opt/healtharchive-backend/scripts/vps-cleanup-automation.py \
+  /opt/healtharchive/.venv/bin/python3 \
+  /opt/healtharchive/scripts/vps-cleanup-automation.py \
   --threshold-mode --apply'
 ```
 

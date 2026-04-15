@@ -11,7 +11,7 @@ This is a read-only summary:
   - writes a dated JSON report under an ops artifact directory
 
 Usage (on the VPS):
-  /opt/healtharchive-backend/scripts/vps-storage-watchdog-burnin-snapshot.sh
+  /opt/healtharchive/scripts/vps-storage-watchdog-burnin-snapshot.sh
 
 Options:
   --out-dir DIR     Output directory (default: /srv/healtharchive/ops/burnin/storage-watchdog)
@@ -52,7 +52,7 @@ done
 
 if [[ ! -d "${OUT_DIR}" ]]; then
   echo "ERROR: Output dir does not exist: ${OUT_DIR}" >&2
-  echo "Hint: run: sudo /opt/healtharchive-backend/scripts/vps-bootstrap-ops-dirs.sh" >&2
+  echo "Hint: run: sudo /opt/healtharchive/scripts/vps-bootstrap-ops-dirs.sh" >&2
   exit 1
 fi
 

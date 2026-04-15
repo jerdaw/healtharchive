@@ -26,14 +26,14 @@ For the “guard window” drill below, it helps if **at least one other job is 
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend list-jobs --status running --limit 10
+/opt/healtharchive/.venv/bin/healtharchive list-jobs --status running --limit 10
 ```
 
 Also pick a job ID that is **not** currently running (queued/retryable is fine):
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend list-jobs --limit 20
+/opt/healtharchive/.venv/bin/healtharchive list-jobs --limit 20
 ```
 
 Pick one `job_id` from the output, for example `7`.
@@ -48,9 +48,9 @@ Important: **soft recovery is only allowed when the watchdog can confirm the sta
 - `--simulate-stalled-job-runner none`
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; \
-  /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-crawl-auto-recover.py \
+  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-crawl-auto-recover.py \
     --simulate-stalled-job-id 7 \
     --simulate-stalled-job-runner none \
     --state-file /tmp/healtharchive-crawl-auto-recover.drill.state.json \
@@ -78,9 +78,9 @@ This forces the watchdog to show the “full recovery” plan by disabling the g
 ### 3a) Full recovery (job is running under the worker)
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; \
-  /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-crawl-auto-recover.py \
+  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-crawl-auto-recover.py \
     --skip-if-any-job-progress-within-seconds 0 \
     --simulate-stalled-job-id 7 \
     --simulate-stalled-job-runner worker \
@@ -101,9 +101,9 @@ Expected output includes:
 Use any realistic transient unit name (this is a drill-only override):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; \
-  /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-crawl-auto-recover.py \
+  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-crawl-auto-recover.py \
     --skip-if-any-job-progress-within-seconds 0 \
     --simulate-stalled-job-id 7 \
     --simulate-stalled-job-runner systemd_unit \
@@ -127,9 +127,9 @@ Expected output includes:
   (worker vs transient unit) from the live system.
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; \
-  /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-crawl-auto-recover.py \
+  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-crawl-auto-recover.py \
     --skip-if-any-job-progress-within-seconds 0 \
     --simulate-stalled-job-id 7 \
     --state-file /tmp/healtharchive-crawl-auto-recover.full-drill.state.json \
@@ -164,15 +164,15 @@ This drill does not require `--simulate-stalled-job-id` — it exercises the “
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend list-jobs --status running --limit 10
+/opt/healtharchive/.venv/bin/healtharchive list-jobs --status running --limit 10
 ```
 
 2) Run a dry-run with `--ensure-min-running-jobs` set above the current count (example uses `3`):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; \
-  /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-crawl-auto-recover.py \
+  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-crawl-auto-recover.py \
     --ensure-min-running-jobs 3 \
     --state-file /tmp/healtharchive-crawl-auto-recover.start-drill.state.json \
     --lock-file /tmp/healtharchive-crawl-auto-recover.start-drill.lock \
@@ -184,7 +184,7 @@ Expected output includes:
 
 - `DRY-RUN: would auto-start annual job_id=...`
 - `Planned actions (dry-run):`
-- `systemd-run ... ha-backend run-db-job --id ...`
+- `systemd-run ... healtharchive run-db-job --id ...`
 
 Notes:
 

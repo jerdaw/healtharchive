@@ -13,8 +13,8 @@ Canonical references:
 ## Preconditions
 
 - You are on the VPS.
-- Backend repo is present (default): `/opt/healtharchive-backend`
-- Venv exists at: `/opt/healtharchive-backend/.venv`
+- Backend repo is present (default): `/opt/healtharchive`
+- Venv exists at: `/opt/healtharchive/.venv`
 - Backend env file exists: `/etc/healtharchive/backend.env`
 
 ## If you need to temporarily defer the annual crawl
@@ -47,10 +47,10 @@ Notes:
 1. Choose the annual campaign year:
    - If it’s before Jan 01 (UTC), use the upcoming year (e.g., Dec 2025 → `2026`).
 2. (Recommended) Run a rehearsal with caps (generates active-load evidence):
-   - `cd /opt/healtharchive-backend`
+   - `cd /opt/healtharchive`
    - `./scripts/vps-smoke-crawl-rehearsal.sh --apply --source cihr --page-limit 25 --depth 1`
 3. Run the preflight audit:
-   - `cd /opt/healtharchive-backend`
+   - `cd /opt/healtharchive`
    - `YEAR=2026; ./scripts/vps-preflight-crawl.sh --year "$YEAR"`
 
 This writes a timestamped report directory under `/srv/healtharchive/ops/preflight/`.
@@ -69,10 +69,10 @@ This writes a timestamped report directory under `/srv/healtharchive/ops/preflig
 - **Backups are missing/stale**: fix backups before crawling (don’t run long jobs without recoverability).
 - **`/api/health` fails on loopback**: fix API/DB/service health first (check `systemctl status` + `journalctl`).
 - **Annual scheduler dry-run errors**:
-  - Missing `Source` rows → run `ha-backend seed-sources`.
+  - Missing `Source` rows → run `healtharchive seed-sources`.
   - Duplicated annual jobs for the year → resolve duplicates before scheduling.
   - Active jobs blocking scheduling → finish/index them (or decide not to run annual yet).
-- **Temp cleanup candidates**: the report lists indexed jobs that still have `.tmp*` dirs; use `ha-backend cleanup-job --mode temp-nonwarc` (safe) to reclaim space.
+- **Temp cleanup candidates**: the report lists indexed jobs that still have `.tmp*` dirs; use `healtharchive cleanup-job --mode temp-nonwarc` (safe) to reclaim space.
 - **Baseline drift failures**: reconcile production with `docs/operations/production-baseline-policy.toml`, then re-run drift checks.
 - **Ops automation posture fails**: enable required timers and sentinels (at minimum baseline drift), e.g. `sudo systemctl enable --now healtharchive-baseline-drift-check.timer && sudo touch /etc/healtharchive/baseline-drift-enabled`.
 - **Admin/metrics auth check fails**: ensure a real `HEALTHARCHIVE_ADMIN_TOKEN` is set in production and routing is correct.
@@ -80,7 +80,7 @@ This writes a timestamped report directory under `/srv/healtharchive/ops/preflig
 ## Optional deep checks
 
 - Run a small crawl rehearsal (capped crawl + indexing, isolated sandbox DB). This is the best way to validate headroom under active crawl load, not just idle host metrics:
-  - `cd /opt/healtharchive-backend`
+  - `cd /opt/healtharchive`
   - Dry-run: `./scripts/vps-smoke-crawl-rehearsal.sh --source cihr`
   - Apply: `./scripts/vps-smoke-crawl-rehearsal.sh --apply --source cihr --page-limit 25 --depth 1`
   - Evidence artifacts: `.../98-resource-monitor.jsonl` and `.../98-resource-summary.json`
@@ -119,6 +119,6 @@ Once a large crawl is running, use the read-only status snapshot script for a
 quick “all the basics” check:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-crawl-status.sh --year 2026
 ```

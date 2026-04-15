@@ -129,7 +129,7 @@ After deploying a schema update that adds `snapshots.search_vector`, populate it
 for existing rows:
 
 ```bash
-ha-backend backfill-search-vector
+healtharchive backfill-search-vector
 ```
 
 ### 5.1.1 Enable fuzzy search (Postgres only)
@@ -152,7 +152,7 @@ After improving HTML extraction logic, update snapshot metadata without
 re-indexing (IDs remain stable):
 
 ```bash
-ha-backend refresh-snapshot-metadata --job-id <JOB_ID>
+healtharchive refresh-snapshot-metadata --job-id <JOB_ID>
 ```
 
 ### 5.2.1 Backfill normalized URL groups (page de-duplication)
@@ -162,7 +162,7 @@ may show duplicate “pages” for the same URL (especially when query parameter
 vary). Backfill the column:
 
 ```bash
-ha-backend backfill-normalized-url-groups
+healtharchive backfill-normalized-url-groups
 ```
 
 ### 5.2.2 Snapshot view: hide same-day content duplicates (UI)
@@ -187,12 +187,12 @@ If you have applied the authority schema (tables `snapshot_outlinks` and
 `page_signals`), you can populate link edges for a job by re-reading its WARCs:
 
 ```bash
-ha-backend backfill-outlinks --job-id <JOB_ID> --update-signals
+healtharchive backfill-outlinks --job-id <JOB_ID> --update-signals
 ```
 
 To rebuild all link signals from the full outlink graph (includes `inlink_count`,
 `outlink_count`, and `pagerank` when present):
 
 ```bash
-ha-backend recompute-page-signals
+healtharchive recompute-page-signals
 ```

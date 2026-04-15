@@ -9,12 +9,12 @@ This file is intentionally brief; it points to canonical docs when you need deta
 - Treat green `main` as the deploy gate (run checks, push, wait for CI).
   - Canonical: `../../monitoring-and-ci-checklist.md`
 - Run the deploy helper on the VPS (safe deploy + verify):
-  - `cd /opt/healtharchive-backend && ./scripts/vps-deploy.sh --apply --baseline-mode live`
+  - `cd /opt/healtharchive && ./scripts/vps-deploy.sh --apply --baseline-mode live`
   - Playbook: `deploy-and-verify.md`
 - Prefer the wrapper for routine deploys (strict git hygiene; safer shell behavior):
-  - `cd /opt/healtharchive-backend && ./scripts/vps-hetzdeploy.sh`
+  - `cd /opt/healtharchive && ./scripts/vps-hetzdeploy.sh`
 - Recommended: install `hetzdeploy` as a real command (avoid brittle aliases; enables `--mode backend-only`):
-  - `cd /opt/healtharchive-backend && sudo ./scripts/vps-install-hetzdeploy.sh --apply`
+  - `cd /opt/healtharchive && sudo ./scripts/vps-install-hetzdeploy.sh --apply`
 - If the deploy script fails: don’t retry blindly.
   - Read the drift report and verifier output and fix the underlying mismatch.
   - Canonical: `../../baseline-drift.md`

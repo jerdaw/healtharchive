@@ -12,7 +12,7 @@ This checks:
   - Ops directories exist (baseline/artifacts locations).
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
   ./scripts/verify_ops_automation.sh
 
 Options:

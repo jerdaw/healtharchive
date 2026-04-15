@@ -148,8 +148,8 @@ Clone + venv:
 
 ```bash
 sudo mkdir -p /opt && sudo chown haadmin:haadmin /opt
-git clone https://github.com/jerdaw/healtharchive-backend.git /opt/healtharchive-backend
-cd /opt/healtharchive-backend
+git clone https://github.com/jerdaw/healtharchive.git /opt/healtharchive
+cd /opt/healtharchive
 python3 -m venv .venv
 ./.venv/bin/pip install --upgrade pip
 ./.venv/bin/pip install -e ".[dev]" "psycopg[binary]"
@@ -215,9 +215,9 @@ Migrate + seed:
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
 ./.venv/bin/alembic upgrade head
-./.venv/bin/ha-backend seed-sources
-./.venv/bin/ha-backend recompute-page-signals
-./.venv/bin/ha-backend rebuild-pages --truncate
+./.venv/bin/healtharchive seed-sources
+./.venv/bin/healtharchive recompute-page-signals
+./.venv/bin/healtharchive rebuild-pages --truncate
 ```
 
 Systemd services:
@@ -227,7 +227,7 @@ Systemd services:
   - Default `ExecStart` runs uvicorn on `127.0.0.1:8001` with `HEALTHARCHIVE_API_WORKERS=2`
   - `EnvironmentFile=/etc/healtharchive/backend.env`
 - Worker: `/etc/systemd/system/healtharchive-worker.service`
-  - `ExecStart=/opt/healtharchive-backend/.venv/bin/ha-backend start-worker --poll-interval 30`
+  - `ExecStart=/opt/healtharchive/.venv/bin/healtharchive start-worker --poll-interval 30`
 
 Optional systemd automation (recommended):
 
@@ -256,7 +256,7 @@ curl -i http://127.0.0.1:8001/api/health
 Routine deploys (after initial install):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 
 # Dry-run (prints actions):
 ./scripts/vps-deploy.sh
@@ -393,7 +393,7 @@ This can break:
 Standard fast-forward to latest `main`:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-deploy.sh --apply
 ```
 
@@ -411,7 +411,7 @@ This does:
 Fast triage:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-crawl-status.sh --year "$(date -u +%Y)"
 ls -la /srv/healtharchive/storagebox >/dev/null && echo "OK: storagebox readable" || echo "BAD: storagebox unreadable"
 mount | rg '/srv/healtharchive/jobs/|/srv/healtharchive/storagebox'
@@ -461,7 +461,7 @@ Full-fidelity browsing (CSS/JS/images) requires a replay engine. If you want
 
 Operational warning:
 
-- `ha-backend cleanup-job --mode temp` removes temp dirs **including WARCs**.
+- `healtharchive cleanup-job --mode temp` removes temp dirs **including WARCs**.
   Replay depends on WARCs staying on disk, so do not run cleanup for any job
   you intend to keep replayable.
   If replay is enabled globally (`HEALTHARCHIVE_REPLAY_BASE_URL` is set),

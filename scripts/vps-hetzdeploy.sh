@@ -8,7 +8,7 @@ set -euo pipefail
 # - Refuse dirty working trees by default (avoids ad-hoc scp changes breaking deploys).
 # - Provide a clear "backend-only" mode for when the public frontend is externally down (e.g., Vercel 402).
 
-REPO_DIR="/opt/healtharchive-backend"
+REPO_DIR="/opt/healtharchive"
 MODE="full" # full | backend-only
 
 if [[ "${EUID}" -eq 0 ]]; then
@@ -35,7 +35,7 @@ Notes:
   - Extra args after -- are passed through to vps-deploy.sh.
 
 Examples:
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
   ./scripts/vps-hetzdeploy.sh
   ./scripts/vps-hetzdeploy.sh --mode backend-only
   ./scripts/vps-hetzdeploy.sh -- --restart-replay

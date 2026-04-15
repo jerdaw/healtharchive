@@ -9,7 +9,7 @@ export HEALTHARCHIVE_ARCHIVE_ROOT
 mkdir -p "${HEALTHARCHIVE_ARCHIVE_ROOT}"
 
 alembic upgrade head
-ha-backend seed-sources
+healtharchive seed-sources
 
 uvicorn ha_backend.api:app --host 127.0.0.1 --port 8765 --log-level warning &
 UVICORN_PID=$!

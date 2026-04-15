@@ -15,7 +15,7 @@ How it stays safe:
   - Defaults to DRY-RUN (prints commands); pass --apply to actually run a crawl.
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run:
   ./scripts/vps-smoke-crawl-rehearsal.sh --source cihr
@@ -120,8 +120,8 @@ REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 cd "${REPO_DIR}"
 
 VENV_BIN="${REPO_DIR}/.venv/bin"
-if [[ ! -x "${VENV_BIN}/python3" || ! -x "${VENV_BIN}/ha-backend" || ! -x "${VENV_BIN}/alembic" ]]; then
-  echo "ERROR: missing venv executables under ${VENV_BIN} (expected python3, ha-backend, alembic)" >&2
+if [[ ! -x "${VENV_BIN}/python3" || ! -x "${VENV_BIN}/healtharchive" || ! -x "${VENV_BIN}/alembic" ]]; then
+  echo "ERROR: missing venv executables under ${VENV_BIN} (expected python3, healtharchive, alembic)" >&2
   exit 1
 fi
 
@@ -218,17 +218,17 @@ export HEALTHARCHIVE_DATABASE_URL="${DATABASE_URL}"
 export HEALTHARCHIVE_ARCHIVE_ROOT="${ARCHIVE_ROOT}"
 
 run_capture "Alembic upgrade" "01-alembic-upgrade.txt" "${VENV_BIN}/alembic" upgrade head
-run_capture "Seed sources" "02-seed-sources.txt" "${VENV_BIN}/ha-backend" seed-sources
+run_capture "Seed sources" "02-seed-sources.txt" "${VENV_BIN}/healtharchive" seed-sources
 
 create_out="${RUN_DIR}/03-create-job.txt"
 if [[ "${APPLY}" != "true" ]]; then
-  echo "+ (${create_out}) ${VENV_BIN}/ha-backend create-job --source ${SOURCE_CODE} --page-limit ${PAGE_LIMIT} --depth ${DEPTH}"
+  echo "+ (${create_out}) ${VENV_BIN}/healtharchive create-job --source ${SOURCE_CODE} --page-limit ${PAGE_LIMIT} --depth ${DEPTH}"
   echo ""
   echo "Dry-run complete. Re-run with --apply to execute."
   exit 0
 fi
 
-run_capture "Create job" "03-create-job.txt" "${VENV_BIN}/ha-backend" create-job --source "${SOURCE_CODE}" --page-limit "${PAGE_LIMIT}" --depth "${DEPTH}"
+run_capture "Create job" "03-create-job.txt" "${VENV_BIN}/healtharchive" create-job --source "${SOURCE_CODE}" --page-limit "${PAGE_LIMIT}" --depth "${DEPTH}"
 
 job_id="$(awk -F':' '/^[[:space:]]*ID:[[:space:]]*/ {gsub(/^[[:space:]]+|[[:space:]]+$/, "", $2); print $2; exit}' "${RUN_DIR}/03-create-job.txt" || true)"
 if ! [[ "${job_id}" =~ ^[0-9]+$ ]]; then
@@ -238,7 +238,7 @@ if ! [[ "${job_id}" =~ ^[0-9]+$ ]]; then
 fi
 echo "Job ID: ${job_id}"
 
-run_capture "Validate job config (archive-tool dry-run)" "04-validate-job-config.txt" "${VENV_BIN}/ha-backend" validate-job-config --id "${job_id}"
+run_capture "Validate job config (archive-tool dry-run)" "04-validate-job-config.txt" "${VENV_BIN}/healtharchive" validate-job-config --id "${job_id}"
 
 monitor_pid=""
 monitor_file="${RUN_DIR}/98-resource-monitor.jsonl"
@@ -405,9 +405,9 @@ PY
 }
 
 start_monitor
-run_capture "Run crawl" "05-run-db-job.txt" "${VENV_BIN}/ha-backend" run-db-job --id "${job_id}"
-run_capture "Index job" "06-index-job.txt" "${VENV_BIN}/ha-backend" index-job --id "${job_id}"
-run_capture "Show job" "07-show-job.txt" "${VENV_BIN}/ha-backend" show-job --id "${job_id}"
+run_capture "Run crawl" "05-run-db-job.txt" "${VENV_BIN}/healtharchive" run-db-job --id "${job_id}"
+run_capture "Index job" "06-index-job.txt" "${VENV_BIN}/healtharchive" index-job --id "${job_id}"
+run_capture "Show job" "07-show-job.txt" "${VENV_BIN}/healtharchive" show-job --id "${job_id}"
 
 cleanup_sandbox
 

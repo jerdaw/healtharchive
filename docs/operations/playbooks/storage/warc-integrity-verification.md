@@ -21,7 +21,7 @@ The CLI enforces the most important guards and will refuse unsafe operations.
 
 ## 1) Pick a verification level (cost vs confidence)
 
-The `ha-backend verify-warcs` command supports three levels:
+The `healtharchive verify-warcs` command supports three levels:
 
 - **Level 0 (cheap)**: file exists, is readable, size > 0
 - **Level 1 (moderate, default)**: gzip stream integrity (detect truncation/CRC issues)
@@ -37,20 +37,20 @@ Recommended posture on a single VPS:
 Run a report-only verification:
 
 ```bash
-cd /opt/healtharchive-backend
-sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; ha-backend verify-warcs --job-id <JOB_ID> --level 1'
+cd /opt/healtharchive
+sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; healtharchive verify-warcs --job-id <JOB_ID> --level 1'
 ```
 
 Bound the work if you’re validating an incident window:
 
 ```bash
-ha-backend verify-warcs --job-id <JOB_ID> --level 1 --since-minutes 180 --limit-warcs 50
+healtharchive verify-warcs --job-id <JOB_ID> --level 1 --since-minutes 180 --limit-warcs 50
 ```
 
 Optional: write a Prometheus node_exporter textfile metric:
 
 ```bash
-ha-backend verify-warcs --job-id <JOB_ID> --level 1 --metrics-file /var/lib/node_exporter/textfile_collector/healtharchive_warc_verify.prom
+healtharchive verify-warcs --job-id <JOB_ID> --level 1 --metrics-file /var/lib/node_exporter/textfile_collector/healtharchive_warc_verify.prom
 ```
 
 ## 3) If verification fails with `infra_error`
@@ -65,7 +65,7 @@ This is usually mount instability, not corruption.
 If the job has **no Snapshot rows** (not indexed), quarantine the corrupt WARCs:
 
 ```bash
-ha-backend verify-warcs --job-id <JOB_ID> --level 1 --apply-quarantine
+healtharchive verify-warcs --job-id <JOB_ID> --level 1 --apply-quarantine
 ```
 
 This will:

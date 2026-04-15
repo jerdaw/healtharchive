@@ -385,7 +385,7 @@ def collect_observed(*, policy: dict[str, Any], mode: str = "local") -> dict[str
     caddyfile = Path(policy.get("files", {}).get("caddyfile", "/etc/caddy/Caddyfile"))
     api_domain = api_base.replace("https://", "").replace("http://", "").split("/", 1)[0]
 
-    venv_path_str = policy.get("files", {}).get("venv_dir", "/opt/healtharchive-backend/.venv")
+    venv_path_str = policy.get("files", {}).get("venv_dir", "/opt/healtharchive/.venv")
     venv_dir = Path(venv_path_str)
 
     env: dict[str, Any] = {"backend_env_file": str(backend_env_file)}

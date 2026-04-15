@@ -46,8 +46,8 @@ Per-source profiles keep the default configuration aligned with reality: differe
 ## Verification / rollout
 
 - Verify the reconciliation command reports intended deltas before applying:
-  - `ha-backend reconcile-annual-tool-options --year <YEAR>`
-  - `ha-backend reconcile-annual-tool-options --year <YEAR> --apply`
+  - `healtharchive reconcile-annual-tool-options --year <YEAR>`
+  - `healtharchive reconcile-annual-tool-options --year <YEAR> --apply`
 - Verify metrics reflect:
   - per-source crawl rate alerts (`HealthArchiveCrawlRateSlow*`)
   - churn alert (`HealthArchiveCrawlNewPhaseChurn`)

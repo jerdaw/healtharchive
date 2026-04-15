@@ -26,7 +26,7 @@
       "targetBlank": true,
       "title": "Automation maintenance playbook",
       "type": "link",
-      "url": "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/automation-maintenance.md"
+      "url": "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/automation-maintenance.md"
     },
     {
       "asDropdown": false,
@@ -37,7 +37,7 @@
       "targetBlank": true,
       "title": "Restore test playbook",
       "type": "link",
-      "url": "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/restore-test.md"
+      "url": "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/restore-test.md"
     }
   ],
   "panels": [

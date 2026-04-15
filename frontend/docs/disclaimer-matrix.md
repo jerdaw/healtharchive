@@ -128,4 +128,4 @@ frontend’s posture:
 - Not an official government website
 - Content may be outdated
 
-Backend location (if applicable): `healtharchive-backend/src/ha_backend/api/routes_public.py`
+Backend location (if applicable): `healtharchive/src/ha_backend/api/routes_public.py`

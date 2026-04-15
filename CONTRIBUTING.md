@@ -23,8 +23,8 @@ HealthArchive welcomes contributions of all kinds:
 
 1. **Read the Code of Conduct** (below)
 2. **Complete the tutorial**: [Your First Contribution](docs/tutorials/first-contribution.md)
-3. **Browse good first issues**: [Good First Issues](https://github.com/jerdaw/healtharchive-backend/issues?q=is:issue+is:open+label:%22good+first+issue%22)
-4. **Ask questions**: Use [GitHub Discussions](https://github.com/jerdaw/healtharchive-backend/discussions)
+3. **Browse good first issues**: [Good First Issues](https://github.com/jerdaw/healtharchive/issues?q=is:issue+is:open+label:%22good+first+issue%22)
+4. **Ask questions**: Use [GitHub Discussions](https://github.com/jerdaw/healtharchive/discussions)
 
 ---
 
@@ -34,8 +34,8 @@ HealthArchive welcomes contributions of all kinds:
 
 ```bash
 # Fork and clone
-git clone https://github.com/YOUR-USERNAME/healtharchive-backend.git
-cd healtharchive-backend
+git clone https://github.com/YOUR-USERNAME/healtharchive.git
+cd healtharchive
 
 # Create virtual environment and install dependencies
 make venv
@@ -49,7 +49,7 @@ source .env
 alembic upgrade head
 
 # Seed initial data
-ha-backend seed-sources
+healtharchive seed-sources
 
 # Verify setup
 make ci
@@ -599,9 +599,9 @@ We use labels to organize issues:
 
 | Type | Where |
 |------|-------|
-| **General questions** | [GitHub Discussions](https://github.com/jerdaw/healtharchive-backend/discussions) |
-| **Bug reports** | [GitHub Issues](https://github.com/jerdaw/healtharchive-backend/issues) |
-| **Feature requests** | [GitHub Issues](https://github.com/jerdaw/healtharchive-backend/issues) |
+| **General questions** | [GitHub Discussions](https://github.com/jerdaw/healtharchive/discussions) |
+| **Bug reports** | [GitHub Issues](https://github.com/jerdaw/healtharchive/issues) |
+| **Feature requests** | [GitHub Issues](https://github.com/jerdaw/healtharchive/issues) |
 | **Security issues** | Private vulnerability reporting |
 
 ### Resources
@@ -616,7 +616,7 @@ We use labels to organize issues:
 ## 📊 Project Structure
 
 ```
-healtharchive-backend/
+healtharchive/
 ├── src/
 │   ├── ha_backend/          # Main backend package
 │   │   ├── api/             # FastAPI routes
@@ -640,6 +640,6 @@ healtharchive-backend/
 
 Every contribution helps make HealthArchive better for researchers, journalists, and the public. Whether you're fixing a typo, reporting a bug, or implementing a feature, your effort is appreciated!
 
-**Questions?** Don't hesitate to ask in [Discussions](https://github.com/jerdaw/healtharchive-backend/discussions).
+**Questions?** Don't hesitate to ask in [Discussions](https://github.com/jerdaw/healtharchive/discussions).
 
 Happy contributing! 🎉

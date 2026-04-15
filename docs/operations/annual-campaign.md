@@ -208,7 +208,7 @@ durations and storage growth.
 
 Implementation note:
 
-- `ha-backend schedule-annual` staggers `queued_at` by a few seconds across
+- `healtharchive schedule-annual` staggers `queued_at` by a few seconds across
   sources to make the single-worker pick order deterministic (hc → phac → cihr),
   even when all jobs are enqueued in the same command invocation.
 
@@ -234,7 +234,7 @@ timestamped artifact directory:
 ```bash
 YEAR=2026
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend annual-status --year "$YEAR"
+/opt/healtharchive/.venv/bin/healtharchive annual-status --year "$YEAR"
 ./scripts/annual-search-verify.sh --year "$YEAR" --out-root /srv/healtharchive/ops/search-eval --base-url http://127.0.0.1:8001
 ```
 

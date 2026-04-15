@@ -31,7 +31,7 @@ What this does NOT do:
 - Does not create dashboards (Phase 6).
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run:
   ./scripts/vps-install-observability-grafana.sh

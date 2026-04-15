@@ -26,7 +26,7 @@
       "targetBlank": true,
       "title": "Monitoring + alerting playbook",
       "type": "link",
-      "url": "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/monitoring-and-alerting.md"
+      "url": "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/monitoring-and-alerting.md"
     }
   ],
   "panels": [

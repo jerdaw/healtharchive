@@ -13,7 +13,7 @@ This repo includes a `.pre-commit-config.yaml` with fast, mechanical checks (whi
 - Install (recommended): `pipx install pre-commit` (or `python -m pip install --user pre-commit`)
 - Enable: `pre-commit install`
 - Run on demand: `pre-commit run --all-files`
-  - Mono-repo convenience: you can also run `../healtharchive-backend/.venv/bin/pre-commit run --all-files` if you already have the backend venv.
+  - Mono-repo convenience: you can also run `../healtharchive/.venv/bin/pre-commit run --all-files` if you already have the backend venv.
 
 Note: CI runs these hooks (pull requests + pushes to `main`). Installing the hook locally avoids “CI fixed whitespace” failures.
 

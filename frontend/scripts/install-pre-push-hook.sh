@@ -98,9 +98,9 @@ if command -v pre-commit >/dev/null 2>&1; then
 elif [[ -x "${repo_root}/.venv/bin/pre-commit" ]]; then
   # Monorepo convenience: reuse the repo-root venv when available.
   pre_commit_cmd="${repo_root}/.venv/bin/pre-commit"
-elif [[ -x "../healtharchive-backend/.venv/bin/pre-commit" ]]; then
+elif [[ -x "../healtharchive/.venv/bin/pre-commit" ]]; then
   # Legacy split-repo convenience: reuse backend venv's pre-commit if available.
-  pre_commit_cmd="../healtharchive-backend/.venv/bin/pre-commit"
+  pre_commit_cmd="../healtharchive/.venv/bin/pre-commit"
 else
   echo "ERROR: pre-commit is required for this repo's pre-push checks." >&2
   echo "Install it once with: pipx install pre-commit" >&2

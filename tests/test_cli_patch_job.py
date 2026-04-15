@@ -1,5 +1,5 @@
 """
-Tests for the `ha-backend patch-job-config` CLI command.
+Tests for the `healtharchive patch-job-config` CLI command.
 """
 
 from __future__ import annotations

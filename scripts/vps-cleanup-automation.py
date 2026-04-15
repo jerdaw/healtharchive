@@ -125,10 +125,10 @@ def _check_disk_usage(path: str = "/") -> int:
 
 
 def _find_ha_backend_bin() -> str:
-    preferred = Path("/opt/healtharchive-backend/.venv/bin/ha-backend")
+    preferred = Path("/opt/healtharchive/.venv/bin/healtharchive")
     if preferred.is_file():
         return str(preferred)
-    return "ha-backend"
+    return "healtharchive"
 
 
 def _run_cleanup(job_id: int, *, apply: bool) -> tuple[bool, int]:
@@ -158,7 +158,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--config",
-        default="/opt/healtharchive-backend/ops/automation/cleanup-automation.toml",
+        default="/opt/healtharchive/ops/automation/cleanup-automation.toml",
         help="Config TOML path.",
     )
     parser.add_argument(

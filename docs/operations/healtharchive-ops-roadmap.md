@@ -16,7 +16,7 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** run a restore test and record a public-safe log entry in `/srv/healtharchive/ops/restore-tests/`.
 - **Quarterly:** add an adoption signals entry in `/srv/healtharchive/ops/adoption/` (links + aggregates only).
 - **Quarterly:** confirm dataset release exists and passes checksum verification (`sha256sum -c SHA256SUMS`).
-- **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive-backend && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
+- **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
 ## Current status (as of 2026-04-15)
@@ -55,11 +55,11 @@ Keep the two synced copies of this file aligned:
   but the source still needs deeper runtime investigation before another live
   retry.
 - Rescue observability follow-through is now implemented in repo:
-  - `ha-backend list-jobs` now surfaces effective backend plus compact rescue
+  - `healtharchive list-jobs` now surfaces effective backend plus compact rescue
     state.
-  - `ha-backend show-job` now surfaces
+  - `healtharchive show-job` now surfaces
     primary/configured/effective backend plus fallback/promotion details.
-  - `ha-backend annual-status` now acts as the compact annual rescue summary
+  - `healtharchive annual-status` now acts as the compact annual rescue summary
     surface, including backend/rescue/operator-state summaries.
   - crawl textfile metrics now expose backend/fallback rescue state.
   - CLI docs now document the shorter operator path for annual rescue state.
@@ -111,7 +111,7 @@ Treat the following as the current ops execution order:
   - Verified on 2026-04-09:
     - prod deploys can land safely without restarting the worker while CIHR is
       active
-    - `ha-backend probe-browser-fetch` succeeds on production for both HC and
+    - `healtharchive probe-browser-fetch` succeeds on production for both HC and
       PHAC seed pages using the pinned `playwright_warc` runtime
     - annual reconcile dry-run shows the intended HC/PHAC policy changes
   - Live update on 2026-04-10:
@@ -126,11 +126,11 @@ Treat the following as the current ops execution order:
       control flow itself
   - Repo update on 2026-04-11:
     - initial rescue-observability follow-through is now implemented in repo:
-      - `ha-backend list-jobs` surfaces effective backend + compact rescue state
-      - `ha-backend show-job` surfaces primary/configured/effective backend plus fallback/promotion details
+      - `healtharchive list-jobs` surfaces effective backend + compact rescue state
+      - `healtharchive show-job` surfaces primary/configured/effective backend plus fallback/promotion details
       - crawl textfile metrics now expose backend/fallback rescue state
   - Repo update on 2026-04-15:
-    - `ha-backend annual-status` now provides the compact annual rescue summary
+    - `healtharchive annual-status` now provides the compact annual rescue summary
       surface for operators
     - `operator_state` output now distinguishes intentional retry/backoff from
       active or terminal failure states
@@ -169,16 +169,16 @@ Treat the following as the current ops execution order:
 - Maintenance window (after 2026 annual crawl is idle): convert annual output dirs from direct `sshfs` mounts to bind mounts.
   - Why defer: unmount/re-mount of a live job output dir can interrupt in-progress crawls; benefit is reduced Errno 107 blast radius,
     but not worth forced interruption mid-campaign.
-  - Detection (crawl-safe): `python3 /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py --year 2026`
+  - Detection (crawl-safe): `python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --year 2026`
   - Repair (maintenance only): stop the worker and ensure crawl containers are stopped, then:
-    - `sudo python3 /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py --year 2026 --apply --repair-unexpected-mounts --allow-repair-running-jobs`
+    - `sudo python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --year 2026 --apply --repair-unexpected-mounts --allow-repair-running-jobs`
 - After any reboot/rescue/maintenance where mounts may drift:
   - Verify Storage Box mount is active (`healtharchive-storagebox-sshfs.service`).
   - Re-apply annual output tiering for the active campaign year and confirm job output dirs are on Storage Box (see incident: `incidents/2026-02-04-annual-crawl-output-dirs-on-root-disk.md`).
 - After deploying new crawl tuning defaults (or if an annual campaign was started before the change):
   - Reconcile already-created annual job configs so retries/restarts adopt the new per-source profiles:
-    - Dry-run: `ha-backend reconcile-annual-tool-options --year <YEAR>`
-    - Apply: `ha-backend reconcile-annual-tool-options --year <YEAR> --apply`
+    - Dry-run: `healtharchive reconcile-annual-tool-options --year <YEAR>`
+    - Apply: `healtharchive reconcile-annual-tool-options --year <YEAR> --apply`
 - Verify the new Docker resource limit environment variables are set appropriately on VPS if defaults need adjustment:
   - `HEALTHARCHIVE_DOCKER_MEMORY_LIMIT` (default: 4g)
   - `HEALTHARCHIVE_DOCKER_CPU_LIMIT` (default: 1.5)

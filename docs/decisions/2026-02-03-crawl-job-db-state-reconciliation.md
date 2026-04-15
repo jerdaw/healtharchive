@@ -18,7 +18,7 @@ When DB state drifts from runtime reality:
 
 - monitoring and stall detection becomes misleading,
 - automation can make incorrect decisions (e.g., “recover” a job that is already running),
-- operators lose the ability to reason about campaign progress from `ha-backend` job listings.
+- operators lose the ability to reason about campaign progress from `healtharchive` job listings.
 
 ## Decision
 
@@ -59,7 +59,7 @@ must remember to run X” workflow.
 
 ### Positive
 
-- `ha-backend list-jobs --status running` reflects reality during campaigns.
+- `healtharchive list-jobs --status running` reflects reality during campaigns.
 - Stall detection and recovery logic operates on accurate `status=running` jobs.
 - Fewer unsafe/incorrect recoveries when jobs were manually marked `retryable` but still running.
 

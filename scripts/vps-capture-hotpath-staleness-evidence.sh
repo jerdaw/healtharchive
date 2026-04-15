@@ -12,7 +12,7 @@ Writes a timestamped bundle directory under:
 and falls back to /tmp if that path is not writable.
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
   ./scripts/vps-capture-hotpath-staleness-evidence.sh
 
 Options:
@@ -138,11 +138,11 @@ meta="${out_dir}/meta.txt"
 
 # Repo state (non-secret)
 run_shell_to_file "repo.txt" \
-  "cd /opt/healtharchive-backend && echo sha=\$(git rev-parse --short HEAD) && git status --porcelain=v1 || true"
+  "cd /opt/healtharchive && echo sha=\$(git rev-parse --short HEAD) && git status --porcelain=v1 || true"
 
 # Crawl status snapshot (non-secret; helps correlate staleness with live jobs)
 run_shell_to_file "vps-crawl-status.txt" \
-  "cd /opt/healtharchive-backend && ./scripts/vps-crawl-status.sh --year ${YEAR} || true"
+  "cd /opt/healtharchive && ./scripts/vps-crawl-status.sh --year ${YEAR} || true"
 
 # systemd state
 run_to_file "systemctl-status.txt" systemctl status --no-pager -l \

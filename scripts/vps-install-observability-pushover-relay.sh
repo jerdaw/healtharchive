@@ -20,7 +20,7 @@ Prereqs:
   with mode 0640 and group 'healtharchive' (or your ops group).
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run:
   ./scripts/vps-install-observability-pushover-relay.sh

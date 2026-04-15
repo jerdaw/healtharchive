@@ -119,8 +119,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 VENV_BIN="${REPO_DIR}/.venv/bin"
 
-if [[ ! -x "${VENV_BIN}/ha-backend" ]]; then
-  echo "ERROR: Missing ha-backend CLI at ${VENV_BIN}/ha-backend" >&2
+if [[ ! -x "${VENV_BIN}/healtharchive" ]]; then
+  echo "ERROR: Missing healtharchive CLI at ${VENV_BIN}/healtharchive" >&2
   echo "Hint: create venv with: python3 -m venv .venv && .venv/bin/pip install -e '.[dev]'" >&2
   exit 1
 fi
@@ -207,7 +207,7 @@ if [[ -z "${job_id}" && "${SKIP_REGISTER}" != "true" ]]; then
     --property=User=haadmin
     --property="Group=${GROUP_NAME}"
     --property="EnvironmentFile=${ENV_FILE}"
-    "${VENV_BIN}/ha-backend" register-job-dir
+    "${VENV_BIN}/healtharchive" register-job-dir
     --source "${SOURCE_CODE}"
     --output-dir "${IMPORT_DIR}"
     "${name_arg[@]}"
@@ -231,7 +231,7 @@ fi
 
 if [[ "${SKIP_INDEX}" != "true" ]]; then
   if [[ "${APPLY}" != "true" && -z "${job_id}" ]]; then
-    echo "+ sudo systemd-run --wait --pipe --property=User=haadmin --property=Group=${GROUP_NAME} --property=EnvironmentFile=${ENV_FILE} ${VENV_BIN}/ha-backend index-job --id <JOB_ID>"
+    echo "+ sudo systemd-run --wait --pipe --property=User=haadmin --property=Group=${GROUP_NAME} --property=EnvironmentFile=${ENV_FILE} ${VENV_BIN}/healtharchive index-job --id <JOB_ID>"
   else
     if [[ -z "${job_id}" ]]; then
       echo "ERROR: No job ID available to index. Provide --job-id or allow register step." >&2
@@ -241,7 +241,7 @@ if [[ "${SKIP_INDEX}" != "true" ]]; then
       --property=User=haadmin \
       --property="Group=${GROUP_NAME}" \
       --property="EnvironmentFile=${ENV_FILE}" \
-      "${VENV_BIN}/ha-backend" index-job --id "${job_id}"
+      "${VENV_BIN}/healtharchive" index-job --id "${job_id}"
   fi
 fi
 

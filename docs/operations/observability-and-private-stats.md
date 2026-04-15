@@ -137,7 +137,7 @@ Use this if you want a tailnet-only HTTPS URL instead of an SSH tunnel.
 On the VPS:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-enable-tailscale-serve-grafana.sh          # Dry-run
 sudo ./scripts/vps-enable-tailscale-serve-grafana.sh --apply
 tailscale serve status

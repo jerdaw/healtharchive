@@ -164,8 +164,8 @@ def main(argv: list[str] | None = None) -> int:
             for c in candidates_sorted
         ],
         "notes": {
-            "safeCleanupCommand": "ha-backend cleanup-job --id <JOB_ID> --mode temp-nonwarc",
-            "dryRunCommand": "ha-backend cleanup-job --id <JOB_ID> --mode temp-nonwarc --dry-run",
+            "safeCleanupCommand": "healtharchive cleanup-job --id <JOB_ID> --mode temp-nonwarc",
+            "dryRunCommand": "healtharchive cleanup-job --id <JOB_ID> --mode temp-nonwarc --dry-run",
         },
     }
 
@@ -196,8 +196,10 @@ def main(argv: list[str] | None = None) -> int:
             f"tmp_dirs={c.tmp_dir_count} tmp_size={size} newest_tmp={newest} name={c.name}"
         )
         print(f"  output_dir={c.output_dir}")
-        print(f"  dry_run:   ha-backend cleanup-job --id {c.job_id} --mode temp-nonwarc --dry-run")
-        print(f"  apply:     ha-backend cleanup-job --id {c.job_id} --mode temp-nonwarc")
+        print(
+            f"  dry_run:   healtharchive cleanup-job --id {c.job_id} --mode temp-nonwarc --dry-run"
+        )
+        print(f"  apply:     healtharchive cleanup-job --id {c.job_id} --mode temp-nonwarc")
 
     print("")
     print(

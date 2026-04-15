@@ -4,9 +4,9 @@ Status: accepted
 
 ## Context
 
-- The production VPS uses a git checkout at `/opt/healtharchive-backend` as the deploy source of truth.
+- The production VPS uses a git checkout at `/opt/healtharchive` as the deploy source of truth.
 - `scripts/vps-deploy.sh` (and related automation) intentionally refuses a dirty working tree because it makes deploys non-reproducible and breaks rollback semantics.
-- Operator friction was observed when ad-hoc `scp`-copied scripts (or local edits) landed in `/opt/healtharchive-backend`, causing:
+- Operator friction was observed when ad-hoc `scp`-copied scripts (or local edits) landed in `/opt/healtharchive`, causing:
   - dirty-tree deploy failures,
   - configuration drift and “it works on this machine” behavior,
   - unclear provenance of production changes.
@@ -14,7 +14,7 @@ Status: accepted
 
 ## Decision
 
-- We will treat `/opt/healtharchive-backend` as a **git-managed** deploy artifact only:
+- We will treat `/opt/healtharchive` as a **git-managed** deploy artifact only:
   - no ad-hoc `scp` into that working tree,
   - no uncommitted production edits in that tree.
 - We will distribute operator helpers (deploy wrappers, diagnostics scripts) via **git**:
@@ -31,7 +31,7 @@ Status: accepted
 
 ## Alternatives considered
 
-- Continue allowing ad-hoc `scp` into `/opt/healtharchive-backend` — rejected: leads to dirty-tree deploy failures and untracked production drift.
+- Continue allowing ad-hoc `scp` into `/opt/healtharchive` — rejected: leads to dirty-tree deploy failures and untracked production drift.
 - Maintain a separate “ops scripts” copy outside git (manual sync) — rejected: additional moving parts, worse provenance, easy to forget.
 
 ## Consequences
@@ -50,7 +50,7 @@ Status: accepted
 ## Verification / rollout
 
 - Verification:
-  - `cd /opt/healtharchive-backend && git status --porcelain` is empty before deploys.
+  - `cd /opt/healtharchive && git status --porcelain` is empty before deploys.
   - Use `./scripts/vps-hetzdeploy.sh` (or installed `/usr/local/bin/hetzdeploy`) for routine deploys.
 - Rollback:
   - `git log --oneline` to identify the previous known-good SHA.

@@ -44,7 +44,7 @@ The 2026 annual campaign (3 jobs: hc, phac, cihr) has been running since Jan 1 w
 ### 1.1 Full Status Snapshot
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 
 # Save full status to file
 ./scripts/vps-crawl-status.sh --year 2026 > /tmp/crawl-status-$(date -u +%Y%m%dT%H%M%SZ).txt 2>&1
@@ -198,11 +198,11 @@ du -sh /srv/healtharchive/jobs/*/20260101*/.tmp* 2>/dev/null | sort -h | tail -2
 
 ```bash
 source /etc/healtharchive/backend.env
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 source .venv/bin/activate
 
 # Job 6 (HC)
-ha-backend show-job --id 6
+healtharchive show-job --id 6
 echo "--- WARC Discovery ---"
 python3 -c "
 from ha_backend.indexing.warc_discovery import discover_temp_warcs_for_job
@@ -217,7 +217,7 @@ if len(warcs) > 5: print(f'  ... and {len(warcs)-5} more')
 "
 
 # Job 7 (PHAC)
-ha-backend show-job --id 7
+healtharchive show-job --id 7
 echo "--- WARC Discovery ---"
 python3 -c "
 from ha_backend.indexing.warc_discovery import discover_temp_warcs_for_job
@@ -232,7 +232,7 @@ if len(warcs) > 5: print(f'  ... and {len(warcs)-5} more')
 "
 
 # Job 8 (CIHR)
-ha-backend show-job --id 8
+healtharchive show-job --id 8
 echo "--- WARC Discovery ---"
 python3 -c "
 from ha_backend.indexing.warc_discovery import discover_temp_warcs_for_job
@@ -253,9 +253,9 @@ if len(warcs) > 5: print(f'  ... and {len(warcs)-5} more')
 
 ```bash
 # Verify WARCs for each job (Level 1 = gzip integrity check)
-ha-backend verify-warcs --job-id 6 --level 1 --json-out /tmp/verify-warcs-6.json
-ha-backend verify-warcs --job-id 7 --level 1 --json-out /tmp/verify-warcs-7.json
-ha-backend verify-warcs --job-id 8 --level 1 --json-out /tmp/verify-warcs-8.json
+healtharchive verify-warcs --job-id 6 --level 1 --json-out /tmp/verify-warcs-6.json
+healtharchive verify-warcs --job-id 7 --level 1 --json-out /tmp/verify-warcs-7.json
+healtharchive verify-warcs --job-id 8 --level 1 --json-out /tmp/verify-warcs-8.json
 
 # Review results
 for f in /tmp/verify-warcs-*.json; do
@@ -268,7 +268,7 @@ done
 
 ```bash
 # ONLY if failures detected and you want to quarantine corrupt files:
-# ha-backend verify-warcs --job-id <ID> --level 1 --apply-quarantine
+# healtharchive verify-warcs --job-id <ID> --level 1 --apply-quarantine
 ```
 
 ### 4.3 Consolidate WARCs to Stable Location
@@ -277,14 +277,14 @@ done
 
 ```bash
 # Dry-run first for each job
-ha-backend consolidate-warcs --job-id 6 --dry-run
-ha-backend consolidate-warcs --job-id 7 --dry-run
-ha-backend consolidate-warcs --job-id 8 --dry-run
+healtharchive consolidate-warcs --job-id 6 --dry-run
+healtharchive consolidate-warcs --job-id 7 --dry-run
+healtharchive consolidate-warcs --job-id 8 --dry-run
 
 # If dry-run looks good, apply consolidation
-ha-backend consolidate-warcs --job-id 6
-ha-backend consolidate-warcs --job-id 7
-ha-backend consolidate-warcs --job-id 8
+healtharchive consolidate-warcs --job-id 6
+healtharchive consolidate-warcs --job-id 7
+healtharchive consolidate-warcs --job-id 8
 
 # Verify stable WARCs exist
 for job_id in 6 7 8; do
@@ -348,8 +348,8 @@ Use this if:
 
 ```bash
 # Mark jobs as retryable (preserves state for resume)
-ha-backend recover-stale-jobs --older-than-minutes 5 --dry-run
-ha-backend recover-stale-jobs --older-than-minutes 5 --apply
+healtharchive recover-stale-jobs --older-than-minutes 5 --dry-run
+healtharchive recover-stale-jobs --older-than-minutes 5 --apply
 ```
 
 ### 6A.2 Reset Retry Budgets (If Needed)
@@ -449,7 +449,7 @@ done
 ```bash
 # Reset jobs to queued status with fresh retry count
 source /etc/healtharchive/backend.env
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 source .venv/bin/activate
 
 python3 -c "
@@ -483,7 +483,7 @@ To reduce resource contention:
 ```bash
 # Option: Run one job at a time instead of all three
 # Start with the smallest (CIHR)
-ha-backend run-db-job --id 8  # Run synchronously to monitor
+healtharchive run-db-job --id 8  # Run synchronously to monitor
 
 # Or use detached mode
 python3 ./scripts/vps-run-db-job-detached.py --job-id 8
@@ -510,7 +510,7 @@ sudo systemctl start healtharchive-worker.service
 
 ```bash
 source /etc/healtharchive/backend.env
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 source .venv/bin/activate
 
 python3 -c "
@@ -538,14 +538,14 @@ print('Jobs marked as completed')
 
 ```bash
 # Index each job
-ha-backend index-job --id 6
-ha-backend index-job --id 7
-ha-backend index-job --id 8
+healtharchive index-job --id 6
+healtharchive index-job --id 7
+healtharchive index-job --id 8
 
 # Verify indexing
 for job_id in 6 7 8; do
   echo "=== Job $job_id ==="
-  ha-backend show-job --id $job_id | grep -E "status|indexed_page"
+  healtharchive show-job --id $job_id | grep -E "status|indexed_page"
 done
 ```
 
@@ -591,18 +591,18 @@ journalctl -u healtharchive-worker --since "1 hour ago" | grep -i "errno 107" ||
 ```bash
 # Verify jobs are indexed
 for job_id in 6 7 8; do
-  ha-backend show-job --id $job_id | grep -E "^Status:"
+  healtharchive show-job --id $job_id | grep -E "^Status:"
 done
 
 # Dry-run cleanup
-ha-backend cleanup-job --id 6 --mode temp-nonwarc --dry-run
-ha-backend cleanup-job --id 7 --mode temp-nonwarc --dry-run
-ha-backend cleanup-job --id 8 --mode temp-nonwarc --dry-run
+healtharchive cleanup-job --id 6 --mode temp-nonwarc --dry-run
+healtharchive cleanup-job --id 7 --mode temp-nonwarc --dry-run
+healtharchive cleanup-job --id 8 --mode temp-nonwarc --dry-run
 
 # Apply cleanup (consolidates WARCs, rewrites snapshot paths, deletes .tmp*)
-ha-backend cleanup-job --id 6 --mode temp-nonwarc
-ha-backend cleanup-job --id 7 --mode temp-nonwarc
-ha-backend cleanup-job --id 8 --mode temp-nonwarc
+healtharchive cleanup-job --id 6 --mode temp-nonwarc
+healtharchive cleanup-job --id 7 --mode temp-nonwarc
+healtharchive cleanup-job --id 8 --mode temp-nonwarc
 ```
 
 ### 8.2 Verify Replay Works
@@ -626,7 +626,7 @@ sudo systemctl stop healtharchive-worker.service
 journalctl -u healtharchive-worker --since "10 minutes ago" | tail -100
 
 # Recover stale jobs
-ha-backend recover-stale-jobs --older-than-minutes 5 --apply
+healtharchive recover-stale-jobs --older-than-minutes 5 --apply
 
 # Investigate before restarting
 ```
@@ -654,7 +654,7 @@ After indexing completes, verify:
 ```bash
 # Compare indexed pages to previous annual campaigns
 source /etc/healtharchive/backend.env
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 source .venv/bin/activate
 
 python3 -c "

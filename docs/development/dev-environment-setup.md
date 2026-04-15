@@ -13,12 +13,12 @@ For full backend live-testing flows, see `live-testing.md`.
 
 HealthArchive app code now lives in a **single monorepo**:
 
-- Main app repo: https://github.com/jerdaw/healtharchive-backend
+- Main app repo: https://github.com/jerdaw/healtharchive
   - backend code at the repo root
   - frontend code in `frontend/`
 - Datasets repo: https://github.com/jerdaw/healtharchive-datasets
 
-The repo slug is temporarily still `healtharchive-backend` for phase-1 safety,
+The repo slug is temporarily still `healtharchive` for phase-1 safety,
 but the working layout is monorepo.
 
 ---
@@ -28,7 +28,7 @@ but the working layout is monorepo.
 ### 0) Prereqs
 
 - `git`
-- `python3` (match `healtharchive-backend` requirements)
+- `python3` (match `healtharchive` requirements)
 - `node` (match `frontend/package.json`; currently **20.19+**)
 - `make`
 
@@ -114,7 +114,7 @@ Both app surfaces include a `.pre-commit-config.yaml`.
 
 ### What runs on the VPS
 
-Run these on the production VPS (typically from `/opt/healtharchive-backend`):
+Run these on the production VPS (typically from `/opt/healtharchive`):
 
 - Deploy + restart services:
   - `./scripts/vps-deploy.sh --apply`

@@ -26,7 +26,7 @@ Prereqs:
     /etc/healtharchive/observability/prometheus_backend_admin_token
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run:
   ./scripts/vps-install-ops-admin-proxy.sh

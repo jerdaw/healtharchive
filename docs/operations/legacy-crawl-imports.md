@@ -27,8 +27,8 @@ the backend’s serving path.
   `/srv/healtharchive/jobs/imports/<import-name>` that holds the legacy WARCs in
   a layout the backend’s WARC discovery can find.
 - **Register**: create an `ArchiveJob` row pointing at an existing directory
-  (`ha-backend register-job-dir`).
-- **Index**: parse WARCs and write `Snapshot` rows (`ha-backend index-job`).
+  (`healtharchive register-job-dir`).
+- **Index**: parse WARCs and write `Snapshot` rows (`healtharchive index-job`).
 
 ## Prerequisites
 
@@ -159,7 +159,7 @@ This repo includes a helper script that wraps the “VPS-side” steps:
 It is **dry-run by default**:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/import-legacy-crawl.sh --import-dir "/srv/healtharchive/jobs/imports/<IMPORT_NAME>" --source <SOURCE_CODE>
 ```
 
@@ -178,7 +178,7 @@ normal users, we used `systemd-run` to run the CLI with
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive-backend/.venv/bin/ha-backend register-job-dir \
+  /opt/healtharchive/.venv/bin/healtharchive register-job-dir \
   --source <SOURCE_CODE> \
   --output-dir "/srv/healtharchive/jobs/imports/<IMPORT_NAME>" \
   --name "<JOB_NAME>"
@@ -199,7 +199,7 @@ per captured HTML page.
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive-backend/.venv/bin/ha-backend index-job \
+  /opt/healtharchive/.venv/bin/healtharchive index-job \
   --id <JOB_ID>
 ```
 
@@ -223,7 +223,7 @@ On VPS (DB/job view):
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive-backend/.venv/bin/ha-backend show-job --id <JOB_ID>
+  /opt/healtharchive/.venv/bin/healtharchive show-job --id <JOB_ID>
 ```
 
 On your laptop (public API):
@@ -242,7 +242,7 @@ In the browser (frontend):
 Optional single command (VPS; requires CIHR to be imported/indexed if you ask for it):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/verify_public_surface.py --require-source cihr
 ```
 

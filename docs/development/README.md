@@ -31,7 +31,7 @@ This project uses MkDocs Material code annotations to provide inline context for
 # Example docker-compose.yml
 services:
   api:
-    image: healtharchive-backend:latest
+    image: healtharchive:latest
     ports:
       - "8001:8001" # (1)
     environment:

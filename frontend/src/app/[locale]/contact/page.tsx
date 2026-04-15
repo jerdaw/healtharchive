@@ -92,8 +92,8 @@ export default async function ContactPage({ params }: { params: Promise<{ locale
                 : "The frontend you are viewing is open source. If you're comfortable with GitHub, you can watch the repository to follow changes."}
             </p>
             <p className="text-sm sm:text-base">
-              <Link href="https://github.com/jerdaw/healtharchive-backend" className="ha-link">
-                github.com/jerdaw/healtharchive-backend
+              <Link href="https://github.com/jerdaw/healtharchive" className="ha-link">
+                github.com/jerdaw/healtharchive
               </Link>
             </p>
             <p className="text-ha-muted text-xs leading-relaxed sm:text-sm">

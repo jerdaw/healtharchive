@@ -169,7 +169,7 @@ def main(argv: list[str] | None = None) -> int:
 
     repo_root = Path(__file__).resolve().parents[1]
     preflight = repo_root / "scripts" / "vps-preflight-crawl.sh"
-    ha_backend = repo_root / ".venv" / "bin" / "ha-backend"
+    ha_backend = repo_root / ".venv" / "bin" / "healtharchive"
 
     failures: list[str] = []
 
@@ -205,7 +205,7 @@ def main(argv: list[str] | None = None) -> int:
     jobs: list[AnnualStatusJob] = []
     annual_rc = 1
     if not ha_backend.exists():
-        failures.append(f"missing ha-backend binary: {ha_backend}")
+        failures.append(f"missing healtharchive binary: {ha_backend}")
     else:
         r = _run(
             [
@@ -283,7 +283,7 @@ def main(argv: list[str] | None = None) -> int:
         "# TYPE healtharchive_annual_campaign_preflight_rc gauge",
         f'healtharchive_annual_campaign_preflight_rc{{year="{year}"}} {preflight_rc}',
         "",
-        "# HELP healtharchive_annual_campaign_annual_status_rc Exit code from ha-backend annual-status.",
+        "# HELP healtharchive_annual_campaign_annual_status_rc Exit code from healtharchive annual-status.",
         "# TYPE healtharchive_annual_campaign_annual_status_rc gauge",
         f'healtharchive_annual_campaign_annual_status_rc{{year="{year}"}} {annual_rc}',
         "",

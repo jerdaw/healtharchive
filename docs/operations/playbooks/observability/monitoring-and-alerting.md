@@ -16,7 +16,7 @@ Ensure monitors exist for:
 
 After changes, you can smoke-test from any machine with internet:
 
-- `healtharchive-backend/scripts/smoke-external-monitors.sh`
+- `healtharchive/scripts/smoke-external-monitors.sh`
 
 ## “Timer ran” monitoring (optional, recommended)
 

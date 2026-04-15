@@ -30,7 +30,7 @@ Prereqs:
 - Phase 3 exporters installed (node exporter provides disk metrics).
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Populate the webhook secret (Discord/Slack/etc). Keep it private.
   sudoedit /etc/healtharchive/observability/alertmanager_webhook_url

@@ -19,7 +19,7 @@ on:
       - ".github/workflows/**"
 
 concurrency:
-  group: healtharchive-backend-workflow-lint-${{ github.event.pull_request.number || github.ref }}
+  group: healtharchive-workflow-lint-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:

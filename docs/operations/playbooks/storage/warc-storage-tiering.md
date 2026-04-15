@@ -125,7 +125,7 @@ Replace:
 2) Install templates + enable the mount (VPS):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo ./scripts/vps-install-systemd-units.sh --apply
 sudo systemctl enable --now healtharchive-storagebox-sshfs.service
 systemctl status healtharchive-storagebox-sshfs.service --no-pager
@@ -214,7 +214,7 @@ EOF
 2) Enable the service (VPS):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 sudo ./scripts/vps-install-systemd-units.sh --apply
 sudo systemctl enable --now healtharchive-warc-tiering.service
 systemctl status healtharchive-warc-tiering.service --no-pager
@@ -229,7 +229,7 @@ unmount stale Errno 107 mountpoints and re-apply bind mounts.
 First, gather a read-only diagnostic report (safe while crawls are running):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-diagnose-warc-tiering.sh
 ```
 
@@ -253,7 +253,7 @@ systemctl status healtharchive-warc-tiering.service --no-pager -l
 If it fails again, run the tiering script directly (shows the most actionable error output):
 
 ```bash
-sudo /opt/healtharchive-backend/scripts/vps-warc-tiering-bind-mounts.sh --apply --repair-stale-mounts
+sudo /opt/healtharchive/scripts/vps-warc-tiering-bind-mounts.sh --apply --repair-stale-mounts
 ```
 
 If the unit is in a `failed` state from a prior incident, clear it before retrying:
@@ -266,7 +266,7 @@ sudo systemctl start healtharchive-warc-tiering.service
 Manual validation (safe):
 
 ```bash
-sudo /opt/healtharchive-backend/scripts/vps-warc-tiering-bind-mounts.sh
+sudo /opt/healtharchive/scripts/vps-warc-tiering-bind-mounts.sh
 ```
 
 If `healtharchive-warc-tiering.service` repeatedly ends up in `failed` (e.g., after an sshfs disconnect),
@@ -296,7 +296,7 @@ the Storage Box tier and briefly stops the worker to reduce race conditions.
 To apply the updated template on the VPS:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 git pull
 sudo ./scripts/vps-install-systemd-units.sh --apply
 sudo systemctl daemon-reload
@@ -317,7 +317,7 @@ sudo systemctl stop healtharchive-worker.service
 2) Enqueue annual jobs (this affects the production DB; delete them afterwards if you do not want them queued):
 
 ```bash
-/opt/healtharchive-backend/.venv/bin/ha-backend schedule-annual --apply --year 2026 --sources hc phac cihr
+/opt/healtharchive/.venv/bin/healtharchive schedule-annual --apply --year 2026 --sources hc phac cihr
 ```
 
 3) Apply tiering for the jobs you just created (use a short window around “now”):
@@ -327,7 +327,7 @@ sudo systemctl stop healtharchive-worker.service
 set -a; source /etc/healtharchive/backend.env; set +a
 systemctl is-active postgresql.service
 
-sudo /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py \
+sudo /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py \
   --apply \
   --repair-stale-mounts \
   --allow-repair-running-jobs \
@@ -357,7 +357,7 @@ sudo systemctl enable --now healtharchive-tiering-metrics.timer
 This requires node_exporter to have the textfile collector enabled (the repo installer does this):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 git pull
 sudo ./scripts/vps-install-observability-exporters.sh --apply
 ```
@@ -395,7 +395,7 @@ Sketch:
 ```bash
 # After jobs exist (queued), get the job output dir:
 JOB_ID=123
-/opt/healtharchive-backend/.venv/bin/ha-backend show-job --id "$JOB_ID" | rg output_dir
+/opt/healtharchive/.venv/bin/healtharchive show-job --id "$JOB_ID" | rg output_dir
 
 # Suppose output_dir is:
 HOT=/srv/healtharchive/jobs/hc/20260101T000000Z__hc-2026

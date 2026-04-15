@@ -55,7 +55,7 @@ Run API checks against the restored DB by temporarily overriding
 
 ```bash
 export HEALTHARCHIVE_DATABASE_URL="postgresql+psycopg://.../healtharchive_restore_test"
-/opt/healtharchive-backend/.venv/bin/alembic current
+/opt/healtharchive/.venv/bin/alembic current
 ```
 
 This confirms the restored schema is usable.
@@ -71,7 +71,7 @@ Run these against the restored DB:
 If you need a quick CLI-only check, run:
 
 ```bash
-/opt/healtharchive-backend/.venv/bin/ha-backend check-db
+/opt/healtharchive/.venv/bin/healtharchive check-db
 ```
 
 ## Step 5 — Record results

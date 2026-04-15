@@ -1,7 +1,7 @@
 # HealthArchive Backend – Architecture & Implementation Guide
 
 This document is an in‑depth walkthrough of the **HealthArchive.ca backend**
-(`healtharchive-backend` repo). It covers:
+(`healtharchive` repo). It covers:
 
 - How the backend is structured.
 - How it integrates with the `archive_tool` crawler subpackage.
@@ -47,7 +47,7 @@ deployment runbook, see `deployment/production-single-vps.md`.
 ### 1.2 Data flow overview
 
 1. **Job creation**:
-   - Admin runs `ha-backend create-job --source hc`.
+   - Admin runs `healtharchive create-job --source hc`.
    - Backend:
      - Ensures a `Source` row exists.
      - Uses `SourceJobConfig` to build seeds, tool options, and `output_dir`.
@@ -76,7 +76,7 @@ deployment runbook, see `deployment/production-single-vps.md`.
      - Marks job `indexed` with `indexed_page_count`.
 
 4. **Change tracking (Snapshot → Change events)**:
-   - A background task (`ha-backend compute-changes`) computes **precomputed**
+   - A background task (`healtharchive compute-changes`) computes **precomputed**
      change events between adjacent captures of the same `normalized_url_group`.
    - Outputs `SnapshotChange` rows with:
      - provenance (from/to snapshot IDs, timestamps),
@@ -99,8 +99,8 @@ deployment runbook, see `deployment/production-single-vps.md`.
      - `GET /api/admin/jobs` / `{id}` for job status and config.
      - `GET /metrics` for Prometheus‑style metrics.
    - CLI:
-     - `ha-backend retry-job` to reattempt failed jobs.
-     - `ha-backend cleanup-job` to delete temp dirs/state for indexed jobs,
+     - `healtharchive retry-job` to reattempt failed jobs.
+     - `healtharchive cleanup-job` to delete temp dirs/state for indexed jobs,
        updating `cleanup_status`.
 
 ---
@@ -434,7 +434,7 @@ Steps:
 6. Insert an `ArchiveJob`:
    - `status="queued"`, `queued_at=now`, `config=job_config`.
 
-The CLI command `ha-backend create-job --source hc` is a thin wrapper around this.
+The CLI command `healtharchive create-job --source hc` is a thin wrapper around this.
 
 ---
 
@@ -442,7 +442,7 @@ The CLI command `ha-backend create-job --source hc` is a thin wrapper around thi
 
 ### 5.1 RuntimeArchiveJob
 
-`RuntimeArchiveJob` is a small helper for ad‑hoc runs (`ha-backend run-job`) that:
+`RuntimeArchiveJob` is a small helper for ad‑hoc runs (`healtharchive run-job`) that:
 
 - Holds just a `name` and `seeds: list[str]`.
 - Creates a timestamped job directory under the archive root (unless overridden).
@@ -451,7 +451,7 @@ The CLI command `ha-backend create-job --source hc` is a thin wrapper around thi
 
 This path is used by:
 
-- `ha-backend run-job` – direct, non‑persistent jobs.
+- `healtharchive run-job` – direct, non‑persistent jobs.
 
 ### 5.2 run_persistent_job – DB‑backed jobs {: #52-run_persistent_job--db-backed-jobs }
 
@@ -536,7 +536,7 @@ Responsibilities:
      - `zimit_passthrough_args` are appended directly (no explicit `"--"`
        separator is required): `archive_tool` uses `argparse.parse_known_args()`
        and passes unknown args through to `zimit`.
-     - For `ha-backend run-job`, a leading `"--"` is accepted and stripped for
+     - For `healtharchive run-job`, a leading `"--"` is accepted and stripped for
        convenience when passing through flags interactively.
 
    - The final `extra_args` passed to `RuntimeArchiveJob.run(...)` look like:
@@ -1195,7 +1195,7 @@ These fields are exposed through:
 
 ### 10.2 CLI command: cleanup-job
 
-`ha-backend cleanup-job --id JOB_ID [--mode temp] [--force]`
+`healtharchive cleanup-job --id JOB_ID [--mode temp] [--force]`
 
 Implementation notes:
 
@@ -1261,7 +1261,7 @@ those that have been cleaned.
 
 ## 11. CLI commands summary
 
-All commands are available via the `ha-backend` entrypoint.
+All commands are available via the `healtharchive` entrypoint.
 
 - Environment / connectivity:
   - `check-env` – show archive root and ensure it exists.

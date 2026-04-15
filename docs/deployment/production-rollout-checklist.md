@@ -27,7 +27,7 @@ Documentation boundary note:
 - [ ] code from `main` is deployed at the intended revision
 - [ ] `make prepush` or equivalent repo checks passed before deployment
 - [ ] any schema changes have been migrated and verified
-- [ ] `ha-backend seed-sources` has been run where needed
+- [ ] `healtharchive seed-sources` has been run where needed
 
 References:
 
@@ -54,11 +54,11 @@ If the ranking or pages pipeline changed, also run:
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive-backend/.venv/bin/ha-backend recompute-page-signals
+  /opt/healtharchive/.venv/bin/healtharchive recompute-page-signals
 
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive-backend/.venv/bin/ha-backend rebuild-pages --truncate
+  /opt/healtharchive/.venv/bin/healtharchive rebuild-pages --truncate
 ```
 
 ## 3. Public API verification

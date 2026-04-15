@@ -34,14 +34,14 @@ If phase 1 finishes but phase 2 crashes or fails to commit, this alert fires.
    Confirm the WARCs physically exist.
 
    ```bash
-   /opt/healtharchive-backend/scripts/vps-crawl-status.sh --job-id <ID>
+   /opt/healtharchive/scripts/vps-crawl-status.sh --job-id <ID>
    ```
 
 3. **Check Job Status**:
    Is the job status actually `completed` or `index_failed`?
 
    ```bash
-   ha-backend show-job <ID>
+   healtharchive show-job <ID>
    ```
 
 ## Mitigation
@@ -51,7 +51,7 @@ If phase 1 finishes but phase 2 crashes or fails to commit, this alert fires.
    **Warning**: This *restarts the logic loop*. Ensure the crawl is truly done.
 
    ```bash
-   ha-backend reindex-job <ID>
+   healtharchive reindex-job <ID>
    ```
 
    *(Note: Check if `reindex-job` CLI command exists, otherwise use python shell)*:

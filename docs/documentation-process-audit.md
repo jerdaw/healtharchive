@@ -2,8 +2,8 @@
 
 Scope: HealthArchive project documentation processes and subprocesses across:
 
-- `healtharchive-backend` (ops, runbooks, incident notes, canonical internal docs)
-- the frontend app in `healtharchive-backend/frontend/` (public policy/reporting surfaces, UX copy, changelog)
+- `healtharchive` (ops, runbooks, incident notes, canonical internal docs)
+- the frontend app in `healtharchive/frontend/` (public policy/reporting surfaces, UX copy, changelog)
 - `healtharchive-datasets` (dataset release documentation and integrity posture)
 - the older “workspace of sibling repos” convention used in `/home/jer/LocalSync/healtharchive/`
 
@@ -38,59 +38,59 @@ This is the set of documents that define *how* documentation is produced, mainta
 ### Governance / doc architecture
 
 - Canonical documentation policy and source-of-truth rules:
-  - `healtharchive-backend/docs/documentation-guidelines.md`
+  - `docs/documentation-guidelines.md`
 - Index structure (discoverability):
-  - `healtharchive-backend/docs/README.md`
-  - `healtharchive-backend/docs/operations/README.md`
-  - `healtharchive-backend/docs/operations/playbooks/README.md`
-  - `healtharchive-backend/docs/planning/README.md`
-  - `healtharchive-backend/docs/frontend/README.md`
+  - `docs/README.md`
+  - `docs/operations/README.md`
+  - `docs/operations/playbooks/README.md`
+  - `docs/planning/README.md`
+  - `docs/frontend/README.md`
 
 ### Planning / change management
 
 - Backlog and implementation plan workflow:
-  - `healtharchive-backend/docs/roadmap-process.md`
-  - `healtharchive-backend/docs/planning/roadmap.md`
-  - `healtharchive-backend/docs/planning/implemented/`
+  - `docs/roadmap-process.md`
+  - `docs/planning/roadmap.md`
+  - `docs/planning/implemented/`
 
 ### Incidents and post-incident learning
 
 - Incident SOP and artifacts:
-  - `healtharchive-backend/docs/operations/incidents/README.md`
-  - `healtharchive-backend/docs/operations/incidents/incident-template.md`
-  - `healtharchive-backend/docs/operations/incidents/severity.md`
-  - `healtharchive-backend/docs/operations/playbooks/core/incident-response.md`
+  - `docs/operations/incidents/README.md`
+  - `docs/_templates/incident-template.md`
+  - `docs/operations/incidents/severity.md`
+  - `docs/operations/playbooks/core/incident-response.md`
 
 ### Operations and reliability subprocesses (repeatable routines)
 
 - Cadence and routines:
-  - `healtharchive-backend/docs/operations/ops-cadence-checklist.md`
+  - `docs/operations/ops-cadence-checklist.md`
 - Monitoring/CI and deploy gating:
-  - `healtharchive-backend/docs/operations/monitoring-and-ci-checklist.md`
-  - `healtharchive-backend/docs/operations/playbooks/core/deploy-and-verify.md`
-  - `healtharchive-backend/docs/operations/baseline-drift.md`
+  - `docs/operations/monitoring-and-ci-checklist.md`
+  - `docs/operations/playbooks/core/deploy-and-verify.md`
+  - `docs/operations/baseline-drift.md`
 - Backup/restore validation:
-  - `healtharchive-backend/docs/operations/restore-test-procedure.md`
-  - `healtharchive-backend/docs/operations/restore-test-log-template.md`
+  - `docs/operations/restore-test-procedure.md`
+  - `docs/_templates/restore-test-log-template.md`
 - Data handling and privacy posture:
-  - `healtharchive-backend/docs/operations/data-handling-retention.md`
-  - `healtharchive-backend/docs/operations/observability-and-private-stats.md`
+  - `docs/operations/data-handling-retention.md`
+  - `docs/operations/observability-and-private-stats.md`
 
 ### Public-facing reporting surfaces (documentation for users)
 
 - Changelog content lives in code, but is effectively “public documentation”:
-  - https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/src/content/changelog.ts
-  - (process) https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/changelog-process.md
+  - https://github.com/jerdaw/healtharchive/blob/main/frontend/src/content/changelog.ts
+  - (process) https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/changelog-process.md
 - Status/impact pages are public reporting surfaces (operational transparency):
-  - https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/src/app/%5Blocale%5D/status/page.tsx
-  - https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/src/app/%5Blocale%5D/impact/page.tsx
+  - https://github.com/jerdaw/healtharchive/blob/main/frontend/src/app/%5Blocale%5D/status/page.tsx
+  - https://github.com/jerdaw/healtharchive/blob/main/frontend/src/app/%5Blocale%5D/impact/page.tsx
 
 ### Release + reproducibility subprocesses
 
 - Dataset releases and integrity expectations:
   - https://github.com/jerdaw/healtharchive-datasets/blob/main/README.md
-  - `healtharchive-backend/docs/operations/export-integrity-contract.md`
-  - `healtharchive-backend/docs/operations/dataset-release-runbook.md`
+  - `docs/operations/export-integrity-contract.md`
+  - `docs/operations/dataset-release-runbook.md`
 
 ---
 
@@ -129,7 +129,7 @@ Residual risks:
 Evidence:
 
 - Production runbook is explicit about topology, security posture, and setup steps:
-  - `healtharchive-backend/docs/deployment/production-single-vps.md`
+  - `docs/deployment/production-single-vps.md`
 - Deploy is treated as a verified procedure with a defined gate (“green main” + VPS verification).
 - Baseline drift is operationalized as policy+observed+diff.
 - Restore tests and dataset verification have explicit SOPs and templates.
@@ -189,26 +189,26 @@ Evidence:
 These are low-risk upgrades that make doc creation and maintenance more consistent:
 
 - Docs reference sanity checks (broken links/path refs):
-  - Backend: `healtharchive-backend/scripts/check_docs_references.py` (wired into `healtharchive-backend/Makefile`)
-  - Frontend: `healtharchive-backend/frontend/scripts/check-doc-references.mjs` (wired into `frontend/package.json`)
+  - Backend: `scripts/check_docs_references.py` (wired into `Makefile`)
+  - Frontend: `frontend/scripts/check-doc-references.mjs` (wired into `frontend/package.json`)
   - Datasets: https://github.com/jerdaw/healtharchive-datasets/blob/main/scripts/check_docs_references.py (wired into `Makefile`)
 - Standardized templates:
-  - `healtharchive-backend/docs/deployment/runbook-template.md`
-  - `healtharchive-backend/docs/operations/playbooks/playbook-template.md`
+  - `docs/_templates/runbook-template.md`
+  - `docs/_templates/playbook-template.md`
 - Decision records mechanism:
-  - `healtharchive-backend/docs/decisions/README.md`
-  - `healtharchive-backend/docs/decisions/decision-template.md`
+  - `docs/decisions/README.md`
+  - `docs/_templates/decision-template.md`
 - Clearer doc taxonomy, quality bar, and lifecycle guidance:
-  - `healtharchive-backend/docs/documentation-guidelines.md`
+  - `docs/documentation-guidelines.md`
 - Public changelog SOP (source of truth, format, localization rules):
-  - https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/changelog-process.md
+  - https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/changelog-process.md
 - Stronger “incident → public-safe note” expectation (optional but recommended for sev0/sev1):
-  - `healtharchive-backend/docs/operations/incidents/README.md`
-  - `healtharchive-backend/docs/operations/incidents/incident-template.md`
-  - `healtharchive-backend/docs/operations/incidents/severity.md`
-  - `healtharchive-backend/docs/operations/ops-cadence-checklist.md`
+  - `docs/operations/incidents/README.md`
+  - `docs/_templates/incident-template.md`
+  - `docs/operations/incidents/severity.md`
+  - `docs/operations/ops-cadence-checklist.md`
 - Process nudges in PR templates:
-  - `healtharchive-backend/.github/pull_request_template.md`
+  - `.github/pull_request_template.md`
 
 ---
 

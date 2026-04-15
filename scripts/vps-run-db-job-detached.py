@@ -19,7 +19,7 @@ class RunConfig:
     env_file: Path
     user: str
     group: str
-    ha_backend: Path
+    healtharchive_bin: Path
     retry_first: bool
 
 
@@ -41,7 +41,7 @@ def build_systemd_run_cmd(cfg: RunConfig) -> list[str]:
         f"--property=EnvironmentFile={cfg.env_file}",
         f"--property=User={cfg.user}",
         f"--property=Group={cfg.group}",
-        str(cfg.ha_backend),
+        str(cfg.healtharchive_bin),
         "run-db-job",
         "--id",
         str(cfg.job_id),
@@ -90,7 +90,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--working-dir",
-        default="/opt/healtharchive-backend",
+        default="/opt/healtharchive",
         help="Working directory for the command.",
     )
     parser.add_argument(
@@ -99,16 +99,16 @@ def main(argv: list[str] | None = None) -> int:
         help="EnvironmentFile path for systemd.",
     )
     parser.add_argument(
-        "--ha-backend",
-        default="/opt/healtharchive-backend/.venv/bin/ha-backend",
-        help="Path to the ha-backend CLI.",
+        "--healtharchive",
+        default="/opt/healtharchive/.venv/bin/healtharchive",
+        help="Path to the healtharchive CLI.",
     )
     parser.add_argument("--user", default="haadmin", help="User for the transient unit.")
     parser.add_argument("--group", default="haadmin", help="Group for the transient unit.")
     parser.add_argument(
         "--retry-first",
         action="store_true",
-        help="Run `ha-backend retry-job` before dispatching the unit.",
+        help="Run `healtharchive retry-job` before dispatching the unit.",
     )
 
     args = parser.parse_args(argv)
@@ -128,7 +128,7 @@ def main(argv: list[str] | None = None) -> int:
     now = _utc_now()
     base_working_dir = Path(str(args.working_dir))
     env_file = Path(str(args.env_file))
-    ha_backend = Path(str(args.ha_backend))
+    healtharchive_bin = Path(str(args.healtharchive))
 
     rc = 0
     for job_id in job_ids:
@@ -144,12 +144,12 @@ def main(argv: list[str] | None = None) -> int:
             env_file=env_file,
             user=str(args.user),
             group=str(args.group),
-            ha_backend=ha_backend,
+            healtharchive_bin=healtharchive_bin,
             retry_first=bool(args.retry_first),
         )
 
         if cfg.retry_first:
-            retry_cmd = [str(cfg.ha_backend), "retry-job", "--id", str(cfg.job_id)]
+            retry_cmd = [str(cfg.healtharchive_bin), "retry-job", "--id", str(cfg.job_id)]
             retry = _run_with_env_file(retry_cmd, env_file=cfg.env_file, cwd=cfg.working_dir)
             if retry.returncode != 0:
                 print(f"WARNING: retry-job failed for {cfg.job_id}: rc={retry.returncode}")

@@ -36,8 +36,8 @@ curl -s http://127.0.0.1:9100/metrics | rg '^healtharchive_coverage_'
 2. Confirm current and prior annual jobs:
    ```bash
    set -a; source /etc/healtharchive/backend.env; set +a
-   /opt/healtharchive-backend/.venv/bin/ha-backend list-jobs --source hc --status indexed --limit 10
-   /opt/healtharchive-backend/.venv/bin/ha-backend show-job --id <JOB_ID>
+   /opt/healtharchive/.venv/bin/healtharchive list-jobs --source hc --status indexed --limit 10
+   /opt/healtharchive/.venv/bin/healtharchive show-job --id <JOB_ID>
    ```
 3. If the drop is real, inspect crawl logs for stalls/timeouts and consider:
    - re-running the crawl (retryable),

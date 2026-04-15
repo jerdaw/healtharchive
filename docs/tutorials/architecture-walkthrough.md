@@ -29,7 +29,7 @@ Let's walk through what happens when we archive a page from Health Canada.
 Everything starts with creating an **ArchiveJob**.
 
 ```bash
-ha-backend create-job --source hc
+healtharchive create-job --source hc
 ```
 
 **What happens:**
@@ -61,7 +61,7 @@ ha-backend create-job --source hc
 The worker runs continuously, polling for queued jobs:
 
 ```bash
-ha-backend start-worker --poll-interval 30
+healtharchive start-worker --poll-interval 30
 ```
 
 **Worker Loop** (`ha_backend/worker/main.py:1087-1140`):

@@ -340,8 +340,8 @@ def _tier_annual_job_if_needed(job: ArchiveJob) -> None:
         # Run the tiering script
         result = subprocess.run(
             [
-                "/opt/healtharchive-backend/.venv/bin/python3",
-                "/opt/healtharchive-backend/scripts/vps-annual-output-tiering.py",
+                "/opt/healtharchive/.venv/bin/python3",
+                "/opt/healtharchive/scripts/vps-annual-output-tiering.py",
                 "--year",
                 str(campaign_year),
                 "--apply",

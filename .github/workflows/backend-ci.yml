@@ -15,7 +15,7 @@ on:
   workflow_dispatch: {}
 
 concurrency:
-  group: healtharchive-backend-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  group: healtharchive-ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -83,7 +83,7 @@ jobs:
       - name: Initialize database
         run: |
           alembic upgrade head
-          ha-backend seed-sources
+          healtharchive seed-sources
 
       - name: Start backend server
         run: |

@@ -17,7 +17,7 @@ This script DOES NOT:
 unless you explicitly add your own commands outside of this drill.
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
   ./scripts/vps-hotpath-staleness-drill.sh --simulate-broken-path /srv/healtharchive/jobs/hc/<JOB_DIR>
 
 Options:
@@ -166,7 +166,7 @@ trap 'rm -rf "${drill_work_dir}"' EXIT
   # Match the drill guidance in docs: keep state/lock/metrics isolated under /tmp.
   set +e
   sudo bash -lc "set -a; source /etc/healtharchive/backend.env; set +a; \
-    /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-storage-hotpath-auto-recover.py \
+    /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-storage-hotpath-auto-recover.py \
       --confirm-runs 1 \
       --min-failure-age-seconds 0 \
       --state-file /tmp/healtharchive-storage-hotpath-drill.state.json \

@@ -124,6 +124,6 @@ Related artifacts:
 
 Some disclaimer UI can be rendered by the replay service / backend:
 
-- Replay banner disclaimer snippet (shown above replay iframes): `healtharchive-backend/src/ha_backend/api/routes_public.py`
+- Replay banner disclaimer snippet (shown above replay iframes): `healtharchive/src/ha_backend/api/routes_public.py`
 
 Keep this aligned with the frontend’s global safety posture (independent archive, not official, content may be outdated).

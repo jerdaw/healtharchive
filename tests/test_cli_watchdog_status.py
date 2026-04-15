@@ -1,4 +1,4 @@
-"""Tests for ha-backend watchdog-status command."""
+"""Tests for healtharchive watchdog-status command."""
 
 from __future__ import annotations
 

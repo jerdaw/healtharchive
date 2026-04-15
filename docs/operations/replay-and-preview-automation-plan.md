@@ -1,6 +1,6 @@
 # Replay + Preview Automation (Plan Only)
 
-Status: **design draft** (v1 implemented: `ha-backend replay-reconcile`; automation timers remain optional).
+Status: **design draft** (v1 implemented: `healtharchive replay-reconcile`; automation timers remain optional).
 
 This document is a **thorough, safety-first plan** for automating the operational steps that make HealthArchive “feel like a real site archive”:
 
@@ -70,7 +70,7 @@ Automation is considered “successful” when:
 
 Replay reads from job WARCs on disk. If WARCs are deleted, replay will break even if the DB still has snapshots.
 
-- Guardrail already exists: `ha-backend cleanup-job --mode temp` refuses unless `--force` when replay is enabled.
+- Guardrail already exists: `healtharchive cleanup-job --mode temp` refuses unless `--force` when replay is enabled.
 - Operational posture: treat WARC retention as “critical state” until we design cold storage replay.
 
 ### pywb deployment and permissions matter
@@ -444,7 +444,7 @@ Until then:
 When a new job is indexed:
 
 1. Make it replayable:
-   - `ha-backend replay-index-job --id <id>`
+   - `healtharchive replay-index-job --id <id>`
 2. (Optional) Generate preview:
    - produce `source-<code>-job-<id>.{webp,png,jpg}` in `HEALTHARCHIVE_REPLAY_PREVIEW_DIR`
 3. Verify:

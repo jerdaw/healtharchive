@@ -30,8 +30,8 @@ For deeper operational details, see:
 - `hosting-and-live-server-to-dos.md` (high-level deployment checklist)
 - `../operations/monitoring-and-ci-checklist.md` (uptime/monitoring guidance)
 - `../operations/baseline-drift.md` (production drift checks: policy vs observed)
-- Frontend docs: https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/implementation-guide.md
-- Frontend verification: https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/deployment/verification.md
+- Frontend docs: https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/implementation-guide.md
+- Frontend verification: https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/deployment/verification.md
 
 ---
 
@@ -51,7 +51,7 @@ For deeper operational details, see:
 On the production VPS, run the baseline drift check in live mode:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/check_baseline_drift.py --mode live
 ```
 
@@ -78,7 +78,7 @@ Optional future:
 
 ---
 
-## 2) Backend configuration (healtharchive-backend)
+## 2) Backend configuration (healtharchive)
 
 All backend env vars are read by:
 

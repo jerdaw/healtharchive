@@ -125,7 +125,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--config",
-        default="/opt/healtharchive-backend/ops/automation/replay-smoke.toml",
+        default="/opt/healtharchive/ops/automation/replay-smoke.toml",
         help="Config TOML path.",
     )
     parser.add_argument(

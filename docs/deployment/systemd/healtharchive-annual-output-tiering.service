@@ -9,12 +9,12 @@ ConditionPathExists=/etc/healtharchive/storagebox.env
 Type=oneshot
 User=root
 Group=root
-WorkingDirectory=/opt/healtharchive-backend
+WorkingDirectory=/opt/healtharchive
 EnvironmentFile=/etc/healtharchive/backend.env
 
 # Reduce race with the worker picking up newly enqueued annual jobs.
 ExecStartPre=-/bin/systemctl stop healtharchive-worker.service
-ExecStart=/opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py --apply --repair-stale-mounts --allow-repair-running-jobs
+ExecStart=/opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --apply --repair-stale-mounts --allow-repair-running-jobs
 ExecStartPost=-/bin/systemctl start healtharchive-worker.service
 
 [Install]

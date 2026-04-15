@@ -14,28 +14,28 @@ This tutorial walks you through making your first code contribution to HealthArc
 ## Step 1: Fork and Clone
 
 1. **Fork the repository** on GitHub:
-   - Visit [github.com/jerdaw/healtharchive-backend](https://github.com/jerdaw/healtharchive-backend)
+   - Visit [github.com/jerdaw/healtharchive](https://github.com/jerdaw/healtharchive)
    - Click "Fork" in the top-right corner
 
 2. **Clone your fork**:
    ```bash
-   git clone https://github.com/YOUR-USERNAME/healtharchive-backend.git
-   cd healtharchive-backend
+   git clone https://github.com/YOUR-USERNAME/healtharchive.git
+   cd healtharchive
    ```
 
 3. **Add upstream remote** (to sync with the main repo later):
    ```bash
-   git remote add upstream https://github.com/jerdaw/healtharchive-backend.git
+   git remote add upstream https://github.com/jerdaw/healtharchive.git
    ```
 
 4. **Verify remotes**:
    ```bash
    git remote -v
    # Should show:
-   # origin    https://github.com/YOUR-USERNAME/healtharchive-backend.git (fetch)
-   # origin    https://github.com/YOUR-USERNAME/healtharchive-backend.git (push)
-   # upstream  https://github.com/jerdaw/healtharchive-backend.git (fetch)
-   # upstream  https://github.com/jerdaw/healtharchive-backend.git (push)
+   # origin    https://github.com/YOUR-USERNAME/healtharchive.git (fetch)
+   # origin    https://github.com/YOUR-USERNAME/healtharchive.git (push)
+   # upstream  https://github.com/jerdaw/healtharchive.git (fetch)
+   # upstream  https://github.com/jerdaw/healtharchive.git (push)
    ```
 
 ---
@@ -82,7 +82,7 @@ This tutorial walks you through making your first code contribution to HealthArc
 
 7. **Seed initial data**:
    ```bash
-   ha-backend seed-sources
+   healtharchive seed-sources
    ```
 
 ---
@@ -112,7 +112,7 @@ If anything fails, review the error messages and check:
 ## Step 4: Find a Good First Issue
 
 1. **Browse issues labeled `good first issue`**:
-   - Visit [github.com/jerdaw/healtharchive-backend/issues?q=is:issue+is:open+label:"good+first+issue"](https://github.com/jerdaw/healtharchive-backend/issues?q=is:issue+is:open+label:%22good+first+issue%22)
+   - Visit [github.com/jerdaw/healtharchive/issues?q=is:issue+is:open+label:"good+first+issue"](https://github.com/jerdaw/healtharchive/issues?q=is:issue+is:open+label:%22good+first+issue%22)
 
 2. **Pick an issue that interests you**:
    - Look for clear descriptions
@@ -174,7 +174,7 @@ Let's add a simple `--version` command to the CLI.
 
 3. **Test your change manually**:
    ```bash
-   ha-backend version
+   healtharchive version
    # Should output: HealthArchive Backend v0.1.0
    ```
 
@@ -194,7 +194,7 @@ Every code change needs tests. Let's write a test for our new command.
    def test_version_command():
        """Test that version command runs and outputs version info."""
        result = subprocess.run(
-           ["ha-backend", "version"],
+           ["healtharchive", "version"],
            capture_output=True,
            text=True,
        )
@@ -251,7 +251,7 @@ Common fixes:
    ```bash
    git commit -m "feat: add version command to CLI
 
-   - Add 'ha-backend version' command
+   - Add 'healtharchive version' command
    - Display version information
    - Add test coverage for version command
 
@@ -292,7 +292,7 @@ Common fixes:
    - Added test coverage in `tests/test_cli_version.py`
 
    ## Testing
-   - ✅ Manual testing: `ha-backend version` outputs correct version
+   - ✅ Manual testing: `healtharchive version` outputs correct version
    - ✅ All CI checks pass
    - ✅ New tests added and passing
 

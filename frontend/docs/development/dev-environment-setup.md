@@ -6,8 +6,8 @@ to avoid common “CI passed locally but failed on GitHub” issues.
 For backend-specific setup and local API testing flows in the monorepo, also
 read:
 
-- https://github.com/jerdaw/healtharchive-backend/blob/main/docs/development/dev-environment-setup.md
-- https://github.com/jerdaw/healtharchive-backend/blob/main/docs/development/live-testing.md
+- https://github.com/jerdaw/healtharchive/blob/main/docs/development/dev-environment-setup.md
+- https://github.com/jerdaw/healtharchive/blob/main/docs/development/live-testing.md
 
 ---
 

@@ -81,7 +81,7 @@ This prevents starting crawls that would fail mid-flight due to disk pressure.
 
 **Metrics**: `node_filesystem_avail_bytes`, `node_filesystem_size_bytes`
 **Dashboard**: Grafana "HealthArchive - Infrastructure"
-**Status command**: `ha-backend status` (shows disk usage with color coding)
+**Status command**: `healtharchive status` (shows disk usage with color coding)
 
 ## Troubleshooting
 

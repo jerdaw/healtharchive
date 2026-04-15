@@ -37,7 +37,7 @@ job.
 Start with a read-only snapshot on the VPS:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 
 ./scripts/vps-crawl-status.sh --year 2026 --job-id <JOB_ID> --recent-lines 20000
 ./scripts/vps-crawl-content-report.py --job-id <JOB_ID>
@@ -45,7 +45,7 @@ cd /opt/healtharchive-backend
 curl -s http://127.0.0.1:9100/metrics | rg 'healtharchive_crawl_running_job_(temp_dirs_count|container_restarts_done|last_progress_age_seconds|stalled|crawl_rate_ppm|output_dir_ok|output_dir_errno|log_probe_ok|log_probe_errno|state_file_ok|state_parse_ok|new_crawl_phase_count|resume_crawl_count)\{job_id="<JOB_ID>"'
 
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend show-job --id <JOB_ID>
+/opt/healtharchive/.venv/bin/healtharchive show-job --id <JOB_ID>
 sudo journalctl -u healtharchive-worker.service -n 400 --no-pager
 ```
 
@@ -89,7 +89,7 @@ Before any recovery command:
 - If the proposed remediation depends on a repo change, commit it, push it,
   deploy it on the VPS, and verify the live checkout contains that change
   before recovering the job.
-- Do not run `ha-backend cleanup-job` against a `running` job.
+- Do not run `healtharchive cleanup-job` against a `running` job.
 - For terminal jobs, prefer `cleanup-job --mode temp-nonwarc`. Use legacy
   `--mode temp` only when you intentionally want to discard WARCs/replay data.
 
@@ -117,8 +117,8 @@ If the job is `indexed` or `index_failed`, reclaim space safely with
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
 
-/opt/healtharchive-backend/.venv/bin/ha-backend cleanup-job --id <JOB_ID> --mode temp-nonwarc --dry-run
-/opt/healtharchive-backend/.venv/bin/ha-backend cleanup-job --id <JOB_ID> --mode temp-nonwarc
+/opt/healtharchive/.venv/bin/healtharchive cleanup-job --id <JOB_ID> --mode temp-nonwarc --dry-run
+/opt/healtharchive/.venv/bin/healtharchive cleanup-job --id <JOB_ID> --mode temp-nonwarc
 ```
 
 If you intentionally do not need replay retention and want destructive cleanup,
@@ -134,7 +134,7 @@ For a recovered running job:
 
 For a cleaned terminal job:
 
-- `ha-backend show-job --id <JOB_ID>` shows `cleanupStatus` updated
+- `healtharchive show-job --id <JOB_ID>` shows `cleanupStatus` updated
 - the job directory no longer contains the old `.tmp*` directories
 - stable WARCs remain under `<output_dir>/warcs/` when `temp-nonwarc` was used
 

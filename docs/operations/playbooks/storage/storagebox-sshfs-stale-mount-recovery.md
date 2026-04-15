@@ -19,19 +19,19 @@ For background and the full implementation plan (prevention + automation + integ
 
 ## Quick triage (60 seconds)
 
-On the VPS (`/opt/healtharchive-backend`):
+On the VPS (`/opt/healtharchive`):
 
 0) Capture an evidence bundle (recommended, read-only):
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-capture-hotpath-staleness-evidence.sh --tag pre-repair
 ```
 
 Optional: if the affected crawl campaign year differs from the current UTC year, pass it explicitly:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-capture-hotpath-staleness-evidence.sh --tag pre-repair --year 2026
 ```
 
@@ -42,7 +42,7 @@ This writes a timestamped directory under:
 Optional (recommended): after recovery actions complete, capture a second bundle for comparison:
 
 ```bash
-cd /opt/healtharchive-backend
+cd /opt/healtharchive
 ./scripts/vps-capture-hotpath-staleness-evidence.sh --tag post-repair
 ```
 
@@ -210,14 +210,14 @@ Preferred (avoids the systemd unit’s internal worker stop/start):
 set -a; source /etc/healtharchive/backend.env; set +a
 systemctl is-active postgresql.service
 
-sudo /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py --apply --year "$(date -u +%Y)"
+sudo /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --apply --year "$(date -u +%Y)"
 ```
 
 If you want the script to attempt targeted repair for stale mountpoints (Errno 107),
 pass:
 
 ```bash
-sudo /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py --apply --repair-stale-mounts --allow-repair-running-jobs --year "$(date -u +%Y)"
+sudo /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --apply --repair-stale-mounts --allow-repair-running-jobs --year "$(date -u +%Y)"
 ```
 
 Alternative (uses the systemd unit, which stops/starts the worker internally):
@@ -239,13 +239,13 @@ set -a; source /etc/healtharchive/backend.env; set +a
 Recover stale jobs:
 
 ```bash
-/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 5 --apply --limit 25
+/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --limit 25
 ```
 
 If a job ended up `failed` due to the mount issue and you want it to run again:
 
 ```bash
-/opt/healtharchive-backend/.venv/bin/ha-backend retry-job --id <JOB_ID>
+/opt/healtharchive/.venv/bin/healtharchive retry-job --id <JOB_ID>
 ```
 
 ---

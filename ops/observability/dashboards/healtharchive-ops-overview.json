@@ -26,7 +26,7 @@
       "targetBlank": true,
       "title": "Deploy + verify playbook",
       "type": "link",
-      "url": "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/deploy-and-verify.md"
+      "url": "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/deploy-and-verify.md"
     },
     {
       "asDropdown": false,
@@ -37,7 +37,7 @@
       "targetBlank": true,
       "title": "Incident response playbook",
       "type": "link",
-      "url": "https://github.com/jerdaw/healtharchive-backend/blob/main/docs/operations/playbooks/incident-response.md"
+      "url": "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/incident-response.md"
     }
   ],
   "panels": [

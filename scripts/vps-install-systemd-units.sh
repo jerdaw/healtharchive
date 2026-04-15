@@ -8,7 +8,7 @@ HealthArchive VPS helper: install/update systemd unit templates from the repo.
 Safe-by-default: dry-run unless you pass --apply.
 
 This copies service/timer templates from:
-  /opt/healtharchive-backend/docs/deployment/systemd/
+  /opt/healtharchive/docs/deployment/systemd/
 to:
   /etc/systemd/system/
 
@@ -16,7 +16,7 @@ It does NOT enable timers or create sentinel files (see docs/deployment/systemd/
 It may replace the managed API service template if the repo provides one.
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run (print what would be installed):
   ./scripts/vps-install-systemd-units.sh

@@ -16,7 +16,7 @@ loopback-only and access it via an SSH port-forward over Tailscale:
   # then open http://127.0.0.1:3000
 
 Usage (on the VPS):
-  cd /opt/healtharchive-backend
+  cd /opt/healtharchive
 
   # Dry-run:
   ./scripts/vps-enable-tailscale-serve-grafana.sh

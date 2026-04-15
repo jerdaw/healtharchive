@@ -195,7 +195,7 @@ def test_alert_runbook_urls_resolve_to_existing_docs_paths() -> None:
     repo_root = _repo_root()
 
     urls = re.findall(
-        r'runbook_url:\s*"https://github.com/jerdaw/healtharchive-backend/blob/main/docs/([^"]+)"',
+        r'runbook_url:\s*"https://github.com/jerdaw/healtharchive/blob/main/docs/([^"]+)"',
         text,
     )
     assert urls, "no runbook URLs found"

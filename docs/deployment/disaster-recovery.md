@@ -115,8 +115,8 @@ If Tailscale is up on both ends:
 #### Step 7: Restore Application
 1.  Clone Repository:
     ```bash
-    git clone https://github.com/jerdaw/healtharchive-backend.git /opt/healtharchive-backend
-    cd /opt/healtharchive-backend
+    git clone https://github.com/jerdaw/healtharchive.git /opt/healtharchive
+    cd /opt/healtharchive
     python3 -m venv .venv
     ./.venv/bin/pip install -e ".[dev]" "psycopg[binary]"
     ```
@@ -260,14 +260,14 @@ If tiered storage was wiped and replaced, or if you need to stabilize newly craw
 1.  **Consolidate WARCs:** Ensure files are moved from `.tmp*` to stable `warcs/` folders and manifests are updated.
     ```bash
     # Run as haadmin in .venv
-    ha-backend consolidate-warcs --id <JOB_ID>
+    healtharchive consolidate-warcs --id <JOB_ID>
     ```
 2.  **Verify Local Integrity:** Ensure local WARCs match their manifest and are valid.
 3.  **Force Tiering:** Run the tiering command manually to re-upload everything:
     ```bash
     # Run as haadmin in .venv
-    ha-backend tier-warcs --force --dry-run  # Check first
-    ha-backend tier-warcs --force            # Execute
+    healtharchive tier-warcs --force --dry-run  # Check first
+    healtharchive tier-warcs --force            # Execute
     ```
 4.  **Verify Tiered Copies:** Check that the files on the Storage Box match the local stable WARCs.
 

@@ -104,7 +104,7 @@ What the smoke does:
 
 - Starts the backend locally (uvicorn) with a tiny seeded SQLite + WARC dataset.
 - Builds and starts the frontend locally (`next start`) pointing at that backend.
-- Runs `healtharchive-backend/scripts/verify_public_surface.py` against:
+- Runs `healtharchive/scripts/verify_public_surface.py` against:
   - Frontend: `/archive`, `/fr/archive`, `/snapshot/{id}`, `/fr/snapshot/{id}`, and other key pages
   - API: `/api/health`, `/api/sources`, `/api/search`, `/api/snapshot/{id}`, `/api/usage`, `/api/exports`, `/api/changes`
 - Replay (pywb) is intentionally skipped in CI (`--skip-replay`).
@@ -130,7 +130,7 @@ make integration-e2e
 
 On failure, the script prints the tail of the backend/frontend logs that it writes under:
 
-- `healtharchive-backend/.tmp/ci-e2e-smoke/`
+- `healtharchive/.tmp/ci-e2e-smoke/`
 
 CI uploads the backend smoke logs as a GitHub Actions artifact on failure:
 
@@ -150,7 +150,7 @@ Workflow (recommended):
        - `make frontend-ci`
        - optional broader gate: `make monorepo-ci`
      - Datasets repo still runs its own checks separately.
-     - Optional before deploys: `healtharchive-backend: make check-full`
+     - Optional before deploys: `healtharchive: make check-full`
    - Optional but recommended: install pre-push hooks so you can't forget:
      - Backend: `scripts/install-pre-push-hook.sh` (set `HA_PRE_PUSH_FULL=1` for `make check-full`)
      - Frontend: `frontend/scripts/install-pre-push-hook.sh`
@@ -264,7 +264,7 @@ Implementation approach (VPS):
 3. Ensure the installed systemd units source that env file:
    - `EnvironmentFile=-/etc/healtharchive/healthchecks.env`
 4. Ensure the unit uses the wrapper so ping URLs never appear in unit files:
-   - `/opt/healtharchive-backend/scripts/systemd-healthchecks-wrapper.sh`
+   - `/opt/healtharchive/scripts/systemd-healthchecks-wrapper.sh`
 
 Safety posture:
 
@@ -341,8 +341,8 @@ Rationale:
 
 Verification (VPS):
 
-- Dry-run: `cd /opt/healtharchive-backend && ./scripts/vps-deploy.sh`
-- Apply: `cd /opt/healtharchive-backend && ./scripts/vps-deploy.sh --apply`
+- Dry-run: `cd /opt/healtharchive && ./scripts/vps-deploy.sh`
+- Apply: `cd /opt/healtharchive && ./scripts/vps-deploy.sh --apply`
 
 ## 1. Uptime and health checks
 

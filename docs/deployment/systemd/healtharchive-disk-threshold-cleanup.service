@@ -1,15 +1,15 @@
 [Unit]
 Description=HealthArchive disk threshold cleanup
-Documentation=https://github.com/jerdaw/healtharchive-backend
+Documentation=https://github.com/jerdaw/healtharchive
 ConditionPathExists=/etc/healtharchive/backend.env
 ConditionPathExists=/etc/healtharchive/cleanup-automation-enabled
-ConditionPathExists=/opt/healtharchive-backend/ops/automation/cleanup-automation.toml
-ConditionPathExists=/opt/healtharchive-backend/.venv/bin/python3
+ConditionPathExists=/opt/healtharchive/ops/automation/cleanup-automation.toml
+ConditionPathExists=/opt/healtharchive/.venv/bin/python3
 
 [Service]
 Type=oneshot
 User=haadmin
-WorkingDirectory=/opt/healtharchive-backend
+WorkingDirectory=/opt/healtharchive
 
 # Load backend environment for database access
 EnvironmentFile=/etc/healtharchive/backend.env
@@ -18,8 +18,8 @@ EnvironmentFile=/etc/healtharchive/backend.env
 # - Only runs if disk usage > threshold_trigger_percent (default: 80%)
 # - Uses more aggressive max_jobs_per_run (default: 5 vs regular 1)
 # - Exits early if disk below threshold
-ExecStart=/opt/healtharchive-backend/.venv/bin/python3 \
-  /opt/healtharchive-backend/scripts/vps-cleanup-automation.py \
+ExecStart=/opt/healtharchive/.venv/bin/python3 \
+  /opt/healtharchive/scripts/vps-cleanup-automation.py \
   --threshold-mode \
   --apply
 

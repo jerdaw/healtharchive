@@ -1,5 +1,5 @@
 """
-Tests for ha-backend verify-warc-manifest CLI command.
+Tests for healtharchive verify-warc-manifest CLI command.
 
 Tests manifest verification including:
 - Valid manifest with all files present
