@@ -5,6 +5,7 @@ from pathlib import Path
 
 from ha_backend import db as db_module
 from ha_backend.archive_contract import ArchiveJobConfig
+from ha_backend.crawl_rescue_status import PROMOTION_REASON_FRESH_FAILURE_BUDGET
 from ha_backend.db import Base, get_engine, get_session
 from ha_backend.job_registry import create_job_for_source
 from ha_backend.models import ArchiveJob, Source
@@ -344,7 +345,7 @@ def test_worker_skips_recent_infra_error_jobs(monkeypatch, tmp_path) -> None:
         assert loaded_infra.crawler_status == "infra_error"
 
 
-def test_worker_promotes_fresh_only_browsertrix_job_to_http_warc_after_second_failure(
+def test_worker_promotes_fresh_only_browsertrix_job_to_playwright_warc_after_second_failure(
     monkeypatch, tmp_path
 ) -> None:
     _init_test_db(tmp_path, monkeypatch)
@@ -383,11 +384,17 @@ def test_worker_promotes_fresh_only_browsertrix_job_to_http_warc_after_second_fa
         cfg = ArchiveJobConfig.from_dict(job.config or {})
         assert job.status == "retryable"
         assert job.retry_count == 0
-        assert job.crawler_stage == "promoted_to_http_warc"
-        assert cfg.execution_policy.capture_backend == "http_warc"
+        assert job.crawler_stage == "promoted_to_playwright_warc"
+        assert cfg.execution_policy.primary_backend == "browsertrix"
+        assert cfg.execution_policy.capture_backend == "playwright_warc"
+        assert cfg.execution_policy.last_promoted_from_backend == "browsertrix"
+        assert (
+            cfg.execution_policy.last_promotion_reason
+            == PROMOTION_REASON_FRESH_FAILURE_BUDGET
+        )
 
 
-def test_worker_marks_http_warc_jobs_fallback_exhausted_after_second_failure(
+def test_worker_marks_playwright_warc_jobs_fallback_exhausted_after_second_failure(
     monkeypatch, tmp_path
 ) -> None:
     _init_test_db(tmp_path, monkeypatch)
@@ -400,7 +407,7 @@ def test_worker_marks_http_warc_jobs_fallback_exhausted_after_second_failure(
         job_row = create_job_for_source("phac", session=session)
         job_id = job_row.id
         cfg = ArchiveJobConfig.from_dict(job_row.config or {})
-        cfg.execution_policy.capture_backend = "http_warc"
+        cfg.execution_policy.capture_backend = "playwright_warc"
         job_row.config = cfg.to_dict()
         job_row.status = "retryable"
         session.flush()
@@ -422,7 +429,7 @@ def test_worker_marks_http_warc_jobs_fallback_exhausted_after_second_failure(
         assert job is not None
         assert job.status == "retryable"
         assert job.retry_count == 1
-        assert job.crawler_stage == "http_warc_retry"
+        assert job.crawler_stage == "playwright_warc_retry"
 
     run_worker_loop(poll_interval=1, run_once=True)
     with get_session() as session:

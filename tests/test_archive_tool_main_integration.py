@@ -1224,7 +1224,7 @@ extraChromeArgs:
             in log_text
         )
 
-    def test_fresh_only_browsertrix_promotes_inline_to_http_warc_after_budget(
+    def test_fresh_only_browsertrix_promotes_inline_to_playwright_warc_after_budget(
         self,
         tmp_path: Path,
         monkeypatch,
@@ -1268,10 +1268,11 @@ extraChromeArgs:
             crawled = 2
             failed = 0
             warc_path = out_dir / "warcs" / "warc-000001.warc.gz"
+            provenance_path = out_dir / "provenance" / "playwright_warc" / "capture_provenance.json"
 
         fallback_called: dict[str, object] = {}
 
-        def fake_http_warc_capture(*, output_dir, seeds, zimit_passthrough_args, **kwargs):
+        def fake_playwright_warc_capture(*, output_dir, seeds, zimit_passthrough_args, **kwargs):
             fallback_called["output_dir"] = output_dir
             fallback_called["seeds"] = list(seeds)
             fallback_called["zimit_passthrough_args"] = list(zimit_passthrough_args)
@@ -1282,8 +1283,8 @@ extraChromeArgs:
 
         monkeypatch.setattr(docker_runner_mod, "start_docker_container", fake_start)
         monkeypatch.setattr(
-            "archive_tool.http_warc_backend.run_http_warc_capture",
-            fake_http_warc_capture,
+            "archive_tool.playwright_warc_backend.run_playwright_warc_capture",
+            fake_playwright_warc_capture,
         )
 
         argv = [
@@ -1300,7 +1301,7 @@ extraChromeArgs:
             "--resume-policy",
             "fresh_only",
             "--fallback-backend",
-            "http_warc",
+            "playwright_warc",
             "--max-fresh-failures-before-fallback",
             "2",
             "--backoff-delay-minutes",
@@ -1316,7 +1317,7 @@ extraChromeArgs:
         combined = captured.out + captured.err
         assert exc_info.value.code == 0
         assert len(docker_starts) == 2
-        assert "Promoting this run to fallback backend 'http_warc'" in combined
+        assert "Promoting this run to fallback backend 'playwright_warc'" in combined
         assert fallback_called["seeds"] == [
             "https://www.canada.ca/en/public-health.html",
             "https://www.canada.ca/fr/sante-publique.html",

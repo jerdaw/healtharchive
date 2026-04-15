@@ -5,6 +5,7 @@ import re
 from pathlib import Path
 
 DEFAULT_DOCKER_IMAGE = "ghcr.io/openzim/zimit"
+DEFAULT_PLAYWRIGHT_DOCKER_IMAGE = "mcr.microsoft.com/playwright:v1.50.1-jammy"
 
 
 def _default_docker_image() -> str:
@@ -14,6 +15,27 @@ def _default_docker_image() -> str:
 
 
 DOCKER_IMAGE = _default_docker_image()
+
+
+def _default_playwright_docker_image() -> str:
+    raw = os.environ.get("HEALTHARCHIVE_PLAYWRIGHT_DOCKER_IMAGE", "")
+    docker_image = raw.strip()
+    return docker_image or DEFAULT_PLAYWRIGHT_DOCKER_IMAGE
+
+
+PLAYWRIGHT_DOCKER_IMAGE = _default_playwright_docker_image()
+
+
+def playwright_npm_version_from_image(image_name: str) -> str:
+    """
+    Best-effort extraction of the Playwright npm version from a Docker image tag.
+
+    Example: mcr.microsoft.com/playwright:v1.50.1-jammy -> 1.50.1
+    """
+    match = re.search(r":v(\d+\.\d+\.\d+)(?:-|$)", str(image_name or ""))
+    if match:
+        return match.group(1)
+    return "1.50.1"
 
 
 def _default_docker_memory_limit() -> str | None:
@@ -33,12 +55,27 @@ def _default_docker_cpu_limit() -> str | None:
 DEFAULT_DOCKER_MEMORY_LIMIT = _default_docker_memory_limit()
 DEFAULT_DOCKER_CPU_LIMIT = _default_docker_cpu_limit()
 CONTAINER_OUTPUT_DIR = Path("/output")
+REPO_ROOT = Path(__file__).resolve().parents[2]
+PLAYWRIGHT_CONTAINER_OUTPUT_DIR = Path("/ha-output")
+PLAYWRIGHT_CONTAINER_SCRIPT_DIR = Path("/ha-scripts")
+PLAYWRIGHT_CONTAINER_NODE_WORKDIR = Path("/ha-node")
+
+
+def _default_playwright_node_cache_dir() -> Path:
+    raw = os.environ.get("HEALTHARCHIVE_PLAYWRIGHT_NODE_CACHE_DIR", "").strip()
+    if raw:
+        return Path(raw).expanduser()
+    return Path("/tmp/healtharchive-playwright-node")
+
+
+PLAYWRIGHT_NODE_CACHE_DIR = _default_playwright_node_cache_dir()
 TEMP_DIR_PREFIX = ".tmp"
 LOG_FORMAT = "%(asctime)s - %(levelname)s - [%(threadName)s] %(message)s"
 TIMESTAMP_FORMAT = "%Y%m%d_%H%M%S"
 STATE_FILE_NAME = ".archive_state.json"
 RESUME_CONFIG_FILE_NAME = ".zimit_resume.yaml"
 MANAGED_BROWSERTRIX_CONFIG_FILE_NAME = ".browsertrix_managed_config.yaml"
+PLAYWRIGHT_WARC_PROVENANCE_DIR_NAME = "playwright_warc"
 
 # ---------------------------------------------------------------------------
 # Timeout and delay constants (seconds)
@@ -89,6 +126,12 @@ DEFAULT_MAX_CONTAINER_RESTARTS = 5
 DEFAULT_MAX_WORKER_REDUCTIONS = 3
 DEFAULT_MAX_VPN_ROTATIONS = 3
 DEFAULT_MIN_WORKERS = 1
+DEFAULT_PLAYWRIGHT_NAVIGATION_TIMEOUT_MS = 150_000
+DEFAULT_PLAYWRIGHT_SETTLE_MS = 5_000
+DEFAULT_PLAYWRIGHT_VIEWPORT_WIDTH = 1440
+DEFAULT_PLAYWRIGHT_VIEWPORT_HEIGHT = 900
+DEFAULT_PLAYWRIGHT_LOCALE = "en-CA"
+DEFAULT_PLAYWRIGHT_TIMEZONE = "America/Toronto"
 
 # Args needed for final build
 REQUIRED_FINAL_ARGS_PREFIXES = [

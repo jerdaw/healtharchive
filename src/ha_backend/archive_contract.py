@@ -153,6 +153,9 @@ class ArchiveExecutionPolicy:
     max_fresh_failures_before_fallback: int = 0
     auto_reset_poisoned_state: bool = False
     max_temp_dirs_before_reset: Optional[int] = None
+    primary_backend: Optional[str] = None
+    last_promoted_from_backend: Optional[str] = None
+    last_promotion_reason: Optional[str] = None
 
     def to_dict(self) -> Dict[str, Any]:
         data: Dict[str, Any] = {
@@ -164,6 +167,14 @@ class ArchiveExecutionPolicy:
         }
         if self.max_temp_dirs_before_reset is not None:
             data["max_temp_dirs_before_reset"] = int(self.max_temp_dirs_before_reset)
+        if self.primary_backend:
+            data["primary_backend"] = str(self.primary_backend).strip().lower()
+        if self.last_promoted_from_backend:
+            data["last_promoted_from_backend"] = (
+                str(self.last_promoted_from_backend).strip().lower()
+            )
+        if self.last_promotion_reason:
+            data["last_promotion_reason"] = str(self.last_promotion_reason).strip()
         return data
 
     @classmethod
@@ -177,6 +188,9 @@ class ArchiveExecutionPolicy:
             ),
             auto_reset_poisoned_state=bool(data.get("auto_reset_poisoned_state", False)),
             max_temp_dirs_before_reset=data.get("max_temp_dirs_before_reset"),
+            primary_backend=data.get("primary_backend"),
+            last_promoted_from_backend=data.get("last_promoted_from_backend"),
+            last_promotion_reason=data.get("last_promotion_reason"),
         )
 
 
@@ -220,9 +234,9 @@ class ArchiveJobConfig:
         )
 
 
-_VALID_CAPTURE_BACKENDS = {"browsertrix", "http_warc"}
+_VALID_CAPTURE_BACKENDS = {"browsertrix", "http_warc", "playwright_warc"}
 _VALID_RESUME_POLICIES = {"auto", "fresh_only"}
-_VALID_FALLBACK_BACKENDS = {"none", "http_warc"}
+_VALID_FALLBACK_BACKENDS = {"none", "http_warc", "playwright_warc"}
 
 
 def validate_tool_options(opts: ArchiveToolOptions) -> None:
@@ -275,6 +289,22 @@ def validate_execution_policy(policy: ArchiveExecutionPolicy) -> None:
         raise ValueError(
             "execution_policy.fallback_backend must be one of "
             + ", ".join(sorted(_VALID_FALLBACK_BACKENDS))
+        )
+
+    primary_backend = str(policy.primary_backend or "").strip().lower()
+    if primary_backend and primary_backend not in _VALID_CAPTURE_BACKENDS:
+        raise ValueError(
+            "execution_policy.primary_backend must be one of "
+            + ", ".join(sorted(_VALID_CAPTURE_BACKENDS))
+            + " when set"
+        )
+
+    last_promoted_from_backend = str(policy.last_promoted_from_backend or "").strip().lower()
+    if last_promoted_from_backend and last_promoted_from_backend not in _VALID_CAPTURE_BACKENDS:
+        raise ValueError(
+            "execution_policy.last_promoted_from_backend must be one of "
+            + ", ".join(sorted(_VALID_CAPTURE_BACKENDS))
+            + " when set"
         )
 
     max_failures = int(policy.max_fresh_failures_before_fallback or 0)

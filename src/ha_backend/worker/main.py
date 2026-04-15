@@ -12,6 +12,10 @@ from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
 from ha_backend.archive_contract import ArchiveJobConfig
+from ha_backend.crawl_rescue_status import (
+    PROMOTION_REASON_FRESH_FAILURE_BUDGET,
+    infer_primary_backend,
+)
 from ha_backend.crawl_stats import parse_crawl_log_progress
 from ha_backend.db import get_session
 from ha_backend.indexing import index_job
@@ -134,6 +138,11 @@ def _apply_failure_policy(job: ArchiveJob, *, crawl_rc: int) -> None:
     resume_policy = str(policy.resume_policy or "auto").strip().lower()
     fallback_backend = str(policy.fallback_backend or "none").strip().lower()
     max_fresh_failures = int(policy.max_fresh_failures_before_fallback or 0)
+    if not str(policy.primary_backend or "").strip():
+        policy.primary_backend = infer_primary_backend(
+            source_code=job.source.code if job.source else None,
+            config=job.config or {},
+        )
 
     if (
         capture_backend == "browsertrix"
@@ -143,6 +152,8 @@ def _apply_failure_policy(job: ArchiveJob, *, crawl_rc: int) -> None:
     ):
         next_failures = int(job.retry_count) + 1
         if next_failures >= max_fresh_failures:
+            policy.last_promoted_from_backend = capture_backend
+            policy.last_promotion_reason = PROMOTION_REASON_FRESH_FAILURE_BUDGET
             cfg.execution_policy.capture_backend = fallback_backend
             job.config = cfg.to_dict()
             job.retry_count = 0
@@ -159,6 +170,7 @@ def _apply_failure_policy(job: ArchiveJob, *, crawl_rc: int) -> None:
             return
 
         job.retry_count = next_failures
+        job.config = cfg.to_dict()
         job.status = "retryable"
         job.crawler_stage = "fresh_failed"
         logger.warning(
@@ -170,12 +182,12 @@ def _apply_failure_policy(job: ArchiveJob, *, crawl_rc: int) -> None:
         )
         return
 
-    if capture_backend == "http_warc":
+    if capture_backend in {"http_warc", "playwright_warc"}:
         next_failures = int(job.retry_count) + 1
         job.retry_count = next_failures
         if next_failures < MAX_CRAWL_RETRIES:
             job.status = "retryable"
-            job.crawler_stage = "http_warc_retry"
+            job.crawler_stage = f"{capture_backend}_retry"
             logger.warning(
                 "Fallback crawl for job %s failed (RC=%s). Marking retryable (%d/%d).",
                 job.id,

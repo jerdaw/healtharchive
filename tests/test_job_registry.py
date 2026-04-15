@@ -74,7 +74,7 @@ def test_get_config_for_source_known_sources() -> None:
     assert hc_cfg.default_execution_policy == {
         "capture_backend": "browsertrix",
         "resume_policy": "fresh_only",
-        "fallback_backend": "http_warc",
+        "fallback_backend": "playwright_warc",
         "max_fresh_failures_before_fallback": 2,
         "auto_reset_poisoned_state": True,
         "max_temp_dirs_before_reset": 50,
@@ -94,7 +94,7 @@ def test_get_config_for_source_known_sources() -> None:
     assert phac_cfg.default_execution_policy == {
         "capture_backend": "browsertrix",
         "resume_policy": "fresh_only",
-        "fallback_backend": "http_warc",
+        "fallback_backend": "playwright_warc",
         "max_fresh_failures_before_fallback": 2,
         "auto_reset_poisoned_state": True,
         "max_temp_dirs_before_reset": 50,

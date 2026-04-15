@@ -7,9 +7,12 @@ from pathlib import Path
 from fastapi.testclient import TestClient
 from warcio.warcwriter import WARCWriter
 
+from archive_tool.playwright_warc_backend import run_playwright_warc_capture
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
-from ha_backend.models import Snapshot, Source
+from ha_backend.indexing.pipeline import index_job
+from ha_backend.models import ArchiveJob, Snapshot, Source
+from ha_backend.url_normalization import normalize_url_for_grouping
 
 
 def _init_test_app(tmp_path: Path, monkeypatch):
@@ -146,3 +149,96 @@ def test_raw_snapshot_missing_warc_returns_404(tmp_path, monkeypatch) -> None:
     assert resp.status_code == 404
     body = resp.json()
     assert "Underlying WARC file" in body["detail"]
+
+
+def test_playwright_warc_capture_indexes_and_replays_canonical_final_url(
+    tmp_path, monkeypatch
+) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+    output_dir = tmp_path / "playwright-job"
+    output_dir.mkdir()
+
+    def fake_run_playwright_container(
+        *,
+        sink,
+        seeds,
+        scope_include_rx,
+        scope_exclude_rx,
+        expand_links,
+        scratch_dir,
+    ):
+        bodies_dir = scratch_dir / "bodies"
+        bodies_dir.mkdir(parents=True, exist_ok=True)
+        body_html = "<html><body><h1>Canonical Final Page</h1></body></html>"
+        (bodies_dir / "record-000001.bin").write_bytes(body_html.encode("utf-8"))
+        manifest = {
+            "runtime": {
+                "playwrightVersion": "1.50.1",
+                "chromiumVersion": "147.0.7727.15",
+                "viewport": {"width": 1440, "height": 900},
+                "locale": "en-CA",
+                "timezone": "America/Toronto",
+            },
+            "records": [
+                {
+                    "requestedUrl": "https://example.org/start",
+                    "finalUrl": "https://example.org/final",
+                    "statusCode": 200,
+                    "headers": {"content-type": "text/html; charset=utf-8"},
+                    "bodyPath": "bodies/record-000001.bin",
+                    "bodySource": "network_response",
+                    "cookieCount": 2,
+                    "captureTimestamp": "2026-04-03T05:06:06.051Z",
+                    "contentType": "text/html",
+                    "discoveredUrls": [],
+                }
+            ],
+            "failures": [],
+        }
+        return 0, manifest
+
+    monkeypatch.setattr(
+        "archive_tool.playwright_warc_backend._run_playwright_container",
+        fake_run_playwright_container,
+    )
+
+    run_playwright_warc_capture(
+        output_dir=output_dir,
+        seeds=["https://example.org/start"],
+        zimit_passthrough_args=["--scopeType", "host"],
+    )
+
+    with get_session() as session:
+        src = Source(
+            code="test",
+            name="Test Source",
+            base_url="https://example.org",
+            description="Test",
+            enabled=True,
+        )
+        session.add(src)
+        session.flush()
+
+        job = ArchiveJob(
+            source_id=src.id,
+            name="playwright-warc-job",
+            output_dir=str(output_dir),
+            status="completed",
+        )
+        session.add(job)
+        session.flush()
+        job_id = job.id
+
+    assert index_job(job_id) == 0
+
+    with get_session() as session:
+        snap = session.query(Snapshot).one()
+        snapshot_id = snap.id
+        assert snap.url == "https://example.org/final"
+        assert snap.normalized_url_group == normalize_url_for_grouping("https://example.org/final")
+        assert snap.warc_path.endswith("warcs/warc-000001.warc.gz")
+        assert snap.warc_record_id is not None
+
+    resp = client.get(f"/api/snapshots/raw/{snapshot_id}")
+    assert resp.status_code == 200
+    assert "Canonical Final Page" in resp.text

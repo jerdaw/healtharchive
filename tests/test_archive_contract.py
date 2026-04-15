@@ -119,6 +119,9 @@ def test_archive_job_config_round_trip() -> None:
             max_fresh_failures_before_fallback=1,
             auto_reset_poisoned_state=True,
             max_temp_dirs_before_reset=25,
+            primary_backend="browsertrix",
+            last_promoted_from_backend="browsertrix",
+            last_promotion_reason="fresh_failure_budget_exhausted",
         ),
     )
 
@@ -131,6 +134,9 @@ def test_archive_job_config_round_trip() -> None:
     assert data["execution_policy"]["capture_backend"] == "http_warc"
     assert data["execution_policy"]["resume_policy"] == "fresh_only"
     assert data["execution_policy"]["auto_reset_poisoned_state"] is True
+    assert data["execution_policy"]["primary_backend"] == "browsertrix"
+    assert data["execution_policy"]["last_promoted_from_backend"] == "browsertrix"
+    assert data["execution_policy"]["last_promotion_reason"] == "fresh_failure_budget_exhausted"
 
     loaded = ArchiveJobConfig.from_dict(data)
     assert loaded.seeds == cfg.seeds
@@ -261,11 +267,41 @@ def test_validate_execution_policy_enforces_invariants() -> None:
     else:
         assert False, "Expected ValueError for non-positive temp-dir threshold"
 
+    policy = ArchiveExecutionPolicy(primary_backend="bad")
+    try:
+        validate_execution_policy(policy)
+    except ValueError as exc:
+        assert "primary_backend" in str(exc)
+    else:
+        assert False, "Expected ValueError for invalid primary_backend"
+
+    policy = ArchiveExecutionPolicy(last_promoted_from_backend="bad")
+    try:
+        validate_execution_policy(policy)
+    except ValueError as exc:
+        assert "last_promoted_from_backend" in str(exc)
+    else:
+        assert False, "Expected ValueError for invalid last_promoted_from_backend"
+
     validate_execution_policy(
         ArchiveExecutionPolicy(
             capture_backend="browsertrix",
             resume_policy="fresh_only",
             fallback_backend="http_warc",
+            max_fresh_failures_before_fallback=2,
+            auto_reset_poisoned_state=True,
+            max_temp_dirs_before_reset=50,
+            primary_backend="browsertrix",
+            last_promoted_from_backend="browsertrix",
+            last_promotion_reason="fresh_failure_budget_exhausted",
+        )
+    )
+
+    validate_execution_policy(
+        ArchiveExecutionPolicy(
+            capture_backend="playwright_warc",
+            resume_policy="fresh_only",
+            fallback_backend="none",
             max_fresh_failures_before_fallback=2,
             auto_reset_poisoned_state=True,
             max_temp_dirs_before_reset=50,

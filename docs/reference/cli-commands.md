@@ -291,12 +291,12 @@ List recent jobs with summary information.
 
 **Usage**:
 ```bash
-ha-backend list-jobs [--limit N] [--status STATUS] [--source SOURCE]
+ha-backend list-jobs [--limit N] [--status STATUS [STATUS ...]] [--source SOURCE]
 ```
 
 **Arguments**:
 - `--limit` (optional) - Number of jobs to show (default: 20)
-- `--status` (optional) - Filter by status
+- `--status` (optional) - Filter by one or more statuses
 - `--source` (optional) - Filter by source code
 
 **Examples**:
@@ -316,10 +316,18 @@ ha-backend list-jobs --limit 50
 
 **Output**:
 ```
-ID  Name            Source  Status    Queued              Started             Finished            Pages
-42  hc-20260118     hc      indexed   2026-01-18 20:00    2026-01-18 20:05    2026-01-18 21:30    12,347
-41  phac-20260117   phac    completed 2026-01-17 19:00    2026-01-17 19:10    2026-01-17 20:45    8,234
+ID  Source  Status       Backend          Rescue            Retries  Created_at           Started_at           Finished_at          Indexed
+6   hc      running      playwright_warc  fallback-active   0        2026-01-01 00:05:02 2026-04-10 16:15:18 None                 0 hc-20260101
+7   phac    failed       browsertrix      fresh-failed      1        2026-01-01 00:05:02 2026-04-03 01:50:12 2026-04-03 02:18:57 0 phac-20260101
 ```
+
+The `Backend` and `Rescue` columns are intended to make annual rescue state
+visible from the standard operator path:
+
+- `Backend` shows the current effective backend inferred from job config and
+  live crawl state.
+- `Rescue` shows a compact rescue summary such as `normal`, `fresh-failed`,
+  `fallback-active`, `fallback-retry`, or `fallback-exhausted`.
 
 ---
 
@@ -329,50 +337,61 @@ Display detailed information about a specific job.
 
 **Usage**:
 ```bash
-ha-backend show-job --id JOB_ID [--format {text|json}]
+ha-backend show-job --id JOB_ID [--warc-details]
 ```
 
 **Arguments**:
 - `--id` (required) - Job ID
-- `--format` (optional) - Output format (default: `text`)
+- `--warc-details` (optional) - Include detailed WARC discovery information
 
 **Examples**:
 ```bash
 # Human-readable output
 ha-backend show-job --id 42
 
-# JSON output (for scripting)
-ha-backend show-job --id 42 --format json
+# Include WARC discovery details
+ha-backend show-job --id 42 --warc-details
 ```
 
 **Output** (text format):
 ```
-Job ID: 42
-Name: hc-20260118
-Source: Health Canada (hc)
-Status: indexed
-Output Directory: /mnt/nasd/nobak/healtharchive/jobs/hc/20260118T210911Z__hc-20260118
-
-Timeline:
-  Queued:  2026-01-18 20:00:00
-  Started: 2026-01-18 20:05:00
-  Finished: 2026-01-18 21:30:00
-  Duration: 1h 25m
-
-Crawl Metrics:
-  Exit Code: 0
-  Status: success
-  Pages Crawled: 12,347
-  Pages Total: 12,500
-  Pages Failed: 153
-
-Indexing:
-  WARC Files: 245
-  Snapshots: 12,347
-
-Cleanup:
-  Status: none
+ID:              6
+Source:          hc (Health Canada)
+Name:            hc-20260101
+Status:          running
+Retry count:     0
+Created at:      2026-01-01 00:05:02.537667+00:00
+Queued at:       2026-01-01 00:05:02.331347+00:00
+Started at:      2026-04-10 16:15:18.050361+00:00
+Finished at:     None
+Output dir:      /srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101
+Crawler RC:      None
+Crawler status:  None
+Crawler stage:   promoted_to_playwright_warc
+WARC files:      0
+WARC files (discovered): 300
+Indexed pages:   0
+Rescue:
+  Primary backend:      browsertrix
+  Configured backend:   playwright_warc
+  Effective backend:    playwright_warc
+  Fallback backend:     playwright_warc
+  Resume policy:        fresh_only
+  Fresh failure budget: 2
+  Fallback active:      yes
+  Promoted to fallback: yes
+  Rescue note:          promoted from browsertrix to playwright_warc after fresh-failure budget exhaustion
 ```
+
+The `Rescue` block is designed to answer the common annual-crawl operator
+questions without requiring immediate combined-log inspection:
+
+- which backend is primary for the job
+- which backend is configured now
+- which backend is effectively active
+- whether fallback promotion already happened
+- whether the job is still in a fresh Browsertrix failure state or has moved to
+  a healthy fallback path
 
 ---
 
@@ -614,10 +633,33 @@ ha-backend reconcile-annual-tool-options --year 2026 --sources hc --apply
 **What it does**:
 - Reconciles legacy baseline tool options to per-source profiles
 - Reconciles annual `execution_policy` defaults (for example HC/PHAC
-  `fresh_only` resume policy and `http_warc` fallback settings)
+  `fresh_only` resume policy and `playwright_warc` fallback settings)
 - Reconciles canonical HC/PHAC scope filters on existing annual jobs
 - Preserves explicit non-baseline overrides
 - Enforces restart-budget floor and annual safety defaults
+
+### probe-browser-fetch
+
+Run one or more URLs through the pinned Playwright browser path used by the
+server-side `playwright_warc` fallback backend.
+
+**Usage**:
+```bash
+ha-backend probe-browser-fetch URL [URL ...]
+```
+
+**Examples**:
+```bash
+ha-backend probe-browser-fetch https://www.canada.ca/en/public-health.html
+ha-backend probe-browser-fetch \
+  https://www.canada.ca/en/public-health.html \
+  https://www.canada.ca/en/health-canada.html
+```
+
+**What it does**:
+- launches the same pinned Playwright Docker image used by the browser fallback
+- reports final URL, status code, cookie count, body source, and HTML byte size
+- helps operators confirm whether the server-side browser path works before rerunning a failed annual job
 
 ### reset-crawl-state
 

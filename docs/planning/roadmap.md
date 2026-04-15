@@ -147,6 +147,20 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     - decide whether the temporary exclusion is still needed once the deeper
       issue is understood
   - Related docs: `../operations/annual-campaign.md`, `../operations/healtharchive-ops-roadmap.md`
+- Improve crawl rescue observability and operator ergonomics for annual jobs.
+  - Goal: make it obvious from normal operator surfaces which backend a rescue job is currently using, whether fallback promotion already occurred, why it occurred, and whether the fallback path is healthy.
+  - Why this matters: the HC rescue control flow worked on prod, but the operator still had to identify the current log by mtime and reconstruct rescue state from multiple metrics/log fragments.
+  - Initial implementation slice is now in repo:
+    - shared rescue-status derivation for operator surfaces
+    - `list-jobs` backend/rescue columns
+    - `show-job` rescue details
+    - crawl textfile metrics for backend/fallback rescue state
+    - focused tests covering the new rescue visibility behavior
+  - Remaining work:
+    - add a compact annual-rescue summary/reporting command
+    - make intentional backoff vs active failure clearer from standard operator surfaces
+    - finish the runbook/operator-doc follow-through after the live annual rescue path is calmer
+  - Related docs: `../operations/healtharchive-ops-roadmap.md`, `README.md`
 - Continue crawl telemetry calibration from live annual-crawl runs, but use dashboard trends (crawl rate / phase churn / progress age) rather than direct throughput alerts.
   - Current focus: validate dashboard thresholds/visual cues and only promote a signal back into Alertmanager if it becomes clearly actionable.
   - Related docs: `../operations/monitoring-and-alerting.md`, `../operations/healtharchive-ops-roadmap.md`
@@ -161,9 +175,6 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Current policy is implemented for new work: accepted dependency updates should land via new human-authored commits, superseded bot PRs should be closed, and future branches should avoid bot/assistant/CI-only authorship.
   - Remaining gap: older published history still contains historical Dependabot and CI-only authorship in some repos/branches.
   - Do this only with an explicit migration + force-push plan, because it would rewrite shared history across clones and open branches.
-- Review or retire unmerged long-lived work branches before they become orphaned.
-  - Current known case: `origin/wip/playwright-warc-backend` is a human-authored six-commit branch with no PR and a large drift from `main`.
-  - Resolve it with an explicit keep/squash/delete decision instead of silent branch accumulation.
 
 ## Quality, governance, and product backlog (cross-repo)
 

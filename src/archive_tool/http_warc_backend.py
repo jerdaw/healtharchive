@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from datetime import datetime, timezone
 from http import HTTPStatus
 from pathlib import Path
-from typing import Iterable, Pattern
+from typing import Any, Iterable, Pattern
 from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
@@ -160,20 +160,25 @@ def _emit_crawl_status(
     total: int,
     pending: int,
     failed: int,
+    extra_details: dict[str, object] | None = None,
 ) -> None:
+    details: dict[str, Any] = {
+        "crawled": int(crawled),
+        "total": int(total),
+        "pending": int(pending),
+        "failed": int(failed),
+        "limit": {"max": 0, "hit": False},
+        "pendingPages": [],
+    }
+    if extra_details:
+        details.update(extra_details)
+
     payload = {
         "timestamp": _utc_timestamp(),
         "logLevel": "info",
         "context": "crawlStatus",
         "message": "Crawl statistics",
-        "details": {
-            "crawled": int(crawled),
-            "total": int(total),
-            "pending": int(pending),
-            "failed": int(failed),
-            "limit": {"max": 0, "hit": False},
-            "pendingPages": [],
-        },
+        "details": details,
     }
     sink.emit(json.dumps(payload, separators=(",", ":")))
 

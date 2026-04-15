@@ -182,7 +182,7 @@ def test_run_persistent_job_builds_monitoring_and_vpn_args(tmp_path, monkeypatch
         "--resume-policy",
         "fresh_only",
         "--fallback-backend",
-        "http_warc",
+        "playwright_warc",
         "--max-fresh-failures-before-fallback",
         "2",
         "--auto-reset-poisoned-state",
@@ -381,8 +381,13 @@ def test_job_lock_does_not_force_1777_outside_tmp(tmp_path, monkeypatch) -> None
 
     lock_dir = base / f"healtharchive-locks-test-{os.getpid()}"
     try:
-        lock_dir.mkdir(parents=True, exist_ok=True)
-        os.chmod(lock_dir, 0o2770)
+        try:
+            lock_dir.mkdir(parents=True, exist_ok=True)
+            os.chmod(lock_dir, 0o2770)
+        except OSError as exc:
+            if exc.errno in {errno.EACCES, errno.EPERM, errno.EROFS}:
+                pytest.skip("/var/tmp is not writable in this test environment")
+            raise
         monkeypatch.setenv("HEALTHARCHIVE_JOB_LOCK_DIR", str(lock_dir))
 
         with _job_lock(123):

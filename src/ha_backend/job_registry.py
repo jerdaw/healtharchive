@@ -306,7 +306,7 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
         default_execution_policy={
             "capture_backend": "browsertrix",
             "resume_policy": "fresh_only",
-            "fallback_backend": "http_warc",
+            "fallback_backend": "playwright_warc",
             "max_fresh_failures_before_fallback": 2,
             "auto_reset_poisoned_state": True,
             "max_temp_dirs_before_reset": 50,
@@ -352,7 +352,7 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
         default_execution_policy={
             "capture_backend": "browsertrix",
             "resume_policy": "fresh_only",
-            "fallback_backend": "http_warc",
+            "fallback_backend": "playwright_warc",
             "max_fresh_failures_before_fallback": 2,
             "auto_reset_poisoned_state": True,
             "max_temp_dirs_before_reset": 50,

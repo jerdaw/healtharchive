@@ -19,12 +19,12 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive-backend && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-04-14)
+## Current status (as of 2026-04-15)
 
 - 2026 annual campaign is still active on the VPS:
-  - `hc` is running.
-  - `cihr` is running on a new maintenance-window restart that began at
-    `2026-04-14T04:00:10Z`.
+  - `hc` completed successfully after the rescue-policy rollout.
+  - `cihr` is running on the 2026-04-14 scoped restart and resumed cleanly
+    after the 2026-04-15 production cutover window.
   - `phac` is failed/parked pending deeper repo-side runtime diagnosis.
 - CIHR scope/content-cost follow-through is complete:
   - bounded content reporting on 2026-03-27 and 2026-04-14 showed CIHR-specific
@@ -54,6 +54,15 @@ Keep the two synced copies of this file aligned:
 - PHAC annual crawl repo-side control-plane fixes remain deployed and verified,
   but the source still needs deeper runtime investigation before another live
   retry.
+- Rescue observability follow-through is now partially implemented in repo:
+  - `ha-backend list-jobs` now surfaces effective backend plus compact rescue
+    state.
+  - `ha-backend show-job` now surfaces
+    primary/configured/effective backend plus fallback/promotion details.
+  - crawl textfile metrics now expose backend/fallback rescue state.
+  - remaining follow-through is narrower: add a compact annual rescue summary
+    surface, make intentional backoff vs active failure clearer, and finish the
+    operator-doc updates after the live PHAC path is calmer.
 - Alerting/report hygiene from the recent crawl work is deployed:
   - bounded content reporting is now the preferred operator diagnostic for live
     crawl cost/failure classification.
@@ -99,14 +108,43 @@ Treat the following as the current ops execution order:
       and the English Canadian Immunization Guide subtree.
     - Sampled WARC bytes remained dominated by normal pages/render assets rather
       than `.mp4`/dataset/document classes.
+  - Verified on 2026-04-09:
+    - prod deploys can land safely without restarting the worker while CIHR is
+      active
+    - `ha-backend probe-browser-fetch` succeeds on production for both HC and
+      PHAC seed pages using the pinned `playwright_warc` runtime
+    - annual reconcile dry-run shows the intended HC/PHAC policy changes
+  - Live update on 2026-04-10:
+    - annual reconcile was applied
+    - HC did exactly what the rescue policy was meant to enable:
+      - Browsertrix-first failed immediately at the seeds with
+        `net::ERR_HTTP2_PROTOCOL_ERROR`
+      - the job remained alive through rescue/backoff
+      - the job auto-promoted into `playwright_warc`
+      - the fallback backend now shows sustained healthy progress on prod
+    - the remaining gap is observability/operator ergonomics, not the fallback
+      control flow itself
+  - Repo update on 2026-04-11:
+    - initial rescue-observability follow-through is now implemented in repo:
+      - `ha-backend list-jobs` surfaces effective backend + compact rescue state
+      - `ha-backend show-job` surfaces primary/configured/effective backend plus fallback/promotion details
+      - crawl textfile metrics now expose backend/fallback rescue state
+    - remaining follow-through is now narrower:
+      - add a compact annual rescue summary surface
+      - make intentional backoff vs active failure clearer
+      - update more operator/runbook docs once HC/PHAC rescue is calmer
   - Next steps:
-    - deploy the latest repo changes before the next HC/PHAC retry so
-      fresh-only policy, stale-state reset, and bounded fallback promotion are
-      all active on the VPS
+    - use the settled HC rescue result plus the new rescue-visibility surfaces
+      to define the next PHAC-specific runtime test
+    - before any next PHAC retry, verify that the current repo changes are
+      deployed on the VPS so fresh-only policy, stale-state reset, bounded
+      fallback promotion, and rescue visibility are all active together
     - determine whether PHAC still reproduces the same failure from a truly
       fresh phase after resume state is reset automatically
     - diagnose the remaining canada.ca runtime issue only if fresh Browsertrix
       phases still fail before the fallback budget can help
+    - keep PHAC parked while CIHR remains active unless a controlled
+      interruption is explicitly acceptable
     - revisit the temporary `public-health-notices` exclusion only after the
       deeper PHAC runtime/state issue is understood
   - Do not do further blind PHAC recover/restart attempts from the VPS.

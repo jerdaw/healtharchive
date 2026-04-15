@@ -210,7 +210,7 @@ def test_ensure_recovery_tool_options_backfills_execution_policy_without_downgra
     execution_policy = job.config["execution_policy"]
     assert execution_policy["capture_backend"] == "http_warc"
     assert execution_policy["resume_policy"] == "fresh_only"
-    assert execution_policy["fallback_backend"] == "http_warc"
+    assert execution_policy["fallback_backend"] == "playwright_warc"
     assert execution_policy["max_fresh_failures_before_fallback"] == 2
     assert execution_policy["auto_reset_poisoned_state"] is True
     assert execution_policy["max_temp_dirs_before_reset"] == 50

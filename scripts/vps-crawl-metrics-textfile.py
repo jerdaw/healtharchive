@@ -11,9 +11,10 @@ import subprocess
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from typing import Iterable
+from typing import Any, Iterable
 
 from archive_tool.constants import STATE_FILE_NAME
+from ha_backend.crawl_rescue_status import derive_crawl_rescue_status
 from ha_backend.crawl_stats import (
     count_new_crawl_phase_events_from_log_tail,
     count_resume_crawl_events_from_log_tail,
@@ -30,6 +31,9 @@ class RunningJob:
     started_at: datetime | None
     output_dir: str | None
     combined_log_path: str | None
+    config: dict[str, Any] | None
+    crawler_stage: str | None
+    last_stats_json: dict[str, Any] | None
 
 
 @dataclass(frozen=True)
@@ -312,6 +316,9 @@ def main(argv: list[str] | None = None) -> int:
                     ArchiveJob.started_at,
                     ArchiveJob.output_dir,
                     ArchiveJob.combined_log_path,
+                    ArchiveJob.config,
+                    ArchiveJob.crawler_stage,
+                    ArchiveJob.last_stats_json,
                 )
                 .join(Source, ArchiveJob.source_id == Source.id)
                 .filter(ArchiveJob.status == "running")
@@ -326,10 +333,24 @@ def main(argv: list[str] | None = None) -> int:
                         started_at=started_at,
                         output_dir=str(output_dir) if output_dir is not None else None,
                         combined_log_path=str(combined_log_path) if combined_log_path else None,
+                        config=dict(config) if isinstance(config, dict) else None,
+                        crawler_stage=str(crawler_stage).strip() or None,
+                        last_stats_json=(
+                            dict(last_stats_json) if isinstance(last_stats_json, dict) else None
+                        ),
                     ),
                     str(source_code),
                 )
-                for job_id, source_code, started_at, output_dir, combined_log_path in rows
+                for (
+                    job_id,
+                    source_code,
+                    started_at,
+                    output_dir,
+                    combined_log_path,
+                    config,
+                    crawler_stage,
+                    last_stats_json,
+                ) in rows
             ]
 
             pending_rows = (
@@ -630,6 +651,41 @@ def main(argv: list[str] | None = None) -> int:
         "# HELP healtharchive_crawl_running_job_errors_other Other error count from .archive_state.json, or -1 when unknown.",
     )
     _emit(lines, "# TYPE healtharchive_crawl_running_job_errors_other gauge")
+    _emit(
+        lines,
+        "# HELP healtharchive_crawl_running_job_primary_backend_info 1 for the primary backend associated with the job.",
+    )
+    _emit(lines, "# TYPE healtharchive_crawl_running_job_primary_backend_info gauge")
+    _emit(
+        lines,
+        "# HELP healtharchive_crawl_running_job_configured_backend_info 1 for the backend currently configured on the job.",
+    )
+    _emit(lines, "# TYPE healtharchive_crawl_running_job_configured_backend_info gauge")
+    _emit(
+        lines,
+        "# HELP healtharchive_crawl_running_job_effective_backend_info 1 for the backend currently reflected by live stats/log state.",
+    )
+    _emit(lines, "# TYPE healtharchive_crawl_running_job_effective_backend_info gauge")
+    _emit(
+        lines,
+        "# HELP healtharchive_crawl_running_job_fallback_backend_info 1 for the configured fallback backend (or backend=\"none\" when unset).",
+    )
+    _emit(lines, "# TYPE healtharchive_crawl_running_job_fallback_backend_info gauge")
+    _emit(
+        lines,
+        "# HELP healtharchive_crawl_running_job_fallback_active 1 if the running job is currently active on its fallback backend.",
+    )
+    _emit(lines, "# TYPE healtharchive_crawl_running_job_fallback_active gauge")
+    _emit(
+        lines,
+        "# HELP healtharchive_crawl_running_job_fallback_promoted 1 if the running job shows a promoted fallback state.",
+    )
+    _emit(lines, "# TYPE healtharchive_crawl_running_job_fallback_promoted gauge")
+    _emit(
+        lines,
+        "# HELP healtharchive_crawl_running_job_fresh_failure_budget Configured fresh-failure budget before fallback promotion.",
+    )
+    _emit(lines, "# TYPE healtharchive_crawl_running_job_fresh_failure_budget gauge")
 
     _emit(
         lines,
@@ -676,6 +732,12 @@ def main(argv: list[str] | None = None) -> int:
 
     for job, source_code in jobs:
         labels = f'job_id="{int(job.job_id)}",source="{source_code}"'
+        rescue = derive_crawl_rescue_status(
+            source_code=source_code,
+            config=job.config or {},
+            crawler_stage=job.crawler_stage,
+            last_stats=job.last_stats_json or {},
+        )
 
         # started_at is optional but useful for ops context.
         if job.started_at is not None:
@@ -890,6 +952,34 @@ def main(argv: list[str] | None = None) -> int:
         _emit(
             lines,
             f"healtharchive_crawl_running_job_errors_other{{{labels}}} {errors_other}",
+        )
+        _emit(
+            lines,
+            f'healtharchive_crawl_running_job_primary_backend_info{{{labels},backend="{rescue.primary_backend}"}} 1',
+        )
+        _emit(
+            lines,
+            f'healtharchive_crawl_running_job_configured_backend_info{{{labels},backend="{rescue.configured_backend}"}} 1',
+        )
+        _emit(
+            lines,
+            f'healtharchive_crawl_running_job_effective_backend_info{{{labels},backend="{rescue.effective_backend}"}} 1',
+        )
+        _emit(
+            lines,
+            f'healtharchive_crawl_running_job_fallback_backend_info{{{labels},backend="{rescue.fallback_backend_label}"}} 1',
+        )
+        _emit(
+            lines,
+            f"healtharchive_crawl_running_job_fallback_active{{{labels}}} {1 if rescue.fallback_active else 0}",
+        )
+        _emit(
+            lines,
+            f"healtharchive_crawl_running_job_fallback_promoted{{{labels}}} {1 if rescue.promoted_to_fallback else 0}",
+        )
+        _emit(
+            lines,
+            f"healtharchive_crawl_running_job_fresh_failure_budget{{{labels}}} {rescue.fresh_failure_budget}",
         )
 
     out_dir.mkdir(parents=True, exist_ok=True)

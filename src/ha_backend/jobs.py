@@ -17,6 +17,7 @@ from sqlalchemy.orm import Session
 
 from .archive_contract import ArchiveExecutionPolicy, ArchiveJobConfig, ArchiveToolOptions
 from .config import get_archive_tool_config
+from .crawl_rescue_status import infer_primary_backend
 from .crawl_stats import update_job_stats_from_logs
 from .db import get_session
 from .infra_errors import (
@@ -537,6 +538,12 @@ def run_persistent_job(job_id: int) -> int:
             zimit_args = list(job_cfg.zimit_passthrough_args)
             tool_options = job_cfg.tool_options
             execution_policy = job_cfg.execution_policy
+            if not str(execution_policy.primary_backend or "").strip():
+                execution_policy.primary_backend = infer_primary_backend(
+                    source_code=job_row.source.code if job_row.source else None,
+                    config=raw_config,
+                )
+                job_row.config = job_cfg.to_dict()
 
             if not seeds:
                 raise ValueError(

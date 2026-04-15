@@ -82,6 +82,19 @@ def test_metrics_emits_archive_state_counters(tmp_path, monkeypatch) -> None:
             output_dir=str(job_dir),
             status="running",
             started_at=datetime.now(timezone.utc),
+            crawler_stage="promoted_to_playwright_warc",
+            config={
+                "execution_policy": {
+                    "capture_backend": "playwright_warc",
+                    "fallback_backend": "playwright_warc",
+                    "resume_policy": "fresh_only",
+                    "max_fresh_failures_before_fallback": 2,
+                    "primary_backend": "browsertrix",
+                    "last_promoted_from_backend": "browsertrix",
+                    "last_promotion_reason": "fresh_failure_budget_exhausted",
+                }
+            },
+            last_stats_json={"backend": {"name": "playwright_warc"}},
         )
         session.add(job)
         session.commit()
@@ -103,6 +116,25 @@ def test_metrics_emits_archive_state_counters(tmp_path, monkeypatch) -> None:
     assert f"healtharchive_crawl_running_job_temp_dirs_count{{{labels}}} 2" in content
     assert f"healtharchive_crawl_running_job_new_crawl_phase_count{{{labels}}} 2" in content
     assert f"healtharchive_crawl_running_job_resume_crawl_count{{{labels}}} 1" in content
+    assert (
+        'healtharchive_crawl_running_job_primary_backend_info'
+        f'{{{labels},backend="browsertrix"}} 1'
+    ) in content
+    assert (
+        'healtharchive_crawl_running_job_configured_backend_info'
+        f'{{{labels},backend="playwright_warc"}} 1'
+    ) in content
+    assert (
+        'healtharchive_crawl_running_job_effective_backend_info'
+        f'{{{labels},backend="playwright_warc"}} 1'
+    ) in content
+    assert (
+        'healtharchive_crawl_running_job_fallback_backend_info'
+        f'{{{labels},backend="playwright_warc"}} 1'
+    ) in content
+    assert f"healtharchive_crawl_running_job_fallback_active{{{labels}}} 1" in content
+    assert f"healtharchive_crawl_running_job_fallback_promoted{{{labels}}} 1" in content
+    assert f"healtharchive_crawl_running_job_fresh_failure_budget{{{labels}}} 2" in content
 
 
 def test_metrics_emits_indexing_pending_job_age(tmp_path, monkeypatch) -> None:

@@ -22,19 +22,34 @@ Treat the following as the current "what's next" order across roadmap docs:
    - The repo-side control-plane/plumbing fixes are now in place:
      `no_stats` stall detection, managed Browsertrix config for fresh/new
      phases, and managed Browsertrix config merged into resumed phases.
+   - The first rescue-visibility slice is also now in repo:
+     `list-jobs` shows effective backend + compact rescue state, `show-job`
+     shows rescue details, and crawl textfile metrics expose backend/fallback
+     rescue state.
    - Continue repo-side PHAC root-cause mitigation work before any further
      controlled restart.
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
-2. Convert annual output dirs from direct `sshfs` mounts to bind mounts during a later maintenance window.
+2. Continue the rescue observability/operator ergonomics follow-through.
+   - Initial slice now exists in repo:
+     - `list-jobs` shows effective backend + compact rescue state
+     - `show-job` shows rescue details
+     - crawl textfile metrics expose backend/fallback rescue state
+   - Remaining work:
+     - add a compact annual rescue summary/report
+     - distinguish intentional backoff vs active failure more clearly
+     - update more operator/runbook surfaces after the HC/PHAC path is calmer
+   - Canonical backlog tracker: `roadmap.md`
+3. Convert annual output dirs from direct `sshfs` mounts to bind mounts during a later maintenance window.
    - This remains intentionally deferred until the active annual crawl is idle.
    - Canonical plan: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
-3. Keep CIHR under observation on the repaired 2026-04-14 scoped attempt; no further live intervention is planned unless it regresses.
+4. Keep CIHR under observation on the repaired 2026-04-14 scoped attempt; no further live intervention is planned unless it regresses.
    - Settled outcome: the scope/content-cost diagnosis loop is complete and the maintenance-window remediation is already live.
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
-4. After the crawl/ops path is stabilized, the main project emphasis is the active admissions-strengthening plan.
+5. After the crawl/ops path is stabilized, the main project emphasis is the active admissions-strengthening plan.
    - That plan is the canonical home for the next external-validation, methods-paper, and dataset-release work.
    - Canonical plan: `2026-02-admissions-strengthening-plan.md`
+
 ## Operator Follow-Through (Maintenance Window)
 
 Some plans are "implemented in repo" but still require a short, operator-run maintenance step on the VPS.
@@ -42,18 +57,22 @@ Some plans are "implemented in repo" but still require a short, operator-run mai
 Current known items:
 
 - PHAC annual-crawl follow-up after the 2026-03-23 canada.ca incident:
-  - Current state: job 7 (`phac-20260101`) is parked `retryable` after the
-    controlled 2026-03-23 investigation, with the worker stopped.
+  - Current state: job `7` (`phac-20260101`) remains failed/parked after the
+    controlled investigations; the worker is active again for CIHR, but PHAC
+    should remain untouched until the next controlled test.
   - Settled repo-side outcome: PHAC fresh/new and resumed launches now both
-    preserve the managed Browsertrix HTTP/2 workaround, so the remaining
-    problem is no longer config propagation.
+    preserve the managed Browsertrix HTTP/2 workaround, and the new rescue
+    visibility surfaces now expose effective backend/fallback state more
+    directly, so the remaining problem is no longer config propagation alone.
   - Next action: continue repo-side investigation of PHAC resume-state/runtime
     failure before any further VPS restart attempt.
   - Why this is first: further PHAC recover/restart attempts should stay
     blocked until there is a new hypothesis to test.
   - Status tracking + next-step guidance: `../operations/healtharchive-ops-roadmap.md`
 - CIHR scope/content-cost follow-through:
-  - Current state: completed on 2026-04-14 via a controlled maintenance window.
+  - Current state: completed on 2026-04-14 via a controlled maintenance
+    window, and the repaired run remained healthy through the 2026-04-15
+    production cutover window.
   - Settled outcome: job `8` restarted under source-managed custom scope and
     the new combined log shows clean HTML frontier pages without live
     `wbdisable=false`, `asl-video`, or document/media frontier expansion.
