@@ -143,5 +143,8 @@ def test_worker_systemd_template_uses_healtharchive_cli() -> None:
     assert "ConditionPathExists=/etc/healtharchive/backend.env" in text
     assert "ConditionPathExists=/opt/healtharchive/.venv/bin/healtharchive" in text
     assert "WorkingDirectory=/opt/healtharchive" in text
-    assert "ExecStart=/opt/healtharchive/.venv/bin/healtharchive start-worker --poll-interval 30" in text
-    assert "ha-backend" not in text
+    assert (
+        "ExecStart=/opt/healtharchive/.venv/bin/healtharchive start-worker --poll-interval 30"
+        in text
+    )
+    assert "ha" + "-backend" not in text
