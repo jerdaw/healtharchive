@@ -402,7 +402,7 @@ production cutover.
 Required changes:
 
 1. update backend e2e scripts to look for `frontend/` first and sibling checkout second
-2. update frontend helper scripts that look for `../healtharchive-backend`
+2. update frontend helper scripts that still assume a sibling backend checkout
 3. update local development docs from "sibling repos" to "same repo, different subdirs"
 4. update docs-hub pointer pages and project docs from multi-repo wording to phased monorepo wording
 5. add root helper commands for common flows:
@@ -635,10 +635,10 @@ Additional repo-control consequence:
 Before any production cutover, prepare matching updates in `platform-ops/` for:
 
 1. `inventory/services.yaml`
-2. `docs/runbooks/RUN-005-healtharchive-direct-vps-production-runbook.md`
+2. the HealthArchive direct VPS production runbook in `platform-ops`
 3. any shared inventory or shared-host references that mention the old frontend repo as a separate source repo
 4. a dedicated host-side execution board:
-   - `platform-ops/docs/plans/PLAN-013-healtharchive-monorepo-production-cutover.md`
+   - the `PLAN-013` monorepo production cutover plan in `platform-ops`
 
 Important: service inventory may temporarily point both `healtharchive-api` and
 `healtharchive-frontend` at the same repo slug if phase 1 keeps the backend repo
@@ -813,9 +813,9 @@ This is the minimum observed impact list; it is not exhaustive.
 | --- | --- | --- |
 | `backend/.github/workflows/backend-ci.yml` | checks out separate frontend repo | remove cross-checkout; use `frontend/` |
 | `frontend/.github/workflows/frontend-ci.yml` | checks out separate backend repo | remove cross-checkout; use same checkout |
-| `scripts/ci-e2e-smoke.sh` | defaults to `../healtharchive-frontend` | prefer `frontend/`, keep fallback temporarily |
-| `frontend/scripts/install-pre-push-hook.sh` | looks for `../healtharchive-backend/.venv/bin/pre-commit` | change to same-repo root path |
-| `frontend/docs/development/dev-environment-setup.md` | describes sibling repo workflow | rewrite for one-repo workflow |
+| `scripts/ci-e2e-smoke.sh` | defaults to a legacy sibling frontend checkout path | prefer `frontend/`, keep fallback temporarily |
+| `frontend/scripts/install-pre-push-hook.sh` | looks for a sibling backend virtualenv path | change to same-repo root path |
+| `../../frontend/docs/development/dev-environment-setup.md` | describes sibling repo workflow | rewrite for one-repo workflow |
 | `docs/documentation-guidelines.md` | frontend docs canonical in separate repo | rewrite after cutover to same-repo source of truth |
 | `docs/project.md` | project described as multi-repo | rewrite to "monorepo + datasets repo" |
 | GitHub branch protection | required checks tied to separate repos | update to monorepo workflow names before canonical cutover |

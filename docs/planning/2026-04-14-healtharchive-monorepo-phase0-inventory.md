@@ -127,7 +127,7 @@ Repository identity as observed on 2026-04-14:
    - default merge method currently resolves to squash
 19. checked-in workflow files:
    - `.github/workflows/frontend-ci.yml`
-   - `.github/workflows/dependabot-auto-merge.yml`
+   - no checked-in auto-merge workflow file was present
    - `.github/workflows/production-smoke.yml`
    - `.github/workflows/workflow-lint.yml`
    - no checked-in `pages-build-deployment` workflow file exists
@@ -138,7 +138,7 @@ Repository identity as observed on 2026-04-14:
    - `pages-build-deployment` workflow runs were still failing/cancelling on 2026-03-17
 21. checked-in legacy deployment config:
    - `vercel.json`
-   - `scripts/vercel-ignore-build.sh`
+   - `../../frontend/scripts/vercel-ignore-build.sh`
 22. repo features:
    - issues enabled
    - discussions disabled
@@ -151,7 +151,7 @@ Repository identity as observed on 2026-04-14:
 
 From the checked-in repo contents:
 
-1. both repos have a `pull_request_template.md`
+1. both repos have a `../../.github/pull_request_template.md`
 2. both repos have a `.github/dependabot.yml`
 3. neither repo currently has a checked-in `CODEOWNERS`
 4. neither repo currently has checked-in issue forms/templates
@@ -317,7 +317,7 @@ Current hidden state:
 
 1. the frontend repo has GitHub environments `Preview`, `Production`, and `github-pages`
 2. deployment history shows `vercel[bot]` deployments to `Preview` and `Production` on 2026-02-24
-3. the checked-in repo still contains `vercel.json` and `scripts/vercel-ignore-build.sh`
+3. the checked-in repo still contains `vercel.json` and `../../frontend/scripts/vercel-ignore-build.sh`
 4. the `pages-build-deployment` workflow was still running on 2026-03-17 even though the Pages API reports no configured site and no workflow file exists in the repo tree
 
 Recommended default:
@@ -364,7 +364,7 @@ As of 2026-04-14, the old frontend repo still shows:
    - `github-pages` environment still exists with a branch-policy protection rule
 4. checked-in legacy Vercel artifacts:
    - `vercel.json`
-   - `scripts/vercel-ignore-build.sh`
+   - `../../frontend/scripts/vercel-ignore-build.sh`
 
 ### Stage 1. Freeze evidence and choose the cutoff
 
@@ -862,7 +862,7 @@ disposable clone test was run on 2026-04-14.
    - subtree import completed successfully
    - the resulting dry-run commit was `b28155ec` with message:
      - `Add 'frontend/' from commit 'c8fc28b8a8b047383460e767a809b9eb83f14df4'`
-   - `frontend/package.json` and `frontend/README.md` were present
+   - `frontend/package.json` and `../../frontend/README.md` were present
    - the dry-run worktree was clean after the import commit
 5. important implementation note:
    - using the local frontend checkout as the subtree source was not reliable enough for the freeze SHA because that object was not present in the local clone's reachable refs
@@ -879,7 +879,7 @@ implementation. This section records the current technical state as of
    - critical split-repo path assumptions already updated:
      - `scripts/ci-e2e-smoke.sh` now prefers `frontend/` and keeps sibling fallback temporarily
      - `frontend/scripts/install-pre-push-hook.sh` now prefers the monorepo root `.venv`
-     - `frontend/docs/development/dev-environment-setup.md` is monorepo-aware
+     - `../../frontend/docs/development/dev-environment-setup.md` is monorepo-aware
 2. backend docs tooling:
    - `scripts/check_docs_references.py` was narrowed to the backend-owned docs surface (`docs/**` plus repo-root markdown)
    - rationale: the imported frontend includes its own markdown corpus and should not break backend MkDocs validation by existing in-tree
@@ -996,8 +996,8 @@ Completed in this pass:
 
 Intentional residue left in place:
 
-1. `scripts/ci-e2e-smoke.sh` still accepts `../healtharchive-frontend` as a compatibility path for older local layouts
-2. `frontend/README.md`, `README.md`, and deployment docs still mention Vercel only as historical context
+1. `scripts/ci-e2e-smoke.sh` still accepts a legacy sibling frontend checkout path for older local layouts
+2. `../../frontend/README.md`, `README.md`, and deployment docs still mention Vercel only as historical context
 3. Docker tags and environment-file names still use `healtharchive-frontend` where that name is part of the runtime artifact, not a source-control boundary
 
 Validation after this pass:
@@ -1007,6 +1007,49 @@ Validation after this pass:
 3. `make docs-build`
 4. `make backend-ci`
 5. `PATH="/home/jer/repos/healtharchive/healtharchive-backend/.tmp/node-v20.19.0-linux-x64/bin:$PATH" make monorepo-ci`
+
+---
+
+## Cutover execution update (2026-04-15)
+
+The app-repo cutover is now executed, not merely planned.
+
+Completed:
+
+1. canonical monorepo publication:
+   - PR `#55` merged into `jerdaw/healtharchive-backend:main`
+   - merge commit: `825275f9fd988a927edd2c9a5f6d701d7127f226`
+2. canonical default-branch validation:
+   - `Backend CI` run `24455307663` completed successfully on `main`
+   - `Frontend CI` run `24455307709` completed successfully on `main`
+   - `Workflow Lint` run `24455307681` completed successfully on `main`
+   - `Deploy Documentation` run `24455307702` completed successfully on `main`
+3. backend GitHub control-plane cutover:
+   - backend repo description updated to `HealthArchive.ca monorepo – backend services, frontend app, and documentation hub`
+   - backend repo homepage updated to `https://healtharchive.ca`
+   - live ruleset `main-protection` (`12543570`) updated in place
+   - required status checks now include:
+     - `Backend CI / test`
+     - `Backend CI / api-health`
+     - `Frontend CI / contract-sync`
+     - `Frontend CI / lint-and-test`
+4. old frontend repo pointer-state execution:
+   - old frontend repo description updated to mark it as historical
+   - old frontend repo homepage updated to the canonical in-tree frontend path
+   - pointer README committed and pushed on old frontend `main` at `adecd842b2b6f42ba7121dfdd93127aaade262ab`
+   - old frontend repo intentionally remains unarchived during the stabilization window
+5. issue carry-forward:
+   - canonical follow-up issue created as `jerdaw/healtharchive-backend#59`
+   - old frontend issue `jerdaw/healtharchive-frontend#67` closed with a pointer to `#59`
+6. local workspace normalization:
+   - backend checkout returned to clean `main` after merge
+   - old frontend checkout is clean on `main` after the pointer README push
+
+Phase-0 status after this execution:
+
+1. app-repo monorepo canonicalization is complete
+2. old frontend repo archival is intentionally deferred until after the observation window
+3. host/server migration remains a separate later execution stream owned by the `platform-ops` cutover plan
 
 ---
 
@@ -1020,3 +1063,5 @@ Phase 0 is complete only when:
 4. hidden GitHub state has been checked and either migrated, dropped, or documented
 5. Vercel/GitHub Pages behavior on the old frontend repo has an explicit disposition before import begins
 6. the old frontend repo retirement behavior is drafted before the source import begins
+
+Status: satisfied on 2026-04-15 for the app-repo cutover path.
