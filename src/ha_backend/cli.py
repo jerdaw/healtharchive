@@ -1016,8 +1016,10 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
 
     This is a read-only convenience command designed for operations.
     """
+    from collections import Counter
     from datetime import datetime, timezone
 
+    from .crawl_rescue_status import derive_crawl_rescue_status, summarize_crawl_operator_state
     from .models import ArchiveJob as ORMArchiveJob
     from .models import Source
 
@@ -1149,6 +1151,14 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
 
             job = candidates[0]
             cfg = job.config or {}
+            last_stats = job.last_stats_json or {}
+            rescue = derive_crawl_rescue_status(
+                source_code=source_code,
+                config=cfg,
+                crawler_stage=job.crawler_stage,
+                last_stats=last_stats,
+            )
+            operator_state = summarize_crawl_operator_state(job_status=job.status, rescue=rescue)
 
             is_search_ready = job.status == "indexed"
 
@@ -1169,10 +1179,25 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
                         "crawlerExitCode": job.crawler_exit_code,
                         "crawlerStatus": job.crawler_status,
                         "crawlerStage": job.crawler_stage,
+                        "lastStats": last_stats,
                         "campaignKind": cfg.get("campaign_kind"),
                         "campaignYear": cfg.get("campaign_year"),
                         "campaignDate": cfg.get("campaign_date"),
                         "schedulerVersion": cfg.get("scheduler_version"),
+                        "rescue": {
+                            "primaryBackend": rescue.primary_backend,
+                            "configuredBackend": rescue.configured_backend,
+                            "effectiveBackend": rescue.effective_backend,
+                            "fallbackBackend": rescue.fallback_backend_label,
+                            "resumePolicy": rescue.resume_policy,
+                            "freshFailureBudget": rescue.fresh_failure_budget,
+                            "status": rescue.short_status,
+                            "fallbackActive": rescue.fallback_active,
+                            "promotedToFallback": rescue.promoted_to_fallback,
+                            "note": rescue.note,
+                            "operatorState": operator_state.label,
+                            "operatorNote": operator_state.note,
+                        },
                     },
                     "blockingJob": blocking_payload,
                     "candidates": candidates_payload,
@@ -1186,6 +1211,22 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
     missing = sum(1 for r in results if r.get("status") == "missing")
     errors = sum(1 for r in results if r.get("status") == "error")
     in_progress = total_sources - indexed - failed - missing - errors
+    rescue_state_counts = Counter()
+    operator_state_counts = Counter()
+
+    for r in results:
+        job_data = r.get("job")
+        if not isinstance(job_data, dict):
+            continue
+        rescue_data = job_data.get("rescue")
+        if not isinstance(rescue_data, dict):
+            continue
+        rescue_state = str(rescue_data.get("status") or "").strip()
+        if rescue_state:
+            rescue_state_counts[rescue_state] += 1
+        operator_state = str(rescue_data.get("operatorState") or "").strip()
+        if operator_state:
+            operator_state_counts[operator_state] += 1
 
     ready_for_search = indexed == total_sources and errors == 0
 
@@ -1201,6 +1242,8 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
             "missing": missing,
             "errors": errors,
             "readyForSearch": ready_for_search,
+            "rescueStates": dict(sorted(rescue_state_counts.items())),
+            "operatorStates": dict(sorted(operator_state_counts.items())),
         },
     }
 
@@ -1215,6 +1258,12 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
         f"total={total_sources} indexed={indexed} in_progress={in_progress} "
         f"failed={failed} missing={missing} errors={errors}"
     )
+    if rescue_state_counts:
+        rescue_parts = [f"{k}={v}" for k, v in sorted(rescue_state_counts.items())]
+        print("Rescue states: " + " ".join(rescue_parts))
+    if operator_state_counts:
+        operator_parts = [f"{k}={v}" for k, v in sorted(operator_state_counts.items())]
+        print("Operator states: " + " ".join(operator_parts))
     print("")
 
     for r in results:
@@ -1251,13 +1300,22 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
         job_data = r.get("job") or {}
         if not isinstance(job_data, dict):
             job_data = {}
+        rescue_data = job_data.get("rescue") or {}
+        if not isinstance(rescue_data, dict):
+            rescue_data = {}
 
         print(
             f"{source_code}: job_id={job_data.get('jobId')} status={status} "
+            f"operator_state={rescue_data.get('operatorState')} "
+            f"backend={rescue_data.get('effectiveBackend')} "
+            f"rescue={rescue_data.get('status')} "
             f"indexed_pages={job_data.get('indexedPageCount')} retries={job_data.get('retryCount')} "
             f"crawl_rc={job_data.get('crawlerExitCode')} crawl_status={job_data.get('crawlerStatus')} "
             f"name={job_data.get('jobName')}"
         )
+        operator_note = rescue_data.get("operatorNote")
+        if operator_note:
+            print(f"     note: {operator_note}")
 
 
 def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:

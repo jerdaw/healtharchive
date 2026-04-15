@@ -95,6 +95,71 @@ class CrawlRescueStatus:
         return None
 
 
+@dataclass(frozen=True)
+class CrawlOperatorState:
+    label: str
+    note: str | None
+
+
+def summarize_crawl_operator_state(
+    *,
+    job_status: str | None,
+    rescue: CrawlRescueStatus,
+) -> CrawlOperatorState:
+    status = str(job_status or "").strip().lower() or "unknown"
+
+    if status == "running":
+        if rescue.fallback_active:
+            return CrawlOperatorState(
+                label="running-fallback",
+                note=rescue.note or f"fallback backend {rescue.effective_backend} is active",
+            )
+        if rescue.short_status == "normal":
+            return CrawlOperatorState(label="running-primary", note=None)
+        return CrawlOperatorState(label="running-rescue", note=rescue.note)
+
+    if status in {"queued", "retryable"}:
+        if rescue.short_status == "fresh-failed":
+            return CrawlOperatorState(
+                label="waiting-fresh-retry",
+                note=(
+                    f"awaiting next fresh {rescue.primary_backend} retry within the configured "
+                    "rescue budget"
+                ),
+            )
+        if rescue.short_status == "fallback-retry":
+            return CrawlOperatorState(
+                label="waiting-fallback-retry",
+                note=(
+                    f"awaiting next retry of fallback backend {rescue.effective_backend}; "
+                    "not terminal yet"
+                ),
+            )
+        if rescue.fallback_active:
+            return CrawlOperatorState(
+                label="waiting-fallback",
+                note=rescue.note or f"fallback backend {rescue.effective_backend} is configured",
+            )
+        if status == "queued":
+            return CrawlOperatorState(label="queued", note=None)
+        return CrawlOperatorState(label="waiting-retry", note=rescue.note)
+
+    if status == "completed":
+        return CrawlOperatorState(label="awaiting-index", note=None)
+    if status == "indexing":
+        return CrawlOperatorState(label="indexing", note=None)
+    if status == "indexed":
+        return CrawlOperatorState(label="search-ready", note=None)
+    if status == "index_failed":
+        return CrawlOperatorState(label="index-failed", note="crawl completed; indexing needs attention")
+    if status == "failed":
+        if rescue.short_status == "fallback-exhausted":
+            return CrawlOperatorState(label="failed-fallback-exhausted", note=rescue.note)
+        return CrawlOperatorState(label="failed", note=rescue.note)
+
+    return CrawlOperatorState(label=status, note=rescue.note)
+
+
 def derive_crawl_rescue_status(
     *,
     source_code: str | None,
@@ -154,8 +219,10 @@ def derive_crawl_rescue_status(
 
 
 __all__ = [
+    "CrawlOperatorState",
     "CrawlRescueStatus",
     "PROMOTION_REASON_FRESH_FAILURE_BUDGET",
     "derive_crawl_rescue_status",
     "infer_primary_backend",
+    "summarize_crawl_operator_state",
 ]

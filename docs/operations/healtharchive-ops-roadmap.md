@@ -54,15 +54,15 @@ Keep the two synced copies of this file aligned:
 - PHAC annual crawl repo-side control-plane fixes remain deployed and verified,
   but the source still needs deeper runtime investigation before another live
   retry.
-- Rescue observability follow-through is now partially implemented in repo:
+- Rescue observability follow-through is now implemented in repo:
   - `ha-backend list-jobs` now surfaces effective backend plus compact rescue
     state.
   - `ha-backend show-job` now surfaces
     primary/configured/effective backend plus fallback/promotion details.
+  - `ha-backend annual-status` now acts as the compact annual rescue summary
+    surface, including backend/rescue/operator-state summaries.
   - crawl textfile metrics now expose backend/fallback rescue state.
-  - remaining follow-through is narrower: add a compact annual rescue summary
-    surface, make intentional backoff vs active failure clearer, and finish the
-    operator-doc updates after the live PHAC path is calmer.
+  - CLI docs now document the shorter operator path for annual rescue state.
 - Alerting/report hygiene from the recent crawl work is deployed:
   - bounded content reporting is now the preferred operator diagnostic for live
     crawl cost/failure classification.
@@ -129,10 +129,12 @@ Treat the following as the current ops execution order:
       - `ha-backend list-jobs` surfaces effective backend + compact rescue state
       - `ha-backend show-job` surfaces primary/configured/effective backend plus fallback/promotion details
       - crawl textfile metrics now expose backend/fallback rescue state
-    - remaining follow-through is now narrower:
-      - add a compact annual rescue summary surface
-      - make intentional backoff vs active failure clearer
-      - update more operator/runbook docs once HC/PHAC rescue is calmer
+  - Repo update on 2026-04-15:
+    - `ha-backend annual-status` now provides the compact annual rescue summary
+      surface for operators
+    - `operator_state` output now distinguishes intentional retry/backoff from
+      active or terminal failure states
+    - CLI docs now describe the rescue-summary workflow directly
   - Next steps:
     - use the settled HC rescue result plus the new rescue-visibility surfaces
       to define the next PHAC-specific runtime test

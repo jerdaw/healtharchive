@@ -118,9 +118,9 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 ### Documentation platform governance (cross-repo)
 
 - Keep this repo on MkDocs 1.x plus Material for now; do not treat MkDocs as the strategic default for new standalone docs sites.
-- Do not migrate this repo before the shared `qquotes` ProperDocs pilot reports back. This repo uses a plugin-heavy docs stack and should not be the proving ground.
-- Shared decision gate: review the pilot on 2026-06-15. If it passes, low-complexity repos can start moving to ProperDocs first. If it fails or stalls, prefer Sphinx + MyST as the mature fallback for any future docs rebuild.
-- Keep Zensical on watch only until strict/deploy/plugin maturity is clearer for this repo's current documentation requirements.
+- The intended replacement is Zensical, but this repo is a later-wave candidate because it uses a plugin-heavier docs stack and should not be the proving ground.
+- Let `qquotes`, then `visitbrief`, then `waittimecanada` prove the migration path first; revisit this repo only after the required plugin parity is real.
+- If Zensical stalls or misses the needed compatibility for too long, prefer Sphinx + MyST as the mature fallback for any future docs rebuild.
 
 ### Storage & retention (backend)
 
@@ -153,21 +153,10 @@ Keep this list short; prefer linking to the canonical doc that explains the item
       intended PHAC coverage without reintroducing failure churn
     - decide whether the temporary exclusion is still needed once the deeper
       issue is understood
+    - keep the operator path centered on `annual-status`, `list-jobs`, and
+      `show-job` so the next PHAC live test is observable without ad hoc log
+      reconstruction
   - Related docs: `../operations/annual-campaign.md`, `../operations/healtharchive-ops-roadmap.md`
-- Improve crawl rescue observability and operator ergonomics for annual jobs.
-  - Goal: make it obvious from normal operator surfaces which backend a rescue job is currently using, whether fallback promotion already occurred, why it occurred, and whether the fallback path is healthy.
-  - Why this matters: the HC rescue control flow worked on prod, but the operator still had to identify the current log by mtime and reconstruct rescue state from multiple metrics/log fragments.
-  - Initial implementation slice is now in repo:
-    - shared rescue-status derivation for operator surfaces
-    - `list-jobs` backend/rescue columns
-    - `show-job` rescue details
-    - crawl textfile metrics for backend/fallback rescue state
-    - focused tests covering the new rescue visibility behavior
-  - Remaining work:
-    - add a compact annual-rescue summary/reporting command
-    - make intentional backoff vs active failure clearer from standard operator surfaces
-    - finish the runbook/operator-doc follow-through after the live annual rescue path is calmer
-  - Related docs: `../operations/healtharchive-ops-roadmap.md`, `README.md`
 - Continue crawl telemetry calibration from live annual-crawl runs, but use dashboard trends (crawl rate / phase churn / progress age) rather than direct throughput alerts.
   - Current focus: validate dashboard thresholds/visual cues and only promote a signal back into Alertmanager if it becomes clearly actionable.
   - Related docs: `../operations/monitoring-and-alerting.md`, `../operations/healtharchive-ops-roadmap.md`

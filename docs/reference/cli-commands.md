@@ -612,6 +612,31 @@ ha-backend annual-status --year 2026
 ha-backend annual-status --year 2026 --json
 ```
 
+**Text output**:
+```
+Annual campaign status — 2026-01-01 (Jan 01 UTC)
+Ready for search: NO
+Summary: total=3 indexed=1 in_progress=2 failed=0 missing=0 errors=0
+Rescue states: fallback-active=1 fresh-failed=1 normal=1
+Operator states: running-fallback=1 search-ready=1 waiting-fresh-retry=1
+
+hc: job_id=6 status=running operator_state=running-fallback backend=playwright_warc rescue=fallback-active indexed_pages=0 retries=0 crawl_rc=None crawl_status=None name=hc-20260101
+     note: promoted from browsertrix to playwright_warc after fresh-failure budget exhaustion
+phac: job_id=7 status=retryable operator_state=waiting-fresh-retry backend=browsertrix rescue=fresh-failed indexed_pages=0 retries=1 crawl_rc=1 crawl_status=failed name=phac-20260101
+     note: awaiting next fresh browsertrix retry within the configured rescue budget
+cihr: job_id=8 status=indexed operator_state=search-ready backend=browsertrix rescue=normal indexed_pages=4123 retries=0 crawl_rc=0 crawl_status=success name=cihr-20260101
+```
+
+`annual-status` is now the compact annual rescue summary surface:
+
+- `backend` shows the current effective backend for each annual job.
+- `rescue` shows the compact rescue status (`normal`, `fresh-failed`,
+  `fallback-active`, `fallback-retry`, `fallback-exhausted`).
+- `operator_state` distinguishes active work from intentional waiting states,
+  so `retryable` jobs in backoff do not read like terminal failures.
+- `--json` includes per-job `rescue` details plus summary-level `rescueStates`
+  and `operatorStates` counts for downstream tooling.
+
 ### reconcile-annual-tool-options
 
 Reconcile existing annual jobs to source-specific crawl profiles.
