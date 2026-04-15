@@ -3,7 +3,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 from enum import Enum
-from typing import Iterable, Iterator, Literal, Sequence
+from typing import Iterable, Iterator, Literal, Sequence, TypeGuard
 
 FieldName = Literal["title", "snippet", "url"]
 
@@ -60,6 +60,10 @@ _ADVANCED_HINT_RE = re.compile(
     r"(\(|\)|\bAND\b|\bOR\b|\bNOT\b|(?:^|\s)-[A-Za-z0-9]|\b(?:title|snippet|url):)",
     re.IGNORECASE,
 )
+
+
+def _is_field_name(value: str) -> TypeGuard[FieldName]:
+    return value in _FIELD_SET
 
 
 def looks_like_advanced_query(value: str) -> bool:
@@ -246,7 +250,7 @@ class _Parser:
 
         if self._match(TokenType.colon):
             field_value = (tok.value or "").lower()
-            if field_value not in _FIELD_SET:
+            if not _is_field_name(field_value):
                 raise QueryParseError(f"Unknown field: {field_value}")
             field = field_value
 

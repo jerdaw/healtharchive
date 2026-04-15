@@ -34,6 +34,7 @@ Essential playbooks for daily operator work:
 - **Operator responsibilities**: [core/operator-responsibilities.md](core/operator-responsibilities.md) — Core operator duties
 - **Deploy & verify**: [core/deploy-and-verify.md](core/deploy-and-verify.md) — Deployment workflow
 - **Incident response**: [core/incident-response.md](core/incident-response.md) — When something breaks
+- **Assistant-guided production session**: [core/assistant-guided-production-session.md](core/assistant-guided-production-session.md) — Safe direct diagnosis on the VPS
 - **Admin proxy**: [core/admin-proxy.md](core/admin-proxy.md) — Browser-friendly ops triage
 - **Replay service**: [core/replay-service.md](core/replay-service.md) — Replay service operations
 

@@ -53,6 +53,10 @@ This file is intentionally brief; it points to canonical docs when you need deta
 
 - Keep secrets (admin token, DB URL, ping URLs) out of git forever.
   - Canonical: `../../../deployment/production-single-vps.md`
+- If you use an assistant directly on the production VPS, treat it as a
+  time-boxed, operator-supervised session with a read-only default and explicit
+  approval for any state change.
+  - Playbook: `assistant-guided-production-session.md`
 - Maintain HSTS at Caddy for `api.healtharchive.ca`.
   - Canonical: `../../../deployment/hosting-and-live-server-to-dos.md`
 - Maintain a strict CORS allowlist; treat widening it as a deliberate security decision.
