@@ -61,6 +61,7 @@ APPLY_ALERTING="false"
 PUBLIC_API_BASE="https://api.healtharchive.ca"
 PUBLIC_FRONTEND_BASE="https://healtharchive.ca"
 PUBLIC_TIMEOUT_SECONDS="20"
+WORKER_STATUS_GATES_DEPLOY="true"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -245,8 +246,32 @@ wait_for_health() {
   echo "ERROR: Health check failed after ${attempts} attempts: ${url}" >&2
   echo "Hint: Inspect service status and logs:" >&2
   echo "  sudo systemctl status healtharchive-api healtharchive-worker --no-pager -l" >&2
+  if [[ "${WORKER_STATUS_GATES_DEPLOY}" != "true" ]]; then
+    echo "  # Note: worker restart/status was intentionally non-gating for this deploy." >&2
+  fi
   echo "  sudo journalctl -u healtharchive-api -n 200 --no-pager" >&2
   return 1
+}
+
+report_service_statuses() {
+  run sudo systemctl status healtharchive-api --no-pager -l
+
+  if [[ "${WORKER_STATUS_GATES_DEPLOY}" == "true" ]]; then
+    run sudo systemctl status healtharchive-worker --no-pager -l
+    return 0
+  fi
+
+  if [[ "${APPLY}" != "true" ]]; then
+    echo "+ sudo systemctl is-active healtharchive-worker || true"
+    echo "+ sudo systemctl status healtharchive-worker --no-pager -l || true"
+    return 0
+  fi
+
+  local worker_state=""
+  worker_state="$(sudo systemctl is-active healtharchive-worker 2>/dev/null || true)"
+  echo "INFO: Worker restart was skipped; current worker state: ${worker_state:-unknown}."
+  echo "      Reporting worker status without gating deploy success."
+  sudo systemctl status healtharchive-worker --no-pager -l || true
 }
 
 lock_dir="$(dirname "${LOCK_FILE}")"
@@ -350,7 +375,8 @@ if [[ "${SKIP_RESTART}" != "true" ]]; then
     echo "Skipping worker restart."
   fi
 
-  run sudo systemctl status healtharchive-api healtharchive-worker --no-pager -l
+  WORKER_STATUS_GATES_DEPLOY="${restart_worker}"
+  report_service_statuses
 
   if [[ "${RESTART_REPLAY}" == "true" ]]; then
     BANNER_SRC="${REPO_DIR}/docs/deployment/pywb/custom_banner.html"

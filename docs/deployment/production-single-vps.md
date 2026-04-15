@@ -307,6 +307,9 @@ Notes:
   **skip restarting `healtharchive-worker`** by default (to avoid SIGTERMing an active crawl).
   - To force a worker restart (only when you are OK interrupting crawls): `./scripts/vps-deploy.sh --apply --force-worker-restart`
   - To explicitly skip the worker restart regardless of job status: `./scripts/vps-deploy.sh --apply --skip-worker-restart`
+  - When the worker restart is skipped, the script reports worker status for visibility but no longer treats an
+    inactive worker as a fatal pre-health-check deploy failure; API readiness and post-deploy verification remain
+    the completion gates.
 
 ---
 

@@ -51,6 +51,8 @@ What this changes:
 - Runs DB migrations (`alembic upgrade head`).
 - Restarts the `healtharchive-api` service.
 - Restarts `healtharchive-worker` (only if no jobs are actively crawling).
+- If the worker restart is intentionally skipped (for example during a controlled maintenance window),
+  the script still reports worker status but keeps the deploy gate on API health and later verification.
 
 ### 3) Enable Auto-Reconciliation Watchdog (One-time)
 
@@ -82,6 +84,10 @@ What this changes:
   ```bash
   sudo systemctl status healtharchive-api healtharchive-worker healtharchive-drift-auto-reconcile.timer
   ```
+
+  Note: if you ran the deploy with `--skip-worker-restart`, an inactive worker can be expected during the
+  maintenance window. In that case, treat API health and the post-deploy public verification as the
+  deploy-completion gates, then resume the worker under the window procedure you are following.
 
 - **Watchdog Metrics**: If Prometheus/Grafana is setup, verify `healtharchive_drift_auto_reconcile_enabled 1` exists in metrics.
 
