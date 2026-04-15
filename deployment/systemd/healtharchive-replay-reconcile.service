@@ -9,7 +9,7 @@ ConditionPathExists=/etc/healtharchive/replay-automation-enabled
 [Service]
 Type=oneshot
 User=haadmin
-WorkingDirectory=/opt/healtharchive-backend
+WorkingDirectory=/opt/healtharchive
 EnvironmentFile=/etc/healtharchive/backend.env
 EnvironmentFile=-/etc/healtharchive/healthchecks.env
 
@@ -21,4 +21,4 @@ IOSchedulingPriority=6
 # pywb reindex time scales with WARC size; allow long runs.
 TimeoutStartSec=6h
 
-ExecStart=/opt/healtharchive-backend/scripts/systemd-healthchecks-wrapper.sh --ping-var HEALTHARCHIVE_HC_PING_REPLAY_RECONCILE -- /opt/healtharchive-backend/.venv/bin/ha-backend replay-reconcile --apply --max-jobs 1 --collections-dir /srv/healtharchive/replay/collections --warcs-host-root /srv/healtharchive/jobs --warcs-container-root /warcs --lock-file /srv/healtharchive/replay/.locks/replay-reconcile.lock
+ExecStart=/opt/healtharchive/scripts/systemd-healthchecks-wrapper.sh --ping-var HEALTHARCHIVE_HC_PING_REPLAY_RECONCILE -- /opt/healtharchive/.venv/bin/healtharchive replay-reconcile --apply --max-jobs 1 --collections-dir /srv/healtharchive/replay/collections --warcs-host-root /srv/healtharchive/jobs --warcs-container-root /warcs --lock-file /srv/healtharchive/replay/.locks/replay-reconcile.lock

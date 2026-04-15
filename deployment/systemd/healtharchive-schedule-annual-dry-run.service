@@ -7,6 +7,6 @@ ConditionPathExists=/etc/healtharchive/backend.env
 [Service]
 Type=oneshot
 User=haadmin
-WorkingDirectory=/opt/healtharchive-backend
+WorkingDirectory=/opt/healtharchive
 EnvironmentFile=/etc/healtharchive/backend.env
-ExecStart=/usr/bin/bash -c '/opt/healtharchive-backend/.venv/bin/ha-backend schedule-annual --year $(date -u +%%Y) --sources hc phac cihr'
+ExecStart=/usr/bin/bash -c '/opt/healtharchive/.venv/bin/healtharchive schedule-annual --year $(date -u +%%Y) --sources hc phac cihr'

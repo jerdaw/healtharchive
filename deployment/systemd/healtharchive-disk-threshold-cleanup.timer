@@ -1,6 +1,6 @@
 [Unit]
 Description=HealthArchive disk threshold cleanup timer
-Documentation=https://github.com/jerdaw/healtharchive-backend
+Documentation=https://github.com/jerdaw/healtharchive
 
 [Timer]
 # Run every 30 minutes

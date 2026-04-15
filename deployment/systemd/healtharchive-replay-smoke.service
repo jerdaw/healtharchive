@@ -17,4 +17,4 @@ Nice=10
 IOSchedulingClass=best-effort
 IOSchedulingPriority=6
 
-ExecStart=/opt/healtharchive-backend/scripts/systemd-healthchecks-wrapper.sh --ping-var HEALTHARCHIVE_HC_PING_REPLAY_SMOKE -- /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-replay-smoke-textfile.py --config /opt/healtharchive-backend/ops/automation/replay-smoke.toml
+ExecStart=/opt/healtharchive/scripts/systemd-healthchecks-wrapper.sh --ping-var HEALTHARCHIVE_HC_PING_REPLAY_SMOKE -- /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-replay-smoke-textfile.py --config /opt/healtharchive/ops/automation/replay-smoke.toml
