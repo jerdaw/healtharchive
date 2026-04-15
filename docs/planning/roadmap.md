@@ -161,6 +161,9 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Current policy is implemented for new work: accepted dependency updates should land via new human-authored commits, superseded bot PRs should be closed, and future branches should avoid bot/assistant/CI-only authorship.
   - Remaining gap: older published history still contains historical Dependabot and CI-only authorship in some repos/branches.
   - Do this only with an explicit migration + force-push plan, because it would rewrite shared history across clones and open branches.
+- Review or retire unmerged long-lived work branches before they become orphaned.
+  - Current known case: `origin/wip/playwright-warc-backend` is a human-authored six-commit branch with no PR and a large drift from `main`.
+  - Resolve it with an explicit keep/squash/delete decision instead of silent branch accumulation.
 
 ## Quality, governance, and product backlog (cross-repo)
 
