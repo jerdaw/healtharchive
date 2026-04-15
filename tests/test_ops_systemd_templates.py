@@ -134,3 +134,14 @@ def test_api_systemd_template_defaults_to_multiple_workers() -> None:
     assert "Environment=HEALTHARCHIVE_API_WORKERS=2" in text
     assert '--workers "${HEALTHARCHIVE_API_WORKERS}"' in text
     assert "--proxy-headers" in text
+
+
+def test_worker_systemd_template_uses_healtharchive_cli() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    unit_path = repo_root / "docs" / "deployment" / "systemd" / "healtharchive-worker.service"
+    text = unit_path.read_text(encoding="utf-8")
+    assert "ConditionPathExists=/etc/healtharchive/backend.env" in text
+    assert "ConditionPathExists=/opt/healtharchive/.venv/bin/healtharchive" in text
+    assert "WorkingDirectory=/opt/healtharchive" in text
+    assert "ExecStart=/opt/healtharchive/.venv/bin/healtharchive start-worker --poll-interval 30" in text
+    assert "ha-backend" not in text

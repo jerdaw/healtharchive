@@ -1,0 +1,18 @@
+[Unit]
+Description=HealthArchive Worker
+After=network.target postgresql.service docker.service
+Requires=postgresql.service docker.service
+ConditionPathExists=/etc/healtharchive/backend.env
+ConditionPathExists=/opt/healtharchive/.venv/bin/healtharchive
+
+[Service]
+Type=simple
+User=haadmin
+WorkingDirectory=/opt/healtharchive
+EnvironmentFile=/etc/healtharchive/backend.env
+ExecStart=/opt/healtharchive/.venv/bin/healtharchive start-worker --poll-interval 30
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
