@@ -14,8 +14,9 @@ For `archive_tool` internals (log parsing, Docker orchestration, run modes),
 see `src/archive_tool/docs/documentation.md`. For a shorter, task‑oriented
 overview of common commands and local testing flows, see
 `development/live-testing.md`. For deployment‑oriented configuration
-(staging/prod env vars, DNS, Vercel), see
-`deployment/hosting-and-live-server-to-dos.md`.
+(staging/prod env vars, DNS, and the historical preview path), see
+`deployment/hosting-and-live-server-to-dos.md`. For the implemented VPS
+deployment runbook, see `deployment/production-single-vps.md`.
 
 ---
 
@@ -861,7 +862,18 @@ Public Pydantic models:
 
 - `GET /api/health`:
 
-  - Returns JSON with:
+  - Returns lightweight JSON with:
+
+    ```json
+    {
+      "status": "ok",
+      "checks": {
+        "db": "ok"
+      }
+    }
+    ```
+
+  - `GET /api/health?details=1` adds summary counts:
 
     ```json
     {
@@ -870,8 +882,7 @@ Public Pydantic models:
         "db": "ok",
         "jobs": {
           "queued": 1,
-          "indexed": 5,
-          ...
+          "indexed": 5
         },
         "snapshots": {
           "total": 12345
@@ -1319,8 +1330,8 @@ touching real data.
   - Its internal behavior (Docker orchestration, run modes, monitoring,
     adaptive strategies) is documented in `src/archive_tool/docs/documentation.md`.
 
-- **Frontend (healtharchive-frontend)**:
-  - Next.js 16 app using the backend’s HTTP APIs:
+- **Frontend (`frontend/` in this repo)**:
+  - In-tree Next.js 16 app using the backend’s HTTP APIs:
     - `/api/health`
     - `/api/sources`
     - `/api/search`

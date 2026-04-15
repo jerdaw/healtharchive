@@ -64,6 +64,13 @@ def _parse_env_file(path: Path) -> dict[str, str]:
     return out
 
 
+def _read_secret_file(path: Path) -> str:
+    """
+    Read a single-value secret file without preserving trailing newlines.
+    """
+    return _read_text(path).strip().replace("\r", "").replace("\n", "")
+
+
 def _redact_database_url(value: str) -> str:
     """
     Redact credentials while keeping scheme + host/db helpful for debugging.
@@ -394,6 +401,33 @@ def collect_observed(*, policy: dict[str, Any], mode: str = "local") -> dict[str
 
     admin_token = raw_env.get("HEALTHARCHIVE_ADMIN_TOKEN")
     env["HEALTHARCHIVE_ADMIN_TOKEN_present"] = bool(admin_token and admin_token.strip())
+
+    prometheus_token_file = Path(
+        policy.get("files", {}).get(
+            "prometheus_backend_admin_token_file",
+            "/etc/healtharchive/observability/prometheus_backend_admin_token",
+        )
+    )
+    prometheus_token: str | None = None
+    prometheus_token_error: str | None = None
+    if prometheus_token_file.exists():
+        try:
+            prometheus_token = _read_secret_file(prometheus_token_file)
+            if not prometheus_token:
+                prometheus_token_error = "empty"
+        except Exception as exc:  # noqa: BLE001
+            prometheus_token_error = f"{type(exc).__name__}: {exc}"
+    else:
+        prometheus_token_error = "missing"
+
+    env["PROMETHEUS_BACKEND_ADMIN_TOKEN_present"] = bool(prometheus_token)
+    env["PROMETHEUS_BACKEND_ADMIN_TOKEN_matches_backend_env"] = (
+        bool(admin_token and prometheus_token and prometheus_token == admin_token)
+        if env["HEALTHARCHIVE_ADMIN_TOKEN_present"]
+        else None
+    )
+    if prometheus_token_error:
+        env["PROMETHEUS_BACKEND_ADMIN_TOKEN_error"] = prometheus_token_error
 
     db_url = raw_env.get("HEALTHARCHIVE_DATABASE_URL")
     if db_url:

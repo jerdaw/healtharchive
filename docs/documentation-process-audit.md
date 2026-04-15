@@ -3,9 +3,9 @@
 Scope: HealthArchive project documentation processes and subprocesses across:
 
 - `healtharchive-backend` (ops, runbooks, incident notes, canonical internal docs)
-- `healtharchive-frontend` (public policy/reporting surfaces, UX copy, changelog)
+- the frontend app in `healtharchive-backend/frontend/` (public policy/reporting surfaces, UX copy, changelog)
 - `healtharchive-datasets` (dataset release documentation and integrity posture)
-- The local “workspace of sibling repos” convention used in `/home/jer/LocalSync/healtharchive/`
+- the older “workspace of sibling repos” convention used in `/home/jer/LocalSync/healtharchive/`
 
 Goal: assess whether the documentation system is well-designed, maintainable, and aligned with modern best practices (docs-as-code + operational excellence), and identify concrete upgrades.
 
@@ -44,7 +44,7 @@ This is the set of documents that define *how* documentation is produced, mainta
   - `healtharchive-backend/docs/operations/README.md`
   - `healtharchive-backend/docs/operations/playbooks/README.md`
   - `healtharchive-backend/docs/planning/README.md`
-  - https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/README.md
+  - `healtharchive-backend/docs/frontend-external/README.md`
 
 ### Planning / change management
 
@@ -79,11 +79,11 @@ This is the set of documents that define *how* documentation is produced, mainta
 ### Public-facing reporting surfaces (documentation for users)
 
 - Changelog content lives in code, but is effectively “public documentation”:
-  - https://github.com/jerdaw/healtharchive-frontend/blob/main/src/content/changelog.ts
-  - (process) https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/changelog-process.md
+  - https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/src/content/changelog.ts
+  - (process) https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/changelog-process.md
 - Status/impact pages are public reporting surfaces (operational transparency):
-  - https://github.com/jerdaw/healtharchive-frontend/blob/main/src/app/%5Blocale%5D/status/page.tsx
-  - https://github.com/jerdaw/healtharchive-frontend/blob/main/src/app/%5Blocale%5D/impact/page.tsx
+  - https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/src/app/%5Blocale%5D/status/page.tsx
+  - https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/src/app/%5Blocale%5D/impact/page.tsx
 
 ### Release + reproducibility subprocesses
 
@@ -108,7 +108,7 @@ Evidence:
 
 Residual risks:
 
-- Some “project-level” navigation depends on having sibling repos locally (fine for operators, less ideal for single-repo readers on GitHub).
+- Some “project-level” navigation still relies on GitHub blob links for in-tree frontend code/docs that live outside MkDocs navigation.
 
 ### 2) Single source of truth / drift control — Green
 
@@ -190,7 +190,7 @@ These are low-risk upgrades that make doc creation and maintenance more consiste
 
 - Docs reference sanity checks (broken links/path refs):
   - Backend: `healtharchive-backend/scripts/check_docs_references.py` (wired into `healtharchive-backend/Makefile`)
-  - Frontend: https://github.com/jerdaw/healtharchive-frontend/blob/main/scripts/check-doc-references.mjs (wired into `package.json`)
+  - Frontend: `healtharchive-backend/frontend/scripts/check-doc-references.mjs` (wired into `frontend/package.json`)
   - Datasets: https://github.com/jerdaw/healtharchive-datasets/blob/main/scripts/check_docs_references.py (wired into `Makefile`)
 - Standardized templates:
   - `healtharchive-backend/docs/deployment/runbook-template.md`
@@ -201,7 +201,7 @@ These are low-risk upgrades that make doc creation and maintenance more consiste
 - Clearer doc taxonomy, quality bar, and lifecycle guidance:
   - `healtharchive-backend/docs/documentation-guidelines.md`
 - Public changelog SOP (source of truth, format, localization rules):
-  - https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/changelog-process.md
+  - https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/changelog-process.md
 - Stronger “incident → public-safe note” expectation (optional but recommended for sev0/sev1):
   - `healtharchive-backend/docs/operations/incidents/README.md`
   - `healtharchive-backend/docs/operations/incidents/incident-template.md`
@@ -209,7 +209,6 @@ These are low-risk upgrades that make doc creation and maintenance more consiste
   - `healtharchive-backend/docs/operations/ops-cadence-checklist.md`
 - Process nudges in PR templates:
   - `healtharchive-backend/.github/pull_request_template.md`
-  - https://github.com/jerdaw/healtharchive-frontend/blob/main/.github/pull_request_template.md
 
 ---
 

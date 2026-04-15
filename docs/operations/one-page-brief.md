@@ -2,7 +2,7 @@
 
 Canonical public copy lives in:
 
-- https://github.com/jerdaw/healtharchive-frontend/blob/main/public/partner-kit/healtharchive-brief.md
+- https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/public/partner-kit/healtharchive-brief.md
 - Live page: https://healtharchive.ca/brief
 
-If you need to update the brief, edit the frontend asset and deploy the frontend.
+If you need to update the brief, edit the in-tree frontend asset and deploy the frontend.

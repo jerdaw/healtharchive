@@ -1,6 +1,7 @@
 # Documentation Guidelines (internal)
 
-Keep documentation accurate, minimal, and easy to maintain across repos.
+Keep documentation accurate, minimal, and easy to maintain across the app
+monorepo and the separate datasets repo.
 
 ## Canonical sources
 
@@ -11,39 +12,39 @@ Keep documentation accurate, minimal, and easy to maintain across repos.
 - Ops roadmap/todo: `docs/operations/healtharchive-ops-roadmap.md`
 - Future roadmap backlog (not-yet-implemented work): `docs/planning/roadmap.md`
 - Implemented plans archive (historical records): `docs/planning/implemented/`
-- Frontend documentation (canonical): https://github.com/jerdaw/healtharchive-frontend/tree/main/docs
+- Frontend documentation (canonical): https://github.com/jerdaw/healtharchive-backend/tree/main/frontend/docs
 - Datasets documentation (canonical): https://github.com/jerdaw/healtharchive-datasets
 
-## Multi-repo boundary (avoid bleed)
+## App/docs boundary (avoid bleed)
 
-This documentation site is built from the **backend repo only**.
+This documentation site is built from the repo-root `docs/` tree only.
 
-- Frontend docs are canonical in the frontend repo (`docs/**`) and should be linked-to, not copied into this site.
+- Frontend docs are canonical in `frontend/docs/**` and should be linked-to, not copied into this site.
 - Datasets docs are canonical in the datasets repo and should be linked-to, not copied into this site.
 - Frontend PRs should not break backend docs builds (and vice versa).
 
-## Cross-repo linking (avoid drift)
+## Cross-surface linking (avoid drift)
 
-When referencing another repo from docs in this repo:
+When referencing frontend paths or another repo from docs in this repo:
 
 - **For documentation references**: Use GitHub URLs
   ```markdown
   # Good
-  See the [frontend i18n guide](https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/i18n.md)
+  See the [frontend i18n guide](https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/i18n.md)
 
   # Avoid
-  See `healtharchive-frontend/docs/i18n.md`
+  See `frontend/docs/i18n.md`
   ```
 
 - **For command examples**: Workspace-relative paths are fine
   ```bash
   # This is appropriate in a development guide
-  cd ../healtharchive-frontend && npm ci
+  cd frontend && npm ci
   ```
 
 - **For project names in prose**: Use simple names
   ```markdown
-  The healtharchive-frontend repository handles the public UI.
+  The in-tree frontend under `frontend/` handles the public UI.
   ```
 
 - Treat cross-repo references as pointers. Do not copy text across repos unless it is an intentional public-safe excerpt.
@@ -51,9 +52,9 @@ When referencing another repo from docs in this repo:
 
 ### External pointer pages
 
-If you want another repo’s docs to be discoverable from the docs portal, add a
+If you want frontend or another repo’s docs to be discoverable from the docs portal, add a
 small pointer page under `docs/*-external/` and add it to `mkdocs.yml` `nav`.
-Do not mirror the other repo’s docs into this site.
+Do not mirror `frontend/docs/` or another repo’s docs into this site.
 
 ## Navigation policy
 
@@ -165,7 +166,7 @@ These support but don't replace the four main types:
 - **Index (`README.md`)**: Navigation only; points to canonical docs
 - **Log/record**: Dated, append-only operational evidence (restore tests, adoption signals)
 - **Template**: Scaffolds in `docs/_templates/`
-- **Pointer**: Short files linking to canonical docs (e.g., `frontend-external/`)
+- **Pointer**: Short files linking to canonical docs (e.g., legacy `frontend-external/`)
 
 ## Document types (detailed taxonomy)
 
@@ -188,7 +189,7 @@ For anything public-facing (policy pages, changelog, partner kit):
 - Keep it **public-safe** (no secrets/emails/internal hostnames; avoid sensitive incident details).
 - Prefer stable claims tied to stable artifacts (URLs, tags, filenames, commit SHAs).
 - Record meaningful changes in the public changelog:
-  - Process: https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/changelog-process.md
+  - Process: https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/changelog-process.md
 
 ## Lifecycle (avoid drift)
 

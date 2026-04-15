@@ -1,0 +1,11 @@
+.next/
+out/
+build/
+coverage/
+node_modules/
+.vercel/
+
+package-lock.json
+
+# Curated demo assets; avoid reformatting unless explicitly editing them.
+public/demo-archive/

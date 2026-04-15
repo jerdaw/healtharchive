@@ -6,13 +6,16 @@
 ## Trigger
 
 This alert fires when a running crawl has more than 100 tracked `.tmp*`
-directories for at least 1 hour:
+directories for at least 1 hour and that count has grown by at least 5 over the
+last 12 hours:
 
 - `healtharchive_crawl_running_job_temp_dirs_count > 100`
+- `max_over_time(temp_dirs_count[12h]) - min_over_time(temp_dirs_count[12h]) >= 5`
 
-The metric comes from `temp_dirs_host_paths` in the job's
-`.archive_state.json`, so this is real crawl-stage churn, not just a loose
-filesystem glob.
+The metric comes from `temp_dirs_host_paths` in the job's `.archive_state.json`,
+so this is real crawl-stage churn, not just a loose filesystem glob. The
+growth guard is there to suppress stale warnings when a long-lived crawl has a
+historically high temp-dir count that is no longer climbing.
 
 ## Meaning
 

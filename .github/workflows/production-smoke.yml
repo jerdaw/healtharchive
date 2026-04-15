@@ -1,0 +1,41 @@
+name: Production Smoke
+
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: healtharchive-production-smoke
+  cancel-in-progress: false
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify frontend apex response
+        run: |
+          curl -sSI https://healtharchive.ca > apex.headers
+          grep -Eq '^HTTP/.* 200' apex.headers
+
+      - name: Verify www redirect
+        run: |
+          curl -sSI https://www.healtharchive.ca > www.headers
+          grep -Eq '^HTTP/.* (301|308)' www.headers
+          grep -Eqi '^location: https://healtharchive\.ca/?$' www.headers
+
+      - name: Verify API health
+        run: |
+          python - <<'PY'
+          import json
+          import urllib.request
+
+          with urllib.request.urlopen("https://api.healtharchive.ca/api/health", timeout=20) as response:
+              payload = json.load(response)
+
+          assert payload.get("status") == "ok", payload
+          print(payload)
+          PY
+
+      - name: Verify replay surface
+        run: |
+          curl -sSI https://replay.healtharchive.ca > replay.headers
+          grep -Eq '^HTTP/.* 200' replay.headers

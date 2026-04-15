@@ -91,16 +91,13 @@ curl "https://api.healtharchive.ca/api/snapshot/42"
 
 ---
 
-## Multi-Repo Project
+## Project Repositories
 
-HealthArchive uses a multi-repo architecture:
+HealthArchive now uses a single app monorepo plus a separate datasets repo:
 
-- **Backend** (this repo): API, crawler, database, operations
+- **App monorepo** (this repo): backend API, crawler, docs hub, and the in-tree frontend under `frontend/`
   - GitHub: [jerdaw/healtharchive-backend](https://github.com/jerdaw/healtharchive-backend)
   - Docs: [docs.healtharchive.ca](https://docs.healtharchive.ca)
-
-- **Frontend**: Public website UI
-  - GitHub: [jerdaw/healtharchive-frontend](https://github.com/jerdaw/healtharchive-frontend)
   - Live Site: [healtharchive.ca](https://healtharchive.ca)
 
 - **Datasets**: Versioned data releases
@@ -115,6 +112,8 @@ See the [Project Overview](project.md) for detailed navigation.
 | Task | Command |
 |------|---------|
 | Run all checks | `make ci` |
+| Run frontend checks | `make frontend-ci` |
+| Sync generated API contract | `make contract-sync` |
 | Start API server | `uvicorn ha_backend.api:app --reload --port 8001` |
 | Start worker | `ha-backend start-worker --poll-interval 30` |
 | Create a crawl job | `ha-backend create-job --source hc` |

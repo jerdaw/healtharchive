@@ -45,12 +45,11 @@ def test_health_check_succeeds_with_empty_database(tmp_path, monkeypatch):
     data = response.json()
     assert data["status"] == "ok"
     assert "checks" in data
-    # Checks should have db, jobs, and snapshots
     checks = data["checks"]
     assert "db" in checks
     assert checks["db"] == "ok"
-    assert "snapshots" in checks
-    assert isinstance(checks["snapshots"]["total"], int)
+    assert "jobs" not in checks
+    assert "snapshots" not in checks
 
 
 def test_health_check_with_missing_optional_fields(tmp_path, monkeypatch):
@@ -82,7 +81,22 @@ def test_health_check_response_format(tmp_path, monkeypatch):
     assert "checks" in data
     assert isinstance(data["checks"], dict)
     assert "db" in data["checks"]
-    assert "snapshots" in data["checks"]
+    assert "jobs" not in data["checks"]
+    assert "snapshots" not in data["checks"]
+
+
+def test_health_check_details_response_format(tmp_path, monkeypatch):
+    """Test that detailed health check includes summary counts."""
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    response = client.get("/api/health?details=1")
+
+    assert response.status_code == 200
+    data = response.json()
+
+    assert data["status"] == "ok"
+    assert data["checks"]["db"] == "ok"
+    assert isinstance(data["checks"]["jobs"], dict)
     assert isinstance(data["checks"]["snapshots"]["total"], int)
     assert data["checks"]["snapshots"]["total"] >= 0
 
@@ -190,7 +204,7 @@ def test_health_check_with_large_database(tmp_path, monkeypatch):
     """Test that health check response format is consistent with data."""
     client = _init_test_app(tmp_path, monkeypatch)
 
-    response = client.get("/api/health")
+    response = client.get("/api/health?details=1")
 
     assert response.status_code == 200
     data = response.json()

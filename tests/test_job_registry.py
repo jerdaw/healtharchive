@@ -9,6 +9,8 @@ import pytest
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
 from ha_backend.job_registry import (
+    CIHR_SCOPE_EXCLUDE_RX,
+    CIHR_SCOPE_INCLUDE_RX,
     HC_CANADA_CA_SCOPE_EXCLUDE_RX,
     HC_CANADA_CA_SCOPE_INCLUDE_RX,
     PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
@@ -106,6 +108,14 @@ def test_get_config_for_source_known_sources() -> None:
     assert cihr_cfg.default_tool_options["error_threshold_timeout"] == 35
     assert cihr_cfg.default_tool_options["error_threshold_http"] == 35
     assert cihr_cfg.default_tool_options["backoff_delay_minutes"] == 1
+    assert cihr_cfg.default_zimit_passthrough_args == [
+        "--scopeType",
+        "custom",
+        "--scopeIncludeRx",
+        CIHR_SCOPE_INCLUDE_RX,
+        "--scopeExcludeRx",
+        CIHR_SCOPE_EXCLUDE_RX,
+    ]
     assert cihr_cfg.default_execution_policy == {
         "capture_backend": "browsertrix",
         "resume_policy": "auto",
@@ -128,7 +138,10 @@ def test_canonical_scope_filters_for_source_returns_managed_sources() -> None:
         PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
         PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
     )
-    assert canonical_scope_filters_for_source("cihr") is None
+    assert canonical_scope_filters_for_source("cihr") == (
+        CIHR_SCOPE_INCLUDE_RX,
+        CIHR_SCOPE_EXCLUDE_RX,
+    )
 
 
 def test_normalize_scope_passthrough_args_preserves_non_scope_args() -> None:
@@ -164,11 +177,34 @@ def test_normalize_scope_passthrough_args_preserves_non_scope_args() -> None:
     ]
 
 
-def test_reconcile_scope_passthrough_args_noop_for_unmanaged_source() -> None:
+def test_reconcile_scope_passthrough_args_normalizes_cihr_scope() -> None:
     args = ["--scopeType", "host", "--limit", "10"]
     normalized, drifted = reconcile_scope_passthrough_args("cihr", args)
-    assert drifted is False
-    assert normalized == args
+    assert drifted is True
+    assert normalized == [
+        "--scopeType",
+        "custom",
+        "--scopeIncludeRx",
+        CIHR_SCOPE_INCLUDE_RX,
+        "--scopeExcludeRx",
+        CIHR_SCOPE_EXCLUDE_RX,
+        "--limit",
+        "10",
+    ]
+
+
+def test_cihr_scope_filters_exclude_query_variants_and_media_frontier() -> None:
+    include_rx = re.compile(CIHR_SCOPE_INCLUDE_RX)
+    exclude_rx = re.compile(CIHR_SCOPE_EXCLUDE_RX)
+
+    assert include_rx.search("https://cihr-irsc.gc.ca/e/193.html")
+    assert include_rx.search("https://cihr-irsc.gc.ca/assets/site.css?v=42")
+    assert not include_rx.search("https://cihr-irsc.gc.ca/e/52569.html?wbdisable=false")
+
+    assert exclude_rx.search("https://cihr-irsc.gc.ca/videos/briefing.mp4")
+    assert exclude_rx.search("https://cihr-irsc.gc.ca/asl-video/sample.mp4")
+    assert exclude_rx.search("https://cihr-irsc.gc.ca/e/asl-video/demo.html")
+    assert exclude_rx.search("https://cihr-irsc.gc.ca/files/report.pdf")
 
 
 def test_reconcile_scope_passthrough_args_removes_legacy_managed_chrome_arg() -> None:

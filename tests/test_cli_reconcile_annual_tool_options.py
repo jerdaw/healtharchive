@@ -8,6 +8,8 @@ from ha_backend import cli as cli_module
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
 from ha_backend.job_registry import (
+    CIHR_SCOPE_EXCLUDE_RX,
+    CIHR_SCOPE_INCLUDE_RX,
     PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
     PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
     SOURCE_JOB_CONFIGS,
@@ -286,6 +288,59 @@ def test_reconcile_annual_tool_options_applies_canonical_scope_filters_for_phac(
             PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
             "--extraChromeArgs",
             "--disable-quic",
+            "--customFlag",
+            "value",
+        ]
+
+
+def test_reconcile_annual_tool_options_applies_canonical_scope_filters_for_cihr(
+    tmp_path, monkeypatch
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    with get_session() as session:
+        seed_sources(session)
+        job_id = _create_annual_job(
+            session,
+            source_code="cihr",
+            year=2026,
+        )
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        cfg = dict(job.config or {})
+        cfg["zimit_passthrough_args"] = [
+            "--scopeType",
+            "host",
+            "--customFlag",
+            "value",
+        ]
+        job.config = cfg
+        session.flush()
+
+    out = _run_cli(
+        [
+            "reconcile-annual-tool-options",
+            "--year",
+            "2026",
+            "--sources",
+            "cihr",
+            "--apply",
+        ]
+    )
+    assert f"cihr: UPDATED job_id={job_id}" in out
+    assert "zimit_passthrough_args:" in out
+
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        args = list((job.config or {}).get("zimit_passthrough_args") or [])
+        assert args == [
+            "--scopeType",
+            "custom",
+            "--scopeIncludeRx",
+            CIHR_SCOPE_INCLUDE_RX,
+            "--scopeExcludeRx",
+            CIHR_SCOPE_EXCLUDE_RX,
             "--customFlag",
             "value",
         ]

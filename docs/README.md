@@ -1,7 +1,7 @@
 # HealthArchive Documentation
 
-This documentation portal covers the **HealthArchive backend** and links to
-frontend and datasets documentation.
+This documentation portal covers the **HealthArchive app monorepo** and links
+to the separate datasets documentation.
 
 Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
 operations state live in `/home/jer/repos/platform-ops`. Use
@@ -32,8 +32,9 @@ documentation.
 
 ## Documentation Structure
 
-This docs portal is built from the backend repo only. Frontend and datasets
-docs are canonical in their repos and are linked-to from this site:
+This docs portal is built from `docs/` in the app monorepo. Frontend-specific
+docs remain canonical under `frontend/docs/` and are linked-to from this site;
+datasets docs remain canonical in the separate datasets repo:
 
 - Frontend pointers: `frontend-external/README.md`
 - Datasets pointers: `datasets-external/README.md`
@@ -45,7 +46,7 @@ Shared VPS facts that are not specific to the backend are canonical in:
 
 ## Recommended reading order
 
-0. Project docs portal (multi-repo navigation)
+0. Project docs portal (monorepo + datasets navigation)
    - `project.md`
 1. Architecture & implementation (how the code works)
    - `architecture.md`
@@ -64,7 +65,7 @@ Shared VPS facts that are not specific to the backend are canonical in:
    - `deployment/search-rollout.md` (enable v2 search + rollback)
    - `deployment/pages-table-rollout.md` (pages table backfill + browse fast path)
   - `deployment/hosting-and-live-server-to-dos.md` (historical hosting notes + optional future staging ideas)
-   - `deployment/environments-and-configuration.md` (cross‑repo env vars + host matrix)
+   - `deployment/environments-and-configuration.md` (frontend/backend env vars + host matrix)
    - `deployment/production-rollout-checklist.md` (generic production checklist)
    - `deployment/staging-rollout-checklist.md` (optional future staging)
 5. Operations (how to keep it healthy)

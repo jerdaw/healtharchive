@@ -120,11 +120,11 @@ In practice this means:
 
 **Alert:** `HealthArchiveCrawlContainerRestartsHigh`
 
-- **Threshold:** restart budget near exhaustion (for 30m):
+- **Threshold:** restart budget near exhaustion **and still increasing within the last 12 hours** (for 30m):
   - HC: `healtharchive_crawl_running_job_container_restarts_done{source="hc"} >= 19` (budget 24)
   - PHAC: `healtharchive_crawl_running_job_container_restarts_done{source="phac"} >= 24` (budget 30)
   - CIHR: `healtharchive_crawl_running_job_container_restarts_done{source="cihr"} >= 16` (budget 20)
-- **Meaning:** The crawler has consumed most of its adaptive restart budget and is at higher risk of hard failure if churn continues.
+- **Meaning:** The crawler has consumed most of its adaptive restart budget and recent telemetry still shows new restart churn. This is intended to suppress frozen-history warnings after a crawl stabilizes.
 - **Action:** Review worker logs and combined logs around restarts; check for repeated timeouts on the same URL or storage errors before the job exhausts its restart budget.
 
 ### 4) Progress Stalls
@@ -204,8 +204,8 @@ In practice this means:
 
 **Alert:** `HealthArchiveCrawlTempDirsHigh`
 
-- **Threshold:** `healtharchive_crawl_running_job_temp_dirs_count > 100` (for 1h).
-- **Meaning:** A running crawl job has accumulated over 100 tracked `.tmp*` directories, usually from repeated resume/new-crawl phases, adaptive restarts, or storage/permission churn. This count comes from `.archive_state.json`, so it reflects real crawl-state accumulation.
+- **Threshold:** `healtharchive_crawl_running_job_temp_dirs_count > 100` **and** the tracked temp-dir count has grown by at least 5 over the last 12 hours (for 1h).
+- **Meaning:** A running crawl job has accumulated over 100 tracked `.tmp*` directories and the count is still climbing, usually from repeated resume/new-crawl phases, adaptive restarts, or storage/permission churn. This count comes from `.archive_state.json`, so it reflects real crawl-state accumulation rather than a filesystem glob.
 - **Action:** If the job is still running, do **not** run `cleanup-job`; first classify the incident using `vps-crawl-status.sh`, per-job crawl metrics, and the combined log, then follow the storage/stall/restart-budget runbooks as appropriate. If the job is already `indexed` or `index_failed`, reclaim space with `ha-backend cleanup-job --id <ID> --mode temp-nonwarc` (prefer `--dry-run` first). Use legacy `--mode temp` only when you explicitly intend to discard WARCs/replay data.
 
 ## Dashboard-heavy Crawl Performance Signals

@@ -10,25 +10,26 @@ If you want step-by-step “run the app and click it” workflows, use:
 
 From the repo root:
 
-- `make check` (fast CI gate: format check, lint, typecheck, tests)
+- `make backend-ci` (fast backend CI gate: format check, lint, typecheck, tests)
 - `make prepush` (GitHub-parity pre-push gate: `make check` + local API-health verification + CI-aligned `pip-audit` policy)
 - `make check-full` (optional: pre-commit, security scan, docs build/lint)
 
-`make check` is intentionally kept low-friction so it can run constantly without blocking development.
+`make backend-ci` is intentionally kept low-friction so it can run constantly without blocking development.
 Use `make check-full` before deploys or when you want stricter validation.
 
 Notes:
 
-- `make check` runs `make test-fast` (a curated subset).
+- `make backend-ci` runs the same fast backend gate as `make ci`, including `make test-fast`.
 - `make test-all` runs the full test suite.
 - Browser automation suites (for example Playwright in related repos) should run in CI by default; only run them locally when you explicitly need interactive debugging.
 
 ## End-to-end smoke (public surface)
 
 CI also runs a fast end-to-end smoke check that starts the backend + frontend
-locally and verifies user-critical routes (no browser automation):
+locally from one checkout and verifies user-critical routes (no browser automation):
 
-- `./scripts/ci-e2e-smoke.sh --frontend-dir ../healtharchive-frontend`
+- `make integration-e2e`
+  - equivalent script form: `./scripts/ci-e2e-smoke.sh --frontend-dir frontend`
   - If the frontend is already built (CI artifact), add: `--skip-frontend-build`
 
 In CI, the smoke check is treated as a post-merge safety net (runs on `main` pushes / manual runs) rather than a PR gate.

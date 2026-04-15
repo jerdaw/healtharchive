@@ -1,0 +1,16 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it as below."
+type: software
+title: "HealthArchive Frontend"
+authors:
+  - family-names: Dawson
+    given-names: Jeremy
+    email: jeremyjdawson@gmail.com
+license: MIT
+url: "https://healtharchive.ca"
+repository-code: "https://github.com/jerdaw/healtharchive-frontend"
+keywords:
+  - web-archiving
+  - public-health
+  - canada
+  - nextjs

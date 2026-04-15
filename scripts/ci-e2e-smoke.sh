@@ -78,7 +78,11 @@ if command -v setsid >/dev/null 2>&1; then
 fi
 
 if [[ -z "${FRONTEND_DIR}" ]]; then
-  FRONTEND_DIR="${BACKEND_DIR}/../healtharchive-frontend"
+  if [[ -f "${BACKEND_DIR}/frontend/package.json" ]]; then
+    FRONTEND_DIR="${BACKEND_DIR}/frontend"
+  else
+    FRONTEND_DIR="${BACKEND_DIR}/../healtharchive-frontend"
+  fi
 fi
 FRONTEND_DIR="$(cd "${FRONTEND_DIR}" && pwd)"
 if [[ ! -f "${FRONTEND_DIR}/package.json" ]]; then
@@ -88,7 +92,7 @@ if [[ ! -f "${FRONTEND_DIR}/package.json" ]]; then
     FRONTEND_DIR="${FRONTEND_DIR}/frontend"
   else
     echo "ERROR: frontend dir '${FRONTEND_DIR}' does not contain package.json." >&2
-    echo "       Pass --frontend-dir <path-to-frontend> (e.g. ../healtharchive-frontend)." >&2
+    echo "       Pass --frontend-dir <path-to-frontend> (e.g. frontend or ../healtharchive-frontend)." >&2
     exit 1
   fi
 fi

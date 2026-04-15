@@ -1,0 +1,56 @@
+# HealthArchive.ca - One-page brief
+
+HealthArchive.ca is an independent, non-governmental archive of selected Canadian public health web pages.
+
+It preserves time-stamped snapshots so researchers, journalists, and educators can cite what a public website displayed at a specific point in time, even if the page later changes or disappears.
+
+This is an archival record and change-tracking tool. It is not current guidance or medical advice.
+
+---
+
+## What it does
+
+- Captures time-stamped snapshots of selected public health web pages.
+- Indexes snapshots into a searchable archive.
+- Provides descriptive change tracking between archived editions:
+  - a changes feed (`/changes`)
+  - a compare view (`/compare`) that highlights text differences
+  - RSS feeds for edition-aware updates (`/digest`)
+
+## What it is not
+
+- Not a source of current guidance.
+- Not medical advice.
+- Not an official government website.
+- Not affiliated with, endorsed by, or associated with the Public Health Agency of Canada (PHAC), Health Canada, or any government agency.
+
+## Intended audiences
+
+- Researchers and trainees: reproducible citations and historical context.
+- Journalists and science communicators: timelines and wording changes.
+- Educators: teaching how evidence communication evolves.
+- Clinicians and public health practitioners: historical reference for how guidance has evolved (not current recommendations).
+
+## Key links
+
+- Home: https://healtharchive.ca/
+- Archive search: https://healtharchive.ca/archive
+- Changes feed: https://healtharchive.ca/changes
+- Digest + RSS: https://healtharchive.ca/digest
+- Citation guidance: https://healtharchive.ca/cite
+- Methods and scope: https://healtharchive.ca/methods
+- Governance and policies: https://healtharchive.ca/governance
+- Research exports: https://healtharchive.ca/exports
+- Status and metrics: https://healtharchive.ca/status
+- Monthly impact report: https://healtharchive.ca/impact
+
+## Safety posture (plain-language)
+
+- Archived content can be incomplete, outdated, or superseded.
+- Change tracking is descriptive only and does not interpret meaning.
+- For up-to-date recommendations, always consult the official source website.
+
+## Contact
+
+- Contact and reporting: https://healtharchive.ca/contact
+- Issue reporting form: https://healtharchive.ca/report

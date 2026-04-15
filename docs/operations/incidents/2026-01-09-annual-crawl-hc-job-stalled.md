@@ -1,6 +1,6 @@
 # Incident: Annual crawl — HC job stalled (2026-01-09)
 
-Status: draft (ongoing)
+Status: resolved
 
 ## Metadata
 
@@ -10,7 +10,7 @@ Status: draft (ongoing)
 - Primary area: crawl
 - Owner: (unassigned)
 - Start (UTC): 2026-01-09T07:34:37Z (last observed crawl progress)
-- End (UTC): ongoing
+- End (UTC): 2026-01-16T02:56:12Z
 
 ---
 
@@ -18,7 +18,7 @@ Status: draft (ongoing)
 
 The annual crawl job for `hc` (job 6) entered a stalled state: `crawlStatus` stopped advancing and the crawl metrics exporter flagged it as stalled. The stall correlated with repeated `Navigation timeout` warnings on canada.ca pages.
 
-Manual recovery (stop worker + recover stale jobs) was intentionally deferred while `cihr` (job 8) was actively crawling, to avoid turning an in-progress crawl into a `failed` job at max retries.
+Manual recovery (stop worker + recover stale jobs) was intentionally deferred while `cihr` (job 8) was actively crawling, to avoid turning an in-progress crawl into a `failed` job at max retries. The blocked recovery was later performed successfully on 2026-01-16.
 
 ## Impact
 
@@ -27,7 +27,7 @@ Manual recovery (stop worker + recover stale jobs) was intentionally deferred wh
 - Data impact:
   - Data loss: unknown (WARCs exist in temp dirs, but crawl completeness is unknown until completion).
   - Data integrity risk: low/unknown (no specific corruption signals observed; primarily a progress/stall problem).
-  - Recovery completeness: not recovered at time of write-up.
+  - Recovery completeness: recovered for the 2026-01-09 stalled attempt.
 
 ## Detection
 
@@ -77,7 +77,11 @@ Performed on 2026-01-16 (VPS):
 
 ## Post-incident verification
 
-TBD (once recovered).
+- The 2026-01-16 recovery created a new combined log and advanced `Started at`
+  for job `6`.
+- The 2026-01-09 stalled attempt was superseded by the restarted crawl. Later
+  annual-crawl follow-up work is tracked separately in the ops roadmap and
+  newer incident notes.
 
 ## Open questions (still unknown)
 

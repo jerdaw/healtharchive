@@ -4,12 +4,80 @@ from __future__ import annotations
 import argparse
 import gzip
 import json
+import os
 import re
 import stat
+import sys
 from collections import Counter, deque
 from pathlib import Path
 from typing import Any
 from urllib.parse import urlparse, urlunparse
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+SRC_DIR = REPO_ROOT / "src"
+DEFAULT_BACKEND_ENV_FILE = Path("/etc/healtharchive/backend.env")
+
+
+def _reexec_into_repo_venv() -> None:
+    if __name__ != "__main__":
+        return
+
+    repo_venv = REPO_ROOT / ".venv"
+    repo_python = REPO_ROOT / ".venv" / "bin" / "python3"
+    if not repo_python.is_file():
+        return
+
+    try:
+        current_prefix = Path(sys.prefix).resolve()
+    except OSError:
+        current_prefix = Path(sys.prefix)
+    try:
+        target_prefix = repo_venv.resolve()
+    except OSError:
+        target_prefix = repo_venv
+
+    if current_prefix == target_prefix:
+        return
+
+    os.execv(
+        str(repo_python),
+        [str(repo_python), str(Path(__file__).resolve()), *sys.argv[1:]],
+    )
+
+
+def _bootstrap_local_imports() -> None:
+    for entry in (REPO_ROOT, SRC_DIR):
+        entry_str = str(entry)
+        if entry_str not in sys.path:
+            sys.path.insert(0, entry_str)
+
+
+_reexec_into_repo_venv()
+_bootstrap_local_imports()
+
+
+def _load_backend_env_file() -> None:
+    if os.environ.get("HEALTHARCHIVE_DATABASE_URL"):
+        return
+    if not DEFAULT_BACKEND_ENV_FILE.is_file():
+        return
+
+    env_lines = DEFAULT_BACKEND_ENV_FILE.read_text(encoding="utf-8").splitlines()
+    for raw_line in env_lines:
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        if not key or key.startswith("#"):
+            continue
+        value = value.strip()
+        if len(value) >= 2 and value[0] == value[-1] and value[0] in {"'", '"'}:
+            value = value[1:-1]
+        os.environ.setdefault(key, value)
+
+
+_load_backend_env_file()
 
 from warcio.archiveiterator import ArchiveIterator
 

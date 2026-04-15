@@ -1,0 +1,36 @@
+repos:
+  # General file quality checks
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v6.0.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: check-yaml
+      - id: check-toml
+      - id: check-added-large-files
+        args: ["--maxkb=500"]
+      - id: detect-private-key
+
+  # TypeScript/JavaScript linting with ESLint
+  - repo: https://github.com/pre-commit/mirrors-eslint
+    rev: v9.19.0
+    hooks:
+      - id: eslint
+        files: \.(js|jsx|ts|tsx)$
+        types: [file]
+        args: [--fix, --max-warnings=0]
+        additional_dependencies:
+          - eslint@^9.19.0
+          - eslint-config-next@16.1.6
+          - typescript@^5.7.3
+
+  # Code formatting with Prettier
+  - repo: https://github.com/pre-commit/mirrors-prettier
+    rev: v4.0.0-alpha.8
+    hooks:
+      - id: prettier
+        files: \.(js|jsx|ts|tsx|json|css|md|yaml|yml)$
+        args: [--write, --ignore-unknown]
+        additional_dependencies:
+          - prettier@^3.8.1
+          - prettier-plugin-tailwindcss@^0.7.2

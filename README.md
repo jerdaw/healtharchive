@@ -1,7 +1,9 @@
-# HealthArchive.ca – Backend
+# HealthArchive.ca – Monorepo
 
-This repository contains the backend services and archiving pipeline for
-[HealthArchive.ca](https://healtharchive.ca).
+This repository contains the backend services, documentation hub, and in-tree
+Next.js frontend for [HealthArchive.ca](https://healtharchive.ca). The
+versioned metadata release repo, `healtharchive-datasets`, intentionally
+remains separate.
 
 Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
 operations state live in `/home/jer/repos/platform-ops`. Use
@@ -24,10 +26,11 @@ For a deep architecture and implementation walkthrough, see
 see `docs/deployment/production-single-vps.md`.
 This README is intentionally shorter and focused on practical usage.
 
-Related repositories (project is multi-repo):
+Repository boundaries:
 
-- Frontend UI: https://github.com/jerdaw/healtharchive-frontend
-- **Documentation Site**: Run `make docs-serve` in the backend repo for a searchable web UI.
+- Frontend UI: lives in `frontend/` in this repo
+- Datasets: https://github.com/jerdaw/healtharchive-datasets
+- **Documentation Site**: Run `make docs-serve` in this repo for a searchable web UI.
 - **Shared VPS ops workspace**: `/home/jer/repos/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`) contains the shared inventory, roadmap, handoff, and cross-project runbooks.
 
 Shared documentation boundary:
@@ -38,10 +41,11 @@ Shared documentation boundary:
   - cross-project service inventory
   - host path conventions
   - shared maintenance and hardening state
-- `healtharchive-backend/` owns the backend-specific subset:
+- this repo owns the app-specific subset:
   - API/worker/replay behavior
   - backend deploy and rollback steps
   - backend env vars and automation
+  - frontend route behavior, build/runtime wiring, and UI verification
   - backend recovery playbooks
 
 For the explicit boundary, see:
@@ -64,12 +68,13 @@ Production entrypoints (VPS):
 ```text
 .
 ├── README.md
+├── frontend/                 # Next.js app + frontend-specific docs/scripts
 ├── docs/                     # Documentation Source (MkDocs)
 │   ├── architecture.md       # Detailed architecture and implementation guide
 │   ├── development/          # Local dev + live-testing flows
 │   ├── deployment/           # Deployment/runbooks/checklists
 │   ├── operations/           # Monitoring/uptime/CI/Ops guidance
-│   ├── frontend-external/    # Link-out pointers to frontend docs (canonical in frontend repo)
+│   ├── frontend-external/    # Legacy pointer pages retained during consolidation
 │   └── datasets-external/    # Link-out pointers to datasets repo/docs
 ├── mkdocs.yml                # Documentation Navigation Source of Truth
 ├── pyproject.toml            # Package + dependency metadata
@@ -120,6 +125,25 @@ This provides:
 
 - `ha-backend` – backend CLI
 - `archive-tool` – console script pointing at the in-repo `archive_tool` package
+
+For the in-tree frontend:
+
+```bash
+make frontend-install
+make contract-sync
+make frontend-ci
+```
+
+Node.js **20.19+** is required for `frontend/`.
+
+For a full same-checkout smoke of backend + frontend:
+
+```bash
+make integration-e2e
+```
+
+`make contract-sync` regenerates `docs/openapi.json` and the frontend's
+generated API types so the backend schema remains the source of truth.
 
 ### 3. Database
 

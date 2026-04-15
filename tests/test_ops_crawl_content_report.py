@@ -109,6 +109,57 @@ def test_classify_content_uses_extension_and_mime_heuristics() -> None:
     assert mod.classify_content("https://example.com/download", "application/pdf") == "document"
 
 
+def test_load_backend_env_file_sets_database_url_when_missing(monkeypatch, tmp_path: Path) -> None:
+    mod = _load_script_module(
+        "vps-crawl-content-report.py",
+        module_name="ha_test_vps_crawl_content_report_env_autoload",
+    )
+
+    env_file = tmp_path / "backend.env"
+    env_file.write_text(
+        "\n".join(
+            [
+                "# comment",
+                "HEALTHARCHIVE_DATABASE_URL=postgresql://example/db",
+                "HEALTHARCHIVE_ADMIN_TOKEN='secret-token'",
+            ]
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.delenv("HEALTHARCHIVE_DATABASE_URL", raising=False)
+    monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
+    monkeypatch.setattr(mod, "DEFAULT_BACKEND_ENV_FILE", env_file)
+
+    mod._load_backend_env_file()
+
+    assert os.environ["HEALTHARCHIVE_DATABASE_URL"] == "postgresql://example/db"
+    assert os.environ["HEALTHARCHIVE_ADMIN_TOKEN"] == "secret-token"
+
+
+def test_load_backend_env_file_does_not_override_existing_database_url(
+    monkeypatch, tmp_path: Path
+) -> None:
+    mod = _load_script_module(
+        "vps-crawl-content-report.py",
+        module_name="ha_test_vps_crawl_content_report_env_preserve",
+    )
+
+    env_file = tmp_path / "backend.env"
+    env_file.write_text(
+        "HEALTHARCHIVE_DATABASE_URL=postgresql://from-file/db\n",
+        encoding="utf-8",
+    )
+
+    monkeypatch.setenv("HEALTHARCHIVE_DATABASE_URL", "postgresql://existing/db")
+    monkeypatch.setattr(mod, "DEFAULT_BACKEND_ENV_FILE", env_file)
+
+    mod._load_backend_env_file()
+
+    assert os.environ["HEALTHARCHIVE_DATABASE_URL"] == "postgresql://existing/db"
+
+
 def test_summarize_log_text_groups_repeated_failing_families() -> None:
     mod = _load_script_module(
         "vps-crawl-content-report.py",

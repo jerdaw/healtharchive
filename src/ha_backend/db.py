@@ -45,7 +45,13 @@ def get_engine():
             else:
                 _engine = create_engine(url, connect_args=connect_args, future=True)
         else:
-            _engine = create_engine(url, future=True)
+            _engine = create_engine(
+                url,
+                future=True,
+                pool_size=db_cfg.pool_size,
+                max_overflow=db_cfg.max_overflow,
+                pool_timeout=db_cfg.pool_timeout_seconds,
+            )
     return _engine
 
 

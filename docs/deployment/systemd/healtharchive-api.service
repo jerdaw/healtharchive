@@ -1,0 +1,24 @@
+[Unit]
+Description=HealthArchive API service
+Wants=network-online.target
+After=network-online.target postgresql.service healtharchive-warc-tiering.service
+ConditionPathExists=/etc/healtharchive/backend.env
+ConditionPathExists=/opt/healtharchive-backend/.venv/bin/uvicorn
+
+[Service]
+Type=simple
+User=haadmin
+WorkingDirectory=/opt/healtharchive-backend
+Environment=PYTHONUNBUFFERED=1
+Environment=HEALTHARCHIVE_API_HOST=127.0.0.1
+Environment=HEALTHARCHIVE_API_PORT=8001
+Environment=HEALTHARCHIVE_API_WORKERS=2
+EnvironmentFile=/etc/healtharchive/backend.env
+ExecStart=/usr/bin/bash -lc 'exec /opt/healtharchive-backend/.venv/bin/uvicorn ha_backend.api:app --host "${HEALTHARCHIVE_API_HOST}" --port "${HEALTHARCHIVE_API_PORT}" --workers "${HEALTHARCHIVE_API_WORKERS}" --proxy-headers --forwarded-allow-ips="127.0.0.1"'
+Restart=always
+RestartSec=5
+TimeoutStopSec=30
+UMask=0027
+
+[Install]
+WantedBy=multi-user.target

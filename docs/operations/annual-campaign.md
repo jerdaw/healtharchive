@@ -161,12 +161,22 @@ Out of scope (examples):
 
 In scope:
 
--   Any URL on host `cihr-irsc.gc.ca` (all paths), starting from the EN+FR seeds
-    above.
+-   HTML pages on host `cihr-irsc.gc.ca` without query/fragment variants,
+    starting from the EN+FR seeds above.
+-   Render-critical assets on `cihr-irsc.gc.ca` (CSS/JS/JSON/SVG/images/fonts),
+    including cache-busted asset URLs with query strings.
 
 Out of scope:
 
 -   Any other host.
+-   Top-level binary/media/archive frontier expansion on `cihr-irsc.gc.ca`
+    (`pdf`, `mp4`, `zip`, office docs, and similar).
+-   `https://cihr-irsc.gc.ca/.../asl-video/...` and descendants. The trigger was
+    repeated live sampling showing CIHR-hosted `.mp4` media dominating WARC
+    bytes with low archival value relative to crawl cost.
+-   Query-string and fragment variants of CIHR HTML pages (for example
+    `?wbdisable=false`) so they do not expand the crawl frontier as duplicate
+    pages.
 
 This is a “completeness” project, not an “infinite crawl” project: completeness
 means “complete within the intended source boundaries.”

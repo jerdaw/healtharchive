@@ -89,10 +89,26 @@ def test_crawl_container_restarts_high_alert_semantics() -> None:
     body = _extract_alert_block(text, "HealthArchiveCrawlContainerRestartsHigh")
 
     assert 'healtharchive_crawl_running_job_container_restarts_done{source="hc"} >= 19' in body
+    assert (
+        'increase(healtharchive_crawl_running_job_container_restarts_done{source="hc"}[12h]) >= 1'
+        in body
+    )
     assert 'healtharchive_crawl_running_job_container_restarts_done{source="phac"} >= 24' in body
+    assert (
+        'increase(healtharchive_crawl_running_job_container_restarts_done{source="phac"}[12h]) >= 1'
+        in body
+    )
     assert 'healtharchive_crawl_running_job_container_restarts_done{source="cihr"} >= 16' in body
     assert (
+        'increase(healtharchive_crawl_running_job_container_restarts_done{source="cihr"}[12h]) >= 1'
+        in body
+    )
+    assert (
         'healtharchive_crawl_running_job_container_restarts_done{source!~"hc|phac|cihr"} >= 16'
+        in body
+    )
+    assert (
+        'increase(healtharchive_crawl_running_job_container_restarts_done{source!~"hc|phac|cihr"}[12h]) >= 1'
         in body
     )
     assert re.search(r"^\s*for:\s*30m\s*$", body, re.MULTILINE)
@@ -151,6 +167,9 @@ def test_crawl_temp_dirs_high_alert_semantics() -> None:
     body = _extract_alert_block(text, "HealthArchiveCrawlTempDirsHigh")
 
     assert "healtharchive_crawl_running_job_temp_dirs_count > 100" in body
+    assert "max_over_time(healtharchive_crawl_running_job_temp_dirs_count[12h])" in body
+    assert "min_over_time(healtharchive_crawl_running_job_temp_dirs_count[12h])" in body
+    assert ") >= 5" in body
     assert re.search(r"^\s*for:\s*1h\s*$", body, re.MULTILINE)
     assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
     assert "docs/operations/runbooks/crawl-temp-dirs-high.md" in body

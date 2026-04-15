@@ -49,7 +49,7 @@ Target response times for key API endpoints, measured server-side (excludes netw
 
 | Endpoint | p50 Target | p95 Target | p99 Target | Notes |
 |----------|------------|------------|------------|-------|
-| `GET /api/health` | 50ms | 100ms | 200ms | Minimal processing |
+| `GET /api/health` | 50ms | 100ms | 200ms | Minimal processing; use `?details=1` only for operator summary counts |
 | `GET /api/search` | 500ms | 2000ms | 5000ms | Complex queries, database-dependent |
 | `GET /api/sources` | 100ms | 300ms | 500ms | Lightweight, typically cached |
 | `GET /api/snapshot/{id}` | 100ms | 300ms | 500ms | Single record lookup |

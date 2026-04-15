@@ -223,7 +223,8 @@ set -a; source /etc/healtharchive/backend.env; set +a
 Systemd services:
 
 - API: `/etc/systemd/system/healtharchive-api.service`
-  - `ExecStart=/opt/healtharchive-backend/.venv/bin/uvicorn ha_backend.api:app --host 127.0.0.1 --port 8001`
+  - Prefer the repo-managed template in `docs/deployment/systemd/healtharchive-api.service`
+  - Default `ExecStart` runs uvicorn on `127.0.0.1:8001` with `HEALTHARCHIVE_API_WORKERS=2`
   - `EnvironmentFile=/etc/healtharchive/backend.env`
 - Worker: `/etc/systemd/system/healtharchive-worker.service`
   - `ExecStart=/opt/healtharchive-backend/.venv/bin/ha-backend start-worker --poll-interval 30`

@@ -19,97 +19,62 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive-backend && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-03-27)
+## Current status (as of 2026-04-14)
 
-- 2026 annual campaign is partially active on the VPS:
-  - `cihr` remains running.
-  - `hc` is still in a failed state from earlier annual-campaign churn.
-  - `phac` is parked as `retryable` after the 2026-03-23 investigation and controlled restart attempt.
-- CIHR annual crawl job `8` was re-checked live on 2026-03-27 after repeated
-  `HealthArchiveCrawlTempDirsHigh` warnings.
-  - Current live-health result: the crawl is still progressing (`crawl_rate_ppm`
-    roughly `3-4`, `stalled=0`, progress age low, `container_restarts_done=15`).
-  - The temp-dir warning is currently interpreted as historical accumulation in
-    the long-lived annual job directory rather than fresh active churn.
-  - Bounded content-cost sampling now points to a CIHR-specific
-    media-heavy frontier problem:
-    - sampled bytes were dominated by `.mp4`
-    - top sampled families were CIHR `asl-video/...` assets
-  - Operational posture: do not interrupt the current CIHR crawl solely due to
-    temp-dir count while forward progress continues.
-  - Follow-up remains repo-side scope analysis after the crawl is idle/terminal,
-    not live VPS cleanup.
-- Deploy-lock suppression is cleared (the stale `/tmp/healtharchive-backend-deploy.lock` was removed; auto-recover apply actions are no longer skipped due to deploy lock).
-- Job lock-dir cutover is **staged** (non-disruptive) but not fully complete:
-  - `/etc/healtharchive/backend.env` now sets `HEALTHARCHIVE_JOB_LOCK_DIR=/srv/healtharchive/ops/locks/jobs`
-  - `/srv/healtharchive/ops/locks/jobs` exists with intended perms
-  - Maintenance-window restart of services is still required to pick up the env change.
-- Annual output-dir mount topology is currently **unexpected** (direct `sshfs` mounts instead of bind mounts) for the active 2026 jobs.
-  - We are intentionally deferring conversion to bind mounts until a maintenance window to avoid interrupting in-progress crawls.
-- PHAC annual crawl job 7 is no longer blocked on deploy/config drift or on the
-  earlier Browsertrix-flag plumbing bug.
-  - The scope reconciliation fix and the temporary PHAC HTML-family exclusions
-    were both deployed and verified in the live PHAC process on 2026-03-23.
-  - The incompatible HC/PHAC CLI passthrough (`--extraChromeArgs
-    --disable-http2`) was removed from canonical annual config and live annual
-    jobs after the deployed zimit image proved it forwarded those flags into
-    `warc2zim` preflight.
-  - Repo-side monitor hardening now exists for one part of the symptom: stages
-    that emit no `crawlStatus` for a full stall window now trigger an explicit
-    `no_stats` intervention instead of silently hanging.
-  - Repo-side managed Browsertrix-config support is deployed and verified for
-    both fresh/new and resumed HC/PHAC runs:
-    - fresh/new phases launch via zimit `--config /output/.browsertrix_managed_config.yaml`
-    - resumed phases now carry the same Browsertrix overrides through the
-      stable `.zimit_resume.yaml`
-  - Repo-side poisoned-resume fallback now exists for managed-browsertrix jobs:
-    if the newest resumed run ended with `crawled=0 total=2 failed=2` plus the
-    empty/unprocessable-WARC tail error, `archive_tool` skips that resume queue
-    and starts a new crawl phase with consolidation instead of looping back
-    into the same poisoned resume state.
-  - That fallback no longer depends on the newest `crawlStatus` line being
-    well-formed; malformed or empty trailing stats now fall back to the most
-    recent usable stats entry, and the empty-WARC tail signature alone is
-    enough to force a fresh crawl phase for managed-browsertrix jobs.
-  - Annual source-managed execution policy is now implemented in-repo:
-    - HC/PHAC default to `resume_policy=fresh_only`
-    - poisoned temp/resume state can be auto-reset before the next attempt
-    - repeated fresh Browsertrix failures are bounded and can auto-promote the
-      job to the `http_warc` fallback backend
-    - stale `status=running` rows can be auto-demoted back to `retryable`
-      before they block new work
-    - crawl auto-recover can now run bounded degraded-rate recoveries instead
-      of observe-only logging
-  - Empirical result after those fixes: PHAC still does not make useful forward
-    progress. Resumed PHAC attempts can start cleanly, then end immediately with
-    `crawled=0 total=2 failed=2` and an effectively empty/unprocessable WARC.
-  - PHAC is currently parked as `retryable` with the worker stopped rather than
-    allowing continued blind retries against the same unresolved state/runtime
-    problem.
-- Alerting noise-reduction tuning is deployed and verified:
-  - Alertmanager routing is severity-aware (`critical` keeps resolved notifications, non-critical suppresses resolved and repeats less often).
-  - Crawl alerting is now automation-first and dashboard-driven:
-    - Crawl-rate/churn notifications were removed (tracked in Grafana instead).
-    - `Errno 107` job-level unreadable/writability symptom alerts are split out so storage watchdog alerts are the primary stale-mount signal.
-    - Worker-down alerting waits for the worker auto-start watchdog window and suppresses during active deploy locks.
-    - Watchdog freshness alerts were added for worker auto-start and crawl auto-recover timers.
+- 2026 annual campaign is still active on the VPS:
+  - `hc` is running.
+  - `cihr` is running on a new maintenance-window restart that began at
+    `2026-04-14T04:00:10Z`.
+  - `phac` is failed/parked pending deeper repo-side runtime diagnosis.
+- CIHR scope/content-cost follow-through is complete:
+  - bounded content reporting on 2026-03-27 and 2026-04-14 showed CIHR-specific
+    media-heavy frontier waste (`.mp4`, `asl-video/...`, and HTML query
+    variants such as `?wbdisable=false`) rather than a live stall.
+  - the 2026-04-14 maintenance window deployed `95f7e06`, reconciled job `8`
+    from `scopeType=host` to source-managed custom scope, reset the
+    poisoned resume/temp frontier while preserving historical WARCs, and
+    allowed auto-recover to restart the job cleanly.
+  - live verification on the new combined log confirmed:
+    - Browsertrix launched with `--scopeType custom` plus the intended
+      include/exclude regexes.
+    - the live frontier shrank from roughly `25.6k` URLs to `7.2k`.
+    - recent `crawlStatus` entries now show clean depth-3 HTML pages without
+      live `wbdisable=false`, `asl-video`, `.mp4`, or `.pdf` frontier churn.
+  - preserved historical WARCs still dominate total CIHR bytes; do not treat
+    that historical storage footprint as evidence that the new scope failed.
+- Job lock-dir cutover is complete:
+  - `/etc/healtharchive/backend.env` points at `/srv/healtharchive/ops/locks/jobs`
+  - API and worker were both restarted during the 2026-04-14 maintenance
+    window, so the env change is now live in production.
+- Annual output-dir mount topology is still unexpected for the active 2026 jobs:
+  - direct `sshfs` mounts remain in place instead of bind mounts.
+  - conversion remains intentionally deferred until a future maintenance window
+    after the annual crawl is idle or during an explicitly accepted
+    interruption.
+- PHAC annual crawl repo-side control-plane fixes remain deployed and verified,
+  but the source still needs deeper runtime investigation before another live
+  retry.
+- Alerting/report hygiene from the recent crawl work is deployed:
+  - bounded content reporting is now the preferred operator diagnostic for live
+    crawl cost/failure classification.
+  - stale historical crawl warnings are reduced; investigate throughput/churn
+    trends in Grafana rather than via direct throughput pages.
 
 ## Current priority order
 
 Treat the following as the current ops execution order:
 
 1. PHAC repo-side mitigation and verification.
-2. Job lock-dir cutover during a safe maintenance window.
-3. CIHR repo-side scope follow-through after the current crawl is idle.
-4. Annual output-dir bind-mount conversion after the 2026 annual crawl is idle.
-5. Routine quarterly ops and evidence collection.
+2. Annual output-dir bind-mount conversion during the next acceptable
+   maintenance window.
+3. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
 - PHAC follow-up is now deeper repo-side investigation, not another mitigation
   deploy or blind live restart.
-  - Current state: job `7` (`phac-20260101`) is parked as `retryable` after a
-    controlled 2026-03-23 investigation with the worker stopped.
+  - Current state: job `7` (`phac-20260101`) is failed/parked after the
+    controlled 2026-03-23 investigation.
   - Settled findings from the investigation:
     - the earlier HC/PHAC `--extraChromeArgs --disable-http2` CLI passthrough
       was invalid for the deployed zimit image and is no longer the active
@@ -145,22 +110,22 @@ Treat the following as the current ops execution order:
     - revisit the temporary `public-health-notices` exclusion only after the
       deeper PHAC runtime/state issue is understood
   - Do not do further blind PHAC recover/restart attempts from the VPS.
-- CIHR follow-up is evidence-backed scope analysis, not live intervention.
-  - Current state: job `8` remains healthy enough to keep running; temp-dir
-    accumulation alone is not the reason to interrupt it.
-  - Settled evidence from the 2026-03-27 bounded content report:
-    - sampled WARC bytes were dominated by CIHR-hosted `.mp4` media
-    - the heaviest sampled families were `cihr-irsc.gc.ca/asl-video/...`
-    - the live job did not show timeout or storage-failure signatures during
-      the investigation window
+- CIHR follow-through is now monitoring-only, not another planned intervention.
+  - Current state: job `8` is running under the source-managed custom scope
+    deployed on 2026-04-14.
+  - Settled live evidence from the restarted run:
+    - the startup log shows `--scopeType custom` with the intended include and
+      exclude regexes
+    - recent `crawlStatus` lines show clean HTML pages at depth `3`
+    - spot checks on the new combined log no longer show live
+      `wbdisable=false`, `asl-video`, `.mp4`, or `.pdf` frontier churn beyond
+      the startup config lines
   - Next steps:
-    - let the current CIHR crawl continue while progress remains healthy
-    - after the crawl is idle/terminal, decide whether CIHR should gain
-      source-managed frontier exclusions for media/document/query-heavy paths
-    - do not do live cleanup of `.tmp*` for job `8` while it remains running
-- Maintenance window: complete the job lock-dir cutover by restarting services that read `/etc/healtharchive/backend.env`.
-  - This must wait until crawls are idle unless you explicitly accept interrupting them.
-  - Plan + commands: `../planning/2026-02-06-crawl-operability-locks-and-retry-controls.md` (Phase 4)
+    - keep monitoring the current CIHR run while progress remains healthy
+    - intervene only if progress stalls again, restart budget starts climbing,
+      or the excluded families reappear in the live frontier
+    - do not treat preserved historical WARCs or consolidated temp-WARC bytes
+      as proof that the repaired scope regressed
 - Maintenance window (after 2026 annual crawl is idle): convert annual output dirs from direct `sshfs` mounts to bind mounts.
   - Why defer: unmount/re-mount of a live job output dir can interrupt in-progress crawls; benefit is reduced Errno 107 blast radius,
     but not worth forced interruption mid-campaign.
@@ -184,13 +149,13 @@ Treat the following as the current ops execution order:
 
 ## IRL / external validation (active; runs in parallel with ops)
 
-External validation work is **not blocked** by the PHAC investigation or maintenance-window items. PHAC is parked; the lock-dir cutover and bind-mount conversion are deferred to maintenance windows. Outreach and scholarly output can proceed independently on any day.
+External validation work is **not blocked** by the PHAC investigation or remaining maintenance-window items. PHAC is parked; the bind-mount conversion is deferred to a later window. Outreach and scholarly output can proceed independently on any day.
 
 The active plan is:
 
 - **`../planning/2026-02-admissions-strengthening-plan.md`** — phases, effort, and sequence for all external/IRL work.
 
-Current status as of 2026-03-25:
+Current status as of 2026-04-14:
 
 - Phase 1 items (outreach, uptime monitoring, portfolio page, ethics/governance update) are **not yet started**.
 - The plan was created 2026-02-25; 4 weeks have elapsed, placing the timeline in Phase 1–2 territory.

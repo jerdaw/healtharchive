@@ -11,14 +11,15 @@ For full backend live-testing flows, see `live-testing.md`.
 
 ## Repo layout
 
-HealthArchive currently lives as **multiple repos**:
+HealthArchive app code now lives in a **single monorepo**:
 
-- Backend: https://github.com/jerdaw/healtharchive-backend (local dir: `healtharchive-backend/`)
-- Frontend: https://github.com/jerdaw/healtharchive-frontend (local dir: `healtharchive-frontend/`)
-- Datasets: https://github.com/jerdaw/healtharchive-datasets (local dir: `healtharchive-datasets/`)
+- Main app repo: https://github.com/jerdaw/healtharchive-backend
+  - backend code at the repo root
+  - frontend code in `frontend/`
+- Datasets repo: https://github.com/jerdaw/healtharchive-datasets
 
-Many developers keep them in one folder and use the mono-repo root `Makefile`
-to run checks across repos.
+The repo slug is temporarily still `healtharchive-backend` for phase-1 safety,
+but the working layout is monorepo.
 
 ---
 
@@ -28,7 +29,7 @@ to run checks across repos.
 
 - `git`
 - `python3` (match `healtharchive-backend` requirements)
-- `node` (match frontend `engines.node`: https://github.com/jerdaw/healtharchive-frontend/blob/main/package.json)
+- `node` (match `frontend/package.json`; currently **20.19+**)
 - `make`
 
 Recommended:
@@ -38,11 +39,11 @@ Recommended:
 
 ### 1) Backend setup (local)
 
-From `healtharchive-backend/`:
+From the monorepo root:
 
 ```bash
 make venv
-make check
+make backend-ci
 ```
 
 Then follow `docs/development/live-testing.md` for running the API locally,
@@ -50,11 +51,12 @@ running worker flows, and Docker-based crawling tests.
 
 ### 2) Frontend setup (local)
 
-From `healtharchive-frontend/`:
+From the monorepo root:
 
 ```bash
-npm ci
-npm run check
+make frontend-install
+make contract-sync
+make frontend-ci
 ```
 
 ### 3) Local guardrails (recommended for solo-fast direct-to-main)
@@ -62,19 +64,20 @@ npm run check
 If you’re moving fast and pushing directly to `main`, you want local guardrails
 that reduce “oops I forgot to run checks” mistakes.
 
-#### One-command check (workspace root)
+#### One-command check (repo root)
 
-From the mono-repo root:
+From the monorepo root:
 
 ```bash
-make check
+make monorepo-ci
 ```
 
 This runs:
 
-- backend `make check`
-- frontend `pre-commit run --all-files` + `npm run check`
-- datasets checks
+- backend CI parity
+- frontend CI parity
+- integrated backend + frontend smoke
+- backend docs checks
 
 #### Pre-push hooks (recommended)
 
@@ -83,13 +86,13 @@ These run automatically on `git push`:
 - Backend (runs `make check`; set `HA_PRE_PUSH_FULL=1` to run `make check-full`):
   - `scripts/install-pre-push-hook.sh`
 - Frontend (runs `pre-commit` + `npm run check`):
-  - https://github.com/jerdaw/healtharchive-frontend/blob/main/scripts/install-pre-push-hook.sh
+  - `frontend/scripts/install-pre-push-hook.sh`
 
 Install them on your dev machine:
 
 ```bash
-cd healtharchive-backend && ./scripts/install-pre-push-hook.sh
-cd ../healtharchive-frontend && ./scripts/install-pre-push-hook.sh
+./scripts/install-pre-push-hook.sh
+./frontend/scripts/install-pre-push-hook.sh
 ```
 
 Bypass once if needed (emergency only):
@@ -99,10 +102,10 @@ Bypass once if needed (emergency only):
 
 #### Pre-commit (recommended)
 
-Both repos include `.pre-commit-config.yaml`.
+Both app surfaces include a `.pre-commit-config.yaml`.
 
 - Install once: `pipx install pre-commit`
-- Enable “run on commit” inside each repo:
+- Enable “run on commit” in the backend repo root:
   - `pre-commit install`
 
 ---
@@ -136,9 +139,11 @@ For enable/rollback steps, see `../deployment/systemd/README.md`.
 
 These are local-developer guardrails and should run on your dev machine:
 
-- `make check` (workspace root)
-- `healtharchive-backend/scripts/install-pre-push-hook.sh` (this repo)
-- Frontend hook installer: https://github.com/jerdaw/healtharchive-frontend/blob/main/scripts/install-pre-push-hook.sh
+- `make backend-ci`
+- `make frontend-ci`
+- `make monorepo-ci`
+- `scripts/install-pre-push-hook.sh`
+- `frontend/scripts/install-pre-push-hook.sh`
 
 Reason: hooks install into `.git/hooks/` for the repo you’re pushing from (your
 laptop/workstation), not on the server.
