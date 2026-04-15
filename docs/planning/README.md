@@ -13,6 +13,7 @@ Active plans:
 
 - Admissions strengthening (OMSAS ABS + CanMEDS, ~12 weeks): `2026-02-admissions-strengthening-plan.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
+- Docs-site Zensical migration prep: `2026-04-15-zensical-migration-prep.md`
 
 ## Current priority sequence
 
@@ -39,6 +40,10 @@ Treat the following as the current "what's next" order across roadmap docs:
 4. After the crawl/ops path is stabilized, the main project emphasis is the active admissions-strengthening plan.
    - That plan is the canonical home for the next external-validation, methods-paper, and dataset-release work.
    - Canonical plan: `2026-02-admissions-strengthening-plan.md`
+5. Plan the docs-site migration from MkDocs Material to Zensical in a dedicated change series.
+   - This prep/planning work is now explicitly in scope, but the actual
+     generator swap should happen separately from unrelated crawl/backend work.
+   - Canonical plan: `2026-04-15-zensical-migration-prep.md`
 
 ## Operator Follow-Through (Maintenance Window)
 

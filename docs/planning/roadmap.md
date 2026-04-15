@@ -117,10 +117,22 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 
 ### Documentation platform governance (cross-repo)
 
-- Keep this repo on MkDocs 1.x plus Material for now; do not treat MkDocs as the strategic default for new standalone docs sites.
-- The intended replacement is Zensical, but this repo is a later-wave candidate because it uses a plugin-heavier docs stack and should not be the proving ground.
-- Let `qquotes`, then `visitbrief`, then `waittimecanada` prove the migration path first; revisit this repo only after the required plugin parity is real.
-- If Zensical stalls or misses the needed compatibility for too long, prefer Sphinx + MyST as the mature fallback for any future docs rebuild.
+- Current state: the published docs portal still runs on MkDocs 1.x plus
+  Material.
+- Next step: plan and execute the Zensical migration in a dedicated series,
+  using `2026-04-15-zensical-migration-prep.md` as the current inventory of
+  coupling points and readiness gates.
+- Migration planning must explicitly cover:
+  - replacement for `mkdocs.yml` navigation ownership
+  - replacement or compatibility wrappers for the current `make docs-*` flows
+  - replacement for `scripts/check_docs_coverage.py` and any other
+    MkDocs-specific validation assumptions
+  - docs dependency-group updates in `pyproject.toml`
+  - policy-doc follow-through in `../../AGENTS.md`, `../../README.md`,
+    `../documentation-guidelines.md`, and `../project.md`
+- If Zensical cannot cover the required parity in a reasonable series, prefer
+  Sphinx + MyST as the fallback rather than leaving the repo in a half-migrated
+  state.
 
 ### Storage & retention (backend)
 

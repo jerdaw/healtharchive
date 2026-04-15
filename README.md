@@ -69,14 +69,14 @@ Production entrypoints (VPS):
 .
 ├── README.md
 ├── frontend/                 # Next.js app + frontend-specific docs/scripts
-├── docs/                     # Documentation Source (MkDocs)
+├── docs/                     # Documentation source for the current docs portal
 │   ├── architecture.md       # Detailed architecture and implementation guide
 │   ├── development/          # Local dev + live-testing flows
 │   ├── deployment/           # Deployment/runbooks/checklists
 │   ├── operations/           # Monitoring/uptime/CI/Ops guidance
 │   ├── frontend-external/    # Legacy pointer pages retained during consolidation
 │   └── datasets-external/    # Link-out pointers to datasets repo/docs
-├── mkdocs.yml                # Documentation Navigation Source of Truth
+├── mkdocs.yml                # Current documentation navigation source of truth
 ├── pyproject.toml            # Package + dependency metadata
 ├── requirements.txt          # Convenience requirements file (mirrors pyproject)
 ├── alembic/                  # Database migrations

@@ -351,7 +351,7 @@ Based on your role, here's what to do next:
 
 ## 💡 About This Documentation
 
-This documentation portal is built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) and deployed to [docs.healtharchive.ca](https://docs.healtharchive.ca).
+This documentation portal is currently built with [MkDocs Material](https://squidfunk.github.io/mkdocs-material/) and deployed to [docs.healtharchive.ca](https://docs.healtharchive.ca).
 
 **Source**: [docs/](https://github.com/jerdaw/healtharchive-backend/tree/main/docs)
 **Build**: `make docs-build`

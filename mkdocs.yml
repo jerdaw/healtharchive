@@ -182,6 +182,7 @@ nav:
       - Active Work: planning/README.md
       - Active Plans:
           - Admissions Strengthening (OMSAS): planning/2026-02-admissions-strengthening-plan.md
+          - Docs Platform Migration Prep (Zensical): planning/2026-04-15-zensical-migration-prep.md
           - Crawl Operability (Locks and Retry Controls): planning/implemented/2026-02-06-crawl-operability-locks-and-retry-controls.md
           - Hot-Path Staleness Root-Cause Investigation: planning/2026-02-06-hotpath-staleness-root-cause-investigation.md
           - Annual Crawl Content-Cost and Scope Diagnosis: planning/implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md

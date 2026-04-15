@@ -7,11 +7,13 @@ monorepo and the separate datasets repo.
 
 - Docs portal (published): https://docs.healtharchive.ca
 - Docs portal (local): Run `make docs-serve` in the backend repo root.
-- Navigation config: `mkdocs.yml` (source of truth for sidebar structure).
+- Current site navigation config: `mkdocs.yml` (current source of truth for
+  sidebar structure; update this reference when the docs platform changes).
 - Cross-repo environment wiring: `docs/deployment/environments-and-configuration.md`
 - Ops roadmap/todo: `docs/operations/healtharchive-ops-roadmap.md`
 - Future roadmap backlog (not-yet-implemented work): `docs/planning/roadmap.md`
 - Implemented plans archive (historical records): `docs/planning/implemented/`
+- Docs-platform migration prep: `docs/planning/2026-04-15-zensical-migration-prep.md`
 - Frontend documentation (canonical): https://github.com/jerdaw/healtharchive-backend/tree/main/frontend/docs
 - Datasets documentation (canonical): https://github.com/jerdaw/healtharchive-datasets
 
@@ -53,12 +55,13 @@ When referencing frontend paths or another repo from docs in this repo:
 ### External pointer pages
 
 If you want frontend or another repo’s docs to be discoverable from the docs portal, add a
-small pointer page under `docs/*-external/` and add it to `mkdocs.yml` `nav`.
+small pointer page under `docs/*-external/` and add it to the current docs-site
+navigation config.
 Do not mirror `frontend/docs/` or another repo’s docs into this site.
 
 ## Navigation policy
 
-### What goes in mkdocs.yml nav
+### What goes in the current docs-site nav
 
 - All README index pages
 - Docs that are frequently accessed or critical for operations
@@ -78,7 +81,7 @@ When adding new docs:
 
 1. Add to the appropriate directory
 2. Update the directory's `README.md` index
-3. If critical or frequently accessed, add to `mkdocs.yml` nav
+3. If critical or frequently accessed, add to the current docs-site nav config
 4. Ensure cross-links from related docs
 
 ## Using templates
@@ -89,7 +92,7 @@ Templates are stored in `docs/_templates/`. To use:
 2. Rename with appropriate filename (remove `-template` suffix)
 3. Fill in all sections
 4. Add to directory README index
-5. Add to `mkdocs.yml` nav if appropriate
+5. Add to the current docs-site nav config if appropriate
 
 Available templates:
 
@@ -106,8 +109,14 @@ Available templates:
 
 - Prefer one canonical source. Use pointers elsewhere instead of copying text.
 - Keep docs close to the code they describe.
-- **Registry**: New critical docs should be added to the `nav` section of `mkdocs.yml`. All docs should be added to their directory's `README.md` index.
-- Use MkDocs Material features like **Admonitions** (`!!! note`), **Tabs**, and **Mermaid** diagrams.
+- **Registry**: New critical docs should be added to the current docs-site nav
+  config (today: `mkdocs.yml`). All docs should be added to their directory's
+  `README.md` index.
+- Treat generator-specific wiring as an implementation detail. Organize content
+  so it can survive a docs-platform migration without rewriting the whole docs tree.
+- Use docs-site features that the current stack supports, like
+  **Admonitions** (`!!! note`), **Tabs**, and **Mermaid** diagrams. Avoid
+  leaning on generator-specific behavior when plain Markdown is enough.
 - Documentation should be English-only; do not duplicate it in other languages.
 - Do not include AI-assistant authorship attribution in docs metadata/prose; document only human authors/contributors.
 - Avoid "phase" labels or other implementation-ordering labels outside `docs/planning/roadmap.md` and `docs/planning/implemented/`. The order that something was implemented in is not something that needs documentation; rather documentation should focus on key elements of what was implemented, how it was implemented, and how it is to be used.
