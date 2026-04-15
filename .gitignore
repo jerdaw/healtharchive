@@ -60,9 +60,6 @@ site/
 docs/llms.txt
 docs/openapi.json
 
-# Local docs symlink (optional convenience)
-docs/frontend
-
 # Local assistant tooling (local development only)
 .assistant/
 
