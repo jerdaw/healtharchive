@@ -115,6 +115,13 @@ Outstanding work (not fully implemented yet):
 
 Keep this list short; prefer linking to the canonical doc that explains the item.
 
+### Documentation platform governance (cross-repo)
+
+- Keep this repo on MkDocs 1.x plus Material for now; do not treat MkDocs as the strategic default for new standalone docs sites.
+- Do not migrate this repo before the shared `qquotes` ProperDocs pilot reports back. This repo uses a plugin-heavy docs stack and should not be the proving ground.
+- Shared decision gate: review the pilot on 2026-06-15. If it passes, low-complexity repos can start moving to ProperDocs first. If it fails or stalls, prefer Sphinx + MyST as the mature fallback for any future docs rebuild.
+- Keep Zensical on watch only until strict/deploy/plugin maturity is clearer for this repo's current documentation requirements.
+
 ### Storage & retention (backend)
 
 - Storage/retention upgrades (only with a designed replay retention policy).
