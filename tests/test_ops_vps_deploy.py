@@ -5,7 +5,6 @@ import stat
 import subprocess
 from pathlib import Path
 
-
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SCRIPT_PATH = REPO_ROOT / "scripts" / "vps-deploy.sh"
 
@@ -34,7 +33,9 @@ def _init_fake_repo(tmp_path: Path) -> tuple[Path, Path]:
         text=True,
     )
     (repo_dir / "README.md").write_text("test repo\n", encoding="utf-8")
-    subprocess.run(["git", "add", "README.md"], cwd=repo_dir, check=True, capture_output=True, text=True)
+    subprocess.run(
+        ["git", "add", "README.md"], cwd=repo_dir, check=True, capture_output=True, text=True
+    )
     subprocess.run(
         ["git", "commit", "-m", "init"],
         cwd=repo_dir,
@@ -184,9 +185,7 @@ def test_vps_deploy_allows_inactive_worker_when_restart_is_skipped(tmp_path: Pat
         encoding="utf-8"
     )
     assert "status healtharchive-api --no-pager -l" in systemctl_log.read_text(encoding="utf-8")
-    assert "status healtharchive-worker --no-pager -l" in systemctl_log.read_text(
-        encoding="utf-8"
-    )
+    assert "status healtharchive-worker --no-pager -l" in systemctl_log.read_text(encoding="utf-8")
     assert "/api/health" in curl_log.read_text(encoding="utf-8")
 
 
