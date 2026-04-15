@@ -53,5 +53,5 @@ Status: accepted
 ## References
 
 - Incident notes process: `../operations/incidents/README.md`
-- Changelog process: https://github.com/jerdaw/healtharchive-frontend/blob/main/docs/changelog-process.md
+- Changelog process: https://github.com/jerdaw/healtharchive-backend/blob/main/frontend/docs/changelog-process.md
 - Future roadmap note: `../planning/roadmap.md`

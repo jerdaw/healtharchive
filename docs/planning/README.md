@@ -13,11 +13,6 @@ Active plans:
 
 - Admissions strengthening (OMSAS ABS + CanMEDS, ~12 weeks): `2026-02-admissions-strengthening-plan.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
-- Frontend + backend monorepo consolidation (planning only; execution not started): `2026-04-14-healtharchive-monorepo-consolidation-plan.md`
-
-Supporting inventories / execution-prep docs:
-
-- Monorepo phase 0 inventory and execution checklist: `2026-04-14-healtharchive-monorepo-phase0-inventory.md`
 
 ## Current priority sequence
 
@@ -40,10 +35,6 @@ Treat the following as the current "what's next" order across roadmap docs:
 4. After the crawl/ops path is stabilized, the main project emphasis is the active admissions-strengthening plan.
    - That plan is the canonical home for the next external-validation, methods-paper, and dataset-release work.
    - Canonical plan: `2026-02-admissions-strengthening-plan.md`
-5. Frontend + backend monorepo consolidation is approved for design/planning only and remains intentionally deferred as an execution track until it is explicitly prioritized.
-   - Why deferred: this is a source-control and deployment-surface change, not an urgent crawl/ops fix.
-   - Canonical plan: `2026-04-14-healtharchive-monorepo-consolidation-plan.md`
-
 ## Operator Follow-Through (Maintenance Window)
 
 Some plans are "implemented in repo" but still require a short, operator-run maintenance step on the VPS.
@@ -78,6 +69,8 @@ Current known items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Frontend + backend monorepo consolidation: `implemented/2026-04-14-healtharchive-monorepo-consolidation-plan.md`
+- Monorepo phase 0 inventory and execution checklist: `implemented/2026-04-14-healtharchive-monorepo-phase0-inventory.md`
 - Annual crawl content-cost and scope diagnosis: `implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
 - Crawl operability (locks, writability, retry controls): `implemented/2026-02-06-crawl-operability-locks-and-retry-controls.md`
 - Crawl health remediation (scope regex, circuit breaker, dep separation, alerts): `implemented/2026-02-25-crawl-health-remediation.md`

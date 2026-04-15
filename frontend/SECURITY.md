@@ -10,7 +10,7 @@ Only the latest release on the `main` branch is actively supported with security
 
 We take security seriously and appreciate responsible disclosure. To report a vulnerability:
 
-1. **Preferred**: Use [GitHub private vulnerability reporting](https://github.com/jerdaw/healtharchive-frontend/security/advisories/new) to submit a report directly through GitHub.
+1. **Preferred**: Use [GitHub private vulnerability reporting](https://github.com/jerdaw/healtharchive-backend/security/advisories/new) to submit a report directly through GitHub.
 2. **Alternative**: Email `security@healtharchive.ca` with details of the vulnerability.
 
 ### What to Include

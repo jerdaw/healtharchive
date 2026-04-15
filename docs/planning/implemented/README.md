@@ -4,6 +4,8 @@ This folder contains **historical implementation plans** that have already been 
 
 Implemented plans:
 
+- `2026-04-14-healtharchive-monorepo-consolidation-plan.md`
+- `2026-04-14-healtharchive-monorepo-phase0-inventory.md`
 - `2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
 - `2026-03-21-docs-boundary-and-ci-followthrough.md`
 - `2026-03-17-repo-governance-and-ci-maintenance.md`

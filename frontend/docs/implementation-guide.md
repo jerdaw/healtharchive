@@ -1,7 +1,7 @@
 # HealthArchive Frontend – Implementation Guide
 
-This is the canonical “how it works” guide for the `healtharchive-frontend`
-repo. It covers:
+This is the canonical “how it works” guide for the HealthArchive frontend
+subtree in `jerdaw/healtharchive-backend`. It covers:
 
 - Tech stack and environment variables
 - API integration + offline fallback behavior
@@ -180,21 +180,19 @@ npm run check
 
 ## 3. Git & branch history
 
-**Repo:** `github.com/jerdaw/healtharchive-frontend`
+**Repo:** `github.com/jerdaw/healtharchive-backend` (`frontend/` subtree)
 
 Branches:
 
 - `main`
-  - **Current production** branch.
-  - Contains the **Next.js app**.
-
-- `next`
-  - Was used as the working branch for the Next.js migration.
-  - Has now been **fast-forward merged into `main`**.
+  - **Current canonical monorepo** branch.
+  - Contains the backend at the repo root and the frontend under `frontend/`.
 
 Historical note:
 
-- The original static site existed earlier in this repo’s history. If you need to reference it, use git history (or a dedicated archive branch if one exists).
+- The original standalone frontend repo and pre-monorepo branch structure are
+  historical only. If you need them, use git history or the retired
+  `jerdaw/healtharchive-frontend` repository as historical context.
 
 Migration steps already done:
 
@@ -206,7 +204,7 @@ Migration steps already done:
 
 ## 4. Current repo structure (high-level)
 
-From the repo root:
+From the frontend subtree root:
 
 ```text
 .
@@ -798,7 +796,7 @@ All text is stable, but can be refined later.
 
 - Two cards:
   - Email: `contact@healtharchive.ca` (forwarding to the maintainer).
-  - GitHub: `https://github.com/jerdaw/healtharchive-frontend`.
+  - GitHub: `https://github.com/jerdaw/healtharchive-backend/tree/main/frontend`.
 
 ### 8.9 Governance & policy pages
 
@@ -910,14 +908,14 @@ All text is stable, but can be refined later.
 ### 9.1 Production runtime
 
 - Frontend app: `healtharchive-frontend`.
-- Source repo: `jerdaw/healtharchive-frontend`.
+- Source repo: `jerdaw/healtharchive-backend` (`frontend/` subtree).
 - Production branch: `main`.
 - Packaging model:
-  - Root Directory: repo root.
+  - Root Directory: frontend subtree root.
   - Build Command: `npm run build`.
   - Install Command: `npm ci`.
   - Output: Next.js standalone server.
-  - Production container: `Dockerfile` at repo root.
+  - Production container: `Dockerfile` at the frontend subtree root.
 - Runtime contract:
   - `NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca`
   - `NEXT_PUBLIC_REPLAY_BASE_URL=https://replay.healtharchive.ca`
@@ -1053,10 +1051,10 @@ If you’re continuing development, some clear next steps could be:
 
 ## 13. Command to print the key project files (code/docs only)
 
-The goal is to dump only the core files someone would read to understand the project (no deps or build output). From the repo root:
+The goal is to dump only the core files someone would read to understand the project (no deps or build output). From the frontend subtree root:
 
 ```bash
-# From /path/to/healtharchive-frontend
+# From /path/to/healtharchive-backend/frontend
 files=(
   "README.md"
   "docs/README.md"

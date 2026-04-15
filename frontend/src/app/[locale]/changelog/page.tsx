@@ -69,8 +69,13 @@ export default async function ChangelogPage({ params }: { params: Promise<{ loca
               : "The changelog is a public-facing summary. For deeper technical details, see the project repositories."}
           </p>
           <p className="mt-3 text-xs leading-relaxed sm:text-sm">
-            <Link href="https://github.com/jerdaw/healtharchive-frontend" className="ha-link">
-              {locale === "fr" ? "Dépôt frontend" : "Frontend repository"}
+            <Link
+              href="https://github.com/jerdaw/healtharchive-backend/tree/main/frontend"
+              className="ha-link"
+            >
+              {locale === "fr"
+                ? "frontend du monorepo applicatif"
+                : "frontend subtree in the app monorepo"}
             </Link>{" "}
             {locale === "fr" ? "et" : "and"}{" "}
             <Link href="https://github.com/jerdaw/healtharchive-backend" className="ha-link">

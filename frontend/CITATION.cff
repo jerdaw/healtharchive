@@ -8,7 +8,7 @@ authors:
     email: jeremyjdawson@gmail.com
 license: MIT
 url: "https://healtharchive.ca"
-repository-code: "https://github.com/jerdaw/healtharchive-frontend"
+repository-code: "https://github.com/jerdaw/healtharchive-backend"
 keywords:
   - web-archiving
   - public-health
