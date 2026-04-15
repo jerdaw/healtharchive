@@ -13,6 +13,9 @@ separate publication repo.
   backend repo root as the deploy/docs anchor.
 - Standardized local development, CI, and contract-sync workflows on the
   single-repo layout.
+- Retired and archived the former standalone `jerdaw/healtharchive-frontend`
+  repository after stabilization so the monorepo remains the only active app
+  source.
 - Kept the production runtime model unchanged during repo consolidation:
   systemd-backed backend at `/opt/healtharchive-backend` plus release-root
   Docker frontend on the VPS.

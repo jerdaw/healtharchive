@@ -11,8 +11,9 @@ host cutover.
   constraints before the frontend subtree import.
 - Normalized monorepo-aware CI, contract-sync, hook, and dev-environment flows
   after the frontend import landed.
-- Recorded the GitHub/governance cleanup needed to make the backend repo the
-  single canonical app repo.
+- Recorded, and later completed, the GitHub/governance cleanup needed to make
+  the backend repo the single canonical app repo, including archiving the
+  historical standalone frontend repository.
 - Separated repo-side canonicalization from the later VPS source cutover so the
   production runtime could be changed in a controlled maintenance window.
 

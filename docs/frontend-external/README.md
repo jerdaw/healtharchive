@@ -1,7 +1,11 @@
 # Frontend documentation
 
 This is a legacy pointer page retained so older docs-nav links continue to
-work during monorepo consolidation.
+work after monorepo consolidation.
+
+The former standalone frontend repository is now archived for historical
+reference only; the in-tree monorepo `frontend/` subtree is the canonical
+source.
 
 The HealthArchive frontend now lives in:
 
