@@ -74,8 +74,7 @@ Move it to a shared constants module:
 ```ts
 // src/lib/siteConstants.ts
 export const CONTACT_EMAIL = "contact@healtharchive.ca";
-export const GITHUB_FRONTEND =
-  "https://github.com/jerdaw/healtharchive-backend/tree/main/frontend";
+export const GITHUB_FRONTEND = "https://github.com/jerdaw/healtharchive-backend/tree/main/frontend";
 export const GITHUB_BACKEND = "https://github.com/jerdaw/healtharchive-backend";
 export const GITHUB_DATASETS_RELEASES = "https://github.com/jerdaw/healtharchive-datasets/releases";
 ```

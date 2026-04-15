@@ -33,10 +33,11 @@ documentation.
 ## Documentation Structure
 
 This docs portal is built from `docs/` in the app monorepo. Frontend-specific
-docs remain canonical under `frontend/docs/` and are linked-to from this site;
-datasets docs remain canonical in the separate datasets repo:
+docs remain canonical under `frontend/docs/` and are surfaced here through the
+`docs/frontend/` bridge; datasets docs remain canonical in the separate
+datasets repo:
 
-- Frontend pointers: `frontend-external/README.md`
+- Frontend bridge: `frontend/README.md`
 - Datasets pointers: `datasets-external/README.md`
 
 Shared VPS facts that are not specific to the backend are canonical in:

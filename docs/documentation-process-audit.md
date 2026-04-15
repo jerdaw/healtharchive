@@ -44,7 +44,7 @@ This is the set of documents that define *how* documentation is produced, mainta
   - `healtharchive-backend/docs/operations/README.md`
   - `healtharchive-backend/docs/operations/playbooks/README.md`
   - `healtharchive-backend/docs/planning/README.md`
-  - `healtharchive-backend/docs/frontend-external/README.md`
+  - `healtharchive-backend/docs/frontend/README.md`
 
 ### Planning / change management
 

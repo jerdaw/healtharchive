@@ -149,7 +149,7 @@ Documents not updated in >180 days: **TBD** (requires git analysis)
 | Repo | Documented | Linked | Status |
 |------|------------|--------|--------|
 | **healtharchive-backend** | ✅ | ✅ | This repo |
-| **frontend app (`frontend/`)** | ✅ | ✅ | `frontend-external/` pointers + in-tree frontend docs |
+| **frontend app (`frontend/`)** | ✅ | ✅ | `docs/frontend/` bridge + canonical in-tree frontend docs |
 | **healtharchive-datasets** | ✅ | ✅ | `datasets-external/` pointer |
 
 **Linking standard**: GitHub URLs (not workspace-relative)

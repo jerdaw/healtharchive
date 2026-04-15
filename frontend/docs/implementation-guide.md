@@ -907,7 +907,7 @@ All text is stable, but can be refined later.
 
 ### 9.1 Production runtime
 
-- Frontend app: `healtharchive-frontend`.
+- Frontend app: HealthArchive monorepo frontend (`frontend/`).
 - Source repo: `jerdaw/healtharchive-backend` (`frontend/` subtree).
 - Production branch: `main`.
 - Packaging model:

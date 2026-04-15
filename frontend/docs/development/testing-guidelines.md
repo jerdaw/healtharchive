@@ -1,7 +1,7 @@
 # Testing guidelines (frontend)
 
 This document describes expectations and conventions for tests in the
-HealthArchive frontend (`healtharchive-frontend`).
+HealthArchive frontend (the in-tree `frontend/` Next.js app).
 
 Goals:
 

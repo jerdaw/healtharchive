@@ -14,10 +14,11 @@
 - Homepage hero animation events:
   - `ha-trackchanges-finished` is dispatched by `TrackChangesPhrase` after the “before → after” typing sequence completes.
   - “Project snapshot” metrics start on that event and dispatch `ha-project-snapshot-finished` after all metric animations complete (used to trigger the final “before” fade-out).
-- Primary documentation (Unified Site):
-  - Documentation is hosted in the **Backend** repo using MkDocs Material.
+- Primary documentation:
+  - Documentation is hosted from the **Backend** repo using the current MkDocs portal.
   - Run `make docs-serve` in the backend repo to view the full site.
-  - Sub-paths are symlinked: `backend-repo/docs/frontend/...`
+  - Frontend docs are canonical in `frontend/docs/` and surfaced in the portal
+    through `backend-repo/docs/frontend/...`.
 - Core Frontend Guides:
   - `docs/implementation-guide.md` → architecture, routes, styling system, deployment details.
   - `docs/development/bilingual-dev-guide.md` → bilingual UI rules.
@@ -28,9 +29,9 @@
 - Shared cross-project VPS ops:
   - `/home/jer/repos/platform-ops` → shared inventory, roadmap, handoff, and runbooks
 - Central Documentation (Backend Repo):
-  - `../healtharchive-backend/mkdocs.yml` (Navigation Source of Truth)
+  - `../healtharchive-backend/mkdocs.yml` (navigation source of truth)
   - `../healtharchive-backend/docs/documentation-guidelines.md`
-  - `../healtharchive-backend/docs/roadmaps/roadmap.md`
+  - `../healtharchive-backend/docs/planning/roadmap.md`
 - Canonical public-facing copy (mission + workflow disclaimers) lives in `src/lib/siteCopy.ts` and should be reused rather than duplicated across pages.
 - Localization:
   - Locale-aware routes live under `src/app/[locale]/...`.

@@ -74,7 +74,7 @@ Production entrypoints (VPS):
 │   ├── development/          # Local dev + live-testing flows
 │   ├── deployment/           # Deployment/runbooks/checklists
 │   ├── operations/           # Monitoring/uptime/CI/Ops guidance
-│   ├── frontend-external/    # Legacy pointer pages retained during consolidation
+│   ├── frontend/             # Docs portal bridge to in-tree frontend docs
 │   └── datasets-external/    # Link-out pointers to datasets repo/docs
 ├── mkdocs.yml                # Current documentation navigation source of truth
 ├── pyproject.toml            # Package + dependency metadata

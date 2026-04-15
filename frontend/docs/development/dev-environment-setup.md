@@ -6,8 +6,8 @@ to avoid common “CI passed locally but failed on GitHub” issues.
 For backend-specific setup and local API testing flows in the monorepo, also
 read:
 
-- `../../../docs/development/dev-environment-setup.md`
-- `../../../docs/development/live-testing.md`
+- https://github.com/jerdaw/healtharchive-backend/blob/main/docs/development/dev-environment-setup.md
+- https://github.com/jerdaw/healtharchive-backend/blob/main/docs/development/live-testing.md
 
 ---
 
@@ -25,6 +25,9 @@ Full checks (what CI runs):
 ```bash
 npm run check
 ```
+
+Node.js **20.19+** is required. Both the monorepo root and `frontend/` include
+`.nvmrc` files pinning the expected version for frontend tasks.
 
 ---
 
@@ -57,12 +60,6 @@ Monorepo convenience: if the repo-root venv already exists, you can run:
 
 ```bash
 ../.venv/bin/pre-commit run --all-files
-```
-
-Legacy split-repo fallback:
-
-```bash
-../healtharchive-backend/.venv/bin/pre-commit run --all-files
 ```
 
 ### Pre-push hook (recommended)

@@ -151,7 +151,9 @@ def summarize_crawl_operator_state(
     if status == "indexed":
         return CrawlOperatorState(label="search-ready", note=None)
     if status == "index_failed":
-        return CrawlOperatorState(label="index-failed", note="crawl completed; indexing needs attention")
+        return CrawlOperatorState(
+            label="index-failed", note="crawl completed; indexing needs attention"
+        )
     if status == "failed":
         if rescue.short_status == "fallback-exhausted":
             return CrawlOperatorState(label="failed-fallback-exhausted", note=rescue.note)

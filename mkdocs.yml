@@ -4,9 +4,6 @@ repo_name: jerdaw/healtharchive-backend
 repo_url: https://github.com/jerdaw/healtharchive-backend
 edit_uri: edit/main/docs/
 
-exclude_docs: |
-  frontend/**
-
 theme:
   name: material
   palette:
@@ -157,9 +154,14 @@ nav:
           - Thresholds & Tuning: operations/thresholds-and-tuning.md
       - Datasets: datasets-external/README.md
       - Frontend:
-          - Overview: frontend-external/README.md
-          - I18n Guide: frontend-external/i18n.md
-          - Implementation: frontend-external/implementation-guide.md
+          - Overview: frontend/README.md
+          - Implementation: frontend/implementation-guide.md
+          - I18n Guide: frontend/i18n.md
+          - Bilingual Development: frontend/development/bilingual-dev-guide.md
+          - Local Setup: frontend/development/dev-environment-setup.md
+          - Testing: frontend/development/testing-guidelines.md
+          - Verification: frontend/deployment/verification.md
+          - Changelog Process: frontend/changelog-process.md
   - Explanation:
       - Documentation Guidelines: documentation-guidelines.md
       - Documentation Audit: documentation-process-audit.md

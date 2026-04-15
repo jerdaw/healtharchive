@@ -1211,8 +1211,8 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
     missing = sum(1 for r in results if r.get("status") == "missing")
     errors = sum(1 for r in results if r.get("status") == "error")
     in_progress = total_sources - indexed - failed - missing - errors
-    rescue_state_counts = Counter()
-    operator_state_counts = Counter()
+    rescue_state_counts: Counter[str] = Counter()
+    operator_state_counts: Counter[str] = Counter()
 
     for r in results:
         job_data = r.get("job")
@@ -1224,9 +1224,9 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
         rescue_state = str(rescue_data.get("status") or "").strip()
         if rescue_state:
             rescue_state_counts[rescue_state] += 1
-        operator_state = str(rescue_data.get("operatorState") or "").strip()
-        if operator_state:
-            operator_state_counts[operator_state] += 1
+        operator_state_label = str(rescue_data.get("operatorState") or "").strip()
+        if operator_state_label:
+            operator_state_counts[operator_state_label] += 1
 
     ready_for_search = indexed == total_sources and errors == 0
 

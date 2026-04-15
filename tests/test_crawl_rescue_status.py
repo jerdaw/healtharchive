@@ -89,7 +89,10 @@ def test_summarize_crawl_operator_state_marks_intentional_retry_backoff() -> Non
     operator_state = summarize_crawl_operator_state(job_status="retryable", rescue=rescue)
 
     assert operator_state.label == "waiting-fresh-retry"
-    assert operator_state.note == "awaiting next fresh browsertrix retry within the configured rescue budget"
+    assert (
+        operator_state.note
+        == "awaiting next fresh browsertrix retry within the configured rescue budget"
+    )
 
 
 def test_summarize_crawl_operator_state_marks_running_fallback() -> None:

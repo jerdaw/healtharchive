@@ -14,14 +14,16 @@ monorepo and the separate datasets repo.
 - Future roadmap backlog (not-yet-implemented work): `docs/planning/roadmap.md`
 - Implemented plans archive (historical records): `docs/planning/implemented/`
 - Docs-platform migration prep: `docs/planning/2026-04-15-zensical-migration-prep.md`
-- Frontend documentation (canonical): https://github.com/jerdaw/healtharchive-backend/tree/main/frontend/docs
+- Frontend documentation (canonical files): https://github.com/jerdaw/healtharchive-backend/tree/main/frontend/docs
 - Datasets documentation (canonical): https://github.com/jerdaw/healtharchive-datasets
 
 ## App/docs boundary (avoid bleed)
 
-This documentation site is built from the repo-root `docs/` tree only.
+This documentation site is built from the repo-root `docs/` tree.
 
-- Frontend docs are canonical in `frontend/docs/**` and should be linked-to, not copied into this site.
+- Frontend docs are canonical in `frontend/docs/**` and are surfaced in the
+  portal through the `docs/frontend/**` bridge. Edit the canonical files under
+  `frontend/docs/**`.
 - Datasets docs are canonical in the datasets repo and should be linked-to, not copied into this site.
 - Frontend PRs should not break backend docs builds (and vice versa).
 
@@ -54,10 +56,11 @@ When referencing frontend paths or another repo from docs in this repo:
 
 ### External pointer pages
 
-If you want frontend or another repo’s docs to be discoverable from the docs portal, add a
-small pointer page under `docs/*-external/` and add it to the current docs-site
-navigation config.
-Do not mirror `frontend/docs/` or another repo’s docs into this site.
+If you want frontend or another repo’s docs to be discoverable from the docs
+portal, surface them through a stable bridge path under `docs/` and add that
+path to the current docs-site navigation config.
+Do not maintain copied duplicate content when a bridge or canonical link is
+enough.
 
 ## Navigation policy
 
@@ -179,7 +182,7 @@ These support but don't replace the four main types:
 - **Index (`README.md`)**: Navigation only; points to canonical docs
 - **Log/record**: Dated, append-only operational evidence (restore tests, adoption signals)
 - **Template**: Scaffolds in `docs/_templates/`
-- **Pointer**: Short files linking to canonical docs (e.g., legacy `frontend-external/`)
+- **Bridge/alias**: Short files or bridge paths that surface canonical docs without duplicating ownership (for example `docs/frontend/` and legacy compatibility aliases)
 
 ## Document types (detailed taxonomy)
 
