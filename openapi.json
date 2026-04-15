@@ -895,14 +895,38 @@
     "/api/health": {
       "get": {
         "summary": "Health Check",
-        "description": "Health endpoint with basic database and summary checks.",
+        "description": "Lightweight liveness endpoint with optional summary checks.",
         "operationId": "health_check_api_health_get",
+        "parameters": [
+          {
+            "name": "details",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "boolean",
+              "description": "Include job and snapshot summary counts.",
+              "default": false,
+              "title": "Details"
+            },
+            "description": "Include job and snapshot summary counts."
+          }
+        ],
         "responses": {
           "200": {
             "description": "Successful Response",
             "content": {
               "application/json": {
                 "schema": {}
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
               }
             }
           }
