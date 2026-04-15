@@ -2554,6 +2554,10 @@ Available templates:
   `README.md` index.
 - Treat generator-specific wiring as an implementation detail. Organize content
   so it can survive a docs-platform migration without rewriting the whole docs tree.
+- The published portal remains on MkDocs 1.x in the current wave. Do not start
+  the Zensical migration here until the shared earlier waves succeed and the
+  required plugin parity (`tags`, `social`, `swagger-ui-tag`) is actually
+  proven.
 - Use docs-site features that the current stack supports, like
   **Admonitions** (`!!! note`), **Tabs**, and **Mermaid** diagrams. Avoid
   leaning on generator-specific behavior when plain Markdown is enough.
