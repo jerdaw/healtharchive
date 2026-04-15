@@ -35,6 +35,7 @@ dev = [
   "requests>=2.33.0",  # CVE-2026-25645 fix
 ]
 docs = [
+  "mkdocs>=1.6.1,<2",
   "mkdocs-material[imaging]",
   "mkdocs-minify-plugin",
   "mkdocs-monorepo-plugin",

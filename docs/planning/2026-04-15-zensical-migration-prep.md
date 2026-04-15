@@ -22,6 +22,11 @@ Material stack to Zensical without starting that migration in this change.
   `mkdocs.yml` directly to measure nav coverage.
 - **Dependency groups**: `pyproject.toml` currently carries a docs dependency
   group centered on MkDocs Material and its current plugins.
+- **Dependency audit follow-up**: `pyproject.toml` still lists
+  `mkdocs-monorepo-plugin`, but the live `mkdocs.yml`, Makefile docs targets,
+  and current docs checks do not reference it. Treat it as a stale-dependency
+  candidate to confirm in a later cleanup, not something to remove in the prep
+  change.
 - **Canonical docs/process guidance**: `AGENTS.md`,
   `docs/documentation-guidelines.md`, `README.md`, and `docs/project.md`
   currently describe the live docs portal as MkDocs-based.
