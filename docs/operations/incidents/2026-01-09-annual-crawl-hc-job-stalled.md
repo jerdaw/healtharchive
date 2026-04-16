@@ -71,7 +71,7 @@ Performed on 2026-01-16 (VPS):
 - Followed `docs/operations/playbooks/crawl/crawl-stalls.md`:
   - `sudo systemctl stop healtharchive-worker.service`
   - `set -a; source /etc/healtharchive/backend.env; set +a`
-  - `/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 5 --apply --source hc --limit 1`
+  - `/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --source hc --limit 1`
   - `sudo systemctl start healtharchive-worker.service`
 - Verified the job restarted (`Started at` updated) and a new combined log was created.
 

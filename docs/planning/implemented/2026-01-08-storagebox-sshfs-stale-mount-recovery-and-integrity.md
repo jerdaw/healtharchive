@@ -167,7 +167,7 @@ Preferred:
 
 Safest recovery for “stale running” jobs:
 
-- `ha-backend recover-stale-jobs --older-than-minutes 10 --require-no-progress-seconds 3600 --apply`
+- `healtharchive recover-stale-jobs --older-than-minutes 10 --require-no-progress-seconds 3600 --apply`
 
 Then restart the worker.
 
@@ -184,7 +184,7 @@ As of 2026-01-16, this plan is considered implemented; the operational “surfac
   - `docs/deployment/systemd/healtharchive-warc-tiering.service` uses `--repair-stale-mounts`
 - Crawl stall recovery:
   - `scripts/vps-crawl-auto-recover.py` (safe-by-default; caps recoveries)
-  - `ha-backend recover-stale-jobs` supports `--require-no-progress-seconds`
+  - `healtharchive recover-stale-jobs` supports `--require-no-progress-seconds`
 - Replay resilience:
   - replay systemd/runbook recommends `-v /srv/healtharchive/jobs:/warcs:ro,rshared`
   - replay smoke tests: `healtharchive-replay-smoke.timer`

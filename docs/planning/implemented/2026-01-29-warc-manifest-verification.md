@@ -44,16 +44,16 @@ class ManifestVerificationResult:
 **Usage**:
 ```bash
 # Verify all WARCs match manifest (size check)
-ha-backend verify-warc-manifest --id 42
+healtharchive verify-warc-manifest --id 42
 
 # Check file presence only (fast)
-ha-backend verify-warc-manifest --id 42 --level presence
+healtharchive verify-warc-manifest --id 42 --level presence
 
 # Full SHA256 verification (slow)
-ha-backend verify-warc-manifest --id 42 --level hash
+healtharchive verify-warc-manifest --id 42 --level hash
 
 # JSON output format
-ha-backend verify-warc-manifest --id 42 --json
+healtharchive verify-warc-manifest --id 42 --json
 ```
 
 **Output example**:

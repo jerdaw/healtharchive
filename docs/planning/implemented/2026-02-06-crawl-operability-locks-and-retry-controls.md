@@ -6,7 +6,7 @@
 
 - Job locks no longer force `/tmp`-style `1777` semantics on dedicated lock directories; production now uses `HEALTHARCHIVE_JOB_LOCK_DIR=/srv/healtharchive/ops/locks/jobs`.
 - Added annual queued/retryable output-dir writability probes to `scripts/vps-crawl-metrics-textfile.py`, plus `HealthArchiveAnnualOutputDirNotWritable` alert coverage.
-- Added audited `ha-backend reset-retry-count` CLI support for operator-safe retry-budget resets.
+- Added audited `healtharchive reset-retry-count` CLI support for operator-safe retry-budget resets.
 - Added `scripts/vps-job-lock-dir-cutover.sh` and systemd deployment guidance for staged rollout and rollback.
 - Completed the production lock-dir cutover on 2026-04-14 by restarting the API and worker with `/etc/healtharchive/backend.env` already pointing at `/srv/healtharchive/ops/locks/jobs`.
 

@@ -47,7 +47,7 @@ Recovery restored a writable output directory and reset the job’s retry budget
 - 2026-01-09T05:21:15Z — Status snapshot: job 7 still `retryable`/failed with `0` WARCs.
 - 2026-01-09T13:10Z — Confirmed the job output dir is an `sshfs` hot path mountpoint (`findmnt -T <output_dir>` shows `fstype=fuse.sshfs`).
 - 2026-01-09T13:10Z — Attempted `chown` of the output dir failed (`Permission denied`) because the path is on `sshfs`.
-- 2026-01-09T13:26:21Z — `ha-backend validate-job-config --id 7` confirmed crawler command construction and output dir resolution.
+- 2026-01-09T13:26:21Z — `healtharchive validate-job-config --id 7` confirmed crawler command construction and output dir resolution.
 - 2026-01-09T13:39:52Z — Reset `retry_count` to `0` via Python + SQLAlchemy session so job can be retried safely.
 
 ## Root cause
@@ -64,7 +64,7 @@ Recovery restored a writable output directory and reset the job’s retry budget
 
 - Diagnosed job output dir mount + permissions:
   - Confirmed job config and path:
-    - `ha-backend show-job --id 7` → `Output dir: /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101`
+    - `healtharchive show-job --id 7` → `Output dir: /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101`
   - Confirmed it is an `sshfs` hot path mountpoint:
     - `findmnt -T /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101 -o TARGET,SOURCE,FSTYPE,OPTIONS`
   - Confirmed the worker user:
@@ -75,14 +75,14 @@ Recovery restored a writable output directory and reset the job’s retry budget
   - Verified writability with a host-level probe:
     - `touch /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101/.writable_test && rm /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101/.writable_test`
   - Validated annual tiering state for `phac`:
-    - `sudo /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py --year 2026 --sources phac --apply`
+    - `sudo /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --year 2026 --sources phac --apply`
 - Validated job configuration:
-  - `ha-backend validate-job-config --id 7`
+  - `healtharchive validate-job-config --id 7`
 - Reset the job retry budget:
   - Direct `psql` access failed due to missing DB roles for the operator account (`role "haadmin" does not exist`, `role "root" does not exist`).
   - Used a small Python snippet with `ha_backend.db.get_session()` to set `retry_count=0` for `job_id=7`:
     - ```bash
-      /opt/healtharchive-backend/.venv/bin/python3 - <<'PY'
+      /opt/healtharchive/.venv/bin/python3 - <<'PY'
       from ha_backend.db import get_session
       from ha_backend.models import ArchiveJob
 
@@ -113,7 +113,7 @@ Recovery restored a writable output directory and reset the job’s retry budget
 ## Action items (TODOs)
 
 - [ ] Identify why this job’s `output_dir` was not writable (mount type + UID/GID expectations) and document the invariant we rely on. (priority=high)
-- [x] Add an operator-safe command to reset a crawl job’s retry budget: `ha-backend reset-retry-count` (dry-run by default; `--apply` required; skips running/lock-held jobs). (implemented 2026-02-06)
+- [x] Add an operator-safe command to reset a crawl job’s retry budget: `healtharchive reset-retry-count` (dry-run by default; `--apply` required; skips running/lock-held jobs). (implemented 2026-02-06)
 - [ ] Consider treating “output dir not writable” as an `infra_error` class so it does not consume retry budget. (priority=medium)
 - [ ] Add a short ops note: when `psql` roles are missing, use the DB session method (Python snippet) rather than forcing `psql` as root. (priority=low)
 

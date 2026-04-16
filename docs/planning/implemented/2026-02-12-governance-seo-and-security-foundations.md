@@ -150,8 +150,8 @@ Implemented comprehensive request ID tracking for observability and debugging.
 Infrastructure is in place but requires fixing existing vulnerabilities before enabling blocking behavior.
 
 **Files Modified**:
-- `healtharchive-backend/Makefile` - Removed `|| true` from audit target
-- `healtharchive-backend/.github/workflows/backend-ci.yml` - Added pip-audit step
+- `healtharchive/Makefile` - Removed `|| true` from audit target
+- `healtharchive/.github/workflows/backend-ci.yml` - Added pip-audit step
 - `healtharchive-frontend/.github/workflows/frontend-ci.yml` - Removed `|| true` from npm audit
 
 **Current Vulnerabilities** (must fix before enabling):
@@ -169,7 +169,7 @@ next 16.1.1 â†’ GHSA-9g9p-9gw9-jx7f, GHSA-h25m-26qc-wcjf, GHSA-5f7q-jpqc-wp7h â†
 
 **Manual Steps Required**:
 
-1. **Backend** (run from `healtharchive-backend/`):
+1. **Backend** (run from `healtharchive/`):
    ```bash
    source .venv/bin/activate
    # Update pillow
@@ -203,7 +203,7 @@ next 16.1.1 â†’ GHSA-9g9p-9gw9-jx7f, GHSA-h25m-26qc-wcjf, GHSA-5f7q-jpqc-wp7h â†
 Added Dependabot configs to all 3 repos for automated dependency updates.
 
 **Files Created**:
-- `healtharchive-backend/.github/dependabot.yml` - pip + github-actions, weekly, limit 5 PRs
+- `healtharchive/.github/dependabot.yml` - pip + github-actions, weekly, limit 5 PRs
 - `healtharchive-frontend/.github/dependabot.yml` - npm + github-actions, weekly, limit 5 PRs
 - `healtharchive-datasets/.github/dependabot.yml` - pip + github-actions, weekly, limit 3 PRs
 
@@ -674,11 +674,11 @@ Implemented consistent pre-commit quality gates across all three repositories (b
 
 #### Files Modified
 
-- `healtharchive-backend/.pre-commit-config.yaml` - Added ruff, mypy hooks
+- `healtharchive/.pre-commit-config.yaml` - Added ruff, mypy hooks
 - `healtharchive-frontend/.pre-commit-config.yaml` - Added eslint, prettier hooks
 - `healtharchive-datasets/.pre-commit-config.yaml` - Added ruff, mypy hooks
-- `healtharchive-backend/src/ha_backend/authority.py` - Removed unused type: ignore
-- `healtharchive-backend/src/ha_backend/cli.py` - Removed 4 unused type: ignore comments
+- `healtharchive/src/ha_backend/authority.py` - Removed unused type: ignore
+- `healtharchive/src/ha_backend/cli.py` - Removed 4 unused type: ignore comments
 
 #### Validation
 
@@ -764,7 +764,7 @@ After completing the manual vulnerability fixes:
 
 1. **Backend**:
    ```bash
-   cd healtharchive-backend
+   cd healtharchive
    source .venv/bin/activate
    make ci && pip-audit  # Should pass with no vulnerabilities
    ```

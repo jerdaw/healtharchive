@@ -27,12 +27,12 @@ Implemented two improvements from the post-hardening backlog:
 **Usage**:
 ```bash
 # Dry-run (shows changes without applying)
-ha-backend patch-job-config --id 42 \
+healtharchive patch-job-config --id 42 \
   --set-tool-option skip_final_build=true \
   --set-tool-option docker_shm_size=2g
 
 # Apply changes
-ha-backend patch-job-config --id 42 \
+healtharchive patch-job-config --id 42 \
   --set-tool-option skip_final_build=true \
   --set-tool-option stall_timeout_minutes=60 \
   --apply
@@ -88,10 +88,10 @@ ha-backend patch-job-config --id 42 \
 **Manual verification**:
 ```bash
 # Test patch-job-config help
-ha-backend patch-job-config --help
+healtharchive patch-job-config --help
 
 # Test on a dev job (dry-run)
-ha-backend patch-job-config --id 1 --set-tool-option skip_final_build=true
+healtharchive patch-job-config --id 1 --set-tool-option skip_final_build=true
 ```
 
 ## Deferred Items (Phase 3)

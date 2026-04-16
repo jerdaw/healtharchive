@@ -50,22 +50,22 @@ Recovery required stopping the worker, lazily unmounting the stale hot-path moun
 Worker journal (error propagation into the worker loop):
 
 ```text
-Jan 08 06:31:43 <vps> ha-backend[302894]: 2026-01-08 06:31:43,663 [WARNING] healtharchive.worker: Crawl for job 6 failed (RC=1). Marking as retryable (retry_count=1).
-Jan 08 06:31:43 <vps> ha-backend[302894]: 2026-01-08 06:31:43,675 [INFO] healtharchive.worker: Worker picked job 6 for source hc (Health Canada) with status retryable and retry_count 1
-Jan 08 06:31:43 <vps> ha-backend[302894]: 2026-01-08 06:31:43,684 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101'
-Jan 08 06:32:13 <vps> ha-backend[302894]: 2026-01-08 06:32:13,694 [INFO] healtharchive.worker: Worker picked job 7 for source phac (Public Health Agency of Canada) with status queued and retry_count 0
-Jan 08 06:32:13 <vps> ha-backend[302894]: 2026-01-08 06:32:13,702 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101'
-Jan 08 06:32:43 <vps> ha-backend[302894]: 2026-01-08 06:32:43,711 [INFO] healtharchive.worker: Worker picked job 8 for source cihr (Canadian Institutes of Health Research) with status queued and retry_count 0
-Jan 08 06:32:43 <vps> ha-backend[302894]: 2026-01-08 06:32:43,718 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101'
+Jan 08 06:31:43 <vps> healtharchive[302894]: 2026-01-08 06:31:43,663 [WARNING] healtharchive.worker: Crawl for job 6 failed (RC=1). Marking as retryable (retry_count=1).
+Jan 08 06:31:43 <vps> healtharchive[302894]: 2026-01-08 06:31:43,675 [INFO] healtharchive.worker: Worker picked job 6 for source hc (Health Canada) with status retryable and retry_count 1
+Jan 08 06:31:43 <vps> healtharchive[302894]: 2026-01-08 06:31:43,684 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101'
+Jan 08 06:32:13 <vps> healtharchive[302894]: 2026-01-08 06:32:13,694 [INFO] healtharchive.worker: Worker picked job 7 for source phac (Public Health Agency of Canada) with status queued and retry_count 0
+Jan 08 06:32:13 <vps> healtharchive[302894]: 2026-01-08 06:32:13,702 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101'
+Jan 08 06:32:43 <vps> healtharchive[302894]: 2026-01-08 06:32:43,711 [INFO] healtharchive.worker: Worker picked job 8 for source cihr (Canadian Institutes of Health Research) with status queued and retry_count 0
+Jan 08 06:32:43 <vps> healtharchive[302894]: 2026-01-08 06:32:43,718 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101'
 ```
 
 Crawl metrics writer failure (systemd service repeatedly failing due to `Errno 107` during output-dir probing):
 
 ```text
 Traceback (most recent call last):
-  File "/opt/healtharchive-backend/scripts/vps-crawl-metrics-textfile.py", line 174, in main
+  File "/opt/healtharchive/scripts/vps-crawl-metrics-textfile.py", line 174, in main
     log_path = _find_job_log(job)
-  File "/opt/healtharchive-backend/scripts/vps-crawl-metrics-textfile.py", line 33, in _find_latest_combined_log
+  File "/opt/healtharchive/scripts/vps-crawl-metrics-textfile.py", line 33, in _find_latest_combined_log
     if not output_dir.is_dir():
   File "/usr/lib/python3.12/pathlib.py", line 842, in stat
     return os.stat(self, follow_symlinks=follow_symlinks)
@@ -96,8 +96,8 @@ d????????? ? ? ? ? ? 20260101T000502Z__hc-20260101
 - 2026-01-08T20:17Z (approx) — Operator stopped worker, unmounted stale hot-path mountpoints for job output dirs.
 - 2026-01-08T20:18Z (approx) — First attempt to re-apply tiering bind mounts failed due to additional stale mounts under `/srv/healtharchive/jobs/imports/**`.
 - 2026-01-08T20:21Z (approx) — Operator unmounted stale imports mountpoints and re-applied tiering bind mounts successfully.
-- 2026-01-08T20:22Z (approx) — Operator ran `ha-backend recover-stale-jobs --apply` and restarted the worker; crawl metrics writer started succeeding again.
-- 2026-01-08T20:34:34Z — Status snapshot showed annual jobs in `failed` (no running jobs); operator re-marked jobs `retryable` via `ha-backend retry-job`.
+- 2026-01-08T20:22Z (approx) — Operator ran `healtharchive recover-stale-jobs --apply` and restarted the worker; crawl metrics writer started succeeding again.
+- 2026-01-08T20:34:34Z — Status snapshot showed annual jobs in `failed` (no running jobs); operator re-marked jobs `retryable` via `healtharchive retry-job`.
 - 2026-01-08T20:38:39Z — Worker picked job 6 and successfully launched a new `zimit` container; crawl resumed and began producing new WARCs.
 
 ## Root cause
@@ -147,7 +147,7 @@ What this changed:
 First attempt surfaced additional stale mounts under legacy imports (same symptom):
 
 ```bash
-sudo /opt/healtharchive-backend/scripts/vps-warc-tiering-bind-mounts.sh --apply
+sudo /opt/healtharchive/scripts/vps-warc-tiering-bind-mounts.sh --apply
 ```
 
 Then unmounted the stale imports mountpoints and re-ran the bind-mount script:
@@ -156,7 +156,7 @@ Then unmounted the stale imports mountpoints and re-ran the bind-mount script:
 mount | rg '/srv/healtharchive/jobs/imports'
 sudo umount -l /srv/healtharchive/jobs/imports/legacy-hc-2025-04-21
 sudo umount -l /srv/healtharchive/jobs/imports/legacy-cihr-2025-04
-sudo /opt/healtharchive-backend/scripts/vps-warc-tiering-bind-mounts.sh --apply
+sudo /opt/healtharchive/scripts/vps-warc-tiering-bind-mounts.sh --apply
 ```
 
 What this changed:
@@ -167,7 +167,7 @@ What this changed:
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 5 --apply --limit 10
+/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --limit 10
 ```
 
 What this changed:
@@ -185,9 +185,9 @@ systemctl status healtharchive-crawl-metrics.service --no-pager -l
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend retry-job --id 6
-/opt/healtharchive-backend/.venv/bin/ha-backend retry-job --id 7
-/opt/healtharchive-backend/.venv/bin/ha-backend retry-job --id 8
+/opt/healtharchive/.venv/bin/healtharchive retry-job --id 6
+/opt/healtharchive/.venv/bin/healtharchive retry-job --id 7
+/opt/healtharchive/.venv/bin/healtharchive retry-job --id 8
 sudo systemctl restart healtharchive-worker.service
 ```
 
@@ -208,7 +208,7 @@ What this changed:
   - `ls -la /srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101 | head`
 - Integrity checks (if relevant):
   - After recovery, ran WARC verification (sampling) to reduce integrity uncertainty:
-    - `/opt/healtharchive-backend/.venv/bin/ha-backend verify-warcs --job-id 6 --level 0 --limit-warcs 20`
+    - `/opt/healtharchive/.venv/bin/healtharchive verify-warcs --job-id 6 --level 0 --limit-warcs 20`
 
 ## Open questions (still unknown)
 

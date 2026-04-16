@@ -22,11 +22,11 @@ Implemented four roadmap items that improved crawl/storage reliability and monit
 
 ## Operator notes
 
-- Canary job setup (optional): `ha-backend create-canary-job`
+- Canary job setup (optional): `healtharchive create-canary-job`
 - Deduplication is dry-run by default:
-  - Dry-run: `ha-backend dedupe-snapshots --id <job_id>`
-  - Apply: `ha-backend dedupe-snapshots --id <job_id> --apply`
-  - Restore: `ha-backend restore-deduped-snapshots --id <job_id> --apply`
+  - Dry-run: `healtharchive dedupe-snapshots --id <job_id>`
+  - Apply: `healtharchive dedupe-snapshots --id <job_id> --apply`
+  - Restore: `healtharchive restore-deduped-snapshots --id <job_id> --apply`
 
 ## Migration
 

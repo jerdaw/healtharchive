@@ -33,10 +33,10 @@
 
 ```bash
 # Refresh snippets for recent jobs
-ha-backend refresh-snapshot-metadata --job-id <ID>
+healtharchive refresh-snapshot-metadata --job-id <ID>
 
 # Backfill search vectors (off-peak)
-ha-backend backfill-search-vector --force
+healtharchive backfill-search-vector --force
 ```
 
 ## Historical Context

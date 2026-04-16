@@ -28,8 +28,6 @@ ACTIVE_ROOTS = (
 )
 
 EXCLUDED_PREFIXES = (
-    "docs/planning/implemented/",
-    "docs/operations/incidents/",
     "frontend/.next/",
     "site/",
     ".cache/",

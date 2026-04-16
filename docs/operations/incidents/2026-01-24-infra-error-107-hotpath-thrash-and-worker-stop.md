@@ -79,7 +79,7 @@ During the annual 2026 campaign, Storage Box “hot path” mountpoints under `/
 
 - Infra error handling did not appear to enforce a cooldown/backoff for fast-failing jobs, enabling a tight loop.
 - Hot-path auto-recovery ran frequently but did not resolve the condition before the worker stopped.
-- Operator CLI confusion: running `ha-backend show-job --id 6` without exporting `/etc/healtharchive/backend.env` defaulted to SQLite and failed with `no such table: archive_jobs` (not causal, but slowed diagnosis).
+- Operator CLI confusion: running `healtharchive show-job --id 6` without exporting `/etc/healtharchive/backend.env` defaulted to SQLite and failed with `no such table: archive_jobs` (not causal, but slowed diagnosis).
 
 ## Resolution / Recovery
 
@@ -163,10 +163,10 @@ Observed outcome: job 6 (HC) restarted at ~12:31Z and began writing new crawl te
 - Most relevant worker log excerpt (redacted):
 
 ```text
-Jan 24 06:28:01 <vps> ha-backend[...]: 2026-01-24 06:28:01,050 [INFO] healtharchive.worker: Worker picked job 7 for source phac (...) with status retryable and retry_count 0
-Jan 24 06:28:01 <vps> ha-backend[...]: 2026-01-24 06:28:01,056 [WARNING] healtharchive.jobs: Job 7 raised during archive_tool execution: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101'
-Jan 24 06:28:01 <vps> ha-backend[...]: 2026-01-24 06:28:01,063 [WARNING] healtharchive.worker: Crawl for job 7 failed due to infra error (RC=1). Not consuming retry budget (retry_count=0).
-Jan 24 06:28:01 <vps> ha-backend[...]: 2026-01-24 06:28:01,068 [INFO] healtharchive.worker: Worker picked job 7 for source phac (...) with status retryable and retry_count 0
+Jan 24 06:28:01 <vps> healtharchive[...]: 2026-01-24 06:28:01,050 [INFO] healtharchive.worker: Worker picked job 7 for source phac (...) with status retryable and retry_count 0
+Jan 24 06:28:01 <vps> healtharchive[...]: 2026-01-24 06:28:01,056 [WARNING] healtharchive.jobs: Job 7 raised during archive_tool execution: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101'
+Jan 24 06:28:01 <vps> healtharchive[...]: 2026-01-24 06:28:01,063 [WARNING] healtharchive.worker: Crawl for job 7 failed due to infra error (RC=1). Not consuming retry budget (retry_count=0).
+Jan 24 06:28:01 <vps> healtharchive[...]: 2026-01-24 06:28:01,068 [INFO] healtharchive.worker: Worker picked job 7 for source phac (...) with status retryable and retry_count 0
 Jan 24 06:28:02 <vps> systemd[1]: Stopping healtharchive-worker.service - HealthArchive Worker...
 Jan 24 06:28:02 <vps> systemd[1]: healtharchive-worker.service: Deactivated successfully.
 ```

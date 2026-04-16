@@ -1,7 +1,7 @@
 # HealthArchive Frontend + Backend Monorepo Consolidation Plan (Implemented 2026-04-15)
 
 **Status:** Implemented | **Scope:** HealthArchive now uses the backend-anchored
-app monorepo in `jerdaw/healtharchive-backend`, with backend code at the repo
+app monorepo in `jerdaw/healtharchive`, with backend code at the repo
 root, frontend code under `frontend/`, and `healtharchive-datasets` kept as a
 separate publication repo.
 
@@ -17,7 +17,7 @@ separate publication repo.
   repository after stabilization so the monorepo remains the only active app
   source.
 - Kept the production runtime model unchanged during repo consolidation:
-  systemd-backed backend at `/opt/healtharchive-backend` plus release-root
+  systemd-backed backend at `/opt/healtharchive` plus release-root
   Docker frontend on the VPS.
 - Executed the separate host-side source cutover on 2026-04-15 through
   `platform-ops` `PLAN-013` after restore-proof and production-truth checks.

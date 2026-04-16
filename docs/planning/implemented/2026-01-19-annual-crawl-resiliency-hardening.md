@@ -34,7 +34,7 @@ HealthArchive policy is **completeness-first** archival, so “page caps” and 
 
 ### Deterministic annual queue order
 
-- `ha-backend schedule-annual` staggers `queued_at` timestamps (hc → phac → cihr).
+- `healtharchive schedule-annual` staggers `queued_at` timestamps (hc → phac → cihr).
 - Files:
   - `src/ha_backend/cli.py`
   - Doc note: `docs/operations/annual-campaign.md`

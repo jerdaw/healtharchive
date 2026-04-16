@@ -77,9 +77,9 @@ In `scripts/verify_public_surface.py`:
    - Backend: `docs/development/testing-guidelines.md`
    - Frontend: `healtharchive-frontend/docs/development/bilingual-dev-guide.md` (if needed)
 6. Run:
-   - `healtharchive-backend: make check`
+   - `healtharchive: make check`
    - `healtharchive-frontend: npm run check`
-   - `healtharchive-backend: ./scripts/ci-e2e-smoke.sh --frontend-dir ../healtharchive-frontend`
+   - `healtharchive: ./scripts/ci-e2e-smoke.sh --frontend-dir ../healtharchive-frontend`
 7. Archive this plan under `docs/planning/implemented/` and update indices.
 
 ## Acceptance criteria

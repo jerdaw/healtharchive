@@ -104,7 +104,7 @@ Mark stopped jobs restartable:
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive-backend/.venv/bin/ha-backend recover-stale-jobs --older-than-minutes 1 --apply --source <source>
+/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 1 --apply --source <source>
 ```
 
 ### 1) Ensure backups exist
@@ -149,7 +149,7 @@ Key gotcha: the tiering script must target Postgres. Make sure env vars are expo
 ```bash
 sudo systemctl start postgresql.service
 sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; \
-  /opt/healtharchive-backend/.venv/bin/python3 /opt/healtharchive-backend/scripts/vps-annual-output-tiering.py --apply --year 2026'
+  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --apply --year 2026'
 ```
 
 Validate mountpoints:
@@ -186,9 +186,9 @@ sudo systemctl start healtharchive-worker.service
 
 - Public surface checks:
   - `curl -s http://127.0.0.1:8001/api/health && echo`
-  - `cd /opt/healtharchive-backend && ./scripts/verify_public_surface.py` (when appropriate)
+  - `cd /opt/healtharchive && ./scripts/verify_public_surface.py` (when appropriate)
 - Worker/job health checks:
-  - `cd /opt/healtharchive-backend && ./scripts/vps-crawl-status.sh --year 2026`
+  - `cd /opt/healtharchive && ./scripts/vps-crawl-status.sh --year 2026`
   - `systemctl list-units --all 'healtharchive-job*' --no-pager`
 - Storage/mount checks:
   - `df -h / /srv/healtharchive/storagebox`
