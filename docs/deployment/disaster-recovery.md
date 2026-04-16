@@ -144,7 +144,12 @@ Use this procedure when the VPS is running but the database is corrupted or drop
     - Naming: `healtharchive_<timestamp>.dump`
     - Retention: 14 days.
 - **NAS:** `/volume1/nobak/healtharchive/backups/db/` (needs retrieval)
-    - Retention: Long-term/Permanent.
+    - Offsite mirror of `/srv/healtharchive/backups` via NAS `rsync --delete`
+      pull.
+    - Retention follows the current VPS backup directory contents, not an
+      independent permanent archive. Archive one-off maintenance dumps under
+      `/srv/healtharchive/ops/maintenance/...` if they must outlive the normal
+      mirrored set.
 
 #### Step 2: Restore Database
 *Warning: This will overwrite the current database state.*

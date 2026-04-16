@@ -34,6 +34,18 @@ def test_active_docs_reflect_apex_canonical_frontend() -> None:
     assert "`www.healtharchive.ca` (redirect alias)" in production_runbook
 
 
+def test_active_docs_backup_notes_cover_nas_destination_and_manual_dumps() -> None:
+    production_runbook = _read("docs/deployment/production-single-vps.md")
+    disaster_recovery = _read("docs/deployment/disaster-recovery.md")
+
+    assert "mkdir -p /volume1/nobak/healtharchive/backups/db" in production_runbook
+    assert "exit code `11`" in production_runbook
+    assert "healtharchive_pre_<change>_<ts>.dump" in production_runbook
+    assert "not part of the nightly retention set" in production_runbook
+    assert "rsync --delete" in disaster_recovery
+    assert "independent permanent archive" in disaster_recovery
+
+
 def test_active_entrypoints_point_shared_vps_facts_to_platform_ops() -> None:
     for relative_path in (
         "README.md",
@@ -61,4 +73,5 @@ if __name__ == "__main__":
     test_systemd_public_surface_verifier_uses_apex_frontend()
     test_active_docs_do_not_treat_vercel_as_current_healtharchive_path()
     test_active_docs_reflect_apex_canonical_frontend()
+    test_active_docs_backup_notes_cover_nas_destination_and_manual_dumps()
     test_active_entrypoints_point_shared_vps_facts_to_platform_ops()
