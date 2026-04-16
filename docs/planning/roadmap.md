@@ -117,12 +117,20 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 
 ### Documentation platform governance (cross-repo)
 
-- Current state: the published docs portal still runs on MkDocs 1.x plus
-  Material.
-- Next step: plan and execute the Zensical migration in a dedicated series,
-  using `2026-04-15-zensical-migration-prep.md` as the current inventory of
-  coupling points and readiness gates.
-- Migration planning must explicitly cover:
+- Keep this repo on MkDocs 1.x plus Material in the current wave, and treat
+  that stack as supported legacy rather than the strategic default for new
+  standalone docs work.
+- Treat Zensical as the intended MkDocs replacement, but only after the earlier
+  shared waves succeed: `qquotes` first, then `visitbrief`, then
+  `waittimecanada`.
+- Keep `healtharchive` in the later plugin-heavy wave because the live docs
+  portal still depends on `tags`, `social`, and `swagger-ui-tag`, plus the
+  current `mkdocs.yml` navigation ownership and MkDocs-aware coverage/docs
+  checks.
+- Use `2026-04-15-zensical-migration-prep.md` as the current inventory of
+  coupling points and readiness gates for the eventual dedicated migration
+  series.
+- When that later migration series starts, planning must explicitly cover:
   - replacement for `mkdocs.yml` navigation ownership
   - replacement or compatibility wrappers for the current `make docs-*` flows
   - replacement for `scripts/check_docs_coverage.py` and any other
@@ -132,7 +140,7 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     `../documentation-guidelines.md`, and `../project.md`
 - If Zensical cannot cover the required parity in a reasonable series, prefer
   Sphinx + MyST as the fallback rather than leaving the repo in a half-migrated
-  state.
+  state or starting fresh on new MkDocs work.
 
 ### Storage & retention (backend)
 
@@ -181,7 +189,7 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - See: `../operations/monitoring-and-ci-checklist.md`
 - Decide whether to rewrite published non-human-authored git history to the human-only authorship standard.
   - Current policy is implemented for new work: accepted dependency updates should land via new human-authored commits, superseded bot PRs should be closed, and future branches should avoid bot/assistant/CI-only authorship.
-  - Remaining gap: older published history still contains historical Dependabot and CI-only authorship in some repos/branches.
+  - Remaining gap: older published history still contains historical Dependabot, archived-repo bot commits, and `CI User` authorship in some repos/branches.
   - Do this only with an explicit migration + force-push plan, because it would rewrite shared history across clones and open branches.
 
 ## Quality, governance, and product backlog (cross-repo)

@@ -33,8 +33,13 @@ def _init_fake_repo(tmp_path: Path) -> tuple[Path, Path]:
         text=True,
     )
     (repo_dir / "README.md").write_text("test repo\n", encoding="utf-8")
+    (repo_dir / ".gitignore").write_text(".venv/\n", encoding="utf-8")
     subprocess.run(
-        ["git", "add", "README.md"], cwd=repo_dir, check=True, capture_output=True, text=True
+        ["git", "add", "README.md", ".gitignore"],
+        cwd=repo_dir,
+        check=True,
+        capture_output=True,
+        text=True,
     )
     subprocess.run(
         ["git", "commit", "-m", "init"],
