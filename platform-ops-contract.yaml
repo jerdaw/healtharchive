@@ -1,0 +1,72 @@
+version: 1
+repo_root: healtharchive/healtharchive
+services:
+  - service_id: healtharchive-frontend
+    inventory_repo: jerdaw/healtharchive
+    runtime: docker
+    ingress: host-caddy
+    canonical_host: healtharchive.ca
+    public_hosts:
+      - healtharchive.ca
+    private_bind: 127.0.0.1:3200
+    container_name: healtharchive-frontend
+    systemd_unit: null
+    env_file: /etc/projects-merge/env/healtharchive-frontend.env
+    release_root: /srv/apps/healtharchive-frontend/releases
+    health:
+      public:
+        url: https://healtharchive.ca/
+        kind: head
+        expect_status:
+          - 200
+      private:
+        url: http://127.0.0.1:3200/
+        kind: head
+        expect_status:
+          - 200
+    boundary_entrypoints:
+      - frontend/docs/deployment/verification.md
+  - service_id: healtharchive-api
+    inventory_repo: jerdaw/healtharchive
+    runtime: systemd
+    ingress: host-caddy
+    canonical_host: api.healtharchive.ca
+    public_hosts:
+      - api.healtharchive.ca
+    private_bind: null
+    container_name: null
+    systemd_unit: healtharchive-api.service
+    env_file: null
+    release_root: null
+    health:
+      public:
+        url: https://api.healtharchive.ca/api/health
+        kind: json
+        expect_status:
+          - 200
+        expect_json_status: ok
+      private: null
+    boundary_entrypoints:
+      - docs/deployment/production-single-vps.md
+      - docs/deployment/production-rollout-checklist.md
+  - service_id: healtharchive-replay
+    inventory_repo: jerdaw/healtharchive
+    runtime: docker
+    ingress: host-caddy
+    canonical_host: replay.healtharchive.ca
+    public_hosts:
+      - replay.healtharchive.ca
+    private_bind: null
+    container_name: healtharchive-replay
+    systemd_unit: null
+    env_file: null
+    release_root: null
+    health:
+      public:
+        url: https://replay.healtharchive.ca/
+        kind: head
+        expect_status:
+          - 200
+      private: null
+    boundary_entrypoints:
+      - docs/deployment/production-single-vps.md
