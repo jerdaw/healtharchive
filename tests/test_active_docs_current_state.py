@@ -2,6 +2,10 @@ from __future__ import annotations
 
 from pathlib import Path
 
+CANONICAL_BOUNDARY_PATH = (
+    "/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md"
+)
+
 
 def _read(relative_path: str) -> str:
     repo_root = Path(__file__).resolve().parents[1]
@@ -55,17 +59,15 @@ def test_active_entrypoints_point_shared_vps_facts_to_platform_ops() -> None:
         "docs/deployment/production-rollout-checklist.md",
         "docs/deployment/staging-rollout-checklist.md",
     ):
-        assert (
-            "/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md"
-            in _read(relative_path)
-        )
+        content = _read(relative_path)
+        assert CANONICAL_BOUNDARY_PATH in content
 
     production_runbook = _read("docs/deployment/production-single-vps.md")
     env_contract = _read("docs/deployment/environments-and-configuration.md")
 
-    assert "/home/jer/repos/platform-ops" in production_runbook
+    assert "/home/jer/repos/vps/platform-ops" in production_runbook
     assert "canonical" in production_runbook
-    assert "/home/jer/repos/platform-ops" in env_contract
+    assert "/home/jer/repos/vps/platform-ops" in env_contract
     assert "canonical" in env_contract
 
 

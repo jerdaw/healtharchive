@@ -1,0 +1,64 @@
+name: Platform Ops Integration
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: healtharchive-platform-ops-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    env:
+      CHECKOUT_ID: healtharchive/healtharchive
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Set up Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: "3.11"
+
+      - name: Install validator dependency
+        run: python3 -m pip install --disable-pip-version-check --upgrade pip PyYAML
+
+      - name: Clone platform-ops
+        env:
+          PLATFORM_OPS_READONLY_TOKEN: ${{ secrets.PLATFORM_OPS_READONLY_TOKEN }}
+        run: |
+          set -euo pipefail
+          if [ -n "${PLATFORM_OPS_READONLY_TOKEN}" ]; then
+            clone_url="https://x-access-token:${PLATFORM_OPS_READONLY_TOKEN}@github.com/jerdaw/platform-ops.git"
+          else
+            clone_url="https://github.com/jerdaw/platform-ops.git"
+          fi
+
+          git clone --depth 1 --branch main "${clone_url}" "${RUNNER_TEMP}/platform-ops"
+
+      - name: Assemble temp repos root
+        run: |
+          set -euo pipefail
+          target="${RUNNER_TEMP}/repos-root/${CHECKOUT_ID}"
+          mkdir -p "${target}"
+          cp -a "${GITHUB_WORKSPACE}/." "${target}/"
+
+      - name: Run shared doc-boundary check
+        run: |
+          python3 "${RUNNER_TEMP}/platform-ops/scripts/checks/check-shared-doc-boundary.py" \
+            --repos-root "${RUNNER_TEMP}/repos-root" \
+            --checkout "${CHECKOUT_ID}"
+
+      - name: Run runtime-contract sync check
+        run: |
+          python3 "${RUNNER_TEMP}/platform-ops/scripts/checks/check-runtime-contract-sync.py" \
+            --repos-root "${RUNNER_TEMP}/repos-root" \
+            --checkout "${CHECKOUT_ID}" \
+            --require-manifests

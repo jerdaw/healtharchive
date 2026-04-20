@@ -4,8 +4,8 @@ This documentation portal covers the **HealthArchive app monorepo** and links
 to the separate datasets documentation.
 
 Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
-operations state live in `/home/jer/repos/platform-ops`. Use
-`/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+operations state live in `/home/jer/repos/vps/platform-ops`. Use
+`/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
 as the default rule for what belongs in this repo versus shared ops
 documentation.
 
@@ -42,8 +42,8 @@ datasets repo:
 
 Shared VPS facts that are not specific to the backend are canonical in:
 
-- `/home/jer/repos/platform-ops`
-- `/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md`
+- `/home/jer/repos/vps/platform-ops`
+- `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
 
 ## Recommended reading order
 

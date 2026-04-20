@@ -10,8 +10,8 @@ frontend + backend with a focus on:
 Shared-VPS ownership note:
 
 - This guide is canonical for HealthArchive frontend verification steps.
-- Shared host topology, ingress ownership, and other cross-project VPS facts are canonical in `/home/jer/repos/platform-ops`.
-- Boundary reference: `/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md`
+- Shared host topology, ingress ownership, and other cross-project VPS facts are canonical in `/home/jer/repos/vps/platform-ops`.
+- Boundary reference: `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
 
 ## Current deployment model (important context)
 

@@ -25,6 +25,10 @@ services:
         expect_status:
           - 200
     boundary_entrypoints:
+      - frontend/README.md
+      - frontend/AGENTS.md
+      - frontend/docs/README.md
+      - frontend/docs/implementation-guide.md
       - frontend/docs/deployment/verification.md
   - service_id: healtharchive-api
     inventory_repo: jerdaw/healtharchive
@@ -47,8 +51,14 @@ services:
         expect_json_status: ok
       private: null
     boundary_entrypoints:
+      - README.md
+      - AGENTS.md
+      - ENVIRONMENTS.md
+      - docs/README.md
+      - docs/deployment/environments-and-configuration.md
       - docs/deployment/production-single-vps.md
       - docs/deployment/production-rollout-checklist.md
+      - docs/deployment/staging-rollout-checklist.md
   - service_id: healtharchive-replay
     inventory_repo: jerdaw/healtharchive
     runtime: docker

@@ -9,8 +9,8 @@ Use this as the canonical runbook for rebuilding the stack, auditing it, or
 explaining it to new operators.
 
 Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
-operations state live in `/home/jer/repos/platform-ops`. Use
-`/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+operations state live in `/home/jer/repos/vps/platform-ops`. Use
+`/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
 as the default rule for what belongs in this repo versus shared ops
 documentation.
 
@@ -19,9 +19,9 @@ For recovery from total failure, see the [Disaster Recovery Runbook](disaster-re
 Documentation boundary note:
 
 1. This runbook is canonical for HealthArchive backend behavior on the VPS.
-2. Shared VPS facts that are not specific to HealthArchive alone are canonical in `/home/jer/repos/platform-ops`.
+2. Shared VPS facts that are not specific to HealthArchive alone are canonical in `/home/jer/repos/vps/platform-ops`.
 3. That includes shared ingress ownership, cross-project host inventory, shared path conventions, and host-wide hardening posture.
-4. The explicit ownership split is documented in `/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md`.
+4. The explicit ownership split is documented in `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`.
 
 ---
 

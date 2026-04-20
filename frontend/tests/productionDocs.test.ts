@@ -33,15 +33,15 @@ describe("production docs alignment", () => {
 
     for (const content of [readme, agents, docsIndex]) {
       expect(content).toContain(
-        "/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md",
+        "/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md",
       );
     }
 
     expect(implementationGuide).toContain(
-      "Shared VPS facts that are not specific to the frontend alone are canonical in `/home/jer/repos/platform-ops`.",
+      "Shared VPS facts that are not specific to the frontend alone are canonical in `/home/jer/repos/vps/platform-ops`.",
     );
     expect(verificationGuide).toContain(
-      "Shared host topology, ingress ownership, and other cross-project VPS facts are canonical in `/home/jer/repos/platform-ops`.",
+      "Shared host topology, ingress ownership, and other cross-project VPS facts are canonical in `/home/jer/repos/vps/platform-ops`.",
     );
   });
 });

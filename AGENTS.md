@@ -34,12 +34,12 @@ Canonical docs to consult first:
 - `docs/planning/roadmap.md` – backlog of not-yet-implemented work.
 - `docs/planning/implemented/` – historical implementation plans (executed).
 - Frontend bilingual/dev architecture: `frontend/docs/development/bilingual-dev-guide.md`
-- `/home/jer/repos/platform-ops` – shared VPS inventory, roadmap, handoff, and cross-project runbooks
-- `/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md` – canonical boundary for what belongs in `platform-ops` vs this repo
+- `/home/jer/repos/vps/platform-ops` – shared VPS inventory, roadmap, handoff, and cross-project runbooks
+- `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md` – canonical boundary for what belongs in `platform-ops` vs this repo
 
 Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
-operations state live in `/home/jer/repos/platform-ops`. Use
-`/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+operations state live in `/home/jer/repos/vps/platform-ops`. Use
+`/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
 as the default rule for what belongs in this repo versus shared ops
 documentation.
 
@@ -47,12 +47,12 @@ Shared-touching live runtime facts for the frontend, API, and replay services
 now also live in the repo-root `platform-ops-contract.yaml`. When changing a
 live canonical host, private bind, env-file path, release root, runtime owner,
 or shared health endpoint contract, update that manifest and the matching
-`/home/jer/repos/platform-ops` inventory/current-state surfaces in the same
+`/home/jer/repos/vps/platform-ops` inventory/current-state surfaces in the same
 change window.
 
 When you're doing anything beyond tiny local changes, **open those docs and sync your mental model first**.
 
-**Cross-project ops note:** Backend behavior and backend-facing docs belong in this repo. Shared VPS standards, live service inventory, ingress ownership, shared host access posture, and cross-project migration/operations state belong in `/home/jer/repos/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`). Host-side paths under `/etc/projects-merge/...` remain intentionally unchanged.
+**Cross-project ops note:** Backend behavior and backend-facing docs belong in this repo. Shared VPS standards, live service inventory, ingress ownership, shared host access posture, and cross-project migration/operations state belong in `/home/jer/repos/vps/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`). Host-side paths under `/etc/projects-merge/...` remain intentionally unchanged.
 
 ---
 

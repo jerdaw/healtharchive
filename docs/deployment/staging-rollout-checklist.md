@@ -8,8 +8,8 @@
 
 Documentation boundary note:
 
-1. Shared VPS facts that are not specific to HealthArchive alone are canonical in `/home/jer/repos/platform-ops`.
-2. The explicit ownership split is documented in `/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md`.
+1. Shared VPS facts that are not specific to HealthArchive alone are canonical in `/home/jer/repos/vps/platform-ops`.
+2. The explicit ownership split is documented in `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`.
 
 If you reintroduce staging later, define all of these first:
 

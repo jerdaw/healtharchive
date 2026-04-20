@@ -7,8 +7,8 @@ wired together across environments.
 Shared-VPS ownership note:
 
 1. This document owns the frontend/backend wiring contract for HealthArchive.
-2. Shared host topology, ingress ownership, service inventory, and other cross-project VPS facts are canonical in `/home/jer/repos/platform-ops`.
-3. Use `/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md` as the default boundary reference when deciding where a VPS fact belongs.
+2. Shared host topology, ingress ownership, service inventory, and other cross-project VPS facts are canonical in `/home/jer/repos/vps/platform-ops`.
+3. Use `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md` as the default boundary reference when deciding where a VPS fact belongs.
 
 The root `ENVIRONMENTS.md` is a pointer to this file to avoid duplication.
 
@@ -19,8 +19,8 @@ It is useful when:
   line up.
 
 Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
-operations state live in `/home/jer/repos/platform-ops`. Use
-`/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+operations state live in `/home/jer/repos/vps/platform-ops`. Use
+`/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
 as the default rule for what belongs in this repo versus shared ops
 documentation.
 

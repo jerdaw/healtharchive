@@ -4,8 +4,8 @@ HealthArchive.ca is an independent, non-governmental project to preserve and sur
 historical versions of **Canadian public health web content** (e.g., PHAC, Health Canada).
 
 Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
-operations state live in `/home/jer/repos/platform-ops`. Use
-`/home/jer/repos/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+operations state live in `/home/jer/repos/vps/platform-ops`. Use
+`/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
 as the default rule for what belongs in this repo versus shared ops
 documentation.
 
@@ -23,7 +23,7 @@ are centralized in `src/lib/siteCopy.ts`.
 
 - Backend API + ops docs: https://github.com/jerdaw/healtharchive
 - **Unified Documentation Site**: Documentation for the monorepo lives in the [backend/docs hub](https://github.com/jerdaw/healtharchive). Run `make docs-serve` at the repo root to view the searchable UI.
-- **Shared VPS ops workspace**: `/home/jer/repos/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`) contains the shared inventory, roadmap, handoff, and cross-project runbooks.
+- **Shared VPS ops workspace**: `/home/jer/repos/vps/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`) contains the shared inventory, roadmap, handoff, and cross-project runbooks.
 
 ## Shared documentation boundary
 
@@ -38,7 +38,7 @@ are centralized in `src/lib/siteCopy.ts`.
   - deployment and verification steps for the frontend
   - route behavior, UX, and browser-facing integration details
 - Boundary reference:
-  - `/home/jer/repos/platform-ops/PLAT-009-shared-vps-documentation-boundary.md`
+  - `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
 
 ---
 
