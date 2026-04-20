@@ -1051,6 +1051,68 @@ extraChromeArgs:
         log_text = combined_logs[-1].read_text(encoding="utf-8")
         assert '"context":"crawlStatus"' in log_text
 
+    def test_http_warc_backend_appends_after_existing_stable_warcs(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        clean_stop_event,
+    ):
+        out_dir = tmp_path / "http-warc-existing"
+        warcs_dir = out_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        existing = warcs_dir / "warc-000001.warc.gz"
+        existing.write_bytes(b"existing-warc")
+
+        pages = {
+            "https://example.org/": httpx.Response(
+                200,
+                headers={"content-type": "text/html; charset=utf-8"},
+                content=b"<html><body>Page body</body></html>",
+                request=httpx.Request("GET", "https://example.org/"),
+            ),
+        }
+
+        class FakeClient:
+            def __init__(self, *args, **kwargs):
+                pass
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def get(self, url):
+                return pages[url]
+
+        monkeypatch.setattr(
+            "archive_tool.http_warc_backend.httpx.Client",
+            FakeClient,
+        )
+
+        argv = [
+            "archive-tool",
+            "--seeds",
+            "https://example.org/",
+            "--name",
+            "example-http-warc-existing",
+            "--output-dir",
+            str(out_dir),
+            "--capture-backend",
+            "http_warc",
+            "--resume-policy",
+            "fresh_only",
+            "--auto-reset-poisoned-state",
+            "--skip-final-build",
+        ]
+        monkeypatch.setattr(sys, "argv", argv)
+
+        archive_main.main()
+
+        new_warc = warcs_dir / "warc-000002.warc.gz"
+        assert new_warc.is_file()
+        assert existing.read_bytes() == b"existing-warc"
+
     def test_http_warc_backend_retries_timed_out_seed_before_success(
         self,
         tmp_path: Path,

@@ -621,7 +621,9 @@ Used both to:
   `curl --http1.1` transport for that seed before giving up.
 * Crawls HTML pages plus linked render assets (CSS/JS/images/fonts) inside
   scope.
-* Writes WARC response records directly into stable `warcs/warc-000001.warc.gz`.
+* Writes WARC response records directly into the next available stable path
+  under `warcs/` (for example `warc-000274.warc.gz` when prior stable WARCs
+  already exist).
 * Emits `crawlStatus` JSON lines into `archive_http_warc_capture_*.combined.log`
   so existing monitoring and stats parsing keep working.
 
@@ -645,6 +647,9 @@ This backend is intentionally narrower than Browsertrix:
   requested/final URL provenance in emitted metadata.
 * Writes crawl provenance under
   `provenance/playwright_warc/run_*/capture_provenance.json`.
+* Writes WARC response records directly into the next available stable path
+  under `warcs/` instead of reusing `warc-000001.warc.gz` when the job already
+  contains preserved WARC output.
 * Emits `crawlStatus` JSON lines into
   `archive_playwright_warc_capture_*.combined.log` with extra `backend`,
   `captureMode`, and `lastPage` details so existing monitoring and stats
