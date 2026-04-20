@@ -2,211 +2,271 @@
 
 **Type**: Validation Runbook
 **Category**: Operations / Storage Tiering
-**Last updated**: 2026-02-06
+**Last updated**: 2026-04-17
 
 ## Purpose
 
-After a VPS reboot, verify that:
-1. Storage Box is mounted correctly
-2. Bind mounts for annual jobs are healthy
-3. Postgres is running and can connect
-4. The tiering script can find jobs and verify their state
+After a VPS reboot or rescue/maintenance window, verify that annual crawl jobs
+are safe to resume:
 
-**When to use this**: After any VPS reboot, especially during annual campaign season (December-February).
+1. the Storage Box base mount is healthy
+2. annual job output dirs are tiered and readable
+3. the worker user can write to queued/retryable annual output dirs
+4. annual metadata/config drift has not broken tiering/automation assumptions
+5. only then should retries or worker restarts happen
 
----
+**When to use this**: After any reboot, rescue boot, or storage maintenance
+during annual campaign season.
 
-## Prerequisites
+## Preconditions
 
-- SSH access to VPS
-- Worker should be stopped during validation (or use `--allow-repair-running-jobs` cautiously)
+- You are on the VPS.
+- Backend checkout is at `/opt/healtharchive`.
+- Backend env file is `/etc/healtharchive/backend.env`.
+- Prefer a maintenance window with `healtharchive-worker.service` stopped while
+  mounts are being repaired.
 
----
-
-## Verification Checklist
-
-### 1. Verify Storage Box Mount
+## 1) Load Env And Capture Read-Only State
 
 ```bash
-# Check mount is present and accessible
+cd /opt/healtharchive
+YEAR=2026
+HA=/opt/healtharchive/.venv/bin/healtharchive
+
+set -a; source /etc/healtharchive/backend.env; set +a
+
+./scripts/vps-crawl-status.sh --year "$YEAR"
+"$HA" annual-status --year "$YEAR"
+"$HA" check-db
+systemctl status postgresql.service --no-pager -l
+```
+
+Expected:
+
+- `check-db` succeeds
+- `annual-status` returns normally
+- you have a fresh snapshot of job ids, statuses, and output dirs before making
+  changes
+
+If `check-db` fails, stop here and fix DB/env first.
+
+## 2) Verify Storage Box Base Mount
+
+```bash
 findmnt /srv/healtharchive/storagebox
 ls -ld /srv/healtharchive/storagebox
-
-# Should NOT show Errno 107 (stale mount)
-ls /srv/healtharchive/storagebox/jobs
+ls /srv/healtharchive/storagebox/jobs >/dev/null
 ```
 
-**Expected**: Directory listing works without "Transport endpoint not connected" error.
+Expected:
 
-**If mount is missing**: Follow storage box mounting procedure in main deployment docs.
+- `findmnt` shows the Storage Box mount
+- directory listing works without `Transport endpoint is not connected`
 
----
+If this fails, repair the base Storage Box mount before touching any annual job.
 
-### 2. Verify Bind Mounts
+## 3) Verify Per-Job Output Dirs
+
+For each annual job you care about:
 
 ```bash
-# List all bind mounts for annual jobs
-findmnt | grep /srv/healtharchive/jobs | grep storagebox
+JOB_ID=7
+"$HA" show-job --id "$JOB_ID"
+OUT_DIR="$("$HA" show-job --id "$JOB_ID" | awk -F': +' '/^Output dir:/ {print $2}')"
+findmnt -T "$OUT_DIR" -o TARGET,SOURCE,FSTYPE,OPTIONS
+ls -ld "$OUT_DIR"
 ```
 
-**Expected**: See entries like:
-```
-/srv/healtharchive/jobs/2025_annual_hc [...] /srv/healtharchive/storagebox/jobs/2025_annual_hc
-```
-
-**If bind mounts are missing**: Re-run tiering script (see step 5).
-
----
-
-### 3. Verify Postgres is Running
+Optional worker-user writability probe for queued/retryable annual jobs:
 
 ```bash
-# Check postgres status
-systemctl status postgresql
-
-# Test database connection
-export $(cat /etc/healtharchive/env.production | xargs)
-psql "${HEALTHARCHIVE_DATABASE_URL}" -c "SELECT COUNT(*) FROM archive_jobs WHERE status='running';"
+WORKER_USER="$(systemctl show -p User --value healtharchive-worker.service)"
+sudo -u "$WORKER_USER" test -w "$OUT_DIR" && echo "OK: writable" || echo "BAD: not writable"
 ```
 
-**Expected**: Postgres is active, query returns successfully.
+Expected:
 
-**If connection fails**:
-- Ensure Postgres is started: `sudo systemctl start postgresql`
-- Verify env file exists and is readable
-- Check `DATABASE_URL` format in env file
+- `OUT_DIR` exists and is readable
+- `findmnt -T "$OUT_DIR"` shows the path is mounted from the Storage Box tier,
+  not left on `/dev/sda1`
+- the worker user can write the output dir for queued/retryable jobs
 
----
+If `ls` or `findmnt` hits `Errno 107`, treat it as stale-mount recovery, not a
+retry-budget problem.
 
-### 4. Verify Job Discovery
+## 4) Verify Annual Metadata / Config Drift
 
-For each active annual job, verify the output directory is accessible:
+Dry-run the annual reconciliation command before restarting the worker:
 
 ```bash
-# Example for 2025 annual jobs
-healtharchive show-job --id <annual_job_id> --warc-details
+"$HA" reconcile-annual-tool-options --year "$YEAR" --sources hc phac cihr
 ```
 
-**Expected**:
-- `WARC source: stable` (if job is indexed)
-- No `Errno 107` errors
-- File sizes and counts are reasonable
+Expected:
 
-**If errors occur**: Note job ID and continue to step 5.
+- `UNCHANGED` for jobs already carrying canonical annual metadata and source
+  profiles
+- `WOULD UPDATE` if a job is missing annual metadata
+  (`campaign_kind/year/date/date_utc/scheduler_version`) or has source-profile
+  drift
 
----
-
-### 5. Run Tiering Script in Dry-Run Mode
+If reconciliation reports drift, apply it before retrying the job:
 
 ```bash
-# This will detect and report any issues
+"$HA" reconcile-annual-tool-options --year "$YEAR" --sources hc phac cihr --apply
+```
+
+This is the preferred app-local fix for annual metadata/config drift.
+
+## 5) Run Annual Output Tiering Dry-Run
+
+```bash
 /opt/healtharchive/.venv/bin/python3 \
   /opt/healtharchive/scripts/vps-annual-output-tiering.py \
-  --year 2025
+  --year "$YEAR"
 ```
 
-**Expected output**:
-- No database connection errors
-- All annual jobs show `OK (already mounted)` or are correctly identified for tiering
-- If you see `WARN ... reason=unexpected_mount_type`, the output dir is mounted but not as a bind mount (higher staleness risk).
-  - Plan a maintenance window to convert it (stop the worker first).
+Expected:
 
-**If tiering script fails with database error**:
+- annual jobs show `OK`
+- or the script prints a bounded reason such as `STALE`, `WARN ...
+  unexpected_mount_type`, or `UNHEALTHY`
+
+If the script reports stale or unexpected mounts, repair them before retrying.
+
+## 6) Repair Tiering / Mounts If Needed
+
+Stop the worker first:
+
 ```bash
-# Load environment and retry
-export $(cat /etc/healtharchive/env.production | xargs)
-/opt/healtharchive/.venv/bin/python3 \
-  /opt/healtharchive/scripts/vps-annual-output-tiering.py \
-  --year 2025
+sudo systemctl stop healtharchive-worker.service
 ```
 
----
-
-### 6. Repair Stale Mounts (If Needed)
-
-If step 5 shows `STALE (Errno 107)` entries:
+Repair stale annual output-dir mounts:
 
 ```bash
-# Stop worker first!
-sudo systemctl stop healtharchive-worker
-
-# Run tiering script with repair flag
 sudo /opt/healtharchive/.venv/bin/python3 \
   /opt/healtharchive/scripts/vps-annual-output-tiering.py \
-  --year 2025 \
+  --year "$YEAR" \
   --apply \
   --repair-stale-mounts \
   --allow-repair-running-jobs
+```
 
-# If step 5 shows `WARN ... reason=unexpected_mount_type` entries:
-# (maintenance only; converts direct sshfs mounts into bind mounts)
+If the script reported `unexpected_mount_type`, use:
+
+```bash
 sudo /opt/healtharchive/.venv/bin/python3 \
   /opt/healtharchive/scripts/vps-annual-output-tiering.py \
-  --year 2025 \
+  --year "$YEAR" \
   --apply \
   --repair-unexpected-mounts \
   --allow-repair-running-jobs
 ```
 
-**After repair**: Re-run step 4 to verify jobs are now accessible.
+Then re-run steps 3 and 5.
 
----
+## 7) Only Then Touch Retry State
 
-### 7. Restart Worker
+If the job is `failed` or has exhausted retry budget after storage/config are
+healthy:
 
 ```bash
-# Restart worker (will now use healthy mounts)
-sudo systemctl start healtharchive-worker
-
-# Verify worker can pick up jobs
-sudo journalctl -u healtharchive-worker -f
+"$HA" reset-retry-count --id 7
+"$HA" reset-retry-count --id 7 --apply --reason "post-reboot annual recovery"
+"$HA" retry-job --id 7
 ```
 
-**Expected**: Worker logs show normal job selection, no `RuntimeError` about root device.
+Expected:
 
----
+- dry-run shows the intended retry-count change
+- apply sets `retry_count` back to `0`
+- `retry-job` moves a `failed` crawl back to `retryable`
 
-## Common Issues and Fixes
+Do not reset retries before mount/writability/config checks pass.
 
-### Issue: "Cannot connect to database"
+## 8) Reset Crawl State Only If Resume State Is The Remaining Problem
 
-**Symptom**: Tiering script or `healtharchive` commands fail with Postgres connection error.
+Use this only when storage/writability/metadata are already healthy and the job
+still shows the known poisoned resume/temp pattern:
 
-**Fix**:
+- repeated resume churn with no useful progress
+- known empty/unprocessable-WARC tail
+- stale `.tmp*`, `.archive_state.json`, or `.zimit_resume.yaml`
+
+Dry-run first:
+
 ```bash
-export $(cat /etc/healtharchive/env.production | xargs)
-# Retry command
+"$HA" reset-crawl-state --id 7
 ```
 
-### Issue: "Annual job output directory still on /dev/sda1"
+Apply only for a non-running job:
 
-**Symptom**: Worker refuses to start annual job crawl.
-
-**Fix**:
-1. Check Storage Box mount (step 1)
-2. Re-run tiering script with `--apply --repair-stale-mounts` (step 6)
-3. Verify bind mounts are created (step 2)
-4. Restart worker (step 7)
-
-### Issue: "Transport endpoint not connected (Errno 107)"
-
-**Symptom**: Cannot access annual job directories.
-
-**Fix**:
 ```bash
-# Unmount stale mount
-sudo umount -l /srv/healtharchive/jobs/2025_annual_hc
-
-# Re-run tiering script
-sudo /opt/healtharchive/.venv/bin/python3 \
-  /opt/healtharchive/scripts/vps-annual-output-tiering.py \
-  --year 2025 \
-  --apply
+"$HA" reset-crawl-state --id 7 --apply
 ```
 
----
+For current HC/PHAC annual profiles, this should be a fallback tool, not the
+first recovery step; their canonical execution policy already prefers fresh-only
+runs with automatic poisoned-state reset.
+
+## 9) Restart Worker And Verify Pickup
+
+```bash
+sudo systemctl start healtharchive-worker.service
+sudo journalctl -u healtharchive-worker.service -n 200 --no-pager
+./scripts/vps-crawl-status.sh --year "$YEAR"
+```
+
+Expected:
+
+- no root-device guardrail error
+- no `Errno 107`/permission-denied output-dir failure
+- the intended job moves to `running` or remains cleanly `retryable` with a
+  bounded next action
+
+## Common Failure Modes
+
+### Database/env drift
+
+Symptom:
+
+- `healtharchive` commands fail with connection errors or SQLite fallback
+
+Fix:
+
+```bash
+set -a; source /etc/healtharchive/backend.env; set +a
+"$HA" check-db
+```
+
+### Output dir still on root disk
+
+Symptom:
+
+- worker refuses to start an annual job because the output dir is still on
+  `/dev/sda1`
+
+Fix:
+
+1. verify Storage Box base mount
+2. re-run annual tiering apply
+3. confirm `findmnt -T "$OUT_DIR"` points at the Storage Box path
+
+### Stale annual hot path (`Errno 107`)
+
+Symptom:
+
+- `ls`, `findmnt`, or tiering probes hit `Transport endpoint is not connected`
+
+Fix:
+
+1. stop the worker
+2. run `vps-annual-output-tiering.py --apply --repair-stale-mounts`
+3. re-check the job output dir before retrying
 
 ## See Also
 
-- [Production Single VPS Deployment](../../../deployment/production-single-vps.md) - Main VPS runbook
-- [WARC Storage Tiering](../storage/warc-storage-tiering.md) - Tiering design and operating details
+- [Production Single VPS Deployment](../../../deployment/production-single-vps.md)
+- [Storage Box / sshfs stale mount recovery](../storage/storagebox-sshfs-stale-mount-recovery.md)
+- [WARC Storage Tiering](../storage/warc-storage-tiering.md)

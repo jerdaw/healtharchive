@@ -170,6 +170,7 @@ def test_reconcile_annual_tool_options_apply_updates_profile_and_sets_campaign_m
         assert cfg.get("campaign_year") == 2026
         assert cfg.get("campaign_date") == "2026-01-01"
         assert cfg.get("campaign_date_utc") == "2026-01-01T00:00:00Z"
+        assert cfg.get("scheduler_version") == "v1"
 
         assert tool_opts.get("initial_workers") == 2
         assert tool_opts.get("stall_timeout_minutes") == 90
@@ -187,6 +188,49 @@ def test_reconcile_annual_tool_options_apply_updates_profile_and_sets_campaign_m
             cfg.get("zimit_passthrough_args")
             == SOURCE_JOB_CONFIGS["phac"].default_zimit_passthrough_args
         )
+
+
+def test_reconcile_annual_tool_options_apply_backfills_metadata_only_drift(
+    tmp_path, monkeypatch
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    with get_session() as session:
+        seed_sources(session)
+        job_id = _create_annual_job(
+            session,
+            source_code="phac",
+            year=2026,
+            include_campaign_meta=False,
+        )
+
+    out = _run_cli(
+        [
+            "reconcile-annual-tool-options",
+            "--year",
+            "2026",
+            "--sources",
+            "phac",
+            "--apply",
+        ]
+    )
+    assert f"phac: UPDATED job_id={job_id}" in out
+    assert "campaign_kind:" in out
+    assert "campaign_year:" in out
+    assert "campaign_date:" in out
+    assert "campaign_date_utc:" in out
+    assert "scheduler_version:" in out
+
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        cfg = dict(job.config or {})
+
+        assert cfg.get("campaign_kind") == "annual"
+        assert cfg.get("campaign_year") == 2026
+        assert cfg.get("campaign_date") == "2026-01-01"
+        assert cfg.get("campaign_date_utc") == "2026-01-01T00:00:00Z"
+        assert cfg.get("scheduler_version") == "v1"
 
 
 def test_reconcile_annual_tool_options_preserves_non_baseline_overrides_except_restart_floor(
