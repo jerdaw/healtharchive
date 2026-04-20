@@ -13,7 +13,7 @@ monorepo and the separate datasets repo.
 - Ops roadmap/todo: `docs/operations/healtharchive-ops-roadmap.md`
 - Future roadmap backlog (not-yet-implemented work): `docs/planning/roadmap.md`
 - Implemented plans archive (historical records): `docs/planning/implemented/`
-- Docs-platform migration prep: `docs/planning/2026-04-15-zensical-migration-prep.md`
+- Docs-platform migration prep inventory: `docs/planning/implemented/2026-04-15-zensical-migration-prep.md`
 - Frontend documentation (canonical files): https://github.com/jerdaw/healtharchive/tree/main/frontend/docs
 - Datasets documentation (canonical): https://github.com/jerdaw/healtharchive-datasets
 
