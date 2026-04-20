@@ -1509,6 +1509,14 @@ def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
                 setattr(cfg.execution_policy, key, value)
             validate_execution_policy(cfg.execution_policy)
             new_exec = cfg.execution_policy.to_dict()
+            desired_metadata = {
+                "campaign_kind": "annual",
+                "campaign_year": year,
+                "campaign_date": f"{year}-01-01",
+                "campaign_date_utc": f"{year}-01-01T00:00:00Z",
+                "scheduler_version": "v1",
+            }
+            current_cfg = dict(job.config or {})
             changes: list[tuple[str, object, object]] = []
             for key in sorted(set(old_opts.keys()) | set(new_opts.keys())):
                 old_val = old_opts.get(key)
@@ -1529,6 +1537,10 @@ def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
             if scope_drift:
                 cfg.zimit_passthrough_args = list(new_zimit_args)
                 changes.append(("zimit_passthrough_args", old_zimit_args, new_zimit_args))
+            for key, desired_val in desired_metadata.items():
+                old_val = current_cfg.get(key)
+                if old_val != desired_val:
+                    changes.append((key, old_val, desired_val))
 
             if not changes:
                 unchanged += 1
@@ -1546,14 +1558,11 @@ def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
                 )
 
             if not dry_run:
-                current_cfg = dict(job.config or {})
                 current_cfg["tool_options"] = new_opts
                 current_cfg["execution_policy"] = new_exec
                 current_cfg["zimit_passthrough_args"] = list(cfg.zimit_passthrough_args)
-                current_cfg.setdefault("campaign_kind", "annual")
-                current_cfg.setdefault("campaign_year", year)
-                current_cfg.setdefault("campaign_date", f"{year}-01-01")
-                current_cfg.setdefault("campaign_date_utc", f"{year}-01-01T00:00:00Z")
+                for key, desired_val in desired_metadata.items():
+                    current_cfg[key] = desired_val
                 job.config = current_cfg
 
         if not dry_run:

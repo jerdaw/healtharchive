@@ -180,11 +180,11 @@ nav:
               - Annual Crawl Stalled (2026-01-09): operations/incidents/2026-01-09-annual-crawl-hc-job-stalled.md
               - PHAC Permission Denied (2026-01-09): operations/incidents/2026-01-09-annual-crawl-phac-output-dir-permission-denied.md
               - Replay Smoke 503 (2026-01-16): operations/incidents/2026-01-16-replay-smoke-503-and-warctieringfailed.md
+              - PHAC Fallback Recovery (2026-04-20): operations/incidents/2026-04-20-phac-post-reboot-tiering-loss-and-fallback-recovery.md
   - Planning & Roadmaps:
       - Active Work: planning/README.md
       - Active Plans:
           - Admissions Strengthening (OMSAS): planning/2026-02-admissions-strengthening-plan.md
-          - Docs Platform Migration Prep (Zensical): planning/2026-04-15-zensical-migration-prep.md
           - Crawl Operability (Locks and Retry Controls): planning/implemented/2026-02-06-crawl-operability-locks-and-retry-controls.md
           - Hot-Path Staleness Root-Cause Investigation: planning/2026-02-06-hotpath-staleness-root-cause-investigation.md
           - Annual Crawl Content-Cost and Scope Diagnosis: planning/implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md
@@ -198,6 +198,7 @@ nav:
           - Deploy Workflow Hardening (2026-02-07): planning/implemented/2026-02-07-deploy-workflow-hardening.md
           - CI Schema + Governance Guardrails (2026-02-06): planning/implemented/2026-02-06-ci-schema-and-governance-guardrails.md
           - Storage Watchdog Observability (2026-02-06): planning/implemented/2026-02-06-storage-watchdog-observability-hardening.md
+          - Docs Platform Migration Prep (2026-04-15): planning/implemented/2026-04-15-zensical-migration-prep.md
           - WARC Discovery Consistency (2026-01-29): planning/implemented/2026-01-29-warc-discovery-consistency.md
   - About:
       - Multi-Repo Setup: project.md

@@ -25,6 +25,7 @@ from ha_backend.archive_storage import (
     get_job_provenance_dir,
     get_job_warc_manifest_path,
     get_job_warcs_dir,
+    get_next_stable_warc_path,
     snapshot_crawl_configs,
     snapshot_state_file,
 )
@@ -38,6 +39,18 @@ def test_path_helpers(tmp_path):
         get_job_warc_manifest_path(out_dir)
         == out_dir / STABLE_WARCS_DIRNAME / WARC_MANIFEST_FILENAME
     )
+
+
+def test_get_next_stable_warc_path_appends_after_existing_stable_warcs(tmp_path):
+    out_dir = tmp_path / "job_out"
+    warcs_dir = get_job_warcs_dir(out_dir)
+    warcs_dir.mkdir(parents=True)
+    (warcs_dir / "warc-000001.warc.gz").write_bytes(b"one")
+    (warcs_dir / "warc-000003.warc.gz").write_bytes(b"three")
+
+    next_path = get_next_stable_warc_path(out_dir, suffix=".warc.gz")
+
+    assert next_path == warcs_dir / "warc-000004.warc.gz"
 
 
 def test_safe_link_or_copy_hardlink(tmp_path):

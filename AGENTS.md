@@ -20,7 +20,7 @@ Canonical docs to consult first:
 - `mkdocs.yml` – current docs-site navigation source of truth.
 - `docs/architecture.md` – architecture & implementation details.
 - `docs/documentation-guidelines.md` – documentation policy and canonical sources.
-- `docs/planning/2026-04-15-zensical-migration-prep.md` – current inventory of
+- `docs/planning/implemented/2026-04-15-zensical-migration-prep.md` – current inventory of
   docs-platform coupling points for the future Zensical migration.
 - `docs/development/live-testing.md` – step-by-step local testing flows.
 - `docs/deployment/environments-and-configuration.md` – cross-repo env vars and host matrix.

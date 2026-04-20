@@ -13,22 +13,15 @@ Active plans:
 
 - Admissions strengthening (OMSAS ABS + CanMEDS, ~12 weeks): `2026-02-admissions-strengthening-plan.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
-- Docs-site Zensical migration prep: `2026-04-15-zensical-migration-prep.md`
 
 ## Current priority sequence
 
 Treat the following as the current "what's next" order across roadmap docs:
 
-1. PHAC annual-crawl follow-up is the immediate technical priority.
-   - The repo-side control-plane/plumbing fixes are now in place:
-     `no_stats` stall detection, managed Browsertrix config for fresh/new
-     phases, and managed Browsertrix config merged into resumed phases.
-   - The rescue-visibility/operator path is now in repo:
-     `list-jobs` shows compact rescue state, `show-job` shows rescue details,
-     and `annual-status` provides the compact annual rescue summary with
-     explicit operator-state labels.
-   - Continue repo-side PHAC root-cause mitigation work before any further
-     controlled restart.
+1. Monitor PHAC and CIHR to completion, then index the completed annual jobs.
+   - PHAC is no longer parked: as of 2026-04-20 it is running under the
+     validated `playwright_warc` fallback path after post-reboot storage repair
+     and Browsertrix seed-failure confirmation.
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
 2. Convert annual output dirs from direct `sshfs` mounts to bind mounts during a later maintenance window.
    - This remains intentionally deferred until the active annual crawl is idle.
@@ -40,10 +33,11 @@ Treat the following as the current "what's next" order across roadmap docs:
 4. After the crawl/ops path is stabilized, the main project emphasis is the active admissions-strengthening plan.
    - That plan is the canonical home for the next external-validation, methods-paper, and dataset-release work.
    - Canonical plan: `2026-02-admissions-strengthening-plan.md`
-5. Plan the docs-site migration from MkDocs Material to Zensical in a dedicated change series.
-   - This prep/planning work is now explicitly in scope, but the actual
-     generator swap should happen separately from unrelated crawl/backend work.
-   - Canonical plan: `2026-04-15-zensical-migration-prep.md`
+5. Any docs-site migration planning should use the archived prep inventory as
+   the starting point, but the actual generator swap remains a separate change
+   series.
+   - Canonical reference:
+     `implemented/2026-04-15-zensical-migration-prep.md`
 
 ## Operator Follow-Through (Maintenance Window)
 
@@ -52,18 +46,13 @@ Some plans are "implemented in repo" but still require a short, operator-run mai
 Current known items:
 
 - PHAC annual-crawl follow-up after the 2026-03-23 canada.ca incident:
-  - Current state: job `7` (`phac-20260101`) remains failed/parked after the
-    controlled investigations; the worker is active again for CIHR, but PHAC
-    should remain untouched until the next controlled test.
-  - Settled repo-side outcome: PHAC fresh/new and resumed launches now both
-    preserve the managed Browsertrix HTTP/2 workaround, and the new rescue
-    visibility surfaces now expose effective backend/fallback state,
-    annual-summary rescue state, and operator-state labels directly, so the
-    remaining problem is no longer config propagation or operator visibility.
-  - Next action: continue repo-side investigation of PHAC resume-state/runtime
-    failure before any further VPS restart attempt.
-  - Why this is first: further PHAC recover/restart attempts should stay
-    blocked until there is a new hypothesis to test.
+  - Current state: job `7` (`phac-20260101`) is running under
+    `playwright_warc` after the 2026-04-20 recovery session.
+  - Settled repo-side outcome: PHAC storage repair, fallback probing, rescue
+    visibility, and stable-fallback-WARC numbering are now all deployed
+    together.
+  - Next action: monitor the current fallback run and index it on successful
+    completion.
   - Status tracking + next-step guidance: `../operations/healtharchive-ops-roadmap.md`
 - CIHR scope/content-cost follow-through:
   - Current state: completed on 2026-04-14 via a controlled maintenance

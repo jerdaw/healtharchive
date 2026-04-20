@@ -78,6 +78,25 @@ def get_job_warc_manifest_path(output_dir: Path) -> Path:
     return get_job_warcs_dir(output_dir) / WARC_MANIFEST_FILENAME
 
 
+def get_next_stable_warc_path(output_dir: Path, *, suffix: str = ".warc.gz") -> Path:
+    """
+    Return the next available stable WARC path for a job output directory.
+
+    This considers both the files already present under `warcs/` and any
+    `stable_name` entries recorded in the manifest so new stable WARCs append
+    rather than overwrite previously preserved artifacts.
+    """
+    output_dir = output_dir.resolve()
+    warcs_dir = get_job_warcs_dir(output_dir)
+    manifest = _load_manifest(get_job_warc_manifest_path(output_dir))
+    entries: list[dict] = list(manifest.get("entries") or [])
+
+    existing_stable: set[str] = {p.name for p in _iter_stable_warc_paths(warcs_dir)}
+    existing_stable.update({str(e.get("stable_name")) for e in entries if e.get("stable_name")})
+    next_idx = _next_warc_index(existing_stable)
+    return warcs_dir / f"warc-{next_idx:06d}{suffix}"
+
+
 def _now_utc() -> datetime:
     return datetime.now(timezone.utc)
 

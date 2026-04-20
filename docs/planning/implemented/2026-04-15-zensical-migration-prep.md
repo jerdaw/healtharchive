@@ -2,9 +2,9 @@
 
 ## Status
 
-Active prep only. This document inventories the current docs-platform coupling
-points so the actual migration can be planned and executed in a separate change
-series.
+Completed prep inventory. This document captured the current docs-platform
+coupling points so any future migration can start from a stable, archived
+snapshot instead of rediscovering the same constraints.
 
 ## Goal
 

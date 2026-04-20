@@ -127,7 +127,7 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   portal still depends on `tags`, `social`, and `swagger-ui-tag`, plus the
   current `mkdocs.yml` navigation ownership and MkDocs-aware coverage/docs
   checks.
-- Use `2026-04-15-zensical-migration-prep.md` as the current inventory of
+- Use `implemented/2026-04-15-zensical-migration-prep.md` as the current inventory of
   coupling points and readiness gates for the eventual dedicated migration
   series.
 - When that later migration series starts, planning must explicitly cover:
@@ -152,8 +152,8 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 - WARC discovery consistency follow-through (deferred Phase 2-4 work; keep behavior coherent across status, indexing, and cleanup).
   - Historical context: `implemented/2026-01-29-warc-discovery-consistency.md`
   - Already implemented: `implemented/2026-01-29-warc-manifest-verification.md`
-- Resolve the PHAC no-progress resume-loop state and re-evaluate the temporary `public-health-notices` exclusion.
-  - Context: the 2026 PHAC annual crawl first hit sustained `net::ERR_HTTP2_PROTOCOL_ERROR` churn on canada.ca, and later a deployed `--disable-http2` compatibility change removed the visible HTTP/2 storm but still did not restore measurable crawl progress.
+- Resolve the long-term PHAC Browsertrix compatibility posture and re-evaluate the temporary `public-health-notices` exclusion.
+  - Context: the 2026 PHAC annual crawl first hit sustained `net::ERR_HTTP2_PROTOCOL_ERROR` churn on canada.ca. On 2026-04-20, a fresh Browsertrix retry still failed at both seed documents, while the validated `playwright_warc` fallback succeeded and the live PHAC job resumed healthy progress under fallback.
   - Current repo status:
     - the monitor/control-plane gap is closed in git, so stages that emit no
       `crawlStatus` for a full stall window now trigger an explicit `no_stats`
@@ -162,19 +162,19 @@ Keep this list short; prefer linking to the canonical doc that explains the item
       Browsertrix config instead of incompatible zimit CLI passthrough
     - resumed HC/PHAC phases now preserve those managed Browsertrix overrides by
       merging them into the stable `.zimit_resume.yaml`
-  - Immediate follow-through is tracked in `../operations/healtharchive-ops-roadmap.md`; keep maintenance-window cutovers there rather than duplicating them in this backlog.
+    - fallback backends now append to the next free stable WARC slot instead of
+      overwriting `warc-000001.warc.gz` on reruns
+  - Immediate follow-through is tracked in `../operations/healtharchive-ops-roadmap.md`; keep live-run monitoring and maintenance-window cutovers there rather than duplicating them in this backlog.
   - Remaining work:
-    - determine why PHAC resumed attempts can terminate immediately with
-      `crawled=0 total=2 failed=2` and empty/unprocessable WARC output even when
-      the managed Browsertrix HTTP/2 workaround is present
-    - determine whether the current PHAC resume queue/state is poisoned or
-      whether the same failure reproduces from a truly fresh crawl phase
-    - design a source-compatible crawler/runtime mitigation that restores
-      intended PHAC coverage without reintroducing failure churn
-    - decide whether the temporary exclusion is still needed once the deeper
-      issue is understood
+    - decide whether PHAC should remain Browsertrix-first for future annual
+      campaigns or adopt a different default/fallback posture after the current
+      fallback run finishes
+    - determine whether any remaining Browsertrix-only compatibility work is
+      worth doing once the current fallback run is fully measured
+    - decide whether the temporary exclusion is still needed once post-run PHAC
+      coverage is reviewed
     - keep the operator path centered on `annual-status`, `list-jobs`, and
-      `show-job` so the next PHAC live test is observable without ad hoc log
+      `show-job` so post-run PHAC analysis is observable without ad hoc log
       reconstruction
   - Related docs: `../operations/annual-campaign.md`, `../operations/healtharchive-ops-roadmap.md`
 - Continue crawl telemetry calibration from live annual-crawl runs, but use dashboard trends (crawl rate / phase churn / progress age) rather than direct throughput alerts.

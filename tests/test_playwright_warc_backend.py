@@ -124,6 +124,67 @@ def test_run_playwright_warc_capture_writes_warc_and_provenance(tmp_path, monkey
     assert '"name":"playwright_warc"' in combined
 
 
+def test_run_playwright_warc_capture_appends_after_existing_stable_warcs(
+    tmp_path, monkeypatch
+) -> None:
+    out_dir = tmp_path / "playwright-warc-existing"
+    warcs_dir = out_dir / "warcs"
+    warcs_dir.mkdir(parents=True)
+    existing = warcs_dir / "warc-000001.warc.gz"
+    existing.write_bytes(b"existing-warc")
+
+    def fake_run_playwright_container(
+        *,
+        sink,
+        seeds,
+        scope_include_rx,
+        scope_exclude_rx,
+        expand_links,
+        scratch_dir,
+    ):
+        bodies_dir = scratch_dir / "bodies"
+        bodies_dir.mkdir(parents=True, exist_ok=True)
+        (bodies_dir / "record-000001.bin").write_bytes(b"<html><body>ok</body></html>")
+        manifest = {
+            "runtime": {
+                "playwrightVersion": "1.50.1",
+                "chromiumVersion": "147.0.7727.15",
+            },
+            "records": [
+                {
+                    "requestedUrl": "https://example.org",
+                    "finalUrl": "https://example.org",
+                    "statusCode": 200,
+                    "headers": {"content-type": "text/html; charset=utf-8"},
+                    "bodyPath": "bodies/record-000001.bin",
+                    "bodySource": "network_response",
+                    "cookieCount": 1,
+                    "captureTimestamp": "2026-04-03T05:06:06.051Z",
+                    "contentType": "text/html",
+                    "discoveredUrls": [],
+                }
+            ],
+            "failures": [],
+        }
+        return 0, manifest
+
+    monkeypatch.setattr(
+        "archive_tool.playwright_warc_backend._run_playwright_container",
+        fake_run_playwright_container,
+    )
+
+    result = run_playwright_warc_capture(
+        output_dir=out_dir,
+        seeds=["https://example.org"],
+        zimit_passthrough_args=["--scopeType", "host"],
+    )
+
+    assert result.exit_code == 0
+    assert result.warc_path == warcs_dir / "warc-000002.warc.gz"
+    assert result.warc_path.is_file()
+    assert existing.read_bytes() == b"existing-warc"
+
+
 def test_run_playwright_warc_capture_provenance_only_counts_written_records(
     tmp_path, monkeypatch
 ) -> None:

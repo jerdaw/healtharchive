@@ -21,6 +21,8 @@ from bs4 import BeautifulSoup
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
 
+from ha_backend.archive_storage import get_next_stable_warc_path
+
 logger = logging.getLogger("website_archiver.http_warc")
 
 _HTML_MIME_TOKENS = ("text/html", "application/xhtml+xml")
@@ -504,7 +506,7 @@ def run_http_warc_capture(
     output_dir.mkdir(parents=True, exist_ok=True)
     warcs_dir = output_dir / "warcs"
     warcs_dir.mkdir(parents=True, exist_ok=True)
-    warc_path = warcs_dir / "warc-000001.warc.gz"
+    warc_path = get_next_stable_warc_path(output_dir, suffix=".warc.gz")
 
     scope = build_scope_rules(zimit_passthrough_args)
     sink = _StageLogSink(output_dir, "http_warc_capture")

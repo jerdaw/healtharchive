@@ -503,7 +503,13 @@ VPS backup user:
 
 Backup script: `/usr/local/bin/healtharchive-db-backup`
 - `pg_dump -Fc` to `/srv/healtharchive/backups/healtharchive_<ts>.dump`
-- 14-day retention
+- Nightly `healtharchive_<ts>.dump` series retained 14 days
+- One-off maintenance dumps such as `healtharchive_pre_<change>_<ts>.dump`
+  are rollback artifacts, not part of the nightly retention set. After the
+  maintenance window is closed and at least one newer nightly dump plus restore
+  evidence exist, remove them from `/srv/healtharchive/backups` or archive them
+  under `/srv/healtharchive/ops/maintenance/...` instead of leaving them in the
+  mirrored NAS backup set indefinitely.
 - Healthchecks `/start`/`/fail`/success pings (see §8)
 
 Systemd:
@@ -526,8 +532,16 @@ Host ha-vps
 - Rsync command (used manually + DSM scheduled task):
 
 ```bash
+mkdir -p /volume1/nobak/healtharchive/backups/db
 rsync -av --delete ha-vps:/srv/healtharchive/backups/ /volume1/nobak/healtharchive/backups/db/
 ```
+
+- Make the DSM scheduled task run both lines, not just `rsync`, so the NAS pull
+  self-heals if the destination path disappears after a share rebuild or manual
+  cleanup.
+- If `/volume1/nobak/healtharchive/backups/db` is missing and the task runs only
+  `rsync`, Synology Task Scheduler will report `rsync` exit code `11`
+  (`mkdir ... failed: No such file or directory`).
 
 ---
 

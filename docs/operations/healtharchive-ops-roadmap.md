@@ -19,13 +19,27 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-04-15)
+## Current status (as of 2026-04-20)
 
 - 2026 annual campaign is still active on the VPS:
-  - `hc` completed successfully after the rescue-policy rollout.
+  - `hc` completed successfully after the rescue-policy rollout and is now
+    waiting to be indexed.
   - `cihr` is running on the 2026-04-14 scoped restart and resumed cleanly
     after the 2026-04-15 production cutover window.
-  - `phac` is failed/parked pending deeper repo-side runtime diagnosis.
+  - `phac` is running again on the 2026-04-20 fallback recovery path.
+    - The immediate post-reboot problem was storage-tier drift: job `7` landed
+      on an unwritable local hot-path placeholder instead of the Storage Box
+      tier, so `.archive_state.json` writes failed.
+    - After tiering/writability were restored, fresh Browsertrix still failed
+      both PHAC seed documents with `net::ERR_HTTP2_PROTOCOL_ERROR`.
+    - Production `healtharchive probe-browser-fetch` then confirmed that the
+      pinned `playwright_warc` runtime could fetch both PHAC seeds with `200`.
+    - The repo-side fallback-WARC numbering fix was deployed before the retry,
+      so the fallback backend now appends new stable WARCs instead of
+      overwriting `warc-000001.warc.gz` on reruns.
+    - Live verification on 2026-04-20 shows PHAC progressing under
+      `playwright_warc` with clean `crawlStatus` growth, `failed=0`, and new
+      stable files appended as `warc-000275.warc.gz` and higher.
 - CIHR scope/content-cost follow-through is complete:
   - bounded content reporting on 2026-03-27 and 2026-04-14 showed CIHR-specific
     media-heavy frontier waste (`.mp4`, `asl-video/...`, and HTML query
@@ -51,9 +65,12 @@ Keep the two synced copies of this file aligned:
   - conversion remains intentionally deferred until a future maintenance window
     after the annual crawl is idle or during an explicitly accepted
     interruption.
-- PHAC annual crawl repo-side control-plane fixes remain deployed and verified,
-  but the source still needs deeper runtime investigation before another live
-  retry.
+- PHAC annual crawl repo-side rescue/fallback fixes are now both deployed and
+  live-verified in production:
+  - rescue visibility surfaces (`list-jobs`, `show-job`, `annual-status`,
+    crawl textfile metrics) are working as intended
+  - the fallback-WARC numbering fix is deployed and verified on the VPS checkout
+  - the active PHAC run is no longer blocked on deeper repo-side diagnosis
 - Rescue observability follow-through is now implemented in repo:
   - `healtharchive list-jobs` now surfaces effective backend plus compact rescue
     state.
@@ -73,83 +90,35 @@ Keep the two synced copies of this file aligned:
 
 Treat the following as the current ops execution order:
 
-1. PHAC repo-side mitigation and verification.
+1. Monitor PHAC and CIHR to completion, then index the completed annual jobs.
 2. Annual output-dir bind-mount conversion during the next acceptable
-   maintenance window.
+   maintenance window after the annual crawl is idle.
 3. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
-- PHAC follow-up is now deeper repo-side investigation, not another mitigation
-  deploy or blind live restart.
-  - Current state: job `7` (`phac-20260101`) is failed/parked after the
-    controlled 2026-03-23 investigation.
-  - Settled findings from the investigation:
-    - the earlier HC/PHAC `--extraChromeArgs --disable-http2` CLI passthrough
-      was invalid for the deployed zimit image and is no longer the active
-      failure mode
-    - fresh/new PHAC launches now correctly use a managed Browsertrix config
-      file via zimit `--config`
-    - resumed PHAC launches now correctly preserve that Browsertrix override by
-      merging it into `.zimit_resume.yaml`
-    - the backend now auto-detects the known poisoned-resume signature and
-      falls back to a new crawl phase with consolidation instead of blindly
-      resuming the same queue again
-    - despite that corrected plumbing, resumed PHAC attempts still collapse into
-      `crawled=0 total=2 failed=2` with empty/unprocessable WARC output
-  - Diagnostic update (2026-03-23): the content-cost report plus direct log
-    review still point to PHAC HTML/runtime friction rather than broad
-    binary/media frontier waste.
-    - Across the sampled PHAC combined logs, repeated failures remained
-      concentrated under `en/public-health/services` and
-      `fr/sante-publique/services`.
-    - Concrete repeated pathological targets include the travel-health
-      artesunate page pair, the English NACI subtree, the English CCDR subtree,
-      and the English Canadian Immunization Guide subtree.
-    - Sampled WARC bytes remained dominated by normal pages/render assets rather
-      than `.mp4`/dataset/document classes.
-  - Verified on 2026-04-09:
-    - prod deploys can land safely without restarting the worker while CIHR is
-      active
-    - `healtharchive probe-browser-fetch` succeeds on production for both HC and
-      PHAC seed pages using the pinned `playwright_warc` runtime
-    - annual reconcile dry-run shows the intended HC/PHAC policy changes
-  - Live update on 2026-04-10:
-    - annual reconcile was applied
-    - HC did exactly what the rescue policy was meant to enable:
-      - Browsertrix-first failed immediately at the seeds with
-        `net::ERR_HTTP2_PROTOCOL_ERROR`
-      - the job remained alive through rescue/backoff
-      - the job auto-promoted into `playwright_warc`
-      - the fallback backend now shows sustained healthy progress on prod
-    - the remaining gap is observability/operator ergonomics, not the fallback
-      control flow itself
-  - Repo update on 2026-04-11:
-    - initial rescue-observability follow-through is now implemented in repo:
-      - `healtharchive list-jobs` surfaces effective backend + compact rescue state
-      - `healtharchive show-job` surfaces primary/configured/effective backend plus fallback/promotion details
-      - crawl textfile metrics now expose backend/fallback rescue state
-  - Repo update on 2026-04-15:
-    - `healtharchive annual-status` now provides the compact annual rescue summary
-      surface for operators
-    - `operator_state` output now distinguishes intentional retry/backoff from
-      active or terminal failure states
-    - CLI docs now describe the rescue-summary workflow directly
+- PHAC follow-up is now monitoring and post-run indexing, not another blind
+  intervention.
+  - Current state: job `7` (`phac-20260101`) is running under
+    `playwright_warc` after the 2026-04-20 recovery.
+  - Settled live evidence:
+    - the post-reboot storage-tier drift was repaired and worker writability was
+      restored before the retry
+    - fresh Browsertrix still failed the PHAC seeds with
+      `net::ERR_HTTP2_PROTOCOL_ERROR`
+    - `healtharchive probe-browser-fetch` succeeded for both PHAC seed pages
+    - the fallback-WARC numbering fix was deployed on the VPS before the retry
+    - the active PHAC combined log is now `archive_playwright_warc_capture_...`
+      and shows sustained progress with `failed=0`
   - Next steps:
-    - use the settled HC rescue result plus the new rescue-visibility surfaces
-      to define the next PHAC-specific runtime test
-    - before any next PHAC retry, verify that the current repo changes are
-      deployed on the VPS so fresh-only policy, stale-state reset, bounded
-      fallback promotion, and rescue visibility are all active together
-    - determine whether PHAC still reproduces the same failure from a truly
-      fresh phase after resume state is reset automatically
-    - diagnose the remaining canada.ca runtime issue only if fresh Browsertrix
-      phases still fail before the fallback budget can help
-    - keep PHAC parked while CIHR remains active unless a controlled
-      interruption is explicitly acceptable
-    - revisit the temporary `public-health-notices` exclusion only after the
-      deeper PHAC runtime/state issue is understood
-  - Do not do further blind PHAC recover/restart attempts from the VPS.
+    - keep monitoring the current PHAC run while progress remains healthy
+    - when PHAC completes, run `healtharchive index-job --id 7`
+    - if PHAC fails instead of completing, inspect the final PHAC combined log
+      before changing backend/state again
+    - after the 2026 annual campaign is idle, decide whether PHAC should remain
+      Browsertrix-first in future runs or move to a different default strategy
+  - Do not manually restart or re-patch PHAC again while the current fallback
+    run is healthy.
 - CIHR follow-through is now monitoring-only, not another planned intervention.
   - Current state: job `8` is running under the source-managed custom scope
     deployed on 2026-04-14.
@@ -186,6 +155,10 @@ Treat the following as the current ops execution order:
   - Review notification volume and alert outcomes after 7 days (firing + resolved counts by alertname/severity).
   - Confirm crawl throughput/churn investigations are being done via Grafana (`HealthArchive - Pipeline Health`) and not missed due to notification removal.
   - Consider a future composite crawl-degradation alert only if dashboard review repeatedly reveals actionable issues that are not otherwise alerted.
+- After PHAC and CIHR complete:
+  - index completed annual jobs that are still `awaiting-index`
+  - verify `annual-status --year 2026` reaches search-ready state only after
+    HC, PHAC, and CIHR are all indexed successfully
 
 ## IRL / external validation (active; runs in parallel with ops)
 

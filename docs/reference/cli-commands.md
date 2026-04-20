@@ -660,6 +660,9 @@ healtharchive reconcile-annual-tool-options --year 2026 --sources hc --apply
 - Reconciles annual `execution_policy` defaults (for example HC/PHAC
   `fresh_only` resume policy and `playwright_warc` fallback settings)
 - Reconciles canonical HC/PHAC scope filters on existing annual jobs
+- Backfills canonical annual metadata on matching jobs:
+  `campaign_kind`, `campaign_year`, `campaign_date`, `campaign_date_utc`, and
+  `scheduler_version`
 - Preserves explicit non-baseline overrides
 - Enforces restart-budget floor and annual safety defaults
 

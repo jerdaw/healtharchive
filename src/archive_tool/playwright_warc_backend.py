@@ -15,6 +15,8 @@ from typing import Any, Iterable
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
 
+from ha_backend.archive_storage import get_next_stable_warc_path
+
 from .constants import (
     DEFAULT_PLAYWRIGHT_LOCALE,
     DEFAULT_PLAYWRIGHT_NAVIGATION_TIMEOUT_MS,
@@ -369,7 +371,7 @@ def run_playwright_warc_capture(
     output_dir.mkdir(parents=True, exist_ok=True)
     warcs_dir = output_dir / "warcs"
     warcs_dir.mkdir(parents=True, exist_ok=True)
-    warc_path = warcs_dir / "warc-000001.warc.gz"
+    warc_path = get_next_stable_warc_path(output_dir, suffix=".warc.gz")
 
     scope = build_scope_rules(zimit_passthrough_args)
     sink = _StageLogSink(output_dir, "playwright_warc_capture")
