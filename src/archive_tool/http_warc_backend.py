@@ -18,9 +18,10 @@ from urllib.parse import urljoin, urlsplit, urlunsplit
 
 import httpx
 from bs4 import BeautifulSoup
-from ha_backend.archive_storage import get_next_stable_warc_path
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
+
+from ha_backend.archive_storage import get_next_stable_warc_path
 
 logger = logging.getLogger("website_archiver.http_warc")
 

@@ -12,9 +12,10 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
-from ha_backend.archive_storage import get_next_stable_warc_path
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
+
+from ha_backend.archive_storage import get_next_stable_warc_path
 
 from .constants import (
     DEFAULT_PLAYWRIGHT_LOCALE,
