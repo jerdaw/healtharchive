@@ -26,7 +26,7 @@ Canonical docs to consult first:
 - `mkdocs.yml` – current docs-site navigation source of truth.
 - `docs/architecture.md` – architecture & implementation details.
 - `docs/documentation-guidelines.md` – documentation policy and canonical sources.
-- `docs/planning/2026-04-15-zensical-migration-prep.md` – current inventory of
+- `docs/planning/implemented/2026-04-15-zensical-migration-prep.md` – current inventory of
   docs-platform coupling points for the future Zensical migration.
 - `docs/development/live-testing.md` – step-by-step local testing flows.
 - `docs/deployment/environments-and-configuration.md` – cross-repo env vars and host matrix.
@@ -2465,7 +2465,7 @@ monorepo and the separate datasets repo.
 - Ops roadmap/todo: `docs/operations/healtharchive-ops-roadmap.md`
 - Future roadmap backlog (not-yet-implemented work): `docs/planning/roadmap.md`
 - Implemented plans archive (historical records): `docs/planning/implemented/`
-- Docs-platform migration prep: `docs/planning/2026-04-15-zensical-migration-prep.md`
+- Docs-platform migration prep inventory: `docs/planning/implemented/2026-04-15-zensical-migration-prep.md`
 - Frontend documentation (canonical files): https://github.com/jerdaw/healtharchive/tree/main/frontend/docs
 - Datasets documentation (canonical): https://github.com/jerdaw/healtharchive-datasets
 
