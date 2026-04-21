@@ -239,6 +239,7 @@ In Grafana, find the `HealthArchive` folder with these dashboards:
 ### Troubleshooting
 
 - **Permission errors:** Add Grafana to ops group: `sudo usermod -aG healtharchive grafana && sudo systemctl restart grafana-server`
+- **Baseline drift on `/etc/grafana/provisioning/dashboards/healtharchive.yaml`:** Re-run `sudo ./scripts/vps-install-observability-dashboards.sh --apply`. The dashboards installer is the canonical writer for that provisioning file and restores the expected `root:root` `0644` state.
 - **"Data source not found":** Rename data sources to match expected names or edit dashboard JSON
 
 ### Rollback

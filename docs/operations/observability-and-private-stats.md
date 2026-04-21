@@ -109,6 +109,7 @@ Expected:
 - `grafana-server.service` is `active (running)`
 - `/api/health` returns JSON with `"database":"ok"`
 - provisioning file exists at `/etc/grafana/provisioning/dashboards/healtharchive.yaml`
+- provisioning file is `root:root` with mode `0644`
 
 ### Preferred access (recommended): SSH port-forward
 
