@@ -65,6 +65,22 @@ Example:
   re-run `sudo ./scripts/vps-install-observability-dashboards.sh --apply`.
   That installer is the canonical writer for the Grafana dashboards
   provisioning file and restores the expected `root:root` `0644` state.
+- After fixing required drift, verify with `./scripts/check_baseline_drift.py --mode local`
+  or rerun the systemd wrapper with
+  `sudo systemctl start healtharchive-baseline-drift-check.service`.
+
+## Healthchecks recovery note
+
+If `healtharchive-baseline-drift-check.service` is wired to Healthchecks, a
+manual rerun after remediation will send the same success ping as the scheduled
+weekly timer.
+
+- A later Healthchecks "UP" notification confirms the service passed on that rerun.
+- It does **not** prove the weekly timer fired on schedule.
+- To distinguish "scheduled timer run" from "manual recovery rerun", compare:
+  - `sudo systemctl status healtharchive-baseline-drift-check.timer --no-pager -l`
+  - `sudo systemctl list-timers --all | grep healtharchive-baseline-drift-check`
+  - `sudo journalctl -u healtharchive-baseline-drift-check.service --no-pager -l`
 
 ## CORS validation
 

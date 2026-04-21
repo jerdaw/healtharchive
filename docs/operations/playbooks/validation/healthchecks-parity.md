@@ -72,6 +72,26 @@ Use the `NEXT` column from `systemctl list-timers` to configure Healthchecks sch
 
 If a yearly check is configured with a small grace (hours), it will look “down” most of the year.
 
+### 4) Interpret Healthchecks "DOWN" / "UP" against systemd state
+
+When triaging a timer-backed Healthchecks alert, use systemd as the source of truth:
+
+- `sudo systemctl status <unit>.timer --no-pager -l` shows the timer's loaded state plus its last/next trigger times.
+- `sudo systemctl list-timers --all | grep <unit-prefix>` is the fastest cross-check for what actually fired and when.
+- `sudo journalctl -u <unit>.service --no-pager -l` shows the wrapped command's real output and whether a later rerun succeeded.
+
+Important interpretation rule:
+
+- A later Healthchecks "UP" notification only proves the wrapped service pinged success.
+- It does **not** prove the scheduled timer fired on time.
+- A manual `sudo systemctl start <unit>.service` rerun sends the same success ping and will clear the check.
+
+Journal visibility caveats:
+
+- `journalctl -u <unit>.timer` often needs `sudo` because timer logs are emitted by systemd, not by the service user.
+- Even with `sudo`, `journalctl --since ...` can still show `-- No entries --` if the timer's visible startup log line is older than the `--since` cutoff.
+- In that case, trust `systemctl status` / `systemctl list-timers --all` for the timer trigger history and `journalctl -u <unit>.service` for the command outcome.
+
 ---
 
 ## Reconcile: achieve 1:1 parity (what exists vs what should exist)

@@ -870,6 +870,23 @@ If the drift check fails, inspect:
 - `/srv/healtharchive/ops/baseline/drift-report-latest.txt`
   - `journalctl -u healtharchive-baseline-drift-check.service --no-pager -l`
 
+If required drift is fixed and you want to confirm recovery immediately:
+
+```bash
+sudo systemctl start healtharchive-baseline-drift-check.service
+sudo journalctl -u healtharchive-baseline-drift-check.service -n 200 --no-pager -l
+```
+
+Healthchecks interpretation note:
+
+- A success ping after `healtharchive-baseline-drift-check.service` is started manually means the service passed on that rerun.
+- It does **not** prove the weekly timer itself fired on schedule.
+- To confirm the actual timer window, compare:
+  - `sudo systemctl status healtharchive-baseline-drift-check.timer --no-pager -l`
+  - `sudo systemctl list-timers --all | grep healtharchive-baseline-drift-check`
+  - `sudo journalctl -u healtharchive-baseline-drift-check.timer --no-pager -l`
+- `journalctl -u ...timer --since ...` can still show `-- No entries --` if the visible timer startup log predates your `--since` cutoff.
+
 ---
 
 ## Enable public surface verification (optional, recommended)
