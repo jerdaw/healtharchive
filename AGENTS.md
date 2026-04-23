@@ -58,15 +58,36 @@ When you're doing anything beyond tiny local changes, **open those docs and sync
 
 ## Production VPS Access
 
-**CRITICAL: Automated assistants do NOT have access to the production VPS.**
+Default assumption: automated assistants do **not** have direct access to the
+production VPS.
 
-- You CANNOT run commands on the VPS (no SSH, no remote execution)
-- You CANNOT directly access production logs, databases, or filesystems
-- You CAN ONLY suggest commands for the human operator to run manually
-- When providing diagnostics or troubleshooting, format commands as examples for the operator to copy/paste
-- Never attempt `ssh vps` or similar remote access - it will always fail
+There are two distinct operating modes:
 
-Only the human operator has direct VPS access. All VPS operations must be performed by the operator.
+1. **Normal repo/local session (default)**
+   Assume no production-host access.
+   - You CANNOT run commands on the VPS (no SSH, no remote execution)
+   - You CANNOT directly access production logs, databases, or filesystems
+   - You CAN ONLY suggest commands for the human operator to run manually
+   - When providing diagnostics or troubleshooting, format commands as examples
+     for the operator to copy/paste
+   - Never attempt `ssh vps` or similar remote access from a normal local repo
+     session
+
+2. **Assistant-guided production session on the VPS (explicit exception)**
+   When the assistant is explicitly running on the production VPS under the
+   `ai-diagnostic` posture described in
+   `docs/operations/playbooks/core/assistant-guided-production-session.md`,
+   local host commands are allowed under that playbook's guardrails.
+   - Default to diagnostic/read-only mode
+   - Prefer non-`sudo` commands first
+   - Use one-shot `sudo` only for read-only inspection that truly needs it and
+     only within the operator-approved session rules
+   - Do not edit `/opt/healtharchive` directly
+   - Do not use the VPS as the main coding workspace
+   - For any state-changing action, provide objective, exact command, expected
+     impact, and rollback path, then wait for operator approval
+
+If you are not explicitly in the second posture, assume the first.
 
 ### VPS command sequencing guardrail
 

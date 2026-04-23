@@ -71,9 +71,31 @@ def test_active_entrypoints_point_shared_vps_facts_to_platform_ops() -> None:
     assert "canonical" in env_contract
 
 
+def test_agent_docs_keep_symlink_and_authorship_guardrails_current() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+
+    assert (repo_root / "CLAUDE.md").is_symlink()
+    assert (repo_root / "GEMINI.md").is_symlink()
+    assert (repo_root / "frontend" / "CLAUDE.md").is_symlink()
+    assert (repo_root / "frontend" / "GEMINI.md").is_symlink()
+
+    assert (repo_root / "CLAUDE.md").readlink() == Path("AGENTS.md")
+    assert (repo_root / "GEMINI.md").readlink() == Path("AGENTS.md")
+    assert (repo_root / "frontend" / "CLAUDE.md").readlink() == Path("AGENTS.md")
+    assert (repo_root / "frontend" / "GEMINI.md").readlink() == Path("AGENTS.md")
+
+    root_agents = _read("AGENTS.md")
+    frontend_agents = _read("frontend/AGENTS.md")
+
+    assert "assistant-guided-production-session.md" in root_agents
+    assert "Do not add AI-assistant attribution" in root_agents
+    assert "Do not add AI-assistant attribution" in frontend_agents
+
+
 if __name__ == "__main__":
     test_systemd_public_surface_verifier_uses_apex_frontend()
     test_active_docs_do_not_treat_vercel_as_current_healtharchive_path()
     test_active_docs_reflect_apex_canonical_frontend()
     test_active_docs_backup_notes_cover_nas_destination_and_manual_dumps()
     test_active_entrypoints_point_shared_vps_facts_to_platform_ops()
+    test_agent_docs_keep_symlink_and_authorship_guardrails_current()

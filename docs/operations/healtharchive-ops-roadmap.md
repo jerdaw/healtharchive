@@ -157,23 +157,6 @@ Treat the following as the current ops execution order:
       or the excluded families reappear in the live frontier
     - do not treat preserved historical WARCs or consolidated temp-WARC bytes
       as proof that the repaired scope regressed
-- HC annual indexing, replay repair, and public-surface verification are
-  complete.
-  - Current state: job `6` (`hc-20260101`) is `indexed` and `search-ready`
-    with `262567` indexed pages after the 2026-04-22 hot-path remount and the
-    2026-04-23 indexing run.
-  - Settled live evidence:
-    - `findmnt -T /srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101`
-      points at the Storage Box-backed HC path
-    - `healtharchive show-job --id 6` reports `Status: indexed`
-    - `healtharchive annual-status --year 2026` shows HC as
-      `operator_state=search-ready`
-    - `./scripts/verify_public_surface.py` now passes with default settings
-    - the HC replay `browseUrl` for indexed snapshot `395971` now returns `200`
-    - the raw snapshot probe now returns `200` under the verifier's split
-      timeout budget
-  - Remaining follow-through:
-    - none for HC replay/public-surface health; treat this thread as closed
 - Preserve and review the pre-deploy production-only branch.
   - Current state: `prod-pre-a3e0dece` exists on the VPS and preserves the
     detached pre-deploy commits that would otherwise have been left unreachable
@@ -213,7 +196,11 @@ Treat the following as the current ops execution order:
 
 ## IRL / external validation (active; runs in parallel with ops)
 
-External validation work is **not blocked** by the PHAC investigation or remaining maintenance-window items. PHAC is parked; the bind-mount conversion is deferred to a later window. Outreach and scholarly output can proceed independently on any day.
+External validation work is **not blocked** by the active PHAC/CIHR monitoring
+or the remaining maintenance-window items. PHAC is running under the validated
+fallback path, CIHR is running on the repaired scope, and the bind-mount
+conversion remains deferred to a later maintenance window. Outreach and
+scholarly output can proceed independently on any day.
 
 The active plan is:
 

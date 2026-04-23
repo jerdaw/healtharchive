@@ -28,7 +28,9 @@ Treat the following as the current "what's next" order across roadmap docs:
    - Canonical plan: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
 3. Keep CIHR under observation on the repaired 2026-04-14 scoped attempt; no further live intervention is planned unless it regresses.
-   - Settled outcome: the scope/content-cost diagnosis loop is complete and the maintenance-window remediation is already live.
+   - Settled outcome: the scope/content-cost diagnosis loop is complete, the
+     maintenance-window remediation is live, and the annual job remains under
+     observation on that repaired scope.
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
 4. After the crawl/ops path is stabilized, the main project emphasis is the active admissions-strengthening plan.
    - That plan is the canonical home for the next external-validation, methods-paper, and dataset-release work.
@@ -55,9 +57,9 @@ Current known items:
     completion.
   - Status tracking + next-step guidance: `../operations/healtharchive-ops-roadmap.md`
 - CIHR scope/content-cost follow-through:
-  - Current state: completed on 2026-04-14 via a controlled maintenance
-    window, and the repaired run remained healthy through the 2026-04-15
-    production cutover window.
+  - Current state: the repo-side remediation completed on 2026-04-14 via a
+    controlled maintenance window, and job `8` continues running on that
+    repaired scope.
   - Settled outcome: job `8` restarted under source-managed custom scope and
     the new combined log shows clean HTML frontier pages without live
     `wbdisable=false`, `asl-video`, or document/media frontier expansion.
