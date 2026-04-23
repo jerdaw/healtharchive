@@ -15,6 +15,7 @@ class HttpResponse:
     status: int
     headers: dict[str, str]
     body: bytes
+    error: str | None = None
 
 
 def _normalize_base(url: str) -> str:
@@ -64,7 +65,7 @@ def _http_request(
             status = int(getattr(resp, "status", 200))
             resp_headers = {k: v for k, v in resp.headers.items()}
             body = resp.read(read_limit_bytes) if read_limit_bytes else resp.read()
-            return HttpResponse(status=status, headers=resp_headers, body=body)
+            return HttpResponse(status=status, headers=resp_headers, body=body, error=None)
     except HTTPError as exc:
         body = b""
         try:
@@ -72,8 +73,13 @@ def _http_request(
         except Exception:  # noqa: BLE001
             body = b""
         return HttpResponse(
-            status=int(getattr(exc, "code", 0) or 0), headers=dict(exc.headers), body=body
+            status=int(getattr(exc, "code", 0) or 0),
+            headers=dict(exc.headers),
+            body=body,
+            error=None,
         )
+    except (TimeoutError, URLError) as exc:
+        return HttpResponse(status=0, headers={}, body=b"", error=f"{type(exc).__name__}: {exc}")
 
 
 def _http_json(url: str, *, timeout_s: float) -> tuple[HttpResponse, Any]:
@@ -92,6 +98,12 @@ def _fail(msg: str) -> None:
 
 def _ok(msg: str) -> None:
     print(f"OK   {msg}")
+
+
+def _format_http_failure(resp: HttpResponse) -> str:
+    if resp.error:
+        return f"status={resp.status} error={resp.error}"
+    return f"status={resp.status}"
 
 
 def _decode_text(body: bytes) -> str:
@@ -228,14 +240,14 @@ def main(argv: list[str] | None = None) -> int:
 
     health, health_json = _http_json(f"{api_base}/api/health", timeout_s=timeout_s)
     if health.status != 200 or not isinstance(health_json, dict):
-        _fail(f"api health status={health.status} url={api_base}/api/health")
+        _fail(f"api health {_format_http_failure(health)} url={api_base}/api/health")
         failures += 1
     else:
         _ok(f"api health status=200 url={api_base}/api/health")
 
     stats, stats_json = _http_json(f"{api_base}/api/stats", timeout_s=timeout_s)
     if stats.status != 200 or not isinstance(stats_json, dict):
-        _fail(f"api stats status={stats.status} url={api_base}/api/stats")
+        _fail(f"api stats {_format_http_failure(stats)} url={api_base}/api/stats")
         failures += 1
     else:
         snapshots_total = stats_json.get("snapshotsTotal")
@@ -247,7 +259,7 @@ def main(argv: list[str] | None = None) -> int:
 
     sources, sources_json = _http_json(f"{api_base}/api/sources", timeout_s=timeout_s)
     if sources.status != 200 or not isinstance(sources_json, list):
-        _fail(f"api sources status={sources.status} (expected list)")
+        _fail(f"api sources {_format_http_failure(sources)} (expected list)")
         failures += 1
         sources_json = []
     elif not sources_json:
@@ -286,7 +298,7 @@ def main(argv: list[str] | None = None) -> int:
         exports_url = f"{api_base}/api/exports"
         exports, exports_json = _http_json(exports_url, timeout_s=timeout_s)
         if exports.status != 200 or not isinstance(exports_json, dict):
-            _fail(f"api exports manifest status={exports.status} url={exports_url}")
+            _fail(f"api exports manifest {_format_http_failure(exports)} url={exports_url}")
             failures += 1
         else:
             enabled = exports_json.get("enabled")
@@ -300,7 +312,7 @@ def main(argv: list[str] | None = None) -> int:
                     read_limit_bytes=0,
                 )
                 if snapshots_head.status != 200:
-                    _fail(f"api exports snapshots HEAD status={snapshots_head.status}")
+                    _fail(f"api exports snapshots HEAD {_format_http_failure(snapshots_head)}")
                     failures += 1
                 else:
                     _ok("api exports snapshots HEAD status=200")
@@ -312,7 +324,7 @@ def main(argv: list[str] | None = None) -> int:
                     read_limit_bytes=0,
                 )
                 if changes_head.status != 200:
-                    _fail(f"api exports changes HEAD status={changes_head.status}")
+                    _fail(f"api exports changes HEAD {_format_http_failure(changes_head)}")
                     failures += 1
                 else:
                     _ok("api exports changes HEAD status=200")
@@ -329,7 +341,7 @@ def main(argv: list[str] | None = None) -> int:
     raw_snapshot_path: str | None = None
     snapshot_title: str | None = None
     if search.status != 200 or not isinstance(search_json, dict):
-        _fail(f"api search status={search.status} url={search_url}")
+        _fail(f"api search {_format_http_failure(search)} url={search_url}")
         failures += 1
     else:
         if not isinstance(search_json.get("results"), list):
@@ -372,7 +384,7 @@ def main(argv: list[str] | None = None) -> int:
         detail_url = f"{api_base}/api/snapshot/{first_snapshot_id}"
         detail, detail_json = _http_json(detail_url, timeout_s=timeout_s)
         if detail.status != 200 or not isinstance(detail_json, dict):
-            _fail(f"api snapshot detail status={detail.status} url={detail_url}")
+            _fail(f"api snapshot detail {_format_http_failure(detail)} url={detail_url}")
             failures += 1
         else:
             if detail_json.get("id") != first_snapshot_id:
@@ -402,7 +414,7 @@ def main(argv: list[str] | None = None) -> int:
                 "text/html" not in content_type and "application/xhtml" not in content_type
             ):
                 _fail(
-                    f"raw snapshot status={raw.status} content-type={content_type!r} url={raw_url}"
+                    f"raw snapshot {_format_http_failure(raw)} content-type={content_type!r} url={raw_url}"
                 )
                 failures += 1
             else:
@@ -417,7 +429,7 @@ def main(argv: list[str] | None = None) -> int:
                 headers={"Accept": "text/html"},
             )
             if replay.status != 200:
-                _fail(f"replay browseUrl status={replay.status} url={browse_url}")
+                _fail(f"replay browseUrl {_format_http_failure(replay)} url={browse_url}")
                 failures += 1
             else:
                 _ok(f"replay browseUrl status=200 url={browse_url}")
@@ -430,7 +442,7 @@ def main(argv: list[str] | None = None) -> int:
 
     usage, usage_json = _http_json(f"{api_base}/api/usage", timeout_s=timeout_s)
     if usage.status != 200 or not isinstance(usage_json, dict):
-        _fail(f"api usage status={usage.status} url={api_base}/api/usage")
+        _fail(f"api usage {_format_http_failure(usage)} url={api_base}/api/usage")
         failures += 1
     else:
         enabled = usage_json.get("enabled")
@@ -446,7 +458,7 @@ def main(argv: list[str] | None = None) -> int:
         changes_url = f"{api_base}/api/changes?pageSize=1"
         changes, changes_json = _http_json(changes_url, timeout_s=timeout_s)
         if changes.status != 200 or not isinstance(changes_json, dict):
-            _fail(f"api changes status={changes.status} url={changes_url}")
+            _fail(f"api changes {_format_http_failure(changes)} url={changes_url}")
             failures += 1
         else:
             enabled = changes_json.get("enabled")
@@ -467,7 +479,7 @@ def main(argv: list[str] | None = None) -> int:
                     _ok("api changes rss status=404 (allowed for empty index)")
                 elif rss.status != 200 or ("xml" not in content_type and "rss" not in content_type):
                     _fail(
-                        f"api changes rss status={rss.status} content-type={content_type!r} url={api_base}/api/changes/rss"
+                        f"api changes rss {_format_http_failure(rss)} content-type={content_type!r} url={api_base}/api/changes/rss"
                     )
                     failures += 1
                 else:
@@ -486,7 +498,7 @@ def main(argv: list[str] | None = None) -> int:
                 url, timeout_s=timeout_s, method="GET", read_limit_bytes=256 * 1024
             )
             if resp.status != 200:
-                _fail(f"frontend {name} status={resp.status} url={url}")
+                _fail(f"frontend {name} {_format_http_failure(resp)} url={url}")
                 failures += 1
             else:
                 _ok(f"frontend {name} status=200 url={url}")
@@ -517,7 +529,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             if report.status not in (200, 201):
                 _fail(
-                    f"frontend report forwarder status={report.status} url={frontend_base}/api/report"
+                    f"frontend report forwarder {_format_http_failure(report)} url={frontend_base}/api/report"
                 )
                 failures += 1
             else:
