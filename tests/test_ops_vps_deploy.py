@@ -84,6 +84,10 @@ exit 0
             "      cookie_scope: removeall\n",
             encoding="utf-8",
         )
+        (replay_dir / "sitecustomize.py").write_text(
+            "print('sitecustomize loaded')\n",
+            encoding="utf-8",
+        )
         (replay_dir / "custom_banner.html").write_text(
             "<div>banner</div>\n",
             encoding="utf-8",
@@ -94,6 +98,7 @@ exit 0
                 "add",
                 "docs/deployment/pywb/config.yaml",
                 "docs/deployment/pywb/rules.yaml",
+                "docs/deployment/pywb/sitecustomize.py",
                 "docs/deployment/pywb/custom_banner.html",
             ],
             cwd=repo_dir,
@@ -309,6 +314,9 @@ def test_vps_deploy_restart_replay_installs_managed_config_and_banner(tmp_path: 
         "    fuzzy_lookup:\n      match: '()'\n  - url_prefix: ''\n    rewrite:\n"
         "      cookie_scope: removeall\n"
     )
+    assert (fake_srv_root / "srv" / "healtharchive" / "replay" / "sitecustomize.py").read_text(
+        encoding="utf-8"
+    ) == "print('sitecustomize loaded')\n"
     assert (
         fake_srv_root / "srv" / "healtharchive" / "replay" / "templates" / "custom_banner.html"
     ).read_text(encoding="utf-8") == "<div>banner</div>\n"

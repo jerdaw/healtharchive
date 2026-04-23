@@ -136,6 +136,21 @@ def test_api_systemd_template_defaults_to_multiple_workers() -> None:
     assert "--proxy-headers" in text
 
 
+def test_replay_systemd_template_loads_sitecustomize_and_dynamic_ids() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    unit_path = repo_root / "docs" / "deployment" / "systemd" / "healtharchive-replay.service"
+    text = unit_path.read_text(encoding="utf-8")
+    assert "ConditionPathExists=/srv/healtharchive/replay/config.yaml" in text
+    assert "ConditionPathExists=/srv/healtharchive/jobs" in text
+    assert "ExecStartPre=/usr/bin/getent passwd hareplay" in text
+    assert "ExecStartPre=/usr/bin/getent group healtharchive" in text
+    assert "-e PYTHONPATH=/webarchive" in text
+    assert "id -u hareplay" in text
+    assert "getent group healtharchive" in text
+    assert "-v /srv/healtharchive/replay:/webarchive:rw" in text
+    assert "-v /srv/healtharchive/jobs:/warcs:ro,rshared" in text
+
+
 def test_worker_systemd_template_uses_healtharchive_cli() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     unit_path = repo_root / "docs" / "deployment" / "systemd" / "healtharchive-worker.service"

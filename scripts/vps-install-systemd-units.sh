@@ -13,7 +13,7 @@ to:
   /etc/systemd/system/
 
 It does NOT enable timers or create sentinel files (see docs/deployment/systemd/README.md).
-It replaces the repo-managed API and worker service templates when present.
+It replaces the repo-managed API, replay, and worker service templates when present.
 
 Usage (on the VPS):
   cd /opt/healtharchive
@@ -32,6 +32,7 @@ Options:
 Notes:
   - Repo-managed main units include:
       /etc/systemd/system/healtharchive-api.service
+      /etc/systemd/system/healtharchive-replay.service
       /etc/systemd/system/healtharchive-worker.service
   - The worker priority drop-in is installed to:
       /etc/systemd/system/healtharchive-worker.service.d/override.conf

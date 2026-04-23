@@ -217,38 +217,43 @@ Repo-managed template:
 
 - `/opt/healtharchive/docs/deployment/pywb/config.yaml`
 - `/opt/healtharchive/docs/deployment/pywb/rules.yaml`
+- `/opt/healtharchive/docs/deployment/pywb/sitecustomize.py`
+- `/opt/healtharchive/docs/deployment/systemd/healtharchive-replay.service`
 
 On single-VPS deployments, prefer installing that tracked template instead of
 editing `/srv/healtharchive/replay/config.yaml` or `/srv/healtharchive/replay/rules.yaml` by hand.
 
 ### 4.2 Create systemd service
 
-Create `/etc/systemd/system/healtharchive-replay.service`:
+Preferred (single VPS): install the repo-managed template:
+
+```bash
+cd /opt/healtharchive
+sudo ./scripts/vps-install-systemd-units.sh --apply
+```
+
+Manual equivalent (`/etc/systemd/system/healtharchive-replay.service`):
 
 ```ini
 [Unit]
 Description=HealthArchive replay (pywb)
-After=network.target docker.service
+Wants=network-online.target
+After=network-online.target docker.service healtharchive-warc-tiering.service
 Requires=docker.service
+ConditionPathExists=/srv/healtharchive/replay
+ConditionPathExists=/srv/healtharchive/replay/config.yaml
+ConditionPathExists=/srv/healtharchive/jobs
 
 [Service]
 Type=simple
-Restart=always
-RestartSec=3
-
-# Safety: start clean
+ExecStartPre=/usr/bin/getent passwd hareplay
+ExecStartPre=/usr/bin/getent group healtharchive
 ExecStartPre=-/usr/bin/docker rm -f healtharchive-replay
 ExecStartPre=/usr/bin/docker pull webrecorder/pywb:2.9.1
-
-# Run on localhost only; Caddy terminates TLS publicly.
-ExecStart=/usr/bin/docker run --rm --name healtharchive-replay \
-  -p 127.0.0.1:8090:8080 \
-  --user <HAREPLAY_UID>:<HEALTHARCHIVE_GID> \
-  --cap-drop=ALL \
-  --security-opt no-new-privileges:true \
-  -v /srv/healtharchive/replay:/webarchive:rw \
-  -v /srv/healtharchive/jobs:/warcs:ro,rshared \
-  webrecorder/pywb:2.9.1
+ExecStart=/usr/bin/bash -lc 'HAREPLAY_UID="$(/usr/bin/id -u hareplay)"; HEALTHARCHIVE_GID="$(/usr/bin/getent group healtharchive | /usr/bin/cut -d: -f3)"; exec /usr/bin/docker run --rm --name healtharchive-replay -p 127.0.0.1:8090:8080 -e PYTHONPATH=/webarchive --user "${HAREPLAY_UID}:${HEALTHARCHIVE_GID}" --cap-drop=ALL --security-opt no-new-privileges:true -v /srv/healtharchive/replay:/webarchive:rw -v /srv/healtharchive/jobs:/warcs:ro,rshared webrecorder/pywb:2.9.1'
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
 
 [Install]
 WantedBy=multi-user.target
@@ -256,8 +261,6 @@ WantedBy=multi-user.target
 
 Notes:
 
-- `HAREPLAY_UID` comes from `id -u hareplay` (often `110`).
-- `HEALTHARCHIVE_GID` comes from `getent group healtharchive` (3rd `:`-separated field).
 - We run as `hareplay:healtharchive` to avoid the container needing to
   `useradd`/`su` internally (which fails when `--cap-drop=ALL` removes
   `CAP_SETUID`/`CAP_SETGID`).
@@ -356,6 +359,10 @@ sudo install -o hareplay -g healtharchive -m 0640 \
   /opt/healtharchive/docs/deployment/pywb/rules.yaml \
   /srv/healtharchive/replay/rules.yaml
 
+sudo install -o hareplay -g healtharchive -m 0640 \
+  /opt/healtharchive/docs/deployment/pywb/sitecustomize.py \
+  /srv/healtharchive/replay/sitecustomize.py
+
 sudo mkdir -p /srv/healtharchive/replay/templates
 sudo install -o hareplay -g healtharchive -m 0640 \
   /opt/healtharchive/docs/deployment/pywb/custom_banner.html \
@@ -391,7 +398,7 @@ Notes:
   still valid for your hostnames.
 - If you deploy the backend using `./scripts/vps-deploy.sh --apply --restart-replay`,
   the deploy helper will also install the tracked replay `config.yaml`,
-  `rules.yaml`, `custom_banner.html`, and restart the replay service as part of that run
+  `rules.yaml`, `sitecustomize.py`, `custom_banner.html`, and restart the replay service as part of that run
   (single-VPS setup).
 
 Note: the banner can be disabled for screenshot generation by adding a fragment:
@@ -512,6 +519,8 @@ ID:
   Ensure `/srv/healtharchive/replay/config.yaml` points `rules_file` at
   `/webarchive/rules.yaml`, ensure `/srv/healtharchive/replay/rules.yaml`
   contains `cookie_scope: removeall` under a rewrite rule,
+  ensure the replay container starts with `PYTHONPATH=/webarchive` so
+  `/srv/healtharchive/replay/sitecustomize.py` can drop invalid header names,
   and restart `healtharchive-replay.service`.
 - **Replay UI shows “All-time (0 captures)”:** that exact URL (including scheme + host, eg `www.` vs non-`www`) likely isn’t present in the WARC set. Confirm via `/<collection>/cdx?url=...` and try host/scheme variants.
 - **Iframe blocked:** check `frame-ancestors` header on `replay.healtharchive.ca` and ensure you removed `X-Frame-Options`.

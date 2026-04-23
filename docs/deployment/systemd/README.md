@@ -6,6 +6,7 @@ These files are **templates** meant to be copied onto the production VPS under
 They implement:
 
 - API service template (uvicorn on loopback; defaults to 2 workers)
+- Replay service template (pywb on loopback; hardened docker run)
 - Worker service template (canonical `healtharchive start-worker` entrypoint)
 - Annual scheduling timer (Jan 01 UTC)
 - Worker priority lowering during campaign (always-on, low-risk)
@@ -75,6 +76,13 @@ or stage the cutover manually (no restarts required until your maintenance windo
   - Repo-managed worker service template for the long-running crawl worker loop.
   - Uses the canonical CLI entrypoint:
     - `ExecStart=/opt/healtharchive/.venv/bin/healtharchive start-worker --poll-interval 30`
+- `healtharchive-replay.service`
+  - Repo-managed pywb replay service template for `replay.healtharchive.ca`.
+  - Binds to loopback (`127.0.0.1:8090`) for Caddy to proxy.
+  - Resolves the host `hareplay` UID and `healtharchive` GID at startup, then
+    runs docker with `-e PYTHONPATH=/webarchive` so the managed
+    `/srv/healtharchive/replay/sitecustomize.py` hook can drop malformed
+    replayed header names before Caddy parses them.
 - `healtharchive-schedule-annual.service`
   - **Apply mode**: enqueues annual jobs (`--apply`) for the current UTC year.
   - Gated by `ConditionPathExists=/etc/healtharchive/automation-enabled`.
@@ -230,7 +238,7 @@ If a timer is enabled, also ensure its sentinel file exists under
 
 ## Install / update on the VPS
 
-Preferred (one command; installs the managed API template, timer templates, and the worker priority drop-in):
+Preferred (one command; installs the managed API/replay/worker templates, timer templates, and the worker priority drop-in):
 
 ```bash
 cd /opt/healtharchive
