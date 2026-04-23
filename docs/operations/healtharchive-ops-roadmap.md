@@ -90,6 +90,24 @@ Keep the two synced copies of this file aligned:
   - the VPS branch `prod-pre-a3e0dece` now preserves the detached pre-deploy
     commit chain (`d8e2534e`, `607df02b`, `48cfe3f9`) and should be kept until
     those commits are reviewed and either cherry-picked or explicitly retired.
+- Deploy follow-through for `c9600341` is now partially complete in production:
+  - the 2026-04-23 deploy updated the VPS checkout to `c9600341`, restarted the
+    API cleanly, and installed the replay-reconcile systemd template change so
+    future automation no longer runs as `haadmin`.
+  - HC replay indexing for `job-6` was repaired manually as root after the old
+    reconcile ownership mismatch blocked WARC-link creation.
+  - the API-side replay-readiness guard is live, but it does not suppress HC
+    `browseUrl` anymore because `job-6` now has a real replay collection.
+  - the remaining replay failure is no longer missing collection state:
+    - direct pywb logs show `GET` and `HEAD` for the exact failing HC replay URL
+      returning `200`
+    - Caddy still returns `502` for the public replay URL because the upstream
+      replay response contains a malformed MIME header line beginning with
+      `AWSALBCORS=...`
+    - Caddy logs the concrete parser failure as
+      `net/http: HTTP/1.x transport connection broken: malformed MIME header line`
+    - this is now a replay header-sanitization / proxy-compatibility bug, not a
+      replay indexing bug
 - Alerting/report hygiene from the recent crawl work is deployed:
   - bounded content reporting is now the preferred operator diagnostic for live
     crawl cost/failure classification.
@@ -100,9 +118,9 @@ Keep the two synced copies of this file aligned:
 
 Treat the following as the current ops execution order:
 
-1. Repair HC replay collection `job-6`, then deploy the browse-URL suppression
-   patch so the public API stops advertising replay URLs for jobs whose pywb
-   collections are absent or incomplete.
+1. Fix the remaining HC replay `502` by sanitizing malformed archived replay
+   headers (currently an `AWSALBCORS` cookie line that Caddy cannot parse) so
+   public replay works through `replay.healtharchive.ca`.
 2. Monitor PHAC and CIHR to completion, then index the completed annual jobs.
 3. Restart the worker in the next safe maintenance window after the annual
    crawl is idle (or during an explicitly accepted interruption) so the
@@ -172,14 +190,15 @@ Treat the following as the current ops execution order:
     pages, and the frontend report forwarder, but fails replay on
     `https://replay.healtharchive.ca/job-6/20260414224554/...#ha_snapshot=395971`.
   - Next steps:
-    - complete a root-run replay reconcile for HC job `6`; dry-run already
-      confirmed `missing_index,missing_warc_links`
-    - treat the current `healtharchive-replay-reconcile.service` `User=haadmin`
-      setting as broken under the `hareplay:healtharchive` replay-volume model
-      until the service template is redeployed
-    - deploy the API-side browse-URL suppression patch so `browseUrl` is hidden
-      whenever `/srv/healtharchive/replay/collections/job-<id>` is missing or
-      incomplete, even if replay is enabled globally
+    - treat replay indexing / missing-collection work for HC job `6` as done:
+      `replay-reconcile --apply --job-id 6` completed successfully after a
+      root-run repair
+    - treat the remaining failure as a public replay proxy bug:
+      pywb serves the exact HC page with `200`, but Caddy returns `502` because
+      the replay response contains a malformed archived cookie header line
+      (`AWSALBCORS=...`) that Go's HTTP parser rejects
+    - inspect and fix replay-header sanitization at the pywb/Caddy boundary;
+      do not spend more time on replay indexing for HC `6`
     - rerun `./scripts/verify_public_surface.py --timeout-seconds 60` after the
       replay fix and record the result
 - Preserve and review the pre-deploy production-only branch.
