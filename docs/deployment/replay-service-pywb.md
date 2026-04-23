@@ -158,11 +158,23 @@ framed_replay: false
 # Prefer stable URLs once a capture is resolved.
 redirect_to_exact: true
 
+# Public replay does not need archived Set-Cookie headers. Dropping replayed
+# cookies avoids malformed upstream cookie lines (for example AWSALBCORS) from
+# breaking Caddy’s HTTP parser and surfacing as 502s.
+cookie_scope: removeall
+
 # Optional: expose an aggregate across all on-disk collections at `/all/...`.
 # (This is not required for per-job collections like `/job-1/...`.)
 # collections:
 #   all: $all
 ```
+
+Repo-managed template:
+
+- `/opt/healtharchive/docs/deployment/pywb/config.yaml`
+
+On single-VPS deployments, prefer installing that tracked template instead of
+editing `/srv/healtharchive/replay/config.yaml` by hand.
 
 ### 4.2 Create systemd service
 
@@ -291,6 +303,10 @@ Implementation notes:
 Deploy on the VPS:
 
 ```bash
+sudo install -o hareplay -g healtharchive -m 0640 \
+  /opt/healtharchive/docs/deployment/pywb/config.yaml \
+  /srv/healtharchive/replay/config.yaml
+
 sudo mkdir -p /srv/healtharchive/replay/templates
 sudo install -o hareplay -g healtharchive -m 0640 \
   /opt/healtharchive/docs/deployment/pywb/custom_banner.html \
@@ -325,8 +341,9 @@ Notes:
   `/api` on the frontend origin, ensure the banner’s API base candidates are
   still valid for your hostnames.
 - If you deploy the backend using `./scripts/vps-deploy.sh --apply --restart-replay`,
-  the deploy helper will also install `custom_banner.html` and restart the replay
-  service as part of that run (single-VPS setup).
+  the deploy helper will also install the tracked replay `config.yaml`,
+  `custom_banner.html`, and restart the replay service as part of that run
+  (single-VPS setup).
 
 Note: the banner can be disabled for screenshot generation by adding a fragment:
 
@@ -440,6 +457,11 @@ ID:
 
 - **Blank pages / missing styling:** the asset was not captured into the WARC set, or the page uses live third‑party resources not archived.
 - **Replay 404 but snapshot exists in DB:** the job’s WARCs were not linked+indexed into pywb (or you ran `cleanup-job` and deleted WARCs).
+- **Replay 502 for a specific page but localhost replay is 200:** check for malformed
+  replayed cookie headers. A bare archived cookie line such as `AWSALBCORS=...`
+  can make Caddy/Go reject the upstream response before it reaches the client.
+  Ensure `/srv/healtharchive/replay/config.yaml` includes `cookie_scope: removeall`
+  and restart `healtharchive-replay.service`.
 - **Replay UI shows “All-time (0 captures)”:** that exact URL (including scheme + host, eg `www.` vs non-`www`) likely isn’t present in the WARC set. Confirm via `/<collection>/cdx?url=...` and try host/scheme variants.
 - **Iframe blocked:** check `frame-ancestors` header on `replay.healtharchive.ca` and ensure you removed `X-Frame-Options`.
 - **Service crash-loop with `groupadd/useradd` and `su: Authentication failure`:** the container entrypoint is trying to create/switch users, but `--cap-drop=ALL` removes the capabilities needed. Fix by running the container as the host UID/GID directly via `--user <hareplay_uid>:<healtharchive_gid>`.
