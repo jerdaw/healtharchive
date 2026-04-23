@@ -1,0 +1,22 @@
+[Unit]
+Description=HealthArchive replay (pywb)
+Wants=network-online.target
+After=network-online.target docker.service healtharchive-warc-tiering.service
+Requires=docker.service
+ConditionPathExists=/srv/healtharchive/replay
+ConditionPathExists=/srv/healtharchive/replay/config.yaml
+ConditionPathExists=/srv/healtharchive/jobs
+
+[Service]
+Type=simple
+ExecStartPre=/usr/bin/getent passwd hareplay
+ExecStartPre=/usr/bin/getent group healtharchive
+ExecStartPre=-/usr/bin/docker rm -f healtharchive-replay
+ExecStartPre=/usr/bin/docker pull webrecorder/pywb:2.9.1
+ExecStart=/usr/bin/bash -lc 'HAREPLAY_UID="$(/usr/bin/id -u hareplay)"; HEALTHARCHIVE_GID="$(/usr/bin/getent group healtharchive | /usr/bin/cut -d: -f3)"; exec /usr/bin/docker run --rm --name healtharchive-replay -p 127.0.0.1:8090:8080 -e PYTHONPATH=/webarchive --user "${HAREPLAY_UID}:${HEALTHARCHIVE_GID}" --cap-drop=ALL --security-opt no-new-privileges:true -v /srv/healtharchive/replay:/webarchive:rw -v /srv/healtharchive/jobs:/warcs:ro,rshared webrecorder/pywb:2.9.1'
+Restart=always
+RestartSec=3
+TimeoutStopSec=30
+
+[Install]
+WantedBy=multi-user.target
