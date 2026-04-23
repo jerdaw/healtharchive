@@ -28,7 +28,8 @@ done
 
 python scripts/verify_public_surface.py \
   --api-base http://127.0.0.1:8765 \
-  --timeout 10 \
+  --timeout-seconds 10 \
+  --raw-timeout-seconds 10 \
   --skip-frontend \
   --allow-empty-index \
   --allow-usage-disabled \

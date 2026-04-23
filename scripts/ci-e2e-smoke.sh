@@ -237,4 +237,6 @@ fi
 "${PYTHON_BIN}" "${SCRIPT_DIR}/verify_public_surface.py" \
   --api-base "http://${BACKEND_HOST}:${BACKEND_PORT}" \
   --frontend-base "http://${BACKEND_HOST}:${FRONTEND_PORT}" \
+  --timeout-seconds 20 \
+  --raw-timeout-seconds 20 \
   --skip-replay

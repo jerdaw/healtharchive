@@ -162,6 +162,15 @@ def main(argv: list[str] | None = None) -> int:
         help="Per-request timeout in seconds (default: 60).",
     )
     parser.add_argument(
+        "--raw-timeout-seconds",
+        type=float,
+        default=None,
+        help=(
+            "Per-request timeout for the raw snapshot HTML check. "
+            "Defaults to max(--timeout-seconds, 180)."
+        ),
+    )
+    parser.add_argument(
         "--allow-usage-disabled",
         action="store_true",
         default=False,
@@ -228,6 +237,11 @@ def main(argv: list[str] | None = None) -> int:
     api_base = _normalize_base(str(args.api_base))
     frontend_base = _canonicalize_frontend_base(_normalize_base(str(args.frontend_base)))
     timeout_s = float(args.timeout_seconds)
+    raw_timeout_s = (
+        float(args.raw_timeout_seconds)
+        if args.raw_timeout_seconds is not None
+        else max(timeout_s, 180.0)
+    )
 
     failures = 0
 
@@ -236,6 +250,8 @@ def main(argv: list[str] | None = None) -> int:
     print(f"API base:      {api_base}")
     print(f"Frontend base: {frontend_base}")
     print(f"Timeout:       {timeout_s:.0f}s")
+    if raw_timeout_s != timeout_s:
+        print(f"Raw timeout:   {raw_timeout_s:.0f}s")
     print("")
 
     health, health_json = _http_json(f"{api_base}/api/health", timeout_s=timeout_s)
@@ -403,7 +419,7 @@ def main(argv: list[str] | None = None) -> int:
             )
             raw = _http_request(
                 raw_url,
-                timeout_s=timeout_s,
+                timeout_s=raw_timeout_s,
                 method="GET",
                 read_limit_bytes=128 * 1024,
             )
