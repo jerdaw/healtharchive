@@ -11,6 +11,7 @@ from archive_tool.playwright_warc_backend import run_playwright_warc_capture
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
 from ha_backend.indexing.pipeline import index_job
+from ha_backend.indexing.viewer import find_record_for_snapshot
 from ha_backend.models import ArchiveJob, Snapshot, Source
 from ha_backend.url_normalization import normalize_url_for_grouping
 
@@ -63,6 +64,31 @@ def _write_test_warc(warc_path: Path, url: str, html: str) -> str:
         return record.rec_headers.get_header("WARC-Record-ID")
 
 
+def _write_multi_record_warc(warc_path: Path, records: list[tuple[str, str]]) -> list[str]:
+    warc_path.parent.mkdir(parents=True, exist_ok=True)
+    record_ids: list[str] = []
+    with warc_path.open("wb") as f:
+        writer = WARCWriter(f, gzip=True)
+        for url, html in records:
+            payload = BytesIO(
+                (
+                    "HTTP/1.1 200 OK\r\n"
+                    "Content-Type: text/html; charset=utf-8\r\n"
+                    "Content-Length: " + str(len(html.encode("utf-8"))) + "\r\n"
+                    "\r\n" + html
+                ).encode("utf-8")
+            )
+            record = writer.create_warc_record(
+                uri=url,
+                record_type="response",
+                payload=payload,
+                warc_headers_dict={"WARC-Date": "2025-01-01T12:00:00Z"},
+            )
+            writer.write_record(record)
+            record_ids.append(record.rec_headers.get_header("WARC-Record-ID"))
+    return record_ids
+
+
 def test_raw_snapshot_route_serves_html(tmp_path, monkeypatch) -> None:
     client = _init_test_app(tmp_path, monkeypatch)
 
@@ -104,6 +130,39 @@ def test_raw_snapshot_route_serves_html(tmp_path, monkeypatch) -> None:
     resp = client.get(f"/api/snapshots/raw/{snapshot_id}")
     assert resp.status_code == 200
     assert "Hello from WARC" in resp.text
+
+
+def test_find_record_for_snapshot_prefers_exact_record_id_without_url_fallback(tmp_path) -> None:
+    warc_file = tmp_path / "warcs" / "multi.warc.gz"
+    url = "https://example.org/page"
+    record_ids = _write_multi_record_warc(
+        warc_file,
+        [
+            (url, "<html><body><h1>Older Body</h1></body></html>"),
+            (url, "<html><body><h1>Target Body</h1></body></html>"),
+        ],
+    )
+
+    snapshot = Snapshot(
+        id=1,
+        job_id=None,
+        source_id=1,
+        url=url,
+        normalized_url_group=url,
+        capture_timestamp=datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc),
+        mime_type="text/html",
+        status_code=200,
+        title="Target Snapshot",
+        snippet="Target",
+        language="en",
+        warc_path=str(warc_file),
+        warc_record_id=record_ids[1],
+    )
+
+    record = find_record_for_snapshot(snapshot)
+    assert record is not None
+    assert record.warc_record_id == record_ids[1]
+    assert "Target Body" in record.body_bytes.decode("utf-8", errors="replace")
 
 
 def test_raw_snapshot_missing_warc_returns_404(tmp_path, monkeypatch) -> None:
