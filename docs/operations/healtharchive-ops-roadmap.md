@@ -68,46 +68,36 @@ Keep the two synced copies of this file aligned:
   - `healtharchive annual-status` acts as the compact annual rescue summary
     surface, including backend/rescue/operator-state summaries.
   - crawl textfile metrics expose backend/fallback rescue state.
-- Deploy follow-through for `a3e0dece` is partially complete in production:
+- Deploy follow-through for `a3e0dece` remains partially complete in production:
   - the 2026-04-23 deploy updated the VPS checkout to `a3e0dece`, applied the
     `HealthArchiveIndexingNotStarted` alert semantics change, restarted the API
     cleanly, and passed baseline drift verification.
   - the worker restart was intentionally skipped because PHAC and CIHR are
     still running; the worker-side rowcount/log-formatting fix from
     `a3e0dece` will not be live until the next safe worker restart.
-  - `./scripts/verify_public_surface.py --timeout-seconds 60` now passes API,
-    frontend, and raw-snapshot checks but still fails one replay browse URL for
-    indexed HC snapshot `395971` with `404` on
-    `https://replay.healtharchive.ca/job-6/...`.
-  - replay diagnosis is now concrete:
-    - `healtharchive replay-reconcile --job-id 6` reports
-      `missing_index,missing_warc_links`
-    - `--apply` as `haadmin` fails with `Permission denied` creating WARC links
-      under `/srv/healtharchive/replay/collections/job-6/archive`
-    - the deployed `healtharchive-replay-reconcile.service` template currently
-      runs as `haadmin`, so new collections are not self-healing under the
-      current `hareplay:healtharchive` replay-volume ownership model
   - the VPS branch `prod-pre-a3e0dece` now preserves the detached pre-deploy
     commit chain (`d8e2534e`, `607df02b`, `48cfe3f9`) and should be kept until
     those commits are reviewed and either cherry-picked or explicitly retired.
-- Deploy follow-through for `c9600341` is now partially complete in production:
-  - the 2026-04-23 deploy updated the VPS checkout to `c9600341`, restarted the
-    API cleanly, and installed the replay-reconcile systemd template change so
-    future automation no longer runs as `haadmin`.
-  - HC replay indexing for `job-6` was repaired manually as root after the old
-    reconcile ownership mismatch blocked WARC-link creation.
-  - the API-side replay-readiness guard is live, but it does not suppress HC
-    `browseUrl` anymore because `job-6` now has a real replay collection.
-  - the remaining replay failure is no longer missing collection state:
-    - direct pywb logs show `GET` and `HEAD` for the exact failing HC replay URL
-      returning `200`
-    - Caddy still returns `502` for the public replay URL because the upstream
-      replay response contains a malformed MIME header line beginning with
-      `AWSALBCORS=...`
-    - Caddy logs the concrete parser failure as
-      `net/http: HTTP/1.x transport connection broken: malformed MIME header line`
-    - this is now a replay header-sanitization / proxy-compatibility bug, not a
-      replay indexing bug
+- Replay + public-surface follow-through is complete in production:
+  - the 2026-04-23 VPS checkout moved through `c9600341`, `8f9558d6`,
+    `ca085c58`, `2b0b4001`, `88e97736`, `2af87baf`, and `a27a0d05`.
+  - HC replay indexing for `job-6` was repaired, and the replay-reconcile
+    automation no longer runs as `haadmin`.
+  - the remaining HC public replay failure was traced to a malformed archived
+    cookie header line (`AWSALBCORS=...`) that pywb exposed and Caddy rejected.
+  - replay header sanitization is now active via the replay service loading
+    `/srv/healtharchive/replay/sitecustomize.py` through
+    `PYTHONPATH=/webarchive`.
+  - raw snapshot lookup no longer reads intermediate HTML bodies while scanning
+    the WARC for the target record.
+  - `./scripts/verify_public_surface.py` now reports transport timeouts
+    cleanly and uses a split timeout budget (`60s` general, `180s` for the raw
+    HTML probe).
+  - live production verification on 2026-04-23:
+    - `curl -w 'raw %{http_code} %{time_total}\n' /api/snapshots/raw/395971`
+      returned `raw 200 23.618017`
+    - `./scripts/verify_public_surface.py` passed with default settings
+    - the HC replay `browseUrl` for indexed snapshot `395971` returned `200`
 - Alerting/report hygiene from the recent crawl work is deployed:
   - bounded content reporting is now the preferred operator diagnostic for live
     crawl cost/failure classification.
@@ -118,15 +108,13 @@ Keep the two synced copies of this file aligned:
 
 Treat the following as the current ops execution order:
 
-1. Fix the remaining HC replay `502` by sanitizing malformed archived replay
-   headers (currently an `AWSALBCORS` cookie line that Caddy cannot parse) so
-   public replay works through `replay.healtharchive.ca`.
-2. Monitor PHAC and CIHR to completion, then index the completed annual jobs.
-3. Restart the worker in the next safe maintenance window after the annual
+1. Monitor PHAC and CIHR to completion, then index the completed annual jobs.
+2. Restart the worker in the next safe maintenance window after the annual
    crawl is idle (or during an explicitly accepted interruption) so the
    `a3e0dece` worker-side log-formatting fix is actually loaded.
-4. Annual output-dir bind-mount conversion during the next acceptable
+3. Annual output-dir bind-mount conversion during the next acceptable
    maintenance window after the annual crawl is idle.
+4. Review and resolve the preserved VPS branch `prod-pre-a3e0dece`.
 5. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
@@ -169,8 +157,8 @@ Treat the following as the current ops execution order:
       or the excluded families reappear in the live frontier
     - do not treat preserved historical WARCs or consolidated temp-WARC bytes
       as proof that the repaired scope regressed
-- HC annual indexing follow-through is complete, but replay follow-through is
-  not.
+- HC annual indexing, replay repair, and public-surface verification are
+  complete.
   - Current state: job `6` (`hc-20260101`) is `indexed` and `search-ready`
     with `262567` indexed pages after the 2026-04-22 hot-path remount and the
     2026-04-23 indexing run.
@@ -180,27 +168,12 @@ Treat the following as the current ops execution order:
     - `healtharchive show-job --id 6` reports `Status: indexed`
     - `healtharchive annual-status --year 2026` shows HC as
       `operator_state=search-ready`
+    - `./scripts/verify_public_surface.py` now passes with default settings
+    - the HC replay `browseUrl` for indexed snapshot `395971` now returns `200`
+    - the raw snapshot probe now returns `200` under the verifier's split
+      timeout budget
   - Remaining follow-through:
-    - diagnose why `verify_public_surface.py --timeout-seconds 60` still gets
-      `404` for the HC replay browse URL while raw snapshot fetch succeeds
-    - rerun public-surface verification after the replay issue is fixed
-- Replay follow-up is now the main post-deploy gap.
-  - Current state: the public-surface verifier passes API health/stats,
-    sources, exports, search, raw snapshot fetch, usage, changes, frontend
-    pages, and the frontend report forwarder, but fails replay on
-    `https://replay.healtharchive.ca/job-6/20260414224554/...#ha_snapshot=395971`.
-  - Next steps:
-    - treat replay indexing / missing-collection work for HC job `6` as done:
-      `replay-reconcile --apply --job-id 6` completed successfully after a
-      root-run repair
-    - treat the remaining failure as a public replay proxy bug:
-      pywb serves the exact HC page with `200`, but Caddy returns `502` because
-      the replay response contains a malformed archived cookie header line
-      (`AWSALBCORS=...`) that Go's HTTP parser rejects
-    - inspect and fix replay-header sanitization at the pywb/Caddy boundary;
-      do not spend more time on replay indexing for HC `6`
-    - rerun `./scripts/verify_public_surface.py --timeout-seconds 60` after the
-      replay fix and record the result
+    - none for HC replay/public-surface health; treat this thread as closed
 - Preserve and review the pre-deploy production-only branch.
   - Current state: `prod-pre-a3e0dece` exists on the VPS and preserves the
     detached pre-deploy commits that would otherwise have been left unreachable

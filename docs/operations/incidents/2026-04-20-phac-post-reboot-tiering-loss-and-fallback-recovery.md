@@ -126,6 +126,18 @@ numbering fix, and resume PHAC under the fallback backend.
    stable WARC slot.
 8. Let the worker restart PHAC under fallback and verified healthy crawl
    progress plus appended stable WARC numbering.
+9. Repaired HC replay collection ownership/readiness for job `6` and redeployed
+   the replay-reconcile systemd template so future replay automation no longer
+   runs as `haadmin`.
+10. Traced the remaining HC public replay `502` to a malformed archived cookie
+    header line (`AWSALBCORS=...`) that pywb surfaced and Caddy rejected, then
+    deployed replay header sanitization plus the replay unit fix that loads
+    `/srv/healtharchive/replay/sitecustomize.py` via `PYTHONPATH=/webarchive`.
+11. Optimized raw snapshot WARC lookup, updated the public verifier to report
+    transport timeouts cleanly, and split the verifier timeout budget so the
+    raw HTML probe can tolerate slower WARC reads without masking other checks.
+12. Re-ran `./scripts/verify_public_surface.py` successfully on 2026-04-23
+    with replay and raw snapshot checks both passing.
 
 ## Post-incident verification
 
@@ -133,6 +145,8 @@ What we did to confirm we’re actually healthy (and not just “running”).
 
 - Public surface checks:
   - `probe-browser-fetch` returned `200` for both PHAC seed pages
+  - `./scripts/verify_public_surface.py` passed on 2026-04-23 after the replay
+    and raw-snapshot follow-through was complete
 - Worker/job health checks:
   - `healtharchive show-job --id 7`
   - `./scripts/vps-crawl-status.sh --year 2026 --job-id 7`
@@ -158,7 +172,8 @@ What we did to confirm we’re actually healthy (and not just “running”).
 - [x] Index HC job `6` once the annual run window allows it (completed 2026-04-23; `262567` snapshots indexed) (owner=Jeremy Dawson, priority=high, due=2026-04-21)
 - [x] Finish the HC replay indexing/ownership repair: `replay-reconcile --apply --job-id 6` succeeded once rerun as root, and `c9600341` redeployed the replay-reconcile systemd template so future automation no longer runs as `haadmin` (completed 2026-04-23) (owner=Jeremy Dawson, priority=high, due=2026-04-24)
 - [x] Deploy the API-side browse-URL suppression patch so public `browseUrl` fields are omitted whenever a job’s replay collection is missing or incomplete (completed 2026-04-23 via `c9600341`) (owner=Jeremy Dawson, priority=high, due=2026-04-24)
-- [ ] Fix the remaining HC public replay `502`: pywb now serves the exact HC replay page with `200`, but Caddy rejects the upstream replay response with `malformed MIME header line: AWSALBCORS=...`, so the remaining fault is header sanitization / proxy compatibility rather than replay indexing (owner=Jeremy Dawson, priority=high, due=2026-04-24)
+- [x] Fix the remaining HC public replay `502`: repaired replay ownership/readiness, then fixed the malformed archived cookie-header path by loading replay header sanitization through `PYTHONPATH=/webarchive`; public replay and `browseUrl` verification now pass (completed 2026-04-23 via `c9600341`, `8f9558d6`, and `ca085c58`) (owner=Jeremy Dawson, priority=high, due=2026-04-24)
+- [x] Stabilize raw snapshot public verification: optimized WARC lookup and updated the verifier to handle transport timeouts cleanly with a dedicated raw-snapshot timeout budget; `./scripts/verify_public_surface.py` now passes with default settings on production (completed 2026-04-23 via `2b0b4001`, `88e97736`, and `a27a0d05`) (owner=Jeremy Dawson, priority=high, due=2026-04-24)
 - [ ] Revisit PHAC’s long-term Browsertrix/default-backend strategy after the current fallback run completes (owner=Jeremy Dawson, priority=medium, due=2026-04-30)
 - [ ] Restart the worker during the next safe maintenance window after PHAC/CIHR are idle so the deployed `a3e0dece` worker-side rowcount/logging fix becomes active in production (owner=Jeremy Dawson, priority=medium, due=2026-05-15)
 - [ ] Review the preserved VPS branch `prod-pre-a3e0dece` and decide whether its detached pre-deploy commits (`d8e2534e`, `607df02b`, `48cfe3f9`) need cherry-pick, replacement, or explicit retirement (owner=Jeremy Dawson, priority=medium, due=2026-05-01)

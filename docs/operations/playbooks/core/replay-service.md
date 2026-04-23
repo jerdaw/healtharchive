@@ -22,6 +22,21 @@ Follow `../../../deployment/replay-service-pywb.md`.
    - Open a known `browseUrl` on `https://replay.healtharchive.ca/` and confirm the banner loads quickly, shows the page title + meta line (capture date + original URL) + disclaimer, and that the action links (View diff, Details, All snapshots, Raw HTML, Metadata JSON, Cite, Report issue, Hide) behave as expected.
    - From HealthArchive search results, click `View` and confirm “← HealthArchive.ca” returns to the same search results page.
 
+## If public replay 502s but localhost pywb is 200
+
+Use this when `replay.healtharchive.ca/...` returns `502` but a direct localhost
+probe against pywb returns `200`.
+
+1. Confirm the exact replay path locally:
+   - `curl -sv --http1.1 "http://127.0.0.1:8090<PATH>" -o /dev/null | sed -n '1,40p'`
+2. Check Caddy for upstream parser errors:
+   - `sudo journalctl -u caddy -n 20 --no-pager`
+3. If Caddy reports a malformed header line (for example an archived bare
+   `AWSALBCORS=...` cookie continuation), treat it as replay-header
+   sanitization, not replay indexing.
+4. Confirm the replay service is loading `/srv/healtharchive/replay/sitecustomize.py`
+   via `PYTHONPATH=/webarchive` in `healtharchive-replay.service`.
+
 ## Retention warning
 
 Replay depends on WARCs staying on disk. Do not delete WARCs for jobs you expect to replay.
