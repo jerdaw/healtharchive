@@ -155,7 +155,7 @@ What we did to confirm we’re actually healthy (and not just “running”).
 ## Action items (TODOs)
 
 - [ ] Monitor PHAC to completion and index it if it finishes successfully (owner=Jeremy Dawson, priority=high, due=2026-04-21)
-- [ ] Index HC job `6`, which is still `awaiting-index`, once the annual run window allows it (owner=Jeremy Dawson, priority=high, due=2026-04-21)
+- [x] Index HC job `6` once the annual run window allows it (completed 2026-04-23; `262567` snapshots indexed) (owner=Jeremy Dawson, priority=high, due=2026-04-21)
 - [ ] Revisit PHAC’s long-term Browsertrix/default-backend strategy after the current fallback run completes (owner=Jeremy Dawson, priority=medium, due=2026-04-30)
 - [ ] Convert annual output dirs from direct `sshfs` mounts to bind mounts during the next acceptable maintenance window after the annual crawl is idle (owner=Jeremy Dawson, priority=medium, due=2026-05-15)
 

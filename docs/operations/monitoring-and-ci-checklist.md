@@ -506,7 +506,8 @@ These are **examples**, not full rules, but can guide what you set up:
 
 - Crawl completed but indexing not starting:
 
-  - Alert if `healtharchive_indexing_pending_job_max_age_seconds` exceeds your SLA (e.g., >1h).
+  - Alert if `healtharchive_indexing_pending_job_max_age_seconds` exceeds your SLA
+    (e.g., >1h) **and** `healtharchive_crawl_running_jobs == 0`.
 
 - High job failure rate:
 

@@ -17,6 +17,7 @@ from ha_backend.models import Page, Snapshot
 from ha_backend.pages import (
     _strip_query_fragment_expr,
     discover_job_page_groups,
+    format_upserted_groups,
     rebuild_pages,
 )
 
@@ -263,6 +264,21 @@ def test_rebuild_pages_recursion_chunking(db_session, snapshot_factory):
             # Verify second chunk call
             args, kwargs = mock_rebuild.call_args_list[2]
             assert len(kwargs["groups"]) == 5
+
+
+def test_rebuild_pages_chunked_unknown_rowcount_returns_single_unknown(db_session):
+    """Unknown child rowcounts should collapse to a single unknown sentinel."""
+    large_groups = [f"http://ex.com/{i}" for i in range(505)]
+
+    with patch("sqlalchemy.orm.Session.execute", return_value=MagicMock(rowcount=-1)):
+        res = rebuild_pages(db_session, groups=large_groups)
+
+    assert res.upserted_groups == -1
+
+
+def test_format_upserted_groups_formats_negative_as_unknown():
+    assert format_upserted_groups(-1) == "unknown"
+    assert format_upserted_groups(3) == "3"
 
 
 def test_rebuild_pages_filters(db_session, snapshot_factory):

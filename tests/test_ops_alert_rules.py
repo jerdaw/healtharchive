@@ -162,6 +162,17 @@ def test_deploy_lock_persistent_alert_semantics() -> None:
     assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
 
 
+def test_indexing_not_started_alert_is_suppressed_while_crawls_are_running() -> None:
+    text = _rules_text()
+    body = _extract_alert_block(text, "HealthArchiveIndexingNotStarted")
+
+    assert "healtharchive_indexing_pending_job_max_age_seconds > 3600" in body
+    assert "healtharchive_crawl_running_jobs == 0" in body
+    assert re.search(r"^\s*for:\s*15m\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
+    assert "docs/operations/runbooks/indexing-not-started.md" in body
+
+
 def test_crawl_temp_dirs_high_alert_semantics() -> None:
     text = _rules_text()
     body = _extract_alert_block(text, "HealthArchiveCrawlTempDirsHigh")

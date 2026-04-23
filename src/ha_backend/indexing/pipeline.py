@@ -352,7 +352,7 @@ def index_job(job_id: int) -> int:
             job.status = "indexed"
 
             if has_pages and impacted_page_groups:
-                from ha_backend.pages import rebuild_pages
+                from ha_backend.pages import format_upserted_groups, rebuild_pages
 
                 session.flush()
                 pages_result = rebuild_pages(
@@ -362,8 +362,8 @@ def index_job(job_id: int) -> int:
                     delete_missing=True,
                 )
                 logger.info(
-                    "Rebuilt %d page group(s) (deleted %d) for job %s.",
-                    pages_result.upserted_groups,
+                    "Rebuilt %s page group(s) (deleted %d) for job %s.",
+                    format_upserted_groups(pages_result.upserted_groups),
                     pages_result.deleted_groups,
                     job_id,
                 )

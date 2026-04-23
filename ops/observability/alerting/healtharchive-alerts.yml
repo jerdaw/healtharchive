@@ -197,14 +197,16 @@ groups:
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/runbooks/crawl-restart-budget-low.md"
 
       - alert: HealthArchiveIndexingNotStarted
-        expr: healtharchive_indexing_pending_job_max_age_seconds > 3600
+        expr: |
+          healtharchive_indexing_pending_job_max_age_seconds > 3600
+          and on() healtharchive_crawl_running_jobs == 0
         for: 15m
         labels:
           severity: warning
           service: healtharchive
         annotations:
           summary: "Crawl completed but indexing not starting"
-          description: "At least one job has status=completed for over an hour (crawl done, indexing not done). Check healtharchive-worker.service and worker logs."
+          description: "At least one job has status=completed for over an hour, indexing has not started, and no crawl jobs are still running. Check healtharchive-worker.service, worker logs, and WARC visibility on the job output dir."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/runbooks/indexing-not-started.md"
 
       - alert: HealthArchiveInfraErrorsHigh

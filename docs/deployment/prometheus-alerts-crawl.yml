@@ -125,15 +125,17 @@ groups:
             Cannot find or read combined log for job {{ $labels.job_id }} on
             {{ $labels.instance }}.
 
-      # Indexing delay (Critical failure)
+      # Indexing delay (only actionable once no crawl jobs are still running)
       - alert: IndexingNotStartedAfterCrawl
-        expr: healtharchive_indexing_pending_job_max_age_seconds > 3600
+        expr: |
+          healtharchive_indexing_pending_job_max_age_seconds > 3600
+          and on() healtharchive_crawl_running_jobs == 0
         for: 15m
         labels:
-          severity: critical
+          severity: warning
           component: indexing
         annotations:
-          summary: "Indexing delay exceeded (1 hour)"
+          summary: "Indexing delay exceeded after crawls went idle"
           description: >
             One or more crawl jobs have been in 'completed' status for over
-            an hour without being indexed.
+            an hour without being indexed, and no crawl jobs are still running.

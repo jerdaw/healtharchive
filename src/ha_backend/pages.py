@@ -15,6 +15,19 @@ class PagesRebuildResult:
     deleted_groups: int
 
 
+def format_upserted_groups(n: int) -> str:
+    """
+    Format an upsert count for user-facing logs and CLI output.
+
+    Postgres may report rowcount=-1 for INSERT .. SELECT statements,
+    especially with ON CONFLICT DO UPDATE. Treat negative values as unknown
+    rather than surfacing confusing sentinel math.
+    """
+    if n < 0:
+        return "unknown"
+    return str(n)
+
+
 def _strip_query_fragment_expr(url_expr: Any, dialect_name: str) -> Any:
     if dialect_name == "postgresql":
         return func.lower(func.regexp_replace(url_expr, r"[?#].*$", ""))
@@ -93,6 +106,7 @@ def rebuild_pages(
         if len(groups_list) > chunk_size:
             total_upserted = 0
             total_deleted = 0
+            saw_unknown_upsert_count = False
             for i in range(0, len(groups_list), chunk_size):
                 chunk = groups_list[i : i + chunk_size]
                 chunk_result = rebuild_pages(
@@ -102,11 +116,14 @@ def rebuild_pages(
                     groups=chunk,
                     delete_missing=delete_missing,
                 )
-                total_upserted += chunk_result.upserted_groups
+                if chunk_result.upserted_groups < 0:
+                    saw_unknown_upsert_count = True
+                else:
+                    total_upserted += chunk_result.upserted_groups
                 total_deleted += chunk_result.deleted_groups
 
             return PagesRebuildResult(
-                upserted_groups=total_upserted,
+                upserted_groups=-1 if saw_unknown_upsert_count else total_upserted,
                 deleted_groups=total_deleted,
             )
 

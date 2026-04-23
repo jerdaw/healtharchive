@@ -1723,7 +1723,7 @@ def cmd_rebuild_pages(args: argparse.Namespace) -> None:
     This is metadata-only: it never reads or mutates WARC content.
     """
     from .models import ArchiveJob, Page, Source
-    from .pages import discover_job_page_groups, rebuild_pages
+    from .pages import discover_job_page_groups, format_upserted_groups, rebuild_pages
 
     source: str | None = args.source
     job_id: int | None = args.job_id
@@ -1771,14 +1771,6 @@ def cmd_rebuild_pages(args: argparse.Namespace) -> None:
                 source_id=source_id,
                 delete_missing=False,
             )
-
-        def format_upserted_groups(n: int) -> str:
-            # Postgres often reports rowcount=-1 for INSERT..SELECT statements,
-            # especially with ON CONFLICT; treat that as "unknown" rather than
-            # printing a confusing negative number.
-            if n < 0:
-                return "unknown"
-            return str(n)
 
         if dry_run:
             session.rollback()
