@@ -60,7 +60,7 @@ INSTALL_SYSTEMD_UNITS="false"
 APPLY_ALERTING="false"
 PUBLIC_API_BASE="https://api.healtharchive.ca"
 PUBLIC_FRONTEND_BASE="https://healtharchive.ca"
-PUBLIC_TIMEOUT_SECONDS="20"
+PUBLIC_TIMEOUT_SECONDS="60"
 WORKER_STATUS_GATES_DEPLOY="true"
 
 while [[ $# -gt 0 ]]; do

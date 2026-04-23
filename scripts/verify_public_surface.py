@@ -158,8 +158,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--timeout-seconds",
         type=float,
-        default=20.0,
-        help="Per-request timeout in seconds (default: 20).",
+        default=60.0,
+        help="Per-request timeout in seconds (default: 60).",
     )
     parser.add_argument(
         "--allow-usage-disabled",
