@@ -145,8 +145,8 @@ def test_replay_systemd_template_loads_sitecustomize_and_dynamic_ids() -> None:
     assert "ExecStartPre=/usr/bin/getent passwd hareplay" in text
     assert "ExecStartPre=/usr/bin/getent group healtharchive" in text
     assert "-e PYTHONPATH=/webarchive" in text
-    assert "id -u hareplay" in text
-    assert "getent group healtharchive" in text
+    assert "$$(/usr/bin/id -u hareplay)" in text
+    assert "$$(/usr/bin/getent group healtharchive | /usr/bin/cut -d: -f3)" in text
     assert "-v /srv/healtharchive/replay:/webarchive:rw" in text
     assert "-v /srv/healtharchive/jobs:/warcs:ro,rshared" in text
 
