@@ -8,10 +8,14 @@ ConditionPathExists=/etc/healtharchive/replay-automation-enabled
 
 [Service]
 Type=oneshot
-User=haadmin
 WorkingDirectory=/opt/healtharchive
 EnvironmentFile=/etc/healtharchive/backend.env
 EnvironmentFile=-/etc/healtharchive/healthchecks.env
+
+# Run as root. `wb-manager init` creates hareplay-owned collection dirs inside
+# /srv/healtharchive/replay, and the reconcile pass must also shell out to
+# `docker exec`. Running this oneshot as `haadmin` cannot populate new
+# collections once pywb has created the archive/indexes tree.
 
 # Keep impact low on the single VPS.
 Nice=10
