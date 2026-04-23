@@ -380,6 +380,7 @@ if [[ "${SKIP_RESTART}" != "true" ]]; then
 
   if [[ "${RESTART_REPLAY}" == "true" ]]; then
     REPLAY_CONFIG_SRC="${REPO_DIR}/docs/deployment/pywb/config.yaml"
+    REPLAY_RULES_SRC="${REPO_DIR}/docs/deployment/pywb/rules.yaml"
     BANNER_SRC="${REPO_DIR}/docs/deployment/pywb/custom_banner.html"
     if [[ -f "${REPLAY_CONFIG_SRC}" ]]; then
       run sudo mkdir -p /srv/healtharchive/replay
@@ -387,6 +388,13 @@ if [[ "${SKIP_RESTART}" != "true" ]]; then
         "${REPLAY_CONFIG_SRC}" /srv/healtharchive/replay/config.yaml
     else
       echo "WARN: Replay config template not found at ${REPLAY_CONFIG_SRC}" >&2
+    fi
+    if [[ -f "${REPLAY_RULES_SRC}" ]]; then
+      run sudo mkdir -p /srv/healtharchive/replay
+      run sudo install -o hareplay -g healtharchive -m 0640 \
+        "${REPLAY_RULES_SRC}" /srv/healtharchive/replay/rules.yaml
+    else
+      echo "WARN: Replay rules template not found at ${REPLAY_RULES_SRC}" >&2
     fi
     if [[ -f "${BANNER_SRC}" ]]; then
       run sudo mkdir -p /srv/healtharchive/replay/templates

@@ -7,10 +7,10 @@ framed_replay: false
 # Prefer stable URLs once a capture is resolved.
 redirect_to_exact: true
 
-# Public replay does not need archived Set-Cookie headers. Dropping replayed
-# cookies avoids malformed upstream cookie lines (for example AWSALBCORS) from
-# breaking Caddy's HTTP parser and surfacing as 502s.
-cookie_scope: removeall
+# pywb 2.9.1 reads cookie rewriting from rewrite rules rather than a top-level
+# config knob. Keep the managed rules file alongside this config so public
+# replay can drop archived Set-Cookie headers before Caddy sees them.
+rules_file: /webarchive/rules.yaml
 
 # Optional: expose an aggregate across all on-disk collections at /all/...
 # (This is not required for per-job collections like /job-1/.)

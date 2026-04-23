@@ -144,7 +144,7 @@ Why the `hareplay` ownership matters:
 
 We run pywb **only on localhost** (Caddy is the public edge).
 
-### 4.1 Create pywb config
+### 4.1 Create pywb config + rules
 
 Create `/srv/healtharchive/replay/config.yaml`:
 
@@ -158,10 +158,9 @@ framed_replay: false
 # Prefer stable URLs once a capture is resolved.
 redirect_to_exact: true
 
-# Public replay does not need archived Set-Cookie headers. Dropping replayed
-# cookies avoids malformed upstream cookie lines (for example AWSALBCORS) from
-# breaking Caddy’s HTTP parser and surfacing as 502s.
-cookie_scope: removeall
+# pywb 2.9.1 reads cookie rewriting from rewrite rules rather than a top-level
+# config knob. Keep the managed rules file alongside this config.
+rules_file: /webarchive/rules.yaml
 
 # Optional: expose an aggregate across all on-disk collections at `/all/...`.
 # (This is not required for per-job collections like `/job-1/...`.)
@@ -169,12 +168,58 @@ cookie_scope: removeall
 #   all: $all
 ```
 
+Create `/srv/healtharchive/replay/rules.yaml`:
+
+```yaml
+default_filters:
+  fuzzy_search_limit: "100"
+
+  not_exts:
+    - asp
+    - aspx
+    - jsp
+    - php
+    - pl
+    - exe
+    - dll
+
+  mimes:
+    - application/x-shockwave-flash
+    - application/dash+xml
+    - application/x-mpegURL
+    - application/vnd.apple.mpegurl
+
+  url_normalize:
+    - match: "[?&](_|cb|uncache)=([\\d]+)(?=&|$)"
+      replace: ""
+    - match: "[?&]utm_[^=]+=[^&]+(?=&|$)"
+      replace: ""
+    - match: "[?&](callback=jsonp)[^&]+(?=&|$)"
+      replace: "\\1"
+    - match: "[?&]((?:\\w+)=jquery)[\\d]+_[\\d]+"
+      replace: "\\1"
+    - match: "[?&](\\w*(bust|ts)\\w*=1[\\d]{12,15})(?=&|$)"
+      replace: ""
+    - match: "[?&](fbclid)=(.*)+(?=&|$)"
+      replace: ""
+
+rules:
+  - url_prefix: ""
+    fuzzy_lookup:
+      match: "()"
+
+  - url_prefix: ""
+    rewrite:
+      cookie_scope: removeall
+```
+
 Repo-managed template:
 
 - `/opt/healtharchive/docs/deployment/pywb/config.yaml`
+- `/opt/healtharchive/docs/deployment/pywb/rules.yaml`
 
 On single-VPS deployments, prefer installing that tracked template instead of
-editing `/srv/healtharchive/replay/config.yaml` by hand.
+editing `/srv/healtharchive/replay/config.yaml` or `/srv/healtharchive/replay/rules.yaml` by hand.
 
 ### 4.2 Create systemd service
 
@@ -307,6 +352,10 @@ sudo install -o hareplay -g healtharchive -m 0640 \
   /opt/healtharchive/docs/deployment/pywb/config.yaml \
   /srv/healtharchive/replay/config.yaml
 
+sudo install -o hareplay -g healtharchive -m 0640 \
+  /opt/healtharchive/docs/deployment/pywb/rules.yaml \
+  /srv/healtharchive/replay/rules.yaml
+
 sudo mkdir -p /srv/healtharchive/replay/templates
 sudo install -o hareplay -g healtharchive -m 0640 \
   /opt/healtharchive/docs/deployment/pywb/custom_banner.html \
@@ -342,7 +391,7 @@ Notes:
   still valid for your hostnames.
 - If you deploy the backend using `./scripts/vps-deploy.sh --apply --restart-replay`,
   the deploy helper will also install the tracked replay `config.yaml`,
-  `custom_banner.html`, and restart the replay service as part of that run
+  `rules.yaml`, `custom_banner.html`, and restart the replay service as part of that run
   (single-VPS setup).
 
 Note: the banner can be disabled for screenshot generation by adding a fragment:
@@ -460,7 +509,9 @@ ID:
 - **Replay 502 for a specific page but localhost replay is 200:** check for malformed
   replayed cookie headers. A bare archived cookie line such as `AWSALBCORS=...`
   can make Caddy/Go reject the upstream response before it reaches the client.
-  Ensure `/srv/healtharchive/replay/config.yaml` includes `cookie_scope: removeall`
+  Ensure `/srv/healtharchive/replay/config.yaml` points `rules_file` at
+  `/webarchive/rules.yaml`, ensure `/srv/healtharchive/replay/rules.yaml`
+  contains `cookie_scope: removeall` under a rewrite rule,
   and restart `healtharchive-replay.service`.
 - **Replay UI shows “All-time (0 captures)”:** that exact URL (including scheme + host, eg `www.` vs non-`www`) likely isn’t present in the WARC set. Confirm via `/<collection>/cdx?url=...` and try host/scheme variants.
 - **Iframe blocked:** check `frame-ancestors` header on `replay.healtharchive.ca` and ensure you removed `X-Frame-Options`.

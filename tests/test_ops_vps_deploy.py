@@ -75,7 +75,13 @@ exit 0
         replay_dir = repo_dir / "docs" / "deployment" / "pywb"
         replay_dir.mkdir(parents=True)
         (replay_dir / "config.yaml").write_text(
-            "debug: false\ncookie_scope: removeall\n",
+            "debug: false\nrules_file: /webarchive/rules.yaml\n",
+            encoding="utf-8",
+        )
+        (replay_dir / "rules.yaml").write_text(
+            "default_filters:\n  fuzzy_search_limit: '100'\nrules:\n  - url_prefix: ''\n"
+            "    fuzzy_lookup:\n      match: '()'\n  - url_prefix: ''\n    rewrite:\n"
+            "      cookie_scope: removeall\n",
             encoding="utf-8",
         )
         (replay_dir / "custom_banner.html").write_text(
@@ -87,6 +93,7 @@ exit 0
                 "git",
                 "add",
                 "docs/deployment/pywb/config.yaml",
+                "docs/deployment/pywb/rules.yaml",
                 "docs/deployment/pywb/custom_banner.html",
             ],
             cwd=repo_dir,
@@ -294,7 +301,14 @@ def test_vps_deploy_restart_replay_installs_managed_config_and_banner(tmp_path: 
     assert "http://127.0.0.1:8090/" in curl_log.read_text(encoding="utf-8")
     assert (fake_srv_root / "srv" / "healtharchive" / "replay" / "config.yaml").read_text(
         encoding="utf-8"
-    ) == "debug: false\ncookie_scope: removeall\n"
+    ) == "debug: false\nrules_file: /webarchive/rules.yaml\n"
+    assert (fake_srv_root / "srv" / "healtharchive" / "replay" / "rules.yaml").read_text(
+        encoding="utf-8"
+    ) == (
+        "default_filters:\n  fuzzy_search_limit: '100'\nrules:\n  - url_prefix: ''\n"
+        "    fuzzy_lookup:\n      match: '()'\n  - url_prefix: ''\n    rewrite:\n"
+        "      cookie_scope: removeall\n"
+    )
     assert (
         fake_srv_root / "srv" / "healtharchive" / "replay" / "templates" / "custom_banner.html"
     ).read_text(encoding="utf-8") == "<div>banner</div>\n"
