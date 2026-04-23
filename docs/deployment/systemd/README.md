@@ -91,6 +91,10 @@ or stage the cutover manually (no restarts required until your maintenance windo
   - **Apply mode**: runs `healtharchive replay-reconcile --apply --max-jobs 1`.
   - Gated by `ConditionPathExists=/etc/healtharchive/replay-automation-enabled`.
   - Uses a lock file under `/srv/healtharchive/replay/.locks/` to prevent concurrent runs.
+  - Runs as root because it has to bridge host-side replay collection writes
+    with `docker exec` into the hardened pywb container; running it as
+    `haadmin` leaves new `hareplay`-owned collections stuck in
+    `missing_index,missing_warc_links`.
 - `healtharchive-replay-reconcile.timer`
   - Daily at `*-*-* 02:30:00 UTC`
   - `Persistent=true` (runs on next boot if missed)

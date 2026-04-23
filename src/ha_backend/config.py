@@ -112,6 +112,15 @@ def _detect_archive_tool_cmd() -> str:
 # raw snapshot HTML endpoint.
 DEFAULT_REPLAY_BASE_URL = ""
 
+# Directory containing pywb replay collections (job-<id>/archive + indexes).
+#
+# Example (prod):
+#   HEALTHARCHIVE_REPLAY_COLLECTIONS_DIR=/srv/healtharchive/replay/collections
+#
+# The public API can use this to avoid advertising replay browse URLs for jobs
+# whose pywb collection has not been materialized yet.
+DEFAULT_REPLAY_COLLECTIONS_DIR = "/srv/healtharchive/replay/collections"
+
 # Directory where pre-rendered replay preview images are stored.
 #
 # These images are used by the frontend to show lightweight “homepage preview”
@@ -339,6 +348,20 @@ def get_replay_preview_dir() -> Path | None:
     If unset, the API will not advertise preview image URLs.
     """
     raw = os.environ.get("HEALTHARCHIVE_REPLAY_PREVIEW_DIR", DEFAULT_REPLAY_PREVIEW_DIR)
+    raw = raw.strip()
+    if not raw:
+        return None
+    return Path(raw)
+
+
+def get_replay_collections_dir() -> Path | None:
+    """
+    Return the configured directory containing pywb replay collections.
+
+    If unset, the API cannot validate per-job replay readiness and will fall
+    back to optimistic browseUrl generation when replay is otherwise enabled.
+    """
+    raw = os.environ.get("HEALTHARCHIVE_REPLAY_COLLECTIONS_DIR", DEFAULT_REPLAY_COLLECTIONS_DIR)
     raw = raw.strip()
     if not raw:
         return None

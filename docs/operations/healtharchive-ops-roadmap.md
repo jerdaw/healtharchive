@@ -79,6 +79,14 @@ Keep the two synced copies of this file aligned:
     frontend, and raw-snapshot checks but still fails one replay browse URL for
     indexed HC snapshot `395971` with `404` on
     `https://replay.healtharchive.ca/job-6/...`.
+  - replay diagnosis is now concrete:
+    - `healtharchive replay-reconcile --job-id 6` reports
+      `missing_index,missing_warc_links`
+    - `--apply` as `haadmin` fails with `Permission denied` creating WARC links
+      under `/srv/healtharchive/replay/collections/job-6/archive`
+    - the deployed `healtharchive-replay-reconcile.service` template currently
+      runs as `haadmin`, so new collections are not self-healing under the
+      current `hareplay:healtharchive` replay-volume ownership model
   - the VPS branch `prod-pre-a3e0dece` now preserves the detached pre-deploy
     commit chain (`d8e2534e`, `607df02b`, `48cfe3f9`) and should be kept until
     those commits are reviewed and either cherry-picked or explicitly retired.
@@ -92,8 +100,9 @@ Keep the two synced copies of this file aligned:
 
 Treat the following as the current ops execution order:
 
-1. Diagnose and fix the replay browse-URL `404` now that HC indexing is
-   complete and the public-surface verifier fails only there.
+1. Repair HC replay collection `job-6`, then deploy the browse-URL suppression
+   patch so the public API stops advertising replay URLs for jobs whose pywb
+   collections are absent or incomplete.
 2. Monitor PHAC and CIHR to completion, then index the completed annual jobs.
 3. Restart the worker in the next safe maintenance window after the annual
    crawl is idle (or during an explicitly accepted interruption) so the
@@ -163,10 +172,14 @@ Treat the following as the current ops execution order:
     pages, and the frontend report forwarder, but fails replay on
     `https://replay.healtharchive.ca/job-6/20260414224554/...#ha_snapshot=395971`.
   - Next steps:
-    - determine whether the failure is stale/missing replay indexing for HC job
-      `6`, a replay collection mapping problem, or a bad generated browse URL
-    - inspect replay reconcile / replay-index state before making another prod
-      change
+    - complete a root-run replay reconcile for HC job `6`; dry-run already
+      confirmed `missing_index,missing_warc_links`
+    - treat the current `healtharchive-replay-reconcile.service` `User=haadmin`
+      setting as broken under the `hareplay:healtharchive` replay-volume model
+      until the service template is redeployed
+    - deploy the API-side browse-URL suppression patch so `browseUrl` is hidden
+      whenever `/srv/healtharchive/replay/collections/job-<id>` is missing or
+      incomplete, even if replay is enabled globally
     - rerun `./scripts/verify_public_surface.py --timeout-seconds 60` after the
       replay fix and record the result
 - Preserve and review the pre-deploy production-only branch.

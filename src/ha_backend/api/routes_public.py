@@ -36,6 +36,7 @@ from ha_backend.config import (
     get_pages_fastpath_enabled,
     get_public_site_base_url,
     get_replay_base_url,
+    get_replay_collections_dir,
     get_replay_preview_dir,
     get_usage_metrics_enabled,
     get_usage_metrics_window_days,
@@ -488,6 +489,7 @@ def _build_browse_url(
     original_url: str,
     capture_timestamp: Any = None,
     snapshot_id: Optional[int] = None,
+    replay_ready_cache: Optional[dict[int, bool]] = None,
 ) -> Optional[str]:
     base = get_replay_base_url()
     if not base or not job_id:
@@ -495,6 +497,9 @@ def _build_browse_url(
 
     normalized = original_url.strip()
     if not normalized:
+        return None
+
+    if not _is_job_replay_ready(job_id, replay_ready_cache=replay_ready_cache):
         return None
 
     ts_value: Optional[str] = None
@@ -516,6 +521,38 @@ def _build_browse_url(
         return f"{base}/job-{job_id}/{ts_value}/{normalized}{suffix}"
 
     return f"{base}/job-{job_id}/{normalized}{suffix}"
+
+
+def _is_job_replay_ready(
+    job_id: Optional[int], *, replay_ready_cache: Optional[dict[int, bool]] = None
+) -> bool:
+    """
+    Return whether the replay collection for a job appears to exist locally.
+
+    When the replay collections root is present on disk, suppress browse URLs
+    for jobs whose pywb collection is missing or incomplete. If the collections
+    root itself is unavailable (common in local dev/test), fall back to the
+    previous optimistic behavior rather than hiding all replay links.
+    """
+    if not job_id:
+        return False
+
+    if replay_ready_cache is not None and job_id in replay_ready_cache:
+        return replay_ready_cache[job_id]
+
+    collections_dir = get_replay_collections_dir()
+    if collections_dir is None or not collections_dir.exists():
+        ready = True
+    else:
+        collection_root = collections_dir / f"job-{job_id}"
+        archive_dir = collection_root / "archive"
+        index_file = collection_root / "indexes" / "index.cdxj"
+        ready = index_file.is_file() and archive_dir.is_dir() and any(archive_dir.glob("warc-*"))
+
+    if replay_ready_cache is not None:
+        replay_ready_cache[job_id] = ready
+
+    return ready
 
 
 def _normalize_url_group(value: str) -> Optional[str]:
@@ -1118,6 +1155,7 @@ def _search_snapshots_inner(
         base_query = base_query.filter(Snapshot.deduplicated.is_(False))
 
     offset = (page - 1) * pageSize
+    replay_ready_cache: dict[int, bool] = {}
 
     # Fast path: when browsing pages without a search query or date range,
     # prefer the Page table (if present) to avoid window functions over the
@@ -1234,7 +1272,11 @@ def _search_snapshots_inner(
                         pageSnapshotsCount=page_counts_by_snapshot_id.get(snap.id),
                         rawSnapshotUrl=f"/api/snapshots/raw/{snap.id}",
                         browseUrl=_build_browse_url(
-                            snap.job_id, original_url, snap.capture_timestamp, snap.id
+                            snap.job_id,
+                            original_url,
+                            snap.capture_timestamp,
+                            snap.id,
+                            replay_ready_cache=replay_ready_cache,
                         ),
                     )
                 )
@@ -2069,7 +2111,11 @@ def _search_snapshots_inner(
                 pageSnapshotsCount=page_snapshots_count,
                 rawSnapshotUrl=f"/api/snapshots/raw/{snap.id}",
                 browseUrl=_build_browse_url(
-                    snap.job_id, original_url, snap.capture_timestamp, snap.id
+                    snap.job_id,
+                    original_url,
+                    snap.capture_timestamp,
+                    snap.id,
+                    replay_ready_cache=replay_ready_cache,
                 ),
             )
         )
@@ -2851,6 +2897,7 @@ def get_snapshot_timeline(
         job_names = {int(job_id): job_name for job_id, job_name in rows}
 
     items: List[SnapshotTimelineItemSchema] = []
+    replay_ready_cache: dict[int, bool] = {}
     for row in snapshots:
         capture_date = (
             row.capture_timestamp.date().isoformat()
@@ -2872,6 +2919,7 @@ def get_snapshot_timeline(
                     row.url,
                     row.capture_timestamp,
                     row.id,
+                    replay_ready_cache=replay_ready_cache,
                 ),
             )
         )
@@ -3167,6 +3215,7 @@ def list_sources(
     )
 
     summaries: List[SourceSummarySchema] = []
+    replay_ready_cache: dict[int, bool] = {}
 
     for source, record_count, first_capture, last_capture in rows:
         localized_name = source.name
@@ -3228,7 +3277,11 @@ def list_sources(
                 entry_record_id = entry_snapshot[0]
                 entry_job_id = entry_snapshot[1]
                 entry_browse_url = _build_browse_url(
-                    entry_job_id, entry_snapshot[2], entry_snapshot[3], entry_record_id
+                    entry_job_id,
+                    entry_snapshot[2],
+                    entry_snapshot[3],
+                    entry_record_id,
+                    replay_ready_cache=replay_ready_cache,
                 )
 
         # If the exact baseUrl wasn't captured, fall back to a "reasonable"
@@ -3276,7 +3329,11 @@ def list_sources(
                 if best is not None:
                     entry_record_id, entry_job_id, entry_url, entry_ts = best
                     entry_browse_url = _build_browse_url(
-                        entry_job_id, entry_url, entry_ts, entry_record_id
+                        entry_job_id,
+                        entry_url,
+                        entry_ts,
+                        entry_record_id,
+                        replay_ready_cache=replay_ready_cache,
                     )
 
         preview_dir = get_replay_preview_dir()
@@ -3364,6 +3421,7 @@ def list_source_editions(
     entry_groups = _candidate_entry_groups(source.base_url)
     host_variants = _candidate_entry_hosts(source.base_url)
     replay_enabled = bool(get_replay_base_url())
+    replay_ready_cache: dict[int, bool] = {}
 
     editions: List[SourceEditionSchema] = []
     for job_id, job_name, record_count, first_capture, last_capture in rows:
@@ -3443,7 +3501,13 @@ def list_source_editions(
                         entry_snapshot_id, entry_url, entry_ts = best
 
             if entry_url is not None:
-                entry_browse_url = _build_browse_url(job_id, entry_url, entry_ts, entry_snapshot_id)
+                entry_browse_url = _build_browse_url(
+                    job_id,
+                    entry_url,
+                    entry_ts,
+                    entry_snapshot_id,
+                    replay_ready_cache=replay_ready_cache,
+                )
 
         editions.append(
             SourceEditionSchema(

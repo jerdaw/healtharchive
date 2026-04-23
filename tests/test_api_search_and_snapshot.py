@@ -1158,6 +1158,29 @@ def test_snapshot_detail_includes_browse_url_when_replay_configured(tmp_path, mo
     assert data["results"][0]["browseUrl"].startswith("https://replay.healtharchive.ca/job-")
 
 
+def test_snapshot_detail_omits_browse_url_when_replay_collection_missing(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setenv("HEALTHARCHIVE_REPLAY_BASE_URL", "https://replay.healtharchive.ca/")
+    collections_dir = tmp_path / "replay-collections"
+    collections_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("HEALTHARCHIVE_REPLAY_COLLECTIONS_DIR", str(collections_dir))
+
+    client = _init_test_app(tmp_path, monkeypatch)
+    snap_id = _seed_replay_browse_url_data()
+
+    resp = client.get(f"/api/snapshot/{snap_id}")
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["browseUrl"] is None
+
+    resp2 = client.get("/api/search")
+    assert resp2.status_code == 200
+    data = resp2.json()
+    assert data["results"]
+    assert data["results"][0]["browseUrl"] is None
+
+
 def test_sources_endpoint_shape(tmp_path, monkeypatch) -> None:
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_search_data()

@@ -658,6 +658,66 @@ def test_source_editions_endpoint_includes_entry_browse_url_when_replay_enabled(
     )
 
 
+def test_source_editions_omit_entry_browse_url_when_replay_collection_missing(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setenv("HEALTHARCHIVE_REPLAY_BASE_URL", "https://replay.healtharchive.ca")
+    collections_dir = tmp_path / "replay-collections"
+    collections_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("HEALTHARCHIVE_REPLAY_COLLECTIONS_DIR", str(collections_dir))
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    with get_session() as session:
+        hc = Source(
+            code="hc",
+            name="Health Canada",
+            base_url="https://www.canada.ca/en/health-canada.html",
+            enabled=True,
+        )
+        session.add(hc)
+        session.flush()
+
+        job = ArchiveJob(
+            source_id=hc.id,
+            name="legacy-hc",
+            output_dir="/srv/healtharchive/jobs/imports/legacy-hc",
+            status="indexed",
+        )
+        session.add(job)
+        session.flush()
+
+        ts = datetime(2025, 4, 18, 12, 0, tzinfo=timezone.utc)
+        session.add(
+            Snapshot(
+                job_id=job.id,
+                source_id=hc.id,
+                url="https://www.canada.ca/en/health-canada.html",
+                normalized_url_group="https://www.canada.ca/en/health-canada.html",
+                capture_timestamp=ts,
+                mime_type="text/html",
+                status_code=200,
+                title="Health Canada",
+                snippet="HC home",
+                language="en",
+                warc_path="/warcs/hc-home.warc.gz",
+                warc_record_id="hc-home",
+            )
+        )
+        session.flush()
+
+    resp = client.get("/api/sources")
+    assert resp.status_code == 200
+    sources = resp.json()
+    hc_payload = next(s for s in sources if s["sourceCode"] == "hc")
+    assert hc_payload["entryBrowseUrl"] is None
+
+    resp = client.get("/api/sources/hc/editions")
+    assert resp.status_code == 200
+    editions = resp.json()
+    assert editions
+    assert editions[0]["entryBrowseUrl"] is None
+
+
 def test_replay_resolve_endpoint_finds_capture_across_www_variants(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("HEALTHARCHIVE_REPLAY_BASE_URL", "https://replay.healtharchive.ca")
     client = _init_test_app(tmp_path, monkeypatch)
