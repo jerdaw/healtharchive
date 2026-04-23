@@ -156,7 +156,10 @@ What we did to confirm we’re actually healthy (and not just “running”).
 
 - [ ] Monitor PHAC to completion and index it if it finishes successfully (owner=Jeremy Dawson, priority=high, due=2026-04-21)
 - [x] Index HC job `6` once the annual run window allows it (completed 2026-04-23; `262567` snapshots indexed) (owner=Jeremy Dawson, priority=high, due=2026-04-21)
+- [ ] Diagnose and fix the remaining replay browse-URL `404` now that HC indexing is complete and `verify_public_surface.py --timeout-seconds 60` fails only on `https://replay.healtharchive.ca/job-6/...#ha_snapshot=395971` (owner=Jeremy Dawson, priority=high, due=2026-04-24)
 - [ ] Revisit PHAC’s long-term Browsertrix/default-backend strategy after the current fallback run completes (owner=Jeremy Dawson, priority=medium, due=2026-04-30)
+- [ ] Restart the worker during the next safe maintenance window after PHAC/CIHR are idle so the deployed `a3e0dece` worker-side rowcount/logging fix becomes active in production (owner=Jeremy Dawson, priority=medium, due=2026-05-15)
+- [ ] Review the preserved VPS branch `prod-pre-a3e0dece` and decide whether its detached pre-deploy commits (`d8e2534e`, `607df02b`, `48cfe3f9`) need cherry-pick, replacement, or explicit retirement (owner=Jeremy Dawson, priority=medium, due=2026-05-01)
 - [ ] Convert annual output dirs from direct `sshfs` mounts to bind mounts during the next acceptable maintenance window after the annual crawl is idle (owner=Jeremy Dawson, priority=medium, due=2026-05-15)
 
 ## Automation opportunities

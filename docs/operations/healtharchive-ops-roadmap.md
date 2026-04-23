@@ -19,67 +19,69 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-04-20)
+## Current status (as of 2026-04-23)
 
 - 2026 annual campaign is still active on the VPS:
-  - `hc` completed successfully after the rescue-policy rollout and is now
-    waiting to be indexed.
-  - `cihr` is running on the 2026-04-14 scoped restart and resumed cleanly
-    after the 2026-04-15 production cutover window.
-  - `phac` is running again on the 2026-04-20 fallback recovery path.
+  - `hc` completed successfully after the rescue-policy rollout, had its hot
+    path rebound to the Storage Box tier on 2026-04-22, and was indexed
+    successfully on 2026-04-23.
+    - Current operator state is now `search-ready` with `262567` indexed pages.
+  - `phac` is still running on the 2026-04-20 fallback recovery path.
     - The immediate post-reboot problem was storage-tier drift: job `7` landed
       on an unwritable local hot-path placeholder instead of the Storage Box
       tier, so `.archive_state.json` writes failed.
     - After tiering/writability were restored, fresh Browsertrix still failed
       both PHAC seed documents with `net::ERR_HTTP2_PROTOCOL_ERROR`.
-    - Production `healtharchive probe-browser-fetch` then confirmed that the
-      pinned `playwright_warc` runtime could fetch both PHAC seeds with `200`.
+    - Production `healtharchive probe-browser-fetch` confirmed that the pinned
+      `playwright_warc` runtime could fetch both PHAC seeds with `200`.
     - The repo-side fallback-WARC numbering fix was deployed before the retry,
       so the fallback backend now appends new stable WARCs instead of
       overwriting `warc-000001.warc.gz` on reruns.
-    - Live verification on 2026-04-20 shows PHAC progressing under
-      `playwright_warc` with clean `crawlStatus` growth, `failed=0`, and new
-      stable files appended as `warc-000275.warc.gz` and higher.
-- CIHR scope/content-cost follow-through is complete:
-  - bounded content reporting on 2026-03-27 and 2026-04-14 showed CIHR-specific
-    media-heavy frontier waste (`.mp4`, `asl-video/...`, and HTML query
-    variants such as `?wbdisable=false`) rather than a live stall.
-  - the 2026-04-14 maintenance window deployed `95f7e06`, reconciled job `8`
-    from `scopeType=host` to source-managed custom scope, reset the
-    poisoned resume/temp frontier while preserving historical WARCs, and
-    allowed auto-recover to restart the job cleanly.
-  - live verification on the new combined log confirmed:
-    - Browsertrix launched with `--scopeType custom` plus the intended
-      include/exclude regexes.
-    - the live frontier shrank from roughly `25.6k` URLs to `7.2k`.
-    - recent `crawlStatus` entries now show clean depth-3 HTML pages without
-      live `wbdisable=false`, `asl-video`, `.mp4`, or `.pdf` frontier churn.
-  - preserved historical WARCs still dominate total CIHR bytes; do not treat
-    that historical storage footprint as evidence that the new scope failed.
-- Job lock-dir cutover is complete:
+    - Live verification on 2026-04-23 still shows healthy fallback progress
+      under `playwright_warc` (`crawled=30303`, `pending=11730`, `failed=2`,
+      no recent timeouts).
+  - `cihr` is still running on the 2026-04-14 scoped restart.
+    - the 2026-04-14 maintenance window deployed `95f7e06`, reconciled job `8`
+      from `scopeType=host` to source-managed custom scope, reset the poisoned
+      resume/temp frontier while preserving historical WARCs, and allowed
+      auto-recover to restart the job cleanly.
+    - live verification on 2026-04-23 still shows progress under Browsertrix
+      (`stalled=0`, crawl-rate metrics advancing, progress resets after
+      occasional timeout noise).
+    - preserved historical WARCs still dominate total CIHR bytes; do not treat
+      that historical storage footprint as evidence that the new scope failed.
+- Job lock-dir cutover remains complete:
   - `/etc/healtharchive/backend.env` points at `/srv/healtharchive/ops/locks/jobs`
   - API and worker were both restarted during the 2026-04-14 maintenance
-    window, so the env change is now live in production.
+    window, so the env change is live in production.
 - Annual output-dir mount topology is still unexpected for the active 2026 jobs:
   - direct `sshfs` mounts remain in place instead of bind mounts.
   - conversion remains intentionally deferred until a future maintenance window
     after the annual crawl is idle or during an explicitly accepted
     interruption.
-- PHAC annual crawl repo-side rescue/fallback fixes are now both deployed and
-  live-verified in production:
-  - rescue visibility surfaces (`list-jobs`, `show-job`, `annual-status`,
-    crawl textfile metrics) are working as intended
-  - the fallback-WARC numbering fix is deployed and verified on the VPS checkout
-  - the active PHAC run is no longer blocked on deeper repo-side diagnosis
-- Rescue observability follow-through is now implemented in repo:
-  - `healtharchive list-jobs` now surfaces effective backend plus compact rescue
+- Rescue observability follow-through is implemented in repo and is now the
+  normal operator path:
+  - `healtharchive list-jobs` surfaces effective backend plus compact rescue
     state.
-  - `healtharchive show-job` now surfaces
+  - `healtharchive show-job` surfaces
     primary/configured/effective backend plus fallback/promotion details.
-  - `healtharchive annual-status` now acts as the compact annual rescue summary
+  - `healtharchive annual-status` acts as the compact annual rescue summary
     surface, including backend/rescue/operator-state summaries.
-  - crawl textfile metrics now expose backend/fallback rescue state.
-  - CLI docs now document the shorter operator path for annual rescue state.
+  - crawl textfile metrics expose backend/fallback rescue state.
+- Deploy follow-through for `a3e0dece` is partially complete in production:
+  - the 2026-04-23 deploy updated the VPS checkout to `a3e0dece`, applied the
+    `HealthArchiveIndexingNotStarted` alert semantics change, restarted the API
+    cleanly, and passed baseline drift verification.
+  - the worker restart was intentionally skipped because PHAC and CIHR are
+    still running; the worker-side rowcount/log-formatting fix from
+    `a3e0dece` will not be live until the next safe worker restart.
+  - `./scripts/verify_public_surface.py --timeout-seconds 60` now passes API,
+    frontend, and raw-snapshot checks but still fails one replay browse URL for
+    indexed HC snapshot `395971` with `404` on
+    `https://replay.healtharchive.ca/job-6/...`.
+  - the VPS branch `prod-pre-a3e0dece` now preserves the detached pre-deploy
+    commit chain (`d8e2534e`, `607df02b`, `48cfe3f9`) and should be kept until
+    those commits are reviewed and either cherry-picked or explicitly retired.
 - Alerting/report hygiene from the recent crawl work is deployed:
   - bounded content reporting is now the preferred operator diagnostic for live
     crawl cost/failure classification.
@@ -90,10 +92,15 @@ Keep the two synced copies of this file aligned:
 
 Treat the following as the current ops execution order:
 
-1. Monitor PHAC and CIHR to completion, then index the completed annual jobs.
-2. Annual output-dir bind-mount conversion during the next acceptable
+1. Diagnose and fix the replay browse-URL `404` now that HC indexing is
+   complete and the public-surface verifier fails only there.
+2. Monitor PHAC and CIHR to completion, then index the completed annual jobs.
+3. Restart the worker in the next safe maintenance window after the annual
+   crawl is idle (or during an explicitly accepted interruption) so the
+   `a3e0dece` worker-side log-formatting fix is actually loaded.
+4. Annual output-dir bind-mount conversion during the next acceptable
    maintenance window after the annual crawl is idle.
-3. Routine quarterly ops and evidence collection.
+5. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
@@ -135,6 +142,42 @@ Treat the following as the current ops execution order:
       or the excluded families reappear in the live frontier
     - do not treat preserved historical WARCs or consolidated temp-WARC bytes
       as proof that the repaired scope regressed
+- HC annual indexing follow-through is complete, but replay follow-through is
+  not.
+  - Current state: job `6` (`hc-20260101`) is `indexed` and `search-ready`
+    with `262567` indexed pages after the 2026-04-22 hot-path remount and the
+    2026-04-23 indexing run.
+  - Settled live evidence:
+    - `findmnt -T /srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101`
+      points at the Storage Box-backed HC path
+    - `healtharchive show-job --id 6` reports `Status: indexed`
+    - `healtharchive annual-status --year 2026` shows HC as
+      `operator_state=search-ready`
+  - Remaining follow-through:
+    - diagnose why `verify_public_surface.py --timeout-seconds 60` still gets
+      `404` for the HC replay browse URL while raw snapshot fetch succeeds
+    - rerun public-surface verification after the replay issue is fixed
+- Replay follow-up is now the main post-deploy gap.
+  - Current state: the public-surface verifier passes API health/stats,
+    sources, exports, search, raw snapshot fetch, usage, changes, frontend
+    pages, and the frontend report forwarder, but fails replay on
+    `https://replay.healtharchive.ca/job-6/20260414224554/...#ha_snapshot=395971`.
+  - Next steps:
+    - determine whether the failure is stale/missing replay indexing for HC job
+      `6`, a replay collection mapping problem, or a bad generated browse URL
+    - inspect replay reconcile / replay-index state before making another prod
+      change
+    - rerun `./scripts/verify_public_surface.py --timeout-seconds 60` after the
+      replay fix and record the result
+- Preserve and review the pre-deploy production-only branch.
+  - Current state: `prod-pre-a3e0dece` exists on the VPS and preserves the
+    detached pre-deploy commits that would otherwise have been left unreachable
+    by the 2026-04-23 deploy.
+  - Next steps:
+    - compare `prod-pre-a3e0dece` against `main`
+    - decide whether each preserved commit needs cherry-pick, replacement, or
+      explicit retirement
+    - do not delete the branch until that review is documented
 - Maintenance window (after 2026 annual crawl is idle): convert annual output dirs from direct `sshfs` mounts to bind mounts.
   - Why defer: unmount/re-mount of a live job output dir can interrupt in-progress crawls; benefit is reduced Errno 107 blast radius,
     but not worth forced interruption mid-campaign.
@@ -151,10 +194,13 @@ Treat the following as the current ops execution order:
 - Verify the new Docker resource limit environment variables are set appropriately on VPS if defaults need adjustment:
   - `HEALTHARCHIVE_DOCKER_MEMORY_LIMIT` (default: 4g)
   - `HEALTHARCHIVE_DOCKER_CPU_LIMIT` (default: 1.5)
-  - Post-deploy follow-through (alerting):
+- Post-deploy follow-through (alerting):
   - Review notification volume and alert outcomes after 7 days (firing + resolved counts by alertname/severity).
   - Confirm crawl throughput/churn investigations are being done via Grafana (`HealthArchive - Pipeline Health`) and not missed due to notification removal.
   - Consider a future composite crawl-degradation alert only if dashboard review repeatedly reveals actionable issues that are not otherwise alerted.
+  - After the next safe worker restart, verify that page-group rebuild logs now
+    show `unknown` instead of negative counts when PostgreSQL rowcount is
+    indeterminate.
 - After PHAC and CIHR complete:
   - index completed annual jobs that are still `awaiting-index`
   - verify `annual-status --year 2026` reaches search-ready state only after
