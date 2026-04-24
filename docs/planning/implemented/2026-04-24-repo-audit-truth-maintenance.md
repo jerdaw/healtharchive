@@ -18,6 +18,9 @@ backlog.
 - Archived the completed audit-only board and remediation sequence so the
   active planning lane only lists work that is still unfinished.
 - Removed local ignored build junk under `.tmp/`.
+- Confirmed the lingering pre-import monorepo planning stash was superseded by
+  the implemented-plan listings already on `main`, then dropped the obsolete
+  stash because no stash-only planning guidance remained current.
 
 ## Verification
 
