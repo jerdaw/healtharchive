@@ -182,16 +182,15 @@ bash scripts/setup-hooks.sh
 
 ### CI / deployment notes
 
-- A GitHub Actions workflow (`.github/workflows/frontend-ci.yml`) runs on pushes
-  to `main` and on pull requests:
-  - Installs dependencies via `npm ci`.
-  - Runs pre-commit checks on PR diffs (whitespace/EOF, YAML validation, detecting private keys).
-  - Runs `npm run check`.
-  - Runs a lightweight dependency security audit:
-
-    ```bash
-    npm audit --audit-level=high
-    ```
+- GitHub Actions workflow `.github/workflows/frontend-ci.yml` runs on pushes to
+  `main`, pull requests, and manual dispatch. It currently has three jobs:
+  - `Frontend CI / contract-sync` runs `make contract-check`.
+  - `Frontend CI / lint-and-test` runs `make frontend-ci` (`npm run check`).
+  - `Frontend CI / docker-build-smoke` builds the production frontend image
+    after the first two jobs pass.
+- The frontend workflow does **not** currently run `npm audit` or any other
+  dedicated dependency-audit step. Treat dependency audits as a manual or
+  separately scheduled follow-up until a blocking job is added intentionally.
 
 - Ensure `NEXT_PUBLIC_API_BASE_URL` is set for the active runtime.
 - If you need to override replay links, set `NEXT_PUBLIC_REPLAY_BASE_URL`.

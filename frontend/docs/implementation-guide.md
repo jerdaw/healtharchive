@@ -130,10 +130,14 @@ npm run check
   - `X-Frame-Options: SAMEORIGIN`
   - `Permissions-Policy: geolocation=(), microphone=(), camera=()`
 - A `Content-Security-Policy-Report-Only` header is also set to help tune a
-  CSP without breaking users. The policy:
+  CSP without breaking users. This is the **current production posture** for the
+  frontend: there is no enforcing `Content-Security-Policy` header yet, and no
+  separate CSP report collector is configured. The policy:
   - Restricts scripts and styles to `self` (with inline styles allowed).
-  - Restricts `connect-src` and `frame-src` to the frontend itself plus
+  - Restricts `connect-src` to the frontend itself plus
     `https://api.healtharchive.ca`.
+  - Restricts `frame-src` to the frontend itself plus
+    `https://api.healtharchive.ca` and `https://replay.healtharchive.ca`.
   - Limits `frame-ancestors` to `self`, `base-uri` to `self`, and `form-action`
     to `self`.
 - The snapshot viewer (`SnapshotFrame`) loads archived HTML in an `<iframe>`

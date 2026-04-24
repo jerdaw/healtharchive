@@ -74,6 +74,12 @@ function PrivacyEnglishContent() {
         <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
           Reports are used only to evaluate metadata errors, broken snapshots, missing coverage, or
           takedown requests. Please do not include personal health information in your submission.
+          Contact information is optional and used only if we need to follow up.
+        </p>
+        <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
+          Reports are kept in operator-only systems. There is no automated per-report deletion timer
+          today, and backup copies can persist for up to 14 days after a report is redacted or
+          deleted from the live database.
         </p>
         <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
           <Link href="/report" className="ha-link">
@@ -124,6 +130,10 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
               identifiants personnels.
             </li>
             <li>Détails fournis lors d’un signalement, afin de pouvoir enquêter et répondre.</li>
+            <li>
+              Les coordonnées sont facultatives et servent uniquement au suivi; des copies de
+              sauvegarde peuvent persister jusqu’à 14 jours après une suppression ou une rédaction.
+            </li>
             <li>Préférence locale de thème (clair/sombre) stockée dans votre navigateur.</li>
             <li>
               Aucun compte utilisateur, aucun traqueur publicitaire et aucune information médicale

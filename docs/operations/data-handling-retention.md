@@ -15,7 +15,10 @@ Policy:
 - Public UI must warn users **not** to submit personal health information.
 - Admin views are operator-only; never expose reports in public UI.
 - If a report includes PHI, do not copy it into other systems/logs; redact/delete and record a public-safe note.
-- Retention: keep minimal; retain only what’s needed to resolve the issue.
+- Reporter email is optional and should be used only for follow-up on the submitted issue.
+- There is **no automated per-report purge job today**. Do not promise a fixed deletion timeline unless one has been implemented.
+- Live report records remain in the primary database until a maintainer redacts or deletes them during case handling or periodic review.
+- Nightly database backups retain copies for up to 14 days; redacted/deleted report content can persist in those backup sets until that retention window expires.
 
 ## Usage metrics (`GET /api/usage`)
 

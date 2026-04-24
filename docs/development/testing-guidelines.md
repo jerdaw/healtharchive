@@ -32,7 +32,8 @@ locally from one checkout and verifies user-critical routes (no browser automati
   - equivalent script form: `./scripts/ci-e2e-smoke.sh --frontend-dir frontend`
   - If the frontend is already built (CI artifact), add: `--skip-frontend-build`
 
-In CI, the smoke check is treated as a post-merge safety net (runs on `main` pushes / manual runs) rather than a PR gate.
+In CI, the smoke check runs in `.github/workflows/backend-ci.yml` on pushes,
+pull requests, and manual runs from the same checkout.
 
 ## Running subsets
 
