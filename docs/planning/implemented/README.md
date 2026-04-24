@@ -4,6 +4,7 @@ This folder contains **historical implementation plans** that have already been 
 
 Implemented plans:
 
+- `2026-04-24-repo-audit-truth-maintenance.md`
 - `2026-04-15-zensical-migration-prep.md`
 - `2026-04-14-healtharchive-monorepo-consolidation-plan.md`
 - `2026-04-14-healtharchive-monorepo-phase0-inventory.md`
