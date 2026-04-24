@@ -11,8 +11,6 @@ When complete, move them to `docs/planning/implemented/` and date them.
 
 Active plans:
 
-- Repo audit follow-up board (2026-04-23): `2026-04-23-repo-audit-follow-up-board.md`
-- Repo audit remediation plan (2026-04-23): `2026-04-23-repo-audit-remediation-plan.md`
 - Admissions strengthening (OMSAS ABS + CanMEDS, ~12 weeks): `2026-02-admissions-strengthening-plan.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
 
@@ -77,6 +75,7 @@ Current known items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Repo audit truth maintenance: `implemented/2026-04-24-repo-audit-truth-maintenance.md`
 - Frontend + backend monorepo consolidation: `implemented/2026-04-14-healtharchive-monorepo-consolidation-plan.md`
 - Monorepo phase 0 inventory and execution checklist: `implemented/2026-04-14-healtharchive-monorepo-phase0-inventory.md`
 - Annual crawl content-cost and scope diagnosis: `implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
