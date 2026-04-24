@@ -1,52 +1,74 @@
 # Test Coverage Requirements
 
-This document defines test coverage requirements and quality gates for the HealthArchive backend.
+This document describes the **current** backend coverage posture for
+HealthArchive.
 
-## Coverage Targets
+The main distinction is:
 
-### Critical Modules
+- the fast PR-blocking backend gate runs `make ci` and does **not** measure
+  coverage
+- the broader full gate runs `make check-full` and **does** enforce the current
+  coverage threshold
 
-The following modules are considered **critical** for system reliability and must maintain minimum test coverage:
+## Current Enforcement Surface
 
-| Module | Current | Target | Priority |
-|--------|---------|--------|----------|
-| `ha_backend/api` | 95.81% / 77.29% | 80% | High |
-| `ha_backend/worker` | 81.76% | 80% | High |
-| `ha_backend/indexing` | Mixed | 75% → 80% | Medium |
+| Surface | Workflow / command | When it runs | Coverage enforced? |
+|--------|---------------------|--------------|--------------------|
+| Fast backend CI | `.github/workflows/backend-ci.yml` → `make ci` | pushes to `main`, pull requests, manual dispatch | No |
+| Full backend CI | `.github/workflows/backend-ci-full.yml` → `make check-full` | nightly schedule, manual dispatch | Yes |
+| Local full gate | `make check-full` | when run explicitly (recommended before deploys) | Yes |
 
-**Overall Critical Modules**: 76.96% (target: 75% enforced, 80% goal)
+Do not describe the fast `make ci` path as a coverage gate. Today it checks
+formatting, lint, type-checking, and the fast backend test set only.
 
-### Running Coverage Checks
+## What `make coverage-critical` Actually Enforces
+
+`make coverage-critical` is the only automated backend coverage threshold in the
+repo today. It:
+
+- measures **combined** coverage across:
+  - `src/ha_backend/api`
+  - `src/ha_backend/indexing`
+  - `src/ha_backend/worker`
+- fails when the **combined total** drops below **75%**
+- writes an HTML report to `htmlcov-critical/index.html`
+
+Important: the current automation does **not** enforce separate per-package
+thresholds. If one package drops while the combined total still clears 75%, the
+full gate can still pass.
+
+## Coverage Goals
+
+The current policy has two layers:
+
+- **Hard floor:** 75% combined coverage across the critical backend modules
+  above, enforced only when `make coverage-critical` runs
+- **Improvement goal:** move the combined total toward 80% over time, with
+  indexing coverage remaining the main bottleneck (`make coverage-target`
+  prints the current improvement note from the Makefile)
+
+Treat API, worker, and indexing changes as high-scrutiny areas even when the
+combined threshold still passes.
+
+## Running Coverage Locally
 
 ```bash
-# Full coverage report (all modules)
+# Full coverage report across src/
 make coverage
 
-# Critical modules only (enforced in CI check-full)
+# Combined coverage gate for api + indexing + worker
 make coverage-critical
 
-# View coverage reports
+# Print the current threshold / improvement note
+make coverage-target
+
+# Show report locations
 make coverage-report
 ```
 
-## CI Enforcement
-
-### Current Enforcement (check-full)
-
-The `make check-full` target includes `coverage-critical` which enforces:
-- **75% minimum** coverage on critical modules (API, worker, indexing)
-- Fails CI if coverage drops below threshold
-- Prevents coverage regressions
-
-### Not Enforced in Daily CI (check/ci)
-
-Coverage is **not checked** in the daily `make ci` target to keep PR checks fast. Coverage is only enforced in:
-- `make check-full` (pre-deploy checks)
-- Manual coverage audits
-
 ## Coverage Configuration
 
-Coverage settings are in `pyproject.toml`:
+Coverage settings live in `pyproject.toml`:
 
 ```toml
 [tool.coverage.run]
@@ -60,107 +82,60 @@ exclude_lines = [
     "pragma: no cover",
     "if TYPE_CHECKING:",
     "raise NotImplementedError",
-    # ... more exclusions
 ]
 ```
 
-## Path to 80% Coverage
+The 75% threshold itself currently comes from the Makefile:
 
-**Current bottleneck**: `indexing/pipeline.py` at 22.55%
-
-To reach 80% overall:
-1. Add integration tests for indexing pipeline
-2. Test error paths in WARC processing
-3. Test edge cases in text extraction
-
-**Why 75% now, 80% later?**
-- 75% is realistic given current test suite
-- Enforcing 75% prevents regressions
-- Provides concrete baseline for portfolio
-- 80% is achievable with ~100 more lines of tests
-
-## Coverage Best Practices
-
-### What to Test
-
-✅ **High priority**:
-- API endpoints (request/response validation)
-- Business logic (search, ranking, deduplication)
-- Error handling (4xx/5xx responses)
-- Security middleware (auth, rate limiting, CSP)
-
-✅ **Medium priority**:
-- Worker job lifecycle
-- WARC indexing pipeline
-- Database queries (critical paths)
-
-⚠️ **Low priority**:
-- CLI argument parsing
-- Logging statements
-- Configuration getters
-- Development-only utilities
-
-### Coverage Exclusions
-
-Use `# pragma: no cover` sparingly for:
-- Abstract methods that must be overridden
-- Defensive assertions that should never trigger
-- Platform-specific code paths
-- `if __name__ == "__main__"` blocks
-
-**Never exclude**:
-- Error handling
-- Business logic
-- API endpoints
-- Security code
-
-## Viewing Coverage Reports
-
-After running `make coverage` or `make coverage-critical`:
-
-```bash
-# Full report
-open htmlcov/index.html
-
-# Critical modules only
-open htmlcov-critical/index.html
+```make
+coverage-critical:
+	$(PYTEST) \
+		--cov=src/ha_backend/api \
+		--cov=src/ha_backend/indexing \
+		--cov=src/ha_backend/worker \
+		--cov-fail-under=75
 ```
 
-Reports show:
-- Line-by-line coverage
-- Missing lines highlighted in red
-- Partially covered branches
-- Excluded lines
+## When Coverage Failures Matter
 
-## Coverage in CI
+Coverage failures currently block:
 
-Coverage enforcement in CI workflow:
+- `make check-full` when you run it locally
+- `.github/workflows/backend-ci-full.yml` when the nightly/manual full workflow
+  runs
 
-```yaml
-# .github/workflows/backend-ci.yml
-- name: Run full checks (includes coverage)
-  run: make check-full
-```
+Coverage failures do **not** currently block:
 
-**When coverage fails**:
-1. Check which module dropped below threshold
-2. Review the diff - did you add untested code?
-3. Add tests to cover new functionality
-4. Re-run `make coverage-critical`
+- `make ci`
+- `.github/workflows/backend-ci.yml`
+- the default PR-required backend status checks
+
+## Working Expectations
+
+- If you change API, worker, or indexing behavior, prefer adding tests in the
+  same change even if the fast gate would pass without them.
+- Use `make coverage-critical` when touching riskier logic or when you want to
+  check whether a change is eroding the current full-gate baseline.
+- Use `make check-full` before deploys or when tightening quality, because that
+  is the path that exercises the current coverage threshold plus the broader
+  docs/security checks.
 
 ## FAQ
 
-**Q: Why not 100% coverage?**
-A: Diminishing returns. 75-80% covers critical paths. Higher coverage often tests trivial code.
+**Q: Why not enforce coverage in the fast PR gate?**
+A: The current repo choice keeps `make ci` fast and predictable for daily work.
+Coverage is still checked in the fuller nightly/manual path and can be run
+locally before deploys.
 
-**Q: Why different thresholds per module?**
-A: API and worker are user-facing and easier to test. Indexing has complex file I/O harder to mock.
+**Q: Is 75% enforced per critical package?**
+A: No. The current automation enforces a 75% **combined** threshold across API,
+worker, and indexing together.
 
-**Q: Can I temporarily disable coverage checks?**
-A: No. Use `# pragma: no cover` for specific lines only, with justification in code comments.
+**Q: How do I see what is missing?**
+A: Run `make coverage-critical` and open `htmlcov-critical/index.html`.
 
-**Q: How do I find what's not covered?**
-A: Run `make coverage-critical` and open `htmlcov-critical/index.html` in a browser.
+**Q: Is 80% enforced today?**
+A: No. 80% remains an improvement goal, not a blocking threshold.
 
 ---
 

@@ -48,6 +48,13 @@ NEXT_PUBLIC_SHOW_API_BASE_HINT=true
 
 ## 2. Verify frontend security headers & CSP (report-only)
 
+Current posture note:
+
+- Production currently sends `Content-Security-Policy-Report-Only`, not an
+  enforcing `Content-Security-Policy` header.
+- No dedicated CSP report collector is configured yet, so header inspection and
+  browser console warnings are the practical verification signals today.
+
 Do these checks on the production frontend:
 
 - `https://healtharchive.ca/archive`
@@ -65,9 +72,12 @@ In Chrome or Firefox DevTools:
    - `Content-Security-Policy-Report-Only: ...` with a value containing:
      - `connect-src 'self' https://api.healtharchive.ca;`
      - `frame-src 'self' https://api.healtharchive.ca https://replay.healtharchive.ca;`
+   - No enforcing `Content-Security-Policy` header on the same response.
 
 5. Check the **Console** tab for `Content-Security-Policy-Report-Only` warnings.
    Some warnings are expected while the CSP is report-only and being tuned.
+   Because there is no separate report collector yet, these warnings are part of
+   the current tuning loop.
 
 ---
 
