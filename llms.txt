@@ -1042,7 +1042,12 @@ run on pushes to `main` and on pull requests. It:
 - Checks out the repository.
 - Sets up Python 3.11.
 - Runs `make ci` (fast gate: format check, lint, typecheck, tests).
-- Runs an end-to-end smoke test (backend + frontend) on `main` pushes / manual runs.
+- Runs an end-to-end smoke test (backend + frontend) from the same checkout.
+
+A separate nightly/manual workflow (`.github/workflows/backend-ci-full.yml`)
+runs `make check-full`, which includes `coverage-critical`, docs checks,
+pre-commit hooks, and security scans. That broader full gate is useful before
+deploys, but it is **not** the default PR-blocking backend CI path today.
 
 The CI job uses a temporary SQLite database via:
 
