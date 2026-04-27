@@ -8,4 +8,4 @@ uvicorn[standard]>=0.30
 httpx>=0.27
 
 # Test-only dependencies (install via extras or manually in dev)
-pytest>=8.0
+pytest>=9.0.3
