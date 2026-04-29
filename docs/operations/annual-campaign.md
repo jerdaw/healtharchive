@@ -7,10 +7,13 @@ campaign:
 
 -   Runs **once per year** on **Jan 01 (UTC)**.
 -   Uses **no page/depth limits** (completeness and accuracy are the priority).
+-   Presents one public **annual edition** per source/year, even when the
+    edition is built from multiple crawl shards.
 -   Targets a **small, stable set of sources** to keep operations reliable on a
     single VPS.
--   Optimizes for getting the annual capture **indexed and searchable** as soon as
-    each crawl completes (replay + preview automation is explicitly secondary).
+-   Optimizes for getting usable captures **indexed and searchable** as soon as
+    each crawl shard completes, while separately tracking whether the edition is
+    **research-ready**.
 
 This doc is intentionally focused on “what we crawl” and “where we start”.
 Implementation details (scheduler, timers, reconciler, monitoring) live in:
@@ -25,11 +28,14 @@ Implementation details (scheduler, timers, reconciler, monitoring) live in:
 
 -   **Annual snapshot semantics:** each source gets one “annual edition” per year,
     labeled as Jan 01 (UTC) for that year.
--   **Completeness and accuracy:** do not artificially cap depth/pages. Prefer
-    broad coverage of each source, even if crawls take days.
+-   **Documented attainable completeness:** prefer broad coverage of each source,
+    but use bounded retries, explicit exclusions, and documented gaps instead of
+    treating a perfect uninterrupted crawl as the only acceptable result.
 -   **Search-first readiness:** once a crawl finishes, indexing should run next so
     results become searchable as quickly as possible on production hardware.
 -   **WARC-first pipeline:** WARCs are the canonical input to search indexing; `.zim` outputs are optional artifacts and are not required for annual “done”.
+-   **Provenance-first reporting:** fallback captures count when clearly labeled;
+    coverage reports must state backend mix, known gaps, and accepted exclusions.
 -   **Stable scope:** only include sources we can realistically crawl and operate
     with minimal ongoing tweaking.
 
@@ -216,10 +222,14 @@ Implementation note:
 
 ## 5) What “done” means (per source)
 
-For each source’s annual job:
+For each source’s annual edition:
 
-1. Job reaches `status=indexed` (searchable).
-2. `/api/search` returns results for that source and year as expected.
+1. All blocking shard jobs either reach `status=indexed` or are reviewed and
+   explicitly accepted/excluded with a reason.
+2. `search_ready=true`: indexed snapshots are available through `/api/search`
+   for that source/year.
+3. `research_ready=true`: the coverage/provenance report has been generated and
+   accepted, including fallback labels and documented gaps.
 
 Replay and previews are “eventually consistent” follow-ups and are not part of
 the “search is ready” definition for the annual campaign.
@@ -228,12 +238,14 @@ the “search is ready” definition for the annual campaign.
 
 ## 6) Post-campaign verification
 
-Once **all** annual jobs are `indexed`, capture “search readiness” evidence as a
-timestamped artifact directory:
+Once annual jobs or shards finish, reconcile indexing and generate edition
+reports before declaring research readiness:
 
 ```bash
 YEAR=2026
 set -a; source /etc/healtharchive/backend.env; set +a
+/opt/healtharchive/.venv/bin/healtharchive reconcile-completed-indexing
+/opt/healtharchive/.venv/bin/healtharchive salvage-annual-edition --year "$YEAR" --report
 /opt/healtharchive/.venv/bin/healtharchive annual-status --year "$YEAR"
 ./scripts/annual-search-verify.sh --year "$YEAR" --out-root /srv/healtharchive/ops/search-eval --base-url http://127.0.0.1:8001
 ```
@@ -241,4 +253,6 @@ set -a; source /etc/healtharchive/backend.env; set +a
 This produces:
 
 - `annual-status.json` / `annual-status.txt` (campaign readiness evidence)
+- per-edition `target-ledger.jsonl`, `capture-manifest.jsonl`,
+  `coverage-report.json`, and `coverage-report.md`
 - captured `/api/search` JSON for the golden query set (for later diffing)

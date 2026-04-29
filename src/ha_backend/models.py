@@ -30,6 +30,7 @@ from sqlalchemy import (
     DateTime,
     Float,
     ForeignKey,
+    Index,
     Integer,
     String,
     Text,
@@ -91,9 +92,120 @@ class Source(TimestampMixin, Base):
     snapshots: Mapped[List["Snapshot"]] = relationship(
         back_populates="source",
     )
+    annual_editions: Mapped[List["AnnualEdition"]] = relationship(
+        back_populates="source",
+        cascade="all, delete-orphan",
+    )
 
     def __repr__(self) -> str:
         return f"<Source id={self.id!r} code={self.code!r}>"
+
+
+class AnnualEdition(TimestampMixin, Base):
+    """
+    Research-facing annual archive edition for one source/year.
+
+    Editions aggregate one or more ArchiveJob shards into a single public
+    source/year surface, with coverage and provenance evidence written beside
+    crawl artifacts.
+    """
+
+    __tablename__ = "annual_editions"
+    __table_args__ = (
+        UniqueConstraint("source_id", "year", name="uq_annual_editions_source_year"),
+        Index("ix_annual_editions_source_year", "source_id", "year"),
+    )
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    source_id: Mapped[int] = mapped_column(
+        ForeignKey("sources.id"),
+        nullable=False,
+        index=True,
+    )
+    year: Mapped[int] = mapped_column(Integer, nullable=False, index=True)
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        server_default=text("'planning'"),
+        index=True,
+    )
+    search_ready: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("0"),
+        index=True,
+    )
+    research_ready: Mapped[bool] = mapped_column(
+        Boolean,
+        nullable=False,
+        server_default=text("0"),
+        index=True,
+    )
+
+    intended_url_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    captured_url_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    failed_url_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    missing_url_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    excluded_url_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    fallback_url_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    shard_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    indexed_shard_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    needs_review_shard_count: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+
+    backend_counts: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON)
+    coverage_summary: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON)
+
+    target_ledger_path: Mapped[Optional[str]] = mapped_column(Text)
+    capture_manifest_path: Mapped[Optional[str]] = mapped_column(Text)
+    coverage_report_json_path: Mapped[Optional[str]] = mapped_column(Text)
+    coverage_report_md_path: Mapped[Optional[str]] = mapped_column(Text)
+    generated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+    accepted_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True))
+
+    source: Mapped[Source] = relationship(back_populates="annual_editions")
+    jobs: Mapped[List["ArchiveJob"]] = relationship(back_populates="edition")
+
+    def __repr__(self) -> str:
+        return (
+            f"<AnnualEdition id={self.id!r} source_id={self.source_id!r} "
+            f"year={self.year!r} status={self.status!r}>"
+        )
 
 
 class ArchiveJob(TimestampMixin, Base):
@@ -107,6 +219,11 @@ class ArchiveJob(TimestampMixin, Base):
 
     source_id: Mapped[Optional[int]] = mapped_column(
         ForeignKey("sources.id"),
+        nullable=True,
+        index=True,
+    )
+    edition_id: Mapped[Optional[int]] = mapped_column(
+        ForeignKey("annual_editions.id"),
         nullable=True,
         index=True,
     )
@@ -201,8 +318,23 @@ class ArchiveJob(TimestampMixin, Base):
     final_zim_path: Mapped[Optional[str]] = mapped_column(String(1000))
     combined_log_path: Mapped[Optional[str]] = mapped_column(String(1000))
     state_file_path: Mapped[Optional[str]] = mapped_column(String(1000))
+    shard_key: Mapped[Optional[str]] = mapped_column(String(255), index=True)
+    shard_kind: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        server_default=text("'full_site'"),
+        index=True,
+    )
+    acceptance_state: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        server_default=text("'pending'"),
+        index=True,
+    )
+    coverage_report_path: Mapped[Optional[str]] = mapped_column(Text)
 
     source: Mapped[Optional[Source]] = relationship(back_populates="jobs")
+    edition: Mapped[Optional[AnnualEdition]] = relationship(back_populates="jobs")
     snapshots: Mapped[List["Snapshot"]] = relationship(back_populates="job")
 
     def __repr__(self) -> str:
@@ -255,6 +387,19 @@ class Snapshot(TimestampMixin, Base):
     warc_record_id: Mapped[Optional[str]] = mapped_column(String(255))
     raw_snapshot_path: Mapped[Optional[str]] = mapped_column(Text)
     content_hash: Mapped[Optional[str]] = mapped_column(String(64))
+    capture_backend: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        server_default=text("'browsertrix'"),
+        index=True,
+    )
+    capture_fidelity: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        server_default=text("'high'"),
+        index=True,
+    )
+    provenance_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON)
 
     # Archived detection flag computed at index time (v3 ranking).
     # - NULL = unknown (legacy rows; fall back to heuristics)

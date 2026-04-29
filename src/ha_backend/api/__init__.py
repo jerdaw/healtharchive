@@ -21,7 +21,7 @@ from ha_backend.config import (
 )
 from ha_backend.db import get_session
 from ha_backend.logging_config import configure_logging
-from ha_backend.models import ArchiveJob, Page, Snapshot, Source
+from ha_backend.models import AnnualEdition, ArchiveJob, Page, Snapshot, Source
 from ha_backend.rate_limiting import limiter
 from ha_backend.request_context import generate_request_id, set_request_id
 from ha_backend.runtime_metrics import render_search_metrics_prometheus
@@ -253,6 +253,26 @@ async def metrics(
             f'healtharchive_jobs_cleanup_status_total{{cleanup_status="{cleanup_status}"}} {int(count)}'
         )
 
+    pending_indexing = (
+        db.query(func.count(ArchiveJob.id)).filter(ArchiveJob.status == "completed").scalar() or 0
+    )
+    needs_review_jobs = (
+        db.query(func.count(ArchiveJob.id))
+        .filter(ArchiveJob.acceptance_state == "needs_review")
+        .scalar()
+        or 0
+    )
+    lines.append(
+        "# HELP healtharchive_indexing_pending_jobs Number of completed jobs awaiting indexing"
+    )
+    lines.append("# TYPE healtharchive_indexing_pending_jobs gauge")
+    lines.append(f"healtharchive_indexing_pending_jobs {int(pending_indexing)}")
+    lines.append(
+        "# HELP healtharchive_annual_shards_needs_review Number of annual shard jobs needing operator review"
+    )
+    lines.append("# TYPE healtharchive_annual_shards_needs_review gauge")
+    lines.append(f"healtharchive_annual_shards_needs_review {int(needs_review_jobs)}")
+
     # Storage bytes (best-effort; depends on jobs having been scanned and persisted).
     totals_row = db.query(
         func.coalesce(func.sum(ArchiveJob.warc_bytes_total), 0),
@@ -419,6 +439,21 @@ async def metrics(
         )
         lines.append(
             f'healtharchive_jobs_pages_failed_total{{source="{code}"}} {int(failed_count)}'
+        )
+
+    edition_rows = (
+        db.query(
+            Source.code, AnnualEdition.year, AnnualEdition.status, func.count(AnnualEdition.id)
+        )
+        .join(AnnualEdition, AnnualEdition.source_id == Source.id)
+        .group_by(Source.code, AnnualEdition.year, AnnualEdition.status)
+        .all()
+    )
+    lines.append("# HELP healtharchive_annual_editions_total Annual editions by source/year/status")
+    lines.append("# TYPE healtharchive_annual_editions_total gauge")
+    for code, year, status, count in edition_rows:
+        lines.append(
+            f'healtharchive_annual_editions_total{{source="{code}",year="{int(year)}",status="{status}"}} {int(count)}'
         )
 
     lines.extend(render_search_metrics_prometheus())

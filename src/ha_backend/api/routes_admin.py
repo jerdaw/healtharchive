@@ -7,7 +7,7 @@ from sqlalchemy import Float, Integer, and_, case, cast, func, inspect, literal,
 from sqlalchemy.orm import Session, load_only
 
 from ha_backend.db import get_session
-from ha_backend.models import ArchiveJob, IssueReport, PageSignal, Snapshot, Source
+from ha_backend.models import AnnualEdition, ArchiveJob, IssueReport, PageSignal, Snapshot, Source
 from ha_backend.search import TS_CONFIG, build_search_vector
 from ha_backend.search_ranking import (
     QueryMode,
@@ -21,6 +21,9 @@ from ha_backend.search_ranking import (
 from .deps import require_admin
 from .routes_public import SearchSort, SearchView
 from .schemas_admin import (
+    AnnualEditionAdminSchema,
+    AnnualEditionListResponseSchema,
+    AnnualEditionShardSchema,
     IssueReportDetailSchema,
     IssueReportListResponseSchema,
     IssueReportSummarySchema,
@@ -46,6 +49,68 @@ def get_db() -> Iterator[Session]:
     """
     with get_session() as session:
         yield session
+
+
+def _capture_backend_for_job(job: ArchiveJob) -> str:
+    try:
+        from ha_backend.archive_contract import ArchiveJobConfig
+
+        cfg = ArchiveJobConfig.from_dict(job.config or {})
+        backend = str(cfg.execution_policy.capture_backend or "").strip().lower()
+    except Exception:
+        backend = ""
+    return backend or "browsertrix"
+
+
+def _annual_edition_schema(
+    edition: AnnualEdition, *, include_shards: bool
+) -> AnnualEditionAdminSchema:
+    source = edition.source
+    shards: list[AnnualEditionShardSchema] = []
+    if include_shards:
+        for job in sorted(edition.jobs, key=lambda j: ((j.shard_key or ""), int(j.id))):
+            shards.append(
+                AnnualEditionShardSchema(
+                    jobId=job.id,
+                    name=job.name,
+                    status=job.status,
+                    shardKey=job.shard_key,
+                    shardKind=job.shard_kind,
+                    acceptanceState=job.acceptance_state,
+                    captureBackend=_capture_backend_for_job(job),
+                    indexedPageCount=int(job.indexed_page_count or 0),
+                    pagesCrawled=int(job.pages_crawled or 0),
+                    pagesTotal=int(job.pages_total or 0),
+                    pagesFailed=int(job.pages_failed or 0),
+                    retryCount=int(job.retry_count or 0),
+                )
+            )
+    return AnnualEditionAdminSchema(
+        editionId=edition.id,
+        sourceCode=source.code if source else "",
+        sourceName=source.name if source else "",
+        year=edition.year,
+        status=edition.status,
+        searchReady=bool(edition.search_ready),
+        researchReady=bool(edition.research_ready),
+        intendedUrlCount=int(edition.intended_url_count or 0),
+        capturedUrlCount=int(edition.captured_url_count or 0),
+        failedUrlCount=int(edition.failed_url_count or 0),
+        missingUrlCount=int(edition.missing_url_count or 0),
+        excludedUrlCount=int(edition.excluded_url_count or 0),
+        fallbackUrlCount=int(edition.fallback_url_count or 0),
+        shardCount=int(edition.shard_count or 0),
+        indexedShardCount=int(edition.indexed_shard_count or 0),
+        needsReviewShardCount=int(edition.needs_review_shard_count or 0),
+        backendCounts=edition.backend_counts or {},
+        coverageSummary=edition.coverage_summary or {},
+        generatedAt=edition.generated_at,
+        targetLedgerPath=edition.target_ledger_path,
+        captureManifestPath=edition.capture_manifest_path,
+        coverageReportJsonPath=edition.coverage_report_json_path,
+        coverageReportMdPath=edition.coverage_report_md_path,
+        shards=shards,
+    )
 
 
 @router.get("/jobs", response_model=JobListResponseSchema)
@@ -98,6 +163,10 @@ def list_jobs(
                 warcBytesTotal=int(job.warc_bytes_total or 0),
                 indexedPageCount=job.indexed_page_count,
                 storageScannedAt=job.storage_scanned_at,
+                editionId=job.edition_id,
+                shardKey=job.shard_key,
+                shardKind=job.shard_kind,
+                acceptanceState=job.acceptance_state,
             )
         )
 
@@ -120,6 +189,81 @@ def job_status_counts(
 
     counts = {status: count for status, count in rows}
     return JobStatusCountsSchema(counts=counts)
+
+
+@router.get("/annual-editions", response_model=AnnualEditionListResponseSchema)
+def list_annual_editions(
+    source: Optional[str] = Query(default=None),
+    year: Optional[int] = Query(default=None),
+    limit: int = Query(default=50, ge=1, le=500),
+    offset: int = Query(default=0, ge=0),
+    db: Session = Depends(get_db),
+) -> AnnualEditionListResponseSchema:
+    """
+    List annual editions with coverage readiness summaries.
+    """
+    query = db.query(AnnualEdition).join(Source)
+    if source:
+        query = query.filter(Source.code == source.strip().lower())
+    if year is not None:
+        query = query.filter(AnnualEdition.year == int(year))
+
+    total = query.count()
+    editions = (
+        query.order_by(AnnualEdition.year.desc(), Source.code.asc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return AnnualEditionListResponseSchema(
+        items=[_annual_edition_schema(edition, include_shards=False) for edition in editions],
+        total=total,
+        limit=limit,
+        offset=offset,
+    )
+
+
+@router.get("/annual-editions/{edition_id}", response_model=AnnualEditionAdminSchema)
+def get_annual_edition(
+    edition_id: int,
+    db: Session = Depends(get_db),
+) -> AnnualEditionAdminSchema:
+    edition = db.get(AnnualEdition, edition_id)
+    if edition is None:
+        raise HTTPException(status_code=404, detail="Annual edition not found")
+    return _annual_edition_schema(edition, include_shards=True)
+
+
+@router.post("/annual-editions/jobs/{job_id}/accept-gap", response_model=AnnualEditionAdminSchema)
+def accept_annual_shard_gap(
+    job_id: int,
+    reason: str = Query(..., min_length=3),
+    db: Session = Depends(get_db),
+) -> AnnualEditionAdminSchema:
+    """
+    Accept a failed shard as a documented gap and regenerate edition coverage.
+    """
+    from datetime import datetime, timezone
+
+    from ha_backend.annual_editions import generate_coverage_report
+
+    job = db.get(ArchiveJob, job_id)
+    if job is None or job.edition is None:
+        raise HTTPException(status_code=404, detail="Annual shard not found")
+    job.acceptance_state = "accepted_gap"
+    cfg = dict(job.config or {})
+    cfg.setdefault("operator_acceptance", {})
+    cfg["operator_acceptance"].update(
+        {
+            "state": "accepted_gap",
+            "reason": reason,
+            "accepted_at": datetime.now(timezone.utc).isoformat(),
+        }
+    )
+    job.config = cfg
+    generate_coverage_report(db, edition=job.edition)
+    db.flush()
+    return _annual_edition_schema(job.edition, include_shards=True)
 
 
 @router.get("/jobs/{job_id}", response_model=JobDetailSchema)
@@ -174,6 +318,11 @@ def get_job_detail(
         finalZimPath=job.final_zim_path,
         combinedLogPath=job.combined_log_path,
         stateFilePath=job.state_file_path,
+        editionId=job.edition_id,
+        shardKey=job.shard_key,
+        shardKind=job.shard_kind,
+        acceptanceState=job.acceptance_state,
+        coverageReportPath=job.coverage_report_path,
         config=job.config,
         lastStats=job.last_stats_json,
     )

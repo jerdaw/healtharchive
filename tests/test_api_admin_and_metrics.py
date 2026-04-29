@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
-from ha_backend.models import ArchiveJob, Snapshot, Source
+from ha_backend.models import AnnualEdition, ArchiveJob, Snapshot, Source
 
 
 def _init_test_app(tmp_path: Path, monkeypatch) -> TestClient:
@@ -91,6 +91,54 @@ def _seed_basic_data() -> None:
             warc_record_id="hc-1",
         )
         session.add(snap)
+
+
+def _seed_annual_edition() -> int:
+    with get_session() as session:
+        src = session.query(Source).filter(Source.code == "hc").one()
+        edition = AnnualEdition(
+            source=src,
+            year=2026,
+            status="needs_review",
+            search_ready=True,
+            research_ready=False,
+            intended_url_count=3,
+            captured_url_count=2,
+            failed_url_count=1,
+            missing_url_count=1,
+            excluded_url_count=0,
+            fallback_url_count=1,
+            shard_count=1,
+            indexed_shard_count=1,
+            needs_review_shard_count=1,
+            backend_counts={"browsertrix": 1, "playwright_warc": 1},
+            coverage_summary={"standard": "documented_attainable"},
+            target_ledger_path="/srv/healtharchive/editions/hc/2026/target-ledger.jsonl",
+            capture_manifest_path="/srv/healtharchive/editions/hc/2026/capture-manifest.jsonl",
+            coverage_report_json_path="/srv/healtharchive/editions/hc/2026/report.json",
+            coverage_report_md_path="/srv/healtharchive/editions/hc/2026/report.md",
+        )
+        session.add(edition)
+        session.flush()
+        job = ArchiveJob(
+            source=src,
+            edition=edition,
+            name="hc-20260101-lang-en",
+            output_dir="/tmp/hc-shard",
+            status="failed",
+            shard_key="lang-en",
+            shard_kind="seed_group",
+            acceptance_state="needs_review",
+            coverage_report_path="/srv/healtharchive/editions/hc/2026/report.json",
+            indexed_page_count=2,
+            pages_crawled=2,
+            pages_total=3,
+            pages_failed=1,
+            retry_count=2,
+        )
+        session.add(job)
+        session.flush()
+        return int(edition.id)
 
 
 def test_admin_jobs_open_when_no_token(tmp_path, monkeypatch) -> None:
@@ -179,6 +227,25 @@ def test_admin_job_snapshots_endpoint(tmp_path, monkeypatch) -> None:
     assert snaps_resp.status_code == 200
     snapshots = snaps_resp.json()
     assert isinstance(snapshots, list)
+
+
+def test_admin_annual_edition_exposes_artifacts_and_shards(tmp_path, monkeypatch) -> None:
+    monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
+    monkeypatch.delenv("HEALTHARCHIVE_ENV", raising=False)
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_basic_data()
+    edition_id = _seed_annual_edition()
+
+    resp = client.get(f"/api/admin/annual-editions/{edition_id}")
+    assert resp.status_code == 200
+    body = resp.json()
+
+    assert body["editionId"] == edition_id
+    assert body["targetLedgerPath"].endswith("/target-ledger.jsonl")
+    assert body["coverageReportJsonPath"].endswith("/report.json")
+    assert body["backendCounts"] == {"browsertrix": 1, "playwright_warc": 1}
+    assert body["shards"][0]["shardKey"] == "lang-en"
+    assert body["shards"][0]["acceptanceState"] == "needs_review"
 
 
 def test_metrics_require_token_when_configured(tmp_path, monkeypatch) -> None:

@@ -77,6 +77,7 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
     dateStyle: "medium",
     timeStyle: "short",
   });
+  const annualCoverageYear = new Date().getUTCFullYear();
 
   return (
     <PageShell eyebrow={copy.eyebrow} title={copy.title} intro={copy.intro}>
@@ -192,6 +193,12 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
                     className="ha-btn-secondary text-xs"
                   >
                     {locale === "fr" ? "Parcourir les enregistrements" : "Browse records"}
+                  </Link>
+                  <Link
+                    href={`/coverage/${encodeURIComponent(source.sourceCode)}/${annualCoverageYear}`}
+                    className="ha-btn-secondary text-xs"
+                  >
+                    {locale === "fr" ? "Rapport de couverture" : "Coverage report"}
                   </Link>
                 </div>
               </div>

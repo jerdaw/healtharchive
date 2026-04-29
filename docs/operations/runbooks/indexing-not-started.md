@@ -10,9 +10,9 @@
 A job has stayed in `status="completed"` for over an hour after crawl
 completion, indexing has not started, and no crawl jobs are currently running.
 
-This alert is intentionally suppressed while any crawl jobs remain `running`.
-During an active annual campaign, a completed job can be intentionally left in
-`awaiting-index` until the remaining crawls finish.
+The worker and `run-db-job` normally index completed jobs automatically. If this
+alert fires, treat it as a reconciliation failure, not as an expected campaign
+state.
 
 ## Diagnosis
 
@@ -39,14 +39,16 @@ During an active annual campaign, a completed job can be intentionally left in
    - `Indexing for job <JOB_ID> failed: ...`
 
 3. Verify that the job output dir exposes WARCs from the hot path the indexer
-   will use.
+   will use. Current indexer discovery unions stable `warcs/`, readable temp
+   WARCs, and fallback WARCs; operators should inspect all three when a count
+   looks wrong.
 
    ```bash
    OUT=/srv/healtharchive/jobs/<source>/<job-dir>
 
    findmnt -T "$OUT" -o TARGET,SOURCE,FSTYPE,OPTIONS
    sudo ls -ld "$OUT" "$OUT/warcs" "$OUT/provenance" 2>/dev/null
-   sudo find "$OUT/warcs" -maxdepth 1 -type f \
+   sudo find "$OUT" -path '*/warcs/*' -type f \
      \( -name '*.warc' -o -name '*.warc.gz' -o -name 'manifest.json' \) \
      -printf '%M %u:%g %s %TY-%Tm-%Td %TH:%TM %p\n' 2>/dev/null | sort
    ```
@@ -56,13 +58,17 @@ During an active annual campaign, a completed job can be intentionally left in
 
 ## Mitigation
 
-1. If the job is still `completed` and WARCs are visible on the hot path, run:
+1. If the job is still `completed` and WARCs are visible on the hot path, run
+   the idempotent reconciler first:
 
    ```bash
    cd /opt/healtharchive
    set -a; source /etc/healtharchive/backend.env; set +a
-   /opt/healtharchive/.venv/bin/healtharchive index-job --id <JOB_ID>
+   /opt/healtharchive/.venv/bin/healtharchive reconcile-completed-indexing --limit 5
    ```
+
+   If you need to target one job only, use `index-job --id <JOB_ID>` after
+   confirming it is still safe to index.
 
 2. If the job is `index_failed` after a transient issue and the WARCs are
    healthy, move it back to `completed` and retry indexing:

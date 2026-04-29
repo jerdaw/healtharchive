@@ -67,6 +67,8 @@ out/
 # Coverage
 coverage
 *.lcov
+!src/app/\[locale\]/coverage/
+!src/app/\[locale\]/coverage/**
 
 # Binary addons
 build/Release

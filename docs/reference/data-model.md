@@ -12,6 +12,8 @@ Quick reference for HealthArchive database models.
 erDiagram
     Source ||--o{ ArchiveJob : has
     Source ||--o{ Snapshot : has
+    Source ||--o{ AnnualEdition : has
+    AnnualEdition ||--o{ ArchiveJob : contains
     ArchiveJob ||--o{ Snapshot : produces
 
     Source {
@@ -25,12 +27,27 @@ erDiagram
     ArchiveJob {
         int id PK
         int source_id FK
+        int edition_id FK
         string name
         string status
         string output_dir
+        string shard_key
+        string shard_kind
+        string acceptance_state
         json config
         int warc_file_count
         int indexed_page_count
+    }
+
+    AnnualEdition {
+        int id PK
+        int source_id FK
+        int year
+        string status
+        bool search_ready
+        bool research_ready
+        int intended_url_count
+        int captured_url_count
     }
 
     Snapshot {
@@ -43,6 +60,8 @@ erDiagram
         string title
         string snippet
         string language
+        string capture_backend
+        string capture_fidelity
     }
 ```
 
@@ -71,6 +90,47 @@ Represents a content origin (e.g., Health Canada, PHAC).
 **Relationships**:
 - `jobs`: One-to-many → `ArchiveJob`
 - `snapshots`: One-to-many → `Snapshot`
+- `annual_editions`: One-to-many → `AnnualEdition`
+
+---
+
+## AnnualEdition
+
+Represents one researcher-facing annual archive for `{source, year}`. An
+edition can be built from many shard jobs and may include legacy full-site
+salvage jobs.
+
+**Table**: `annual_editions`
+
+| Field | Type | Nullable | Description |
+|-------|------|----------|-------------|
+| `id` | Integer | No | Primary key |
+| `source_id` | Integer | No | Foreign key → `sources.id` |
+| `year` | Integer | No | Annual edition year |
+| `status` | String(50) | No | Edition lifecycle (`planned`, `in_progress`, `search_ready`, `research_ready`, `needs_review`) |
+| `search_ready` | Boolean | No | Search/indexing readiness flag |
+| `research_ready` | Boolean | No | Coverage/provenance acceptance flag |
+| `intended_url_count` | Integer | No | URLs in the current target ledger |
+| `captured_url_count` | Integer | No | URLs represented by indexed snapshots |
+| `failed_url_count` | Integer | No | URLs recorded as failed after retry budget |
+| `excluded_url_count` | Integer | No | URLs deliberately excluded with rules/reasons |
+| `backend_counts` | JSON | Yes | Capture backend mix summary |
+| `coverage_summary` | JSON | Yes | Public-safe coverage summary |
+| `target_ledger_path` | String(500) | Yes | Durable `target-ledger.jsonl` artifact |
+| `capture_manifest_path` | String(500) | Yes | Durable `capture-manifest.jsonl` artifact |
+| `coverage_report_json_path` | String(500) | Yes | Durable JSON coverage report |
+| `coverage_report_md_path` | String(500) | Yes | Durable Markdown coverage report |
+| `created_at` | DateTime | No | Creation timestamp |
+| `updated_at` | DateTime | No | Last update timestamp |
+
+**Indexes**:
+- Unique on `source_id`, `year`
+- Index on `status`
+- Index on `year`
+
+**Relationships**:
+- `source`: Many-to-one → `Source`
+- `jobs`: One-to-many → `ArchiveJob`
 
 ---
 
@@ -85,8 +145,12 @@ Represents a single crawl job execution.
 | **Identity** ||||
 | `id` | Integer | No | Primary key |
 | `source_id` | Integer | Yes | Foreign key → `sources.id` |
+| `edition_id` | Integer | Yes | Foreign key → `annual_editions.id` |
 | `name` | String(200) | No | Job name (used in ZIM naming) |
 | `output_dir` | String(500) | No | Absolute path to job directory |
+| `shard_key` | String(200) | Yes | Deterministic shard key within an annual edition |
+| `shard_kind` | String(50) | Yes | Shard type (`path-language`, `legacy-full-site`, etc.) |
+| `acceptance_state` | String(50) | Yes | Review state (`pending`, `needs_review`, `accepted`, `accepted_gap`, `excluded`) |
 | **Lifecycle** ||||
 | `status` | String(50) | No | `queued`, `running`, `completed`, `failed`, `indexing`, `indexed`, etc. |
 | `queued_at` | DateTime | Yes | When job was queued |
@@ -110,6 +174,7 @@ Represents a single crawl job execution.
 | `final_zim_path` | String(500) | Yes | Path to ZIM file (if built) |
 | `combined_log_path` | String(500) | Yes | Path to combined crawl log |
 | `state_file_path` | String(500) | Yes | Path to `.archive_state.json` |
+| `coverage_report_path` | String(500) | Yes | Shard/edition report artifact path |
 | **Cleanup** ||||
 | `cleanup_status` | String(50) | No | `"none"`, `"temp_cleaned"` (default: `"none"`) |
 | `cleaned_at` | DateTime | Yes | When cleanup was performed |
@@ -119,11 +184,15 @@ Represents a single crawl job execution.
 
 **Indexes**:
 - Index on `source_id`
+- Index on `edition_id`
+- Index on `shard_key`
+- Index on `acceptance_state`
 - Index on `status`
 - Index on `queued_at`
 
 **Relationships**:
 - `source`: Many-to-one → `Source`
+- `edition`: Many-to-one → `AnnualEdition`
 - `snapshots`: One-to-many → `Snapshot`
 
 ---
@@ -151,6 +220,9 @@ Represents a single captured web page.
 | `title` | String(500) | Yes | Extracted page title |
 | `snippet` | Text | Yes | Short text preview |
 | `language` | String(10) | Yes | ISO language code (`"en"`, `"fr"`) |
+| `capture_backend` | String(50) | Yes | Backend that captured the page (`browsertrix`, `playwright_warc`, etc.) |
+| `capture_fidelity` | String(50) | Yes | Capture fidelity label (`high`, `fallback`, `unknown`) |
+| `provenance_json` | JSON | Yes | Structured provenance metadata for reports/exports |
 | **Storage/Replay** ||||
 | `warc_path` | String(500) | No | Path to WARC file |
 | `warc_record_id` | String(200) | Yes | WARC record identifier |
@@ -167,6 +239,8 @@ Represents a single captured web page.
 - Index on `normalized_url_group`
 - Index on `capture_timestamp`
 - Index on `status_code`
+- Index on `capture_backend`
+- Index on `capture_fidelity`
 
 **Relationships**:
 - `job`: Many-to-one → `ArchiveJob`

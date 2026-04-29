@@ -10,6 +10,7 @@ These tests verify the warc_discovery module handles edge cases correctly:
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -109,8 +110,8 @@ class TestDiscoverWarcsForJob:
         assert len(result) == 1
         assert result[0].name == "rec-001.warc.gz"
 
-    def test_prefers_stable_over_temp(self, tmp_path: Path, monkeypatch):
-        """Prefers stable warcs/ over temp discovery when both exist."""
+    def test_unions_stable_and_temp(self, tmp_path: Path, monkeypatch):
+        """Includes stable and temp WARCs when both exist."""
         output_dir = tmp_path / "job-out"
 
         # Create stable WARCs
@@ -118,7 +119,7 @@ class TestDiscoverWarcsForJob:
         warcs_dir.mkdir(parents=True)
         (warcs_dir / "stable-001.warc.gz").write_bytes(b"stable content")
 
-        # Create temp WARCs (should not be found)
+        # Create temp WARCs from a later crawl phase.
         temp_dir = output_dir / ".tmp12345"
         collections_dir = temp_dir / "collections" / "crawl-1" / "archive"
         collections_dir.mkdir(parents=True)
@@ -131,9 +132,8 @@ class TestDiscoverWarcsForJob:
         job = _create_job_mock(output_dir)
         result = discover_warcs_for_job(job, allow_fallback=True)
 
-        # Should only find stable WARC
-        assert len(result) == 1
-        assert result[0].name == "stable-001.warc.gz"
+        assert len(result) == 2
+        assert sorted(p.name for p in result) == ["stable-001.warc.gz", "temp-001.warc.gz"]
 
 
 class TestDiscoverTempWarcsForJob:
@@ -330,7 +330,112 @@ class TestDiscoverAllWarcsForJob:
         job = _create_job_mock(output_dir)
         result = discover_all_warcs_for_job(job, allow_fallback=False)
 
-        assert result.source == "stable"
+        assert result.source == "none"
         assert result.manifest_valid is True
         assert result.count == 0
         assert result.warc_paths == []
+
+    def test_mixed_discovery_result(self, tmp_path: Path):
+        """Reports mixed source metadata when stable and temp WARCs are both present."""
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        (warcs_dir / "stable-001.warc.gz").write_bytes(b"stable content")
+
+        temp_dir = output_dir / ".tmp12345"
+        collections_dir = temp_dir / "collections" / "crawl-1" / "archive"
+        collections_dir.mkdir(parents=True)
+        (collections_dir / "temp-001.warc.gz").write_bytes(b"temp content")
+
+        state_file = output_dir / ".archive_state.json"
+        state_file.write_text(
+            json.dumps({"temp_dirs_host_paths": [str(temp_dir)], "current_workers": 2}),
+            encoding="utf-8",
+        )
+
+        job = _create_job_mock(output_dir)
+        result = discover_all_warcs_for_job(job, allow_fallback=True)
+
+        assert result.source == "mixed"
+        assert result.count == 2
+        assert result.source_counts == {"stable": 1, "temp": 1}
+
+    def test_manifest_dedupes_copied_stable_warc_from_temp_source(self, tmp_path: Path):
+        """Prefers stable WARC when manifest says a temp source was already copied."""
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        stable_warc = warcs_dir / "warc-000001.warc.gz"
+        stable_warc.write_bytes(b"same bytes")
+
+        temp_dir = output_dir / ".tmp12345"
+        collections_dir = temp_dir / "collections" / "crawl-1" / "archive"
+        collections_dir.mkdir(parents=True)
+        temp_warc = collections_dir / "rec-001.warc.gz"
+        temp_warc.write_bytes(b"same bytes")
+
+        (warcs_dir / "manifest.json").write_text(
+            json.dumps(
+                {
+                    "entries": [
+                        {
+                            "source_path": str(temp_warc.resolve()),
+                            "stable_name": stable_warc.name,
+                            "link_type": "copy",
+                            "size_bytes": stable_warc.stat().st_size,
+                            "sha256": "unused",
+                        }
+                    ]
+                }
+            ),
+            encoding="utf-8",
+        )
+        (output_dir / ".archive_state.json").write_text(
+            json.dumps({"temp_dirs_host_paths": [str(temp_dir)], "current_workers": 2}),
+            encoding="utf-8",
+        )
+
+        job = _create_job_mock(output_dir)
+        result = discover_all_warcs_for_job(job, allow_fallback=True)
+
+        assert result.source == "stable"
+        assert result.count == 1
+        assert result.warc_paths == [stable_warc.resolve()]
+        assert result.source_counts == {"stable": 1}
+
+    def test_mixed_discovery_includes_untracked_fallback_temp_dir(self, tmp_path: Path):
+        """Includes latest orphan temp WARCs even when state tracks older temp dirs."""
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        (warcs_dir / "stable-001.warc.gz").write_bytes(b"stable content")
+
+        tracked_temp = output_dir / ".tmp-tracked"
+        tracked_archive = tracked_temp / "collections" / "crawl-1" / "archive"
+        tracked_archive.mkdir(parents=True)
+        (tracked_archive / "tracked-001.warc.gz").write_bytes(b"tracked content")
+
+        orphan_temp = output_dir / ".tmp-orphan"
+        orphan_archive = orphan_temp / "collections" / "crawl-1" / "archive"
+        orphan_archive.mkdir(parents=True)
+        (orphan_archive / "orphan-001.warc.gz").write_bytes(b"orphan content")
+        orphan_mtime = tracked_temp.stat().st_mtime + 10
+        os.utime(orphan_temp, (orphan_mtime, orphan_mtime))
+
+        state_file = output_dir / ".archive_state.json"
+        state_file.write_text(
+            json.dumps({"temp_dirs_host_paths": [str(tracked_temp)], "current_workers": 2}),
+            encoding="utf-8",
+        )
+
+        job = _create_job_mock(output_dir)
+        result = discover_all_warcs_for_job(job, allow_fallback=True)
+
+        assert result.source == "mixed"
+        assert result.count == 3
+        assert sorted(p.name for p in result.warc_paths) == [
+            "orphan-001.warc.gz",
+            "stable-001.warc.gz",
+            "tracked-001.warc.gz",
+        ]
+        assert result.source_counts == {"stable": 1, "temp": 1, "fallback": 1}

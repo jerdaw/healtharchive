@@ -19,6 +19,10 @@ vi.mock("@/data/demo-records", () => ({
 
 import { fetchSnapshotDetail, type SnapshotDetail } from "@/lib/api";
 const mockFetchSnapshotDetail = vi.mocked(fetchSnapshotDetail);
+const browsertrixCapture = {
+  captureBackend: "browsertrix",
+  captureFidelity: "high",
+} as const;
 
 describe("/browse/[id]", () => {
   beforeEach(() => {
@@ -42,6 +46,7 @@ describe("/browse/[id]", () => {
         "https://replay.healtharchive.ca/job-1/20240104123456/https://canada.ca/en/health-canada.html#ha_snapshot=45",
       mimeType: "text/html",
       statusCode: 200,
+      ...browsertrixCapture,
     };
     mockFetchSnapshotDetail.mockResolvedValue(detail);
 
@@ -70,6 +75,7 @@ describe("/browse/[id]", () => {
       browseUrl: null,
       mimeType: "text/html",
       statusCode: 200,
+      ...browsertrixCapture,
     };
     mockFetchSnapshotDetail.mockResolvedValue(detail);
 

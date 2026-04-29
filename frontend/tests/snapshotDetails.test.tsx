@@ -39,6 +39,10 @@ import {
 const mockFetchSnapshotDetail = vi.mocked(fetchSnapshotDetail);
 const mockFetchSnapshotLatest = vi.mocked(fetchSnapshotLatest);
 const mockFetchSnapshotTimeline = vi.mocked(fetchSnapshotTimeline);
+const browsertrixCapture = {
+  captureBackend: "browsertrix",
+  captureFidelity: "high",
+} as const;
 
 describe("/snapshot/[id] (details)", () => {
   beforeEach(() => {
@@ -62,6 +66,7 @@ describe("/snapshot/[id] (details)", () => {
         "https://replay.healtharchive.ca/job-1/20250417000000/https://www.canada.ca/en/public-health/services/diseases/covid.html#ha_snapshot=45",
       mimeType: "text/html",
       statusCode: 200,
+      ...browsertrixCapture,
     };
     const latest: SnapshotLatest = {
       found: true,

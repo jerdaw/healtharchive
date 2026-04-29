@@ -352,6 +352,26 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/coverage/{source_code}/{year}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * Get Annual Coverage
+     * @description Return public annual edition coverage/provenance summary for researchers.
+     */
+    get: operations["get_annual_coverage_api_coverage__source_code___year__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/sources/{source_code}/preview": {
     parameters: {
       query?: never;
@@ -499,6 +519,63 @@ export interface paths {
     patch?: never;
     trace?: never;
   };
+  "/api/admin/annual-editions": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /**
+     * List Annual Editions
+     * @description List annual editions with coverage readiness summaries.
+     */
+    get: operations["list_annual_editions_api_admin_annual_editions_get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/annual-editions/{edition_id}": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    /** Get Annual Edition */
+    get: operations["get_annual_edition_api_admin_annual_editions__edition_id__get"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/admin/annual-editions/jobs/{job_id}/accept-gap": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    /**
+     * Accept Annual Shard Gap
+     * @description Accept a failed shard as a documented gap and regenerate edition coverage.
+     */
+    post: operations["accept_annual_shard_gap_api_admin_annual_editions_jobs__job_id__accept_gap_post"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/admin/jobs/{job_id}": {
     parameters: {
       query?: never;
@@ -605,6 +682,144 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
   schemas: {
+    /** AnnualEditionAdminSchema */
+    AnnualEditionAdminSchema: {
+      /** Editionid */
+      editionId: number;
+      /** Sourcecode */
+      sourceCode: string;
+      /** Sourcename */
+      sourceName: string;
+      /** Year */
+      year: number;
+      /** Status */
+      status: string;
+      /** Searchready */
+      searchReady: boolean;
+      /** Researchready */
+      researchReady: boolean;
+      /** Intendedurlcount */
+      intendedUrlCount: number;
+      /** Capturedurlcount */
+      capturedUrlCount: number;
+      /** Failedurlcount */
+      failedUrlCount: number;
+      /** Missingurlcount */
+      missingUrlCount: number;
+      /** Excludedurlcount */
+      excludedUrlCount: number;
+      /** Fallbackurlcount */
+      fallbackUrlCount: number;
+      /** Shardcount */
+      shardCount: number;
+      /** Indexedshardcount */
+      indexedShardCount: number;
+      /** Needsreviewshardcount */
+      needsReviewShardCount: number;
+      /** Backendcounts */
+      backendCounts: {
+        [key: string]: number;
+      };
+      /** Coveragesummary */
+      coverageSummary: {
+        [key: string]: unknown;
+      };
+      /** Generatedat */
+      generatedAt: string | null;
+      /** Targetledgerpath */
+      targetLedgerPath: string | null;
+      /** Capturemanifestpath */
+      captureManifestPath: string | null;
+      /** Coveragereportjsonpath */
+      coverageReportJsonPath: string | null;
+      /** Coveragereportmdpath */
+      coverageReportMdPath: string | null;
+      /** Shards */
+      shards?: components["schemas"]["AnnualEditionShardSchema"][];
+    };
+    /** AnnualEditionCoverageSchema */
+    AnnualEditionCoverageSchema: {
+      /** Editionid */
+      editionId: number;
+      /** Sourcecode */
+      sourceCode: string | null;
+      /** Sourcename */
+      sourceName: string | null;
+      /** Year */
+      year: number;
+      /** Status */
+      status: string;
+      /** Searchready */
+      searchReady: boolean;
+      /** Researchready */
+      researchReady: boolean;
+      /** Intendedurlcount */
+      intendedUrlCount: number;
+      /** Capturedurlcount */
+      capturedUrlCount: number;
+      /** Failedurlcount */
+      failedUrlCount: number;
+      /** Missingurlcount */
+      missingUrlCount: number;
+      /** Excludedurlcount */
+      excludedUrlCount: number;
+      /** Fallbackurlcount */
+      fallbackUrlCount: number;
+      /** Shardcount */
+      shardCount: number;
+      /** Indexedshardcount */
+      indexedShardCount: number;
+      /** Needsreviewshardcount */
+      needsReviewShardCount: number;
+      /** Backendcounts */
+      backendCounts: {
+        [key: string]: number;
+      };
+      /** Coveragesummary */
+      coverageSummary: {
+        [key: string]: unknown;
+      };
+      /** Generatedat */
+      generatedAt: string | null;
+    };
+    /** AnnualEditionListResponseSchema */
+    AnnualEditionListResponseSchema: {
+      /** Items */
+      items: components["schemas"]["AnnualEditionAdminSchema"][];
+      /** Total */
+      total: number;
+      /** Limit */
+      limit: number;
+      /** Offset */
+      offset: number;
+    };
+    /** AnnualEditionShardSchema */
+    AnnualEditionShardSchema: {
+      /** Jobid */
+      jobId: number;
+      /** Name */
+      name: string;
+      /** Status */
+      status: string;
+      /** Shardkey */
+      shardKey: string | null;
+      /** Shardkind */
+      shardKind: string;
+      /** Acceptancestate */
+      acceptanceState: string;
+      /** Capturebackend */
+      captureBackend: string | null;
+      /** Indexedpagecount */
+      indexedPageCount: number;
+      /** Pagescrawled */
+      pagesCrawled: number;
+      /** Pagestotal */
+      pagesTotal: number;
+      /** Pagesfailed */
+      pagesFailed: number;
+      /** Retrycount */
+      retryCount: number;
+    };
     /** ArchiveStatsSchema */
     ArchiveStatsSchema: {
       /** Snapshotstotal */
@@ -985,6 +1200,16 @@ export interface components {
       combinedLogPath: string | null;
       /** Statefilepath */
       stateFilePath: string | null;
+      /** Editionid */
+      editionId?: number | null;
+      /** Shardkey */
+      shardKey?: string | null;
+      /** Shardkind */
+      shardKind?: string | null;
+      /** Acceptancestate */
+      acceptanceState?: string | null;
+      /** Coveragereportpath */
+      coverageReportPath?: string | null;
       /** Config */
       config: {
         [key: string]: unknown;
@@ -1071,6 +1296,14 @@ export interface components {
       indexedPageCount: number;
       /** Storagescannedat */
       storageScannedAt?: string | null;
+      /** Editionid */
+      editionId?: number | null;
+      /** Shardkey */
+      shardKey?: string | null;
+      /** Shardkind */
+      shardKind?: string | null;
+      /** Acceptancestate */
+      acceptanceState?: string | null;
     };
     /** ReplayResolveSchema */
     ReplayResolveSchema: {
@@ -1221,6 +1454,16 @@ export interface components {
       mimeType: string | null;
       /** Statuscode */
       statusCode: number | null;
+      /**
+       * Capturebackend
+       * @default browsertrix
+       */
+      captureBackend: string;
+      /**
+       * Capturefidelity
+       * @default high
+       */
+      captureFidelity: string;
     };
     /** SnapshotLatestSchema */
     SnapshotLatestSchema: {
@@ -1255,6 +1498,16 @@ export interface components {
       originalUrl: string;
       /** Snippet */
       snippet: string | null;
+      /**
+       * Capturebackend
+       * @default browsertrix
+       */
+      captureBackend: string;
+      /**
+       * Capturefidelity
+       * @default high
+       */
+      captureFidelity: string;
       /** Pagesnapshotscount */
       pageSnapshotsCount?: number | null;
       /** Rawsnapshoturl */
@@ -1966,6 +2219,38 @@ export interface operations {
       };
     };
   };
+  get_annual_coverage_api_coverage__source_code___year__get: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        source_code: string;
+        year: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AnnualEditionCoverageSchema"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
   get_source_preview_api_sources__source_code__preview_get: {
     parameters: {
       query: {
@@ -2196,6 +2481,113 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["JobStatusCountsSchema"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  list_annual_editions_api_admin_annual_editions_get: {
+    parameters: {
+      query?: {
+        source?: string | null;
+        year?: number | null;
+        limit?: number;
+        offset?: number;
+      };
+      header?: {
+        Authorization?: string | null;
+        "X-Admin-Token"?: string | null;
+      };
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AnnualEditionListResponseSchema"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  get_annual_edition_api_admin_annual_editions__edition_id__get: {
+    parameters: {
+      query?: never;
+      header?: {
+        Authorization?: string | null;
+        "X-Admin-Token"?: string | null;
+      };
+      path: {
+        edition_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AnnualEditionAdminSchema"];
+        };
+      };
+      /** @description Validation Error */
+      422: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["HTTPValidationError"];
+        };
+      };
+    };
+  };
+  accept_annual_shard_gap_api_admin_annual_editions_jobs__job_id__accept_gap_post: {
+    parameters: {
+      query: {
+        reason: string;
+      };
+      header?: {
+        Authorization?: string | null;
+        "X-Admin-Token"?: string | null;
+      };
+      path: {
+        job_id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      /** @description Successful Response */
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["AnnualEditionAdminSchema"];
         };
       };
       /** @description Validation Error */

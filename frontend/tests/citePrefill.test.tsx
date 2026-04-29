@@ -18,6 +18,10 @@ vi.mock("@/lib/api", () => ({
 import { fetchSnapshotDetail, type SnapshotDetail } from "@/lib/api";
 
 const mockFetchSnapshotDetail = vi.mocked(fetchSnapshotDetail);
+const browsertrixCapture = {
+  captureBackend: "browsertrix",
+  captureFidelity: "high",
+} as const;
 
 describe("/cite prefill", () => {
   beforeEach(() => {
@@ -40,6 +44,7 @@ describe("/cite prefill", () => {
       browseUrl: null,
       mimeType: "text/html",
       statusCode: 200,
+      ...browsertrixCapture,
     };
     mockFetchSnapshotDetail.mockResolvedValue(detail);
 

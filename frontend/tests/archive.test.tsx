@@ -29,6 +29,10 @@ import { fetchSources, fetchSourcesLocalized, searchSnapshots } from "@/lib/api"
 const mockFetchSources = vi.mocked(fetchSources);
 const mockFetchSourcesLocalized = vi.mocked(fetchSourcesLocalized);
 const mockSearchSnapshots = vi.mocked(searchSnapshots);
+const browsertrixCapture = {
+  captureBackend: "browsertrix",
+  captureFidelity: "high",
+} as const;
 
 describe("/archive", () => {
   beforeEach(() => {
@@ -215,6 +219,7 @@ describe("/archive", () => {
           jobId: null,
           originalUrl: "https://example.com",
           snippet: "Summary",
+          ...browsertrixCapture,
           rawSnapshotUrl: "/api/snapshots/raw/101",
           browseUrl: null,
         },
@@ -252,6 +257,7 @@ describe("/archive", () => {
           jobId: 1,
           originalUrl: "https://example.com",
           snippet: "Summary",
+          ...browsertrixCapture,
           rawSnapshotUrl: "/api/snapshots/raw/101",
           browseUrl:
             "https://replay.healtharchive.ca/job-1/20240102000000/https://example.com#ha_snapshot=101",
@@ -296,6 +302,7 @@ describe("/archive", () => {
           jobId: 1,
           originalUrl: "https://example.com/fr",
           snippet: "Summary",
+          ...browsertrixCapture,
           rawSnapshotUrl: "/api/snapshots/raw/101",
           browseUrl:
             "https://replay.healtharchive.ca/job-1/20240102000000/https://example.com/fr#ha_snapshot=101",
@@ -363,6 +370,7 @@ describe("/archive", () => {
           jobId: null,
           originalUrl: "https://example.com",
           snippet: "Summary",
+          ...browsertrixCapture,
           rawSnapshotUrl: "/api/snapshots/raw/101",
           browseUrl: null,
         },
@@ -431,6 +439,7 @@ describe("/archive", () => {
           jobId: null,
           originalUrl: "https://example.com/influenza",
           snippet: "covid influenza",
+          ...browsertrixCapture,
           rawSnapshotUrl: "/api/snapshots/raw/101",
           browseUrl: null,
         },

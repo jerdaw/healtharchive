@@ -31,7 +31,6 @@ from sqlalchemy.orm import Session
 from ha_backend.archive_storage import (
     compute_job_storage_stats,
     consolidate_warcs,
-    get_job_warcs_dir,
 )
 from ha_backend.authority import recompute_page_signals
 from ha_backend.db import get_session
@@ -52,18 +51,6 @@ from ha_backend.infra_errors import is_storage_infra_errno
 from ha_backend.models import ArchiveJob, Snapshot, SnapshotOutlink
 
 logger = logging.getLogger("healtharchive.indexing")
-
-
-# --- Helper functions for WARC consolidation ---
-
-
-def _has_stable_warcs(warcs_dir: Path) -> bool:
-    """Check if job has WARCs in stable warcs/ directory."""
-    if not warcs_dir.is_dir():
-        return False
-    has_compressed = any(warcs_dir.rglob("*.warc.gz"))
-    has_uncompressed = any(warcs_dir.rglob("*.warc"))
-    return has_compressed or has_uncompressed
 
 
 def _attempt_temp_warc_consolidation(job_id: int, job: ArchiveJob, output_dir: Path) -> None:
@@ -96,18 +83,14 @@ def _attempt_temp_warc_consolidation(job_id: int, job: ArchiveJob, output_dir: P
 
 def _ensure_stable_warcs_available(job_id: int, job: "ArchiveJob", output_dir: Path) -> None:
     """
-    Ensure WARCs in stable location, consolidating from temp if needed.
+    Ensure temp WARCs are linked into the stable location when possible.
 
-    If job only has legacy WARCs under `.tmp*`, consolidate them into
-    `<output_dir>/warcs/` via hardlink. This allows operators to safely
-    delete `.tmp*` without breaking replay or snapshot viewing.
+    Earlier indexing behavior skipped consolidation as soon as any stable WARC
+    existed. That hid newer temp WARCs from later crawl phases. Always attempt
+    temp consolidation; WARC discovery deduplicates hardlinked stable/temp paths
+    before indexing.
     """
     output_dir = output_dir.resolve()
-    stable_warcs_dir = get_job_warcs_dir(output_dir)
-
-    if _has_stable_warcs(stable_warcs_dir):
-        return
-
     _attempt_temp_warc_consolidation(job_id, job, output_dir)
 
 

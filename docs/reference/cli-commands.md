@@ -26,11 +26,11 @@ healtharchive --help
 | Category | Commands |
 |----------|----------|
 | **Environment** | `check-env`, `check-archive-tool`, `check-db` |
-| **Job Management** | `create-job`, `run-db-job`, `index-job`, `register-job-dir` |
+| **Job Management** | `create-job`, `run-db-job`, `index-job`, `reconcile-completed-indexing`, `register-job-dir` |
 | **Direct Execution** | `run-job` |
 | **Inspection** | `list-jobs`, `show-job` |
 | **Maintenance** | `retry-job`, `reset-retry-count`, `cleanup-job`, `reset-crawl-state`, `replay-index-job` |
-| **Annual Campaign** | `schedule-annual`, `annual-status`, `reconcile-annual-tool-options` |
+| **Annual Campaign** | `schedule-annual`, `annual-status`, `salvage-annual-edition`, `plan-annual-shards`, `annual-edition-report`, `accept-annual-shard-gap`, `reconcile-annual-tool-options` |
 | **Seeding** | `seed-sources` |
 | **Worker** | `start-worker` |
 | **Change Tracking** | `compute-changes` |
@@ -156,11 +156,13 @@ Execute a queued job by ID.
 
 **Usage**:
 ```bash
-healtharchive run-db-job --id JOB_ID
+healtharchive run-db-job --id JOB_ID [--no-index]
 ```
 
 **Arguments**:
 - `--id` (required) - Job ID to run
+- `--no-index` (optional) - Leave a successful crawl in `completed` instead of
+  indexing immediately
 
 **Example**:
 ```bash
@@ -172,10 +174,31 @@ healtharchive run-db-job --id 42
 2. Sets status to `running`
 3. Executes archive-tool subprocess
 4. Updates status to `completed` or `failed`
+5. On success, indexes the job unless `--no-index` is used
 
 **Exit codes**:
-- `0` - Crawl succeeded
+- `0` - Crawl and indexing succeeded, or crawl succeeded with `--no-index`
 - `1` - Crawl failed or job invalid
+
+---
+
+### reconcile-completed-indexing
+
+Index completed jobs that were started outside the worker.
+
+**Usage**:
+```bash
+healtharchive reconcile-completed-indexing [--source SOURCE_CODE] [--limit N]
+```
+
+**What it does**:
+1. Finds jobs in `status="completed"`
+2. Skips running/queued jobs
+3. Runs the normal WARC indexing pipeline for each job
+4. Leaves already indexed jobs untouched
+
+This command is idempotent and is the preferred remediation when a watchdog or
+manual `run-db-job` path leaves a crawl finished but not searchable.
 
 ---
 
@@ -665,6 +688,63 @@ healtharchive reconcile-annual-tool-options --year 2026 --sources hc --apply
   `scheduler_version`
 - Preserves explicit non-baseline overrides
 - Enforces restart-budget floor and annual safety defaults
+
+### salvage-annual-edition
+
+Attach existing annual jobs/WARCs to annual edition records as legacy full-site
+salvage shards.
+
+**Usage**:
+```bash
+healtharchive salvage-annual-edition --year YEAR [--sources hc phac cihr] [--report]
+```
+
+**What it does**:
+- Creates missing `{source, year}` annual edition rows
+- Attaches matching annual `ArchiveJob` rows to those editions
+- Marks attached jobs as `legacy-full-site` shards
+- With `--report`, regenerates coverage/provenance artifacts
+
+### plan-annual-shards
+
+Plan or create deterministic shard jobs for annual editions.
+
+**Usage**:
+```bash
+healtharchive plan-annual-shards --year YEAR [--sources hc phac cihr] [--apply]
+```
+
+Dry-run output lists the shard keys and seed URLs. `--apply` creates queued
+`ArchiveJob` rows tied to the annual edition.
+
+### annual-edition-report
+
+Generate or display a coverage/provenance report for one annual edition.
+
+**Usage**:
+```bash
+healtharchive annual-edition-report --source SOURCE_CODE --year YEAR [--generate] [--json]
+healtharchive annual-edition-report --id EDITION_ID [--generate] [--json]
+```
+
+The generated artifacts are:
+
+- `target-ledger.jsonl`
+- `capture-manifest.jsonl`
+- `coverage-report.json`
+- `coverage-report.md`
+
+### accept-annual-shard-gap
+
+Mark a reviewed shard gap as accepted with an operator-supplied reason.
+
+**Usage**:
+```bash
+healtharchive accept-annual-shard-gap --job-id JOB_ID --reason "documented reason"
+```
+
+Use this only after the retry budget has been exhausted and the remaining gap is
+acceptable for the edition’s research/provenance report.
 
 ### probe-browser-fetch
 

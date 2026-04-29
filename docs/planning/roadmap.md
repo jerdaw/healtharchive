@@ -149,9 +149,18 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 
 ### Crawling & indexing reliability (backend)
 
-- WARC discovery consistency follow-through (deferred Phase 2-4 work; keep behavior coherent across status, indexing, and cleanup).
+- WARC discovery consistency follow-through (remaining work: keep non-indexing
+  operator scripts aligned with union stable/temp/fallback discovery as new
+  shard tooling matures).
   - Historical context: `implemented/2026-01-29-warc-discovery-consistency.md`
   - Already implemented: `implemented/2026-01-29-warc-manifest-verification.md`
+- Annual edition/shard convergence follow-through.
+  - First-pass implementation now models `{source, year}` as `AnnualEdition`,
+    attaches legacy 2026 jobs as salvage shards, reconciles completed-job
+    indexing, and generates coverage/provenance artifacts.
+  - Remaining work: richer target ledger sources (sitemaps/public inventories),
+    operator UI for shard split/retry decisions, and stricter watchdog budgets
+    once live deployment validates the new model.
 - Resolve the long-term PHAC Browsertrix compatibility posture and re-evaluate the temporary `public-health-notices` exclusion.
   - Context: the 2026 PHAC annual crawl first hit sustained `net::ERR_HTTP2_PROTOCOL_ERROR` churn on canada.ca. On 2026-04-20, a fresh Browsertrix retry still failed at both seed documents, while the validated `playwright_warc` fallback succeeded and the live PHAC job resumed healthy progress under fallback.
   - Current repo status:

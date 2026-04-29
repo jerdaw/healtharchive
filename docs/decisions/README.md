@@ -57,6 +57,7 @@ If a decision changes later, create a new decision record and mark the old one a
 
 ## Decision records
 
+- `2026-04-28-annual-editions-and-sharded-crawl-convergence.md`
 - `2026-02-19-alert-fatigue-reduction-for-crawl-alerting.md`
 - `2026-02-07-git-first-vps-changes.md`
 - `2026-02-06-per-source-crawl-profiles-and-annual-reconciliation.md`

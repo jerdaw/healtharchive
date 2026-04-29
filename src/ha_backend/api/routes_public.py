@@ -59,6 +59,7 @@ from ha_backend.live_compare import (
     summarize_live_compare,
 )
 from ha_backend.models import (
+    AnnualEdition,
     ArchiveJob,
     IssueReport,
     Page,
@@ -126,6 +127,7 @@ from ha_backend.usage_metrics import (
 )
 
 from .schemas import (
+    AnnualEditionCoverageSchema,
     ArchiveStatsSchema,
     ChangeCompareSchema,
     ChangeCompareSnapshotSchema,
@@ -227,6 +229,8 @@ _SNAPSHOT_EXPORT_FIELDS = [
     "status_code",
     "mime_type",
     "title",
+    "capture_backend",
+    "capture_fidelity",
     "job_id",
     "job_name",
     "snapshot_url",
@@ -354,6 +358,8 @@ def _iter_snapshot_export_rows(
             "status_code": snapshot.status_code,
             "mime_type": snapshot.mime_type,
             "title": snapshot.title,
+            "capture_backend": snapshot.capture_backend,
+            "capture_fidelity": snapshot.capture_fidelity,
             "job_id": snapshot.job_id,
             "job_name": job.name if job else None,
             "snapshot_url": f"{public_base}/snapshot/{snapshot.id}",
@@ -1269,6 +1275,8 @@ def _search_snapshots_inner(
                         jobId=snap.job_id,
                         originalUrl=original_url,
                         snippet=snap.snippet,
+                        captureBackend=snap.capture_backend,
+                        captureFidelity=snap.capture_fidelity,
                         pageSnapshotsCount=page_counts_by_snapshot_id.get(snap.id),
                         rawSnapshotUrl=f"/api/snapshots/raw/{snap.id}",
                         browseUrl=_build_browse_url(
@@ -2108,6 +2116,8 @@ def _search_snapshots_inner(
                 jobId=snap.job_id,
                 originalUrl=original_url,
                 snippet=snap.snippet,
+                captureBackend=snap.capture_backend,
+                captureFidelity=snap.capture_fidelity,
                 pageSnapshotsCount=page_snapshots_count,
                 rawSnapshotUrl=f"/api/snapshots/raw/{snap.id}",
                 browseUrl=_build_browse_url(
@@ -3531,6 +3541,38 @@ def list_source_editions(
     return editions
 
 
+@router.get(
+    "/coverage/{source_code}/{year}",
+    response_model=AnnualEditionCoverageSchema,
+)
+def get_annual_coverage(
+    source_code: str,
+    year: int,
+    response: Response,
+    db: Session = Depends(get_db),
+) -> AnnualEditionCoverageSchema:
+    """
+    Return public annual edition coverage/provenance summary for researchers.
+    """
+    from ha_backend.annual_editions import report_public_payload
+
+    normalized_code = source_code.strip().lower()
+    if normalized_code in _PUBLIC_EXCLUDED_SOURCE_CODES:
+        raise HTTPException(status_code=404, detail="Annual edition not found")
+
+    edition = (
+        db.query(AnnualEdition)
+        .join(Source)
+        .filter(Source.code == normalized_code, AnnualEdition.year == int(year))
+        .first()
+    )
+    if edition is None:
+        raise HTTPException(status_code=404, detail="Annual edition not found")
+
+    response.headers["Cache-Control"] = "public, max-age=60, s-maxage=300"
+    return AnnualEditionCoverageSchema(**report_public_payload(edition))
+
+
 def _source_preview_response(
     source_code: str,
     *,
@@ -3799,6 +3841,8 @@ def get_snapshot_detail(
                 Snapshot.title,
                 Snapshot.snippet,
                 Snapshot.language,
+                Snapshot.capture_backend,
+                Snapshot.capture_fidelity,
             ),
             joinedload(Snapshot.source),
         )
@@ -3832,6 +3876,8 @@ def get_snapshot_detail(
         browseUrl=_build_browse_url(snap.job_id, snap.url, snap.capture_timestamp, snap.id),
         mimeType=snap.mime_type,
         statusCode=snap.status_code,
+        captureBackend=snap.capture_backend,
+        captureFidelity=snap.capture_fidelity,
     )
 
 

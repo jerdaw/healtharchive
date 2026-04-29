@@ -1608,6 +1608,14 @@ Then simply re-run the **same command** (no special `--resume` flag needed):
 
   * `initial_run_mode = "New Crawl (with Consolidation)"` (new crawl + final consolidation from *all* discovered WARCs).
 
+HealthArchive annual editions preserve already captured WARCs even when a
+crawler queue/state file is discarded as unreliable. The backend indexer now
+discovers the union of stable WARCs, readable temp WARCs, and fallback backend
+WARCs, then labels indexed snapshots with capture backend/fidelity metadata.
+That means a failed resume is no longer treated as “no progress”; it becomes
+salvage evidence for the edition coverage report, with any remaining gaps
+handled by smaller shards or explicit review.
+
 ### 10.3 Redoing a completed run (overwrite)
 
 If you already have `<name>.zim` and want to re-crawl from scratch (ignoring old temp dirs):

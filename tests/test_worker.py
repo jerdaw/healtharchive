@@ -435,6 +435,7 @@ def test_worker_marks_playwright_warc_jobs_fallback_exhausted_after_second_failu
         assert job.status == "failed"
         assert job.retry_count == 2
         assert job.crawler_stage == "fallback_exhausted"
+        assert job.acceptance_state == "needs_review"
 
 
 def test_worker_auto_recovers_stale_running_jobs_before_processing(monkeypatch, tmp_path) -> None:
@@ -470,3 +471,59 @@ def test_worker_auto_recovers_stale_running_jobs_before_processing(monkeypatch, 
         assert job is not None
         assert job.status == "completed"
         assert job.crawler_status == "success"
+
+
+def test_worker_indexes_completed_jobs_before_starting_new_crawls(monkeypatch, tmp_path) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    archive_root = tmp_path / "jobs"
+    monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(archive_root))
+
+    with get_session() as session:
+        seed_sources(session)
+        source = session.query(Source).filter_by(code="hc").one()
+        completed = ArchiveJob(
+            source=source,
+            name="completed-needs-index",
+            output_dir=str(archive_root / "hc" / "completed"),
+            status="completed",
+            finished_at=datetime.now(timezone.utc),
+        )
+        queued = ArchiveJob(
+            source=source,
+            name="queued-should-wait",
+            output_dir=str(archive_root / "hc" / "queued"),
+            status="queued",
+        )
+        session.add_all([completed, queued])
+        session.flush()
+        completed_id = completed.id
+        queued_id = queued.id
+
+    indexed_ids: list[int] = []
+
+    def fake_index_job(jid: int) -> int:
+        indexed_ids.append(jid)
+        with get_session() as session:
+            job = session.get(ArchiveJob, jid)
+            assert job is not None
+            job.status = "indexed"
+            job.indexed_page_count = 10
+        return 0
+
+    def unexpected_run_persistent_job(jid: int) -> int:
+        raise AssertionError(f"worker should index completed job before crawling {jid}")
+
+    monkeypatch.setattr("ha_backend.worker.main.index_job", fake_index_job)
+    monkeypatch.setattr("ha_backend.worker.main.run_persistent_job", unexpected_run_persistent_job)
+
+    run_worker_loop(poll_interval=1, run_once=True)
+
+    assert indexed_ids == [completed_id]
+    with get_session() as session:
+        completed_job = session.get(ArchiveJob, completed_id)
+        queued_job = session.get(ArchiveJob, queued_id)
+        assert completed_job is not None
+        assert completed_job.status == "indexed"
+        assert queued_job is not None
+        assert queued_job.status == "queued"

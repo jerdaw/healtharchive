@@ -11,6 +11,7 @@ from typing import Optional
 from sqlalchemy import or_
 from sqlalchemy.orm import Session
 
+from ha_backend.annual_editions import ACCEPTED_STATES
 from ha_backend.archive_contract import ArchiveJobConfig
 from ha_backend.crawl_rescue_status import (
     PROMOTION_REASON_FRESH_FAILURE_BUDGET,
@@ -198,6 +199,8 @@ def _apply_failure_policy(job: ArchiveJob, *, crawl_rc: int) -> None:
         else:
             job.status = "failed"
             job.crawler_stage = "fallback_exhausted"
+            if getattr(job, "acceptance_state", None) not in ACCEPTED_STATES:
+                job.acceptance_state = "needs_review"
             logger.error(
                 "Fallback crawl for job %s failed (RC=%s) and fallback budget is exhausted.",
                 job.id,
@@ -215,6 +218,8 @@ def _apply_failure_policy(job: ArchiveJob, *, crawl_rc: int) -> None:
             job.retry_count,
         )
     else:
+        if getattr(job, "acceptance_state", None) not in ACCEPTED_STATES:
+            job.acceptance_state = "needs_review"
         logger.error(
             "Crawl for job %s failed (RC=%s) and max retries reached; leaving status as %s.",
             job.id,
@@ -413,6 +418,23 @@ def _select_next_crawl_job(session: Session, *, now_utc: datetime) -> Optional[A
     )
 
 
+def _select_next_index_job(session: Session) -> Optional[ArchiveJob]:
+    """
+    Select a completed crawl that still needs WARC indexing.
+
+    Detached watchdog starts use the CLI `run-db-job` path and historically
+    could leave jobs in `completed` forever. The worker reconciles that state
+    before starting more crawl work so completed captures become searchable.
+    """
+    return (
+        session.query(ArchiveJob)
+        .join(Source)
+        .filter(ArchiveJob.status == "completed")
+        .order_by(ArchiveJob.finished_at.asc().nullsfirst(), ArchiveJob.id.asc())
+        .first()
+    )
+
+
 def _process_single_job() -> bool:
     """
     Attempt to process a single job.
@@ -425,6 +447,23 @@ def _process_single_job() -> bool:
 
     # First, self-heal obviously stale DB rows so they do not block future work.
     _auto_recover_stale_running_jobs(now_utc=now_utc)
+
+    with get_session() as session:
+        index_job_row = _select_next_index_job(session)
+        if index_job_row is not None:
+            job_id = index_job_row.id
+            logger.info(
+                "Worker picked completed job %s for indexing reconciliation.",
+                job_id,
+            )
+
+    if job_id is not None:
+        index_rc = index_job(job_id)
+        if index_rc != 0:
+            logger.error("Indexing reconciliation for job %s failed with RC=%s.", job_id, index_rc)
+        else:
+            logger.info("Indexing reconciliation for job %s completed successfully.", job_id)
+        return True
 
     # Pre-flight: check disk headroom before selecting a job.
     # This prevents starting crawls when disk is already under pressure.

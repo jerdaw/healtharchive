@@ -30,6 +30,28 @@ class SourceEditionSchema(BaseModel):
     entryBrowseUrl: Optional[str] = None
 
 
+class AnnualEditionCoverageSchema(BaseModel):
+    editionId: int
+    sourceCode: Optional[str]
+    sourceName: Optional[str]
+    year: int
+    status: str
+    searchReady: bool
+    researchReady: bool
+    intendedUrlCount: int
+    capturedUrlCount: int
+    failedUrlCount: int
+    missingUrlCount: int
+    excludedUrlCount: int
+    fallbackUrlCount: int
+    shardCount: int
+    indexedShardCount: int
+    needsReviewShardCount: int
+    backendCounts: dict[str, int]
+    coverageSummary: dict[str, object]
+    generatedAt: Optional[str]
+
+
 class ReplayResolveSchema(BaseModel):
     found: bool
     snapshotId: Optional[int] = None
@@ -57,6 +79,8 @@ class SnapshotSummarySchema(BaseModel):
     jobId: Optional[int]
     originalUrl: str
     snippet: Optional[str]
+    captureBackend: str = "browsertrix"
+    captureFidelity: str = "high"
     pageSnapshotsCount: Optional[int] = None
     rawSnapshotUrl: Optional[str]
     browseUrl: Optional[str]
@@ -84,6 +108,8 @@ class SnapshotDetailSchema(BaseModel):
     browseUrl: Optional[str]
     mimeType: Optional[str]
     statusCode: Optional[int]
+    captureBackend: str = "browsertrix"
+    captureFidelity: str = "high"
 
 
 class ArchiveStatsSchema(BaseModel):
@@ -279,6 +305,7 @@ class IssueReportReceiptSchema(BaseModel):
 __all__ = [
     "SourceSummarySchema",
     "SourceEditionSchema",
+    "AnnualEditionCoverageSchema",
     "ReplayResolveSchema",
     "SnapshotSummarySchema",
     "SearchResponseSchema",

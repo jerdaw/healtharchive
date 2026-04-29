@@ -27,6 +27,7 @@ import json
 import re
 import subprocess  # nosec: B404 - controlled CLI invocation of external tool
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, ContextManager, Sequence, cast
 
@@ -573,7 +574,7 @@ def cmd_create_job(args: argparse.Namespace) -> None:
 
 def cmd_run_db_job(args: argparse.Namespace) -> None:
     """
-    Run a database-backed ArchiveJob by ID.
+    Run a database-backed ArchiveJob by ID, indexing on successful completion by default.
     """
     from .jobs import JobAlreadyRunningError
 
@@ -590,6 +591,15 @@ def cmd_run_db_job(args: argparse.Namespace) -> None:
     if rc != 0:
         sys.exit(rc)
 
+    if not getattr(args, "no_index", False):
+        try:
+            index_rc = index_job(job_id)
+        except ValueError as exc:
+            print(f"ERROR: Crawl completed but indexing could not start: {exc}", file=sys.stderr)
+            sys.exit(1)
+        if index_rc != 0:
+            sys.exit(index_rc)
+
 
 def cmd_index_job(args: argparse.Namespace) -> None:
     """
@@ -604,6 +614,192 @@ def cmd_index_job(args: argparse.Namespace) -> None:
 
     if rc != 0:
         sys.exit(rc)
+
+
+def cmd_reconcile_completed_indexing(args: argparse.Namespace) -> None:
+    """
+    Index completed jobs that were not indexed by their runner.
+    """
+    from .annual_editions import reconcile_completed_job_indexing
+
+    limit = getattr(args, "limit", None)
+    source = getattr(args, "source", None)
+    result = reconcile_completed_job_indexing(source_code=source, limit=limit)
+    print("Completed-job indexing reconciliation")
+    print("-------------------------------------")
+    print(f"Indexed: {result.indexed}")
+    print(f"Failed:  {result.failed}")
+    print(f"Jobs:    {', '.join(str(j) for j in result.job_ids) if result.job_ids else '(none)'}")
+    if result.failed:
+        sys.exit(1)
+
+
+def cmd_salvage_annual_edition(args: argparse.Namespace) -> None:
+    """
+    Attach existing annual jobs/WARCs to AnnualEdition records.
+    """
+    from .annual_editions import generate_coverage_report, salvage_existing_annual_jobs
+    from .models import AnnualEdition
+
+    with get_session() as session:
+        result = salvage_existing_annual_jobs(
+            session,
+            year=int(args.year),
+            source_codes=getattr(args, "sources", None),
+        )
+        reports = []
+        if getattr(args, "report", False):
+            editions = (
+                session.query(AnnualEdition)
+                .filter(AnnualEdition.id.in_(result.edition_ids))
+                .order_by(AnnualEdition.id.asc())
+                .all()
+            )
+            for edition in editions:
+                reports.append(generate_coverage_report(session, edition=edition))
+
+    print("Annual edition salvage")
+    print("----------------------")
+    print(f"Year:             {args.year}")
+    print(f"Created editions: {result.created_editions}")
+    print(f"Attached jobs:    {result.attached_jobs}")
+    print(f"Skipped jobs:     {result.skipped_jobs}")
+    print(f"Edition IDs:      {', '.join(str(e) for e in result.edition_ids) or '(none)'}")
+    for report in reports:
+        artifacts = report.get("artifacts") or {}
+        print(
+            f"Report:           edition={report.get('edition_id')} "
+            f"status={report.get('status')} json={artifacts.get('coverage_report_json')}"
+        )
+
+
+def cmd_annual_edition_report(args: argparse.Namespace) -> None:
+    """
+    Generate or print an AnnualEdition coverage report.
+    """
+    import json
+
+    from .annual_editions import generate_coverage_report, report_public_payload
+    from .models import AnnualEdition, Source
+
+    with get_session() as session:
+        query = session.query(AnnualEdition).join(Source)
+        if getattr(args, "id", None) is not None:
+            query = query.filter(AnnualEdition.id == int(args.id))
+        else:
+            if not args.source or args.year is None:
+                print("ERROR: Provide --id or both --source and --year.", file=sys.stderr)
+                sys.exit(1)
+            query = query.filter(
+                Source.code == args.source.lower(), AnnualEdition.year == args.year
+            )
+        edition = query.one_or_none()
+        if edition is None:
+            print("ERROR: Annual edition not found.", file=sys.stderr)
+            sys.exit(1)
+
+        report_path = edition.coverage_report_json_path
+        if getattr(args, "generate", False):
+            payload = generate_coverage_report(session, edition=edition)
+        else:
+            payload = report_public_payload(edition)
+
+    if getattr(args, "json", False):
+        print(json.dumps(payload, indent=2, sort_keys=True, default=str))
+    else:
+        print("Annual edition coverage")
+        print("-----------------------")
+        print(f"Edition ID:     {payload.get('editionId') or payload.get('edition_id')}")
+        print(
+            f"Source:         {payload.get('sourceCode') or (payload.get('source') or {}).get('code')}"
+        )
+        print(f"Year:           {payload.get('year')}")
+        print(f"Status:         {payload.get('status')}")
+        print(f"Search ready:   {payload.get('searchReady', payload.get('search_ready'))}")
+        print(f"Research ready: {payload.get('researchReady', payload.get('research_ready'))}")
+        artifacts = payload.get("artifacts") or {}
+        report_path = report_path or artifacts.get("coverage_report_json")
+        if report_path:
+            print(f"Report JSON:    {report_path}")
+
+
+def cmd_plan_annual_shards(args: argparse.Namespace) -> None:
+    """
+    Plan or create seed/language annual crawl shards.
+    """
+    from .annual_editions import plan_or_create_annual_shards
+
+    apply_mode = bool(getattr(args, "apply", False))
+    shard_target_url_cap = int(getattr(args, "shard_target_url_cap", 5000))
+    if shard_target_url_cap < 1:
+        print("ERROR: --shard-target-url-cap must be >= 1.", file=sys.stderr)
+        sys.exit(1)
+    with get_session() as session:
+        plan = plan_or_create_annual_shards(
+            session,
+            year=int(args.year),
+            source_codes=getattr(args, "sources", None),
+            apply=apply_mode,
+            shard_target_url_cap=shard_target_url_cap,
+        )
+
+    print("Annual shard plan")
+    print("-----------------")
+    print(f"Mode: {'APPLY' if apply_mode else 'DRY-RUN'}")
+    print(f"Year: {args.year}")
+    print(f"Target URL cap: {shard_target_url_cap}")
+    for item in plan:
+        seeds = ", ".join(item.seeds) if item.seeds else "(none)"
+        if item.action == "create" and apply_mode:
+            print(
+                f"{item.source_code}: CREATED shard={item.shard_key} "
+                f"job_id={item.job_id} seeds={seeds}"
+            )
+        elif item.action == "create":
+            print(f"{item.source_code}: WOULD CREATE shard={item.shard_key} seeds={seeds}")
+        elif item.action == "skip":
+            print(f"{item.source_code}: SKIP shard={item.shard_key} - {item.reason}")
+        else:
+            print(f"{item.source_code}: ERROR shard={item.shard_key} - {item.reason}")
+
+    if not apply_mode:
+        print("")
+        print("Dry-run only; re-run with --apply to create shard jobs.")
+
+
+def cmd_accept_annual_shard_gap(args: argparse.Namespace) -> None:
+    """
+    Mark a failed shard as an accepted documented gap.
+    """
+    from .annual_editions import generate_coverage_report
+    from .models import ArchiveJob
+
+    with get_session() as session:
+        job = session.get(ArchiveJob, int(args.job_id))
+        if job is None:
+            print(f"ERROR: Job {args.job_id} not found.", file=sys.stderr)
+            sys.exit(1)
+        if job.edition is None:
+            print(
+                f"ERROR: Job {args.job_id} is not attached to an annual edition.", file=sys.stderr
+            )
+            sys.exit(1)
+        job.acceptance_state = "accepted_gap"
+        note = str(getattr(args, "reason", "") or "").strip()
+        cfg = dict(job.config or {})
+        cfg.setdefault("operator_acceptance", {})
+        cfg["operator_acceptance"].update(
+            {
+                "state": "accepted_gap",
+                "reason": note,
+                "accepted_at": datetime.now(timezone.utc).isoformat(),
+            }
+        )
+        job.config = cfg
+        report = generate_coverage_report(session, edition=job.edition)
+
+    print(f"Accepted documented gap for job {args.job_id}.")
+    print(f"Edition status: {report.get('status')}")
 
 
 def cmd_create_canary_job(args: argparse.Namespace) -> None:
@@ -5325,6 +5521,12 @@ def build_parser() -> argparse.ArgumentParser:
         required=True,
         help="ArchiveJob ID to run.",
     )
+    p_run_db.add_argument(
+        "--no-index",
+        action="store_true",
+        default=False,
+        help="Run only the crawl phase; by default successful crawls are indexed.",
+    )
     p_run_db.set_defaults(func=cmd_run_db_job)
 
     # index-job
@@ -5339,6 +5541,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="ArchiveJob ID to index.",
     )
     p_index.set_defaults(func=cmd_index_job)
+
+    # reconcile-completed-indexing
+    p_reconcile_indexing = subparsers.add_parser(
+        "reconcile-completed-indexing",
+        help="Index completed jobs that were not indexed by their runner.",
+    )
+    p_reconcile_indexing.add_argument(
+        "--source",
+        help="Optional source code filter.",
+    )
+    p_reconcile_indexing.add_argument(
+        "--limit",
+        type=int,
+        help="Maximum completed jobs to reconcile.",
+    )
+    p_reconcile_indexing.set_defaults(func=cmd_reconcile_completed_indexing)
 
     # create-canary-job
     p_canary = subparsers.add_parser(
@@ -5446,6 +5664,88 @@ def build_parser() -> argparse.ArgumentParser:
         help="Subset of sources to report (allowlisted): hc phac cihr.",
     )
     p_annual_status.set_defaults(func=cmd_annual_status)
+
+    # salvage-annual-edition
+    p_salvage_annual = subparsers.add_parser(
+        "salvage-annual-edition",
+        help="Attach existing annual jobs to AnnualEdition records and optionally generate reports.",
+    )
+    p_salvage_annual.add_argument(
+        "--year",
+        type=int,
+        required=True,
+        help="Campaign year to salvage.",
+    )
+    p_salvage_annual.add_argument(
+        "--sources",
+        nargs="+",
+        help="Subset of sources to salvage: hc phac cihr.",
+    )
+    p_salvage_annual.add_argument(
+        "--report",
+        action="store_true",
+        default=False,
+        help="Generate coverage/provenance reports after attaching jobs.",
+    )
+    p_salvage_annual.set_defaults(func=cmd_salvage_annual_edition)
+
+    # annual-edition-report
+    p_edition_report = subparsers.add_parser(
+        "annual-edition-report",
+        help="Generate or display a source/year AnnualEdition coverage report.",
+    )
+    p_edition_report.add_argument("--id", type=int, help="AnnualEdition ID.")
+    p_edition_report.add_argument("--source", help="Source code when --id is not supplied.")
+    p_edition_report.add_argument(
+        "--year", type=int, help="Campaign year when --id is not supplied."
+    )
+    p_edition_report.add_argument(
+        "--generate",
+        action="store_true",
+        default=False,
+        help="Regenerate report artifacts before printing.",
+    )
+    p_edition_report.add_argument(
+        "--json",
+        action="store_true",
+        default=False,
+        help="Print JSON output.",
+    )
+    p_edition_report.set_defaults(func=cmd_annual_edition_report)
+
+    # plan-annual-shards
+    p_plan_shards = subparsers.add_parser(
+        "plan-annual-shards",
+        help="Plan or create seed/language annual crawl shards for all annual sources.",
+    )
+    p_plan_shards.add_argument("--year", type=int, required=True, help="Campaign year.")
+    p_plan_shards.add_argument("--sources", nargs="+", help="Subset of sources: hc phac cihr.")
+    p_plan_shards.add_argument(
+        "--apply",
+        action="store_true",
+        default=False,
+        help="Create queued shard jobs. Default is dry-run.",
+    )
+    p_plan_shards.add_argument(
+        "--shard-target-url-cap",
+        type=int,
+        default=5000,
+        help="Target intended HTML URL cap per shard before further splitting (default: 5000).",
+    )
+    p_plan_shards.set_defaults(func=cmd_plan_annual_shards)
+
+    # accept-annual-shard-gap
+    p_accept_gap = subparsers.add_parser(
+        "accept-annual-shard-gap",
+        help="Accept a failed annual shard as a documented gap and regenerate its edition report.",
+    )
+    p_accept_gap.add_argument("--job-id", type=int, required=True, help="ArchiveJob shard ID.")
+    p_accept_gap.add_argument(
+        "--reason",
+        required=True,
+        help="Operator reason for accepting this gap.",
+    )
+    p_accept_gap.set_defaults(func=cmd_accept_annual_shard_gap)
 
     # reconcile-annual-tool-options
     p_reconcile_annual = subparsers.add_parser(

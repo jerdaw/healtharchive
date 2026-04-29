@@ -3,7 +3,7 @@ from __future__ import annotations
 from datetime import datetime
 from typing import Any, Dict, List, Optional
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 
 class JobSummarySchema(BaseModel):
@@ -25,6 +25,10 @@ class JobSummarySchema(BaseModel):
     warcBytesTotal: int
     indexedPageCount: int
     storageScannedAt: Optional[datetime] = None
+    editionId: Optional[int] = None
+    shardKey: Optional[str] = None
+    shardKind: Optional[str] = None
+    acceptanceState: Optional[str] = None
 
 
 class JobDetailSchema(BaseModel):
@@ -57,6 +61,11 @@ class JobDetailSchema(BaseModel):
     finalZimPath: Optional[str]
     combinedLogPath: Optional[str]
     stateFilePath: Optional[str]
+    editionId: Optional[int] = None
+    shardKey: Optional[str] = None
+    shardKind: Optional[str] = None
+    acceptanceState: Optional[str] = None
+    coverageReportPath: Optional[str] = None
     config: Optional[Dict[str, Any]]
     lastStats: Optional[Dict[str, Any]]
 
@@ -72,6 +81,55 @@ class JobSnapshotSummarySchema(BaseModel):
 
 class JobListResponseSchema(BaseModel):
     items: List[JobSummarySchema]
+    total: int
+    limit: int
+    offset: int
+
+
+class AnnualEditionShardSchema(BaseModel):
+    jobId: int
+    name: str
+    status: str
+    shardKey: Optional[str]
+    shardKind: str
+    acceptanceState: str
+    captureBackend: Optional[str]
+    indexedPageCount: int
+    pagesCrawled: int
+    pagesTotal: int
+    pagesFailed: int
+    retryCount: int
+
+
+class AnnualEditionAdminSchema(BaseModel):
+    editionId: int
+    sourceCode: str
+    sourceName: str
+    year: int
+    status: str
+    searchReady: bool
+    researchReady: bool
+    intendedUrlCount: int
+    capturedUrlCount: int
+    failedUrlCount: int
+    missingUrlCount: int
+    excludedUrlCount: int
+    fallbackUrlCount: int
+    shardCount: int
+    indexedShardCount: int
+    needsReviewShardCount: int
+    backendCounts: Dict[str, int]
+    coverageSummary: Dict[str, Any]
+    generatedAt: Optional[datetime]
+    targetLedgerPath: Optional[str]
+    captureManifestPath: Optional[str]
+    coverageReportJsonPath: Optional[str]
+    coverageReportMdPath: Optional[str]
+    shards: List[AnnualEditionShardSchema] = Field(default_factory=list)
+
+
+class AnnualEditionListResponseSchema(BaseModel):
+    items: List[AnnualEditionAdminSchema]
     total: int
     limit: int
     offset: int
@@ -168,6 +226,9 @@ __all__ = [
     "JobDetailSchema",
     "JobSnapshotSummarySchema",
     "JobListResponseSchema",
+    "AnnualEditionAdminSchema",
+    "AnnualEditionListResponseSchema",
+    "AnnualEditionShardSchema",
     "JobStatusCountsSchema",
     "SearchDebugItemSchema",
     "SearchDebugResponseSchema",

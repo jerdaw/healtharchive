@@ -8,6 +8,7 @@ from fastapi.testclient import TestClient
 
 from ha_backend import db as db_module
 from ha_backend.api.schemas import (
+    AnnualEditionCoverageSchema,
     ArchiveStatsSchema,
     ChangeEventSchema,
     ExportManifestSchema,
@@ -15,8 +16,8 @@ from ha_backend.api.schemas import (
     SnapshotSummarySchema,
     SourceSummarySchema,
 )
-from ha_backend.db import Base, get_engine
-from ha_backend.models import Source
+from ha_backend.db import Base, get_engine, get_session
+from ha_backend.models import AnnualEdition, Source
 
 
 def _init_test_app(tmp_path: Path, monkeypatch):
@@ -125,6 +126,50 @@ def test_sources_endpoint_schema(tmp_path, monkeypatch):
         assert isinstance(source.sourceCode, str)
         assert isinstance(source.sourceName, str)
         assert isinstance(source.recordCount, int)
+
+
+def test_public_coverage_endpoint_omits_artifact_paths(tmp_path, monkeypatch):
+    """Public coverage summaries should not expose local operator artifact paths."""
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    with get_session() as session:
+        source = session.query(Source).filter(Source.code == "hc").one()
+        session.add(
+            AnnualEdition(
+                source=source,
+                year=2026,
+                status="search_ready",
+                search_ready=True,
+                research_ready=False,
+                intended_url_count=2,
+                captured_url_count=1,
+                failed_url_count=0,
+                missing_url_count=1,
+                excluded_url_count=0,
+                fallback_url_count=0,
+                shard_count=1,
+                indexed_shard_count=1,
+                needs_review_shard_count=0,
+                backend_counts={"browsertrix": 1},
+                coverage_summary={"standard": "documented_attainable"},
+                target_ledger_path="/srv/healtharchive/editions/hc/2026/target-ledger.jsonl",
+                capture_manifest_path="/srv/healtharchive/editions/hc/2026/capture-manifest.jsonl",
+                coverage_report_json_path="/srv/healtharchive/editions/hc/2026/report.json",
+                coverage_report_md_path="/srv/healtharchive/editions/hc/2026/report.md",
+            )
+        )
+
+    response = client.get("/api/coverage/hc/2026")
+    assert response.status_code == 200
+    data = response.json()
+    coverage = AnnualEditionCoverageSchema(**data)
+
+    assert coverage.sourceCode == "hc"
+    assert coverage.backendCounts == {"browsertrix": 1}
+    assert "reportJsonPath" not in data
+    assert "reportMarkdownPath" not in data
+    assert "targetLedgerPath" not in data
+    assert "captureManifestPath" not in data
 
 
 def test_search_endpoint_schema(tmp_path, monkeypatch):

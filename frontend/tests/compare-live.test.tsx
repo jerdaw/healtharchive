@@ -19,6 +19,10 @@ vi.mock("@/lib/api", () => ({
 import { searchSnapshots, type SearchResponse, type SnapshotSummary } from "@/lib/api";
 
 const mockSearchSnapshots = vi.mocked(searchSnapshots);
+const browsertrixCapture = {
+  captureBackend: "browsertrix",
+  captureFidelity: "high",
+} as const;
 
 describe("/compare-live url fallback", () => {
   beforeEach(() => {
@@ -37,6 +41,7 @@ describe("/compare-live url fallback", () => {
       jobId: 1,
       originalUrl: "https://example.org/page",
       snippet: null,
+      ...browsertrixCapture,
       rawSnapshotUrl: null,
       browseUrl: null,
     };

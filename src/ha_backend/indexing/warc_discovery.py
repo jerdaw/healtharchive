@@ -1,12 +1,14 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+import json
+from collections import Counter
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Literal
+from typing import List, Literal, cast
 
 from archive_tool.state import CrawlState
 from archive_tool.utils import find_all_warc_files, find_latest_temp_dir_fallback
-from ha_backend.archive_storage import get_job_warcs_dir
+from ha_backend.archive_storage import get_job_warc_manifest_path, get_job_warcs_dir
 from ha_backend.models import ArchiveJob
 
 
@@ -17,15 +19,102 @@ class WarcDiscoveryResult:
 
     Attributes:
         warc_paths: List of discovered WARC file paths
-        source: Discovery source ("stable", "temp", or "fallback")
+        source: Discovery source ("stable", "temp", "fallback", "mixed", or "none")
         manifest_valid: Whether the manifest (if any) is valid
         count: Number of WARC files discovered
     """
 
     warc_paths: List[Path]
-    source: Literal["stable", "temp", "fallback"]
+    source: Literal["stable", "temp", "fallback", "mixed", "none"]
     manifest_valid: bool
     count: int
+    source_counts: dict[str, int] = field(default_factory=dict)
+
+
+def _iter_warc_files(root: Path) -> list[Path]:
+    warcs: set[Path] = set()
+    if not root.is_dir():
+        return []
+    for ext in (".warc.gz", ".warc"):
+        for warc_file in root.rglob(f"*{ext}"):
+            try:
+                if warc_file.is_file() and warc_file.stat().st_size > 0:
+                    warcs.add(warc_file.resolve())
+            except OSError:
+                continue
+    return sorted(warcs)
+
+
+def _discover_stable_warcs_for_output_dir(host_output_dir: Path) -> list[Path]:
+    stable_dir = get_job_warcs_dir(host_output_dir)
+    return _iter_warc_files(stable_dir)
+
+
+def _manifest_consolidated_source_paths(host_output_dir: Path) -> set[Path]:
+    """
+    Return temp source paths that already have a stable WARC manifest entry.
+
+    Hardlink inode checks dedupe the common case. The manifest covers the
+    copy-fallback case, where stable and temp files are byte-identical but have
+    different inode identities.
+    """
+    manifest_path = get_job_warc_manifest_path(host_output_dir)
+    if not manifest_path.is_file():
+        return set()
+
+    stable_dir = get_job_warcs_dir(host_output_dir)
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return set()
+
+    paths: set[Path] = set()
+    for entry in manifest.get("entries") or []:
+        source_path = str(entry.get("source_path") or "")
+        stable_name = str(entry.get("stable_name") or "")
+        if not source_path or not stable_name:
+            continue
+        stable_path = stable_dir / stable_name
+        if stable_path.is_file():
+            paths.add(Path(source_path).resolve())
+    return paths
+
+
+def _dedupe_warc_paths_by_file_identity(
+    groups: list[tuple[str, list[Path]]],
+    *,
+    manifest_consolidated_sources: set[Path],
+) -> list[tuple[str, Path]]:
+    """
+    Return unique WARC paths, preferring earlier groups for hardlinked copies.
+
+    Consolidation stores stable WARCs as hardlinks where possible. If we simply
+    union stable and temp paths after consolidation, those hardlinks would be
+    indexed twice. File identity dedupe keeps the stable replay path while still
+    retaining genuinely new temp WARCs that have not yet been consolidated. The
+    manifest check handles copy-fallback consolidation where inode identity no
+    longer matches.
+    """
+    seen_identities: set[tuple[int, int]] = set()
+    seen_paths: set[Path] = set()
+    selected: list[tuple[str, Path]] = []
+    for source, paths in groups:
+        for path in sorted({p.resolve() for p in paths}):
+            if path in seen_paths:
+                continue
+            if source != "stable" and path in manifest_consolidated_sources:
+                continue
+            try:
+                st = path.stat()
+                identity = (int(st.st_dev), int(st.st_ino))
+            except OSError:
+                continue
+            if identity in seen_identities:
+                continue
+            seen_paths.add(path)
+            seen_identities.add(identity)
+            selected.append((source, path))
+    return sorted(selected, key=lambda item: item[1])
 
 
 def discover_temp_warcs_for_job(
@@ -68,25 +157,8 @@ def discover_warcs_for_job(
     live in the in-repo ``archive_tool`` package and are expected to evolve
     in tandem with this indexing code.
     """
-    host_output_dir = Path(job.output_dir).resolve()
-
-    # Prefer stable per-job WARCs when present. This decouples long-lived WARC
-    # artifacts from `.tmp*` crawl directories so operators can safely clean up
-    # temp state without breaking replay.
-    stable_dir = get_job_warcs_dir(host_output_dir)
-    if stable_dir.is_dir():
-        stable_warcs: set[Path] = set()
-        for ext in (".warc.gz", ".warc"):
-            for warc_file in stable_dir.rglob(f"*{ext}"):
-                try:
-                    if warc_file.is_file() and warc_file.stat().st_size > 0:
-                        stable_warcs.add(warc_file.resolve())
-                except OSError:
-                    continue
-        if stable_warcs:
-            return sorted(stable_warcs)
-
-    return discover_temp_warcs_for_job(job, allow_fallback=allow_fallback)
+    result = discover_all_warcs_for_job(job, allow_fallback=allow_fallback)
+    return result.warc_paths
 
 
 def discover_all_warcs_for_job(
@@ -105,57 +177,53 @@ def discover_all_warcs_for_job(
     """
     host_output_dir = Path(job.output_dir).resolve()
 
-    # Check for stable WARCs first
-    stable_dir = get_job_warcs_dir(host_output_dir)
-    if stable_dir.is_dir():
-        stable_warcs: set[Path] = set()
-        for ext in (".warc.gz", ".warc"):
-            for warc_file in stable_dir.rglob(f"*{ext}"):
-                try:
-                    if warc_file.is_file() and warc_file.stat().st_size > 0:
-                        stable_warcs.add(warc_file.resolve())
-                except OSError:
-                    continue
-        if stable_warcs:
-            sorted_warcs = sorted(stable_warcs)
-            return WarcDiscoveryResult(
-                warc_paths=sorted_warcs,
-                source="stable",
-                manifest_valid=True,
-                count=len(sorted_warcs),
-            )
+    stable_warcs = _discover_stable_warcs_for_output_dir(host_output_dir)
 
-    # Fall back to temp directory discovery
     state = CrawlState(host_output_dir, initial_workers=1)
     temp_dirs = state.get_temp_dir_paths()
+    temp_warcs: list[Path] = find_all_warc_files(temp_dirs) if temp_dirs else []
+    fallback_warcs: list[Path] = []
 
-    if not temp_dirs and allow_fallback:
+    if allow_fallback:
         latest = find_latest_temp_dir_fallback(host_output_dir)
-        if latest is not None:
-            temp_dirs = [latest]
-            temp_warcs = find_all_warc_files(temp_dirs)
-            return WarcDiscoveryResult(
-                warc_paths=temp_warcs,
-                source="fallback",
-                manifest_valid=False,
-                count=len(temp_warcs),
-            )
+        temp_dir_set = {path.resolve() for path in temp_dirs}
+        if latest is not None and latest.resolve() not in temp_dir_set:
+            fallback_warcs = find_all_warc_files([latest])
 
-    if temp_dirs:
-        temp_warcs = find_all_warc_files(temp_dirs)
+    groups = [
+        ("stable", stable_warcs),
+        ("temp", temp_warcs),
+        ("fallback", fallback_warcs),
+    ]
+    selected_warcs = _dedupe_warc_paths_by_file_identity(
+        groups,
+        manifest_consolidated_sources=_manifest_consolidated_source_paths(host_output_dir),
+    )
+    warc_paths = [path for _source, path in selected_warcs]
+    source_counts = dict(sorted(Counter(source for source, _path in selected_warcs).items()))
+    if warc_paths:
+        non_empty_sources = list(source_counts)
+        source: Literal["stable", "temp", "fallback", "mixed", "none"]
+        source = (
+            cast(Literal["stable", "temp", "fallback"], non_empty_sources[0])
+            if len(non_empty_sources) == 1
+            else "mixed"
+        )
         return WarcDiscoveryResult(
-            warc_paths=temp_warcs,
-            source="temp",
-            manifest_valid=True,
-            count=len(temp_warcs),
+            warc_paths=warc_paths,
+            source=source,
+            manifest_valid=not bool(fallback_warcs),
+            count=len(warc_paths),
+            source_counts=source_counts,
         )
 
     # No WARCs found
     return WarcDiscoveryResult(
         warc_paths=[],
-        source="stable",
+        source="none",
         manifest_valid=True,
         count=0,
+        source_counts={},
     )
 
 

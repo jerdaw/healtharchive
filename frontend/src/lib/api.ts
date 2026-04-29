@@ -49,6 +49,7 @@ export type SnapshotTimelineItem = ApiSchemas["SnapshotTimelineItemSchema"];
 export type SnapshotTimeline = ApiSchemas["SnapshotTimelineSchema"];
 export type ReplayResolveResponse = ApiSchemas["ReplayResolveSchema"];
 export type SnapshotLatest = ApiSchemas["SnapshotLatestSchema"];
+export type AnnualCoverage = ApiSchemas["AnnualEditionCoverageSchema"];
 
 export class ApiError extends Error {
   status: number;
@@ -227,6 +228,20 @@ export async function fetchUsageMetrics(): Promise<UsageMetrics> {
     cache: "force-cache",
     next: { revalidate: STANDARD_REVALIDATE_SECONDS },
   });
+}
+
+export async function fetchAnnualCoverage(
+  sourceCode: string,
+  year: number,
+): Promise<AnnualCoverage> {
+  return fetchJson<AnnualCoverage>(
+    `/api/coverage/${encodeURIComponent(sourceCode)}/${encodeURIComponent(String(year))}`,
+    undefined,
+    {
+      cache: "force-cache",
+      next: { revalidate: STANDARD_REVALIDATE_SECONDS },
+    },
+  );
 }
 
 export type ChangeQueryParams = {
