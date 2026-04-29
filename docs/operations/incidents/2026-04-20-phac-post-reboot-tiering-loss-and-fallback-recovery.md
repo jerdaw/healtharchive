@@ -162,19 +162,24 @@ What we did to confirm we’re actually healthy (and not just “running”).
 ## Open questions (still unknown)
 
 - Should PHAC remain Browsertrix-first in future annual campaigns, or should
-  the source default change once the current fallback run is complete?
+  the source default change now that the 2026 fallback run has been indexed?
 - Is the temporary PHAC `public-health-notices` exclusion still necessary after
-  the fallback run finishes and coverage is reviewed?
+  the fallback run has been indexed and coverage is reviewed?
 
 ## Action items (TODOs)
 
-- [ ] Monitor PHAC to completion and index it if it finishes successfully (owner=Jeremy Dawson, priority=high, due=2026-04-21)
+- [x] PHAC completion/indexing outcome: the fallback crawl completed,
+  `reconcile-completed-indexing --source phac --limit 1` was rerun under
+  `nohup`, and job `7` indexed successfully on 2026-04-29 with `121940`
+  snapshots; the PHAC annual edition report now shows `research_ready` with
+  `20723` captured URLs. (completed 2026-04-29)
+  (owner=Jeremy Dawson, priority=high, due=2026-04-21)
 - [x] Index HC job `6` once the annual run window allows it (completed 2026-04-23; `262567` snapshots indexed) (owner=Jeremy Dawson, priority=high, due=2026-04-21)
 - [x] Finish the HC replay indexing/ownership repair: `replay-reconcile --apply --job-id 6` succeeded once rerun as root, and `c9600341` redeployed the replay-reconcile systemd template so future automation no longer runs as `haadmin` (completed 2026-04-23) (owner=Jeremy Dawson, priority=high, due=2026-04-24)
 - [x] Deploy the API-side browse-URL suppression patch so public `browseUrl` fields are omitted whenever a job’s replay collection is missing or incomplete (completed 2026-04-23 via `c9600341`) (owner=Jeremy Dawson, priority=high, due=2026-04-24)
 - [x] Fix the remaining HC public replay `502`: repaired replay ownership/readiness, then fixed the malformed archived cookie-header path by loading replay header sanitization through `PYTHONPATH=/webarchive`; public replay and `browseUrl` verification now pass (completed 2026-04-23 via `c9600341`, `8f9558d6`, and `ca085c58`) (owner=Jeremy Dawson, priority=high, due=2026-04-24)
 - [x] Stabilize raw snapshot public verification: optimized WARC lookup and updated the verifier to handle transport timeouts cleanly with a dedicated raw-snapshot timeout budget; `./scripts/verify_public_surface.py` now passes with default settings on production (completed 2026-04-23 via `2b0b4001`, `88e97736`, and `a27a0d05`) (owner=Jeremy Dawson, priority=high, due=2026-04-24)
-- [ ] Revisit PHAC’s long-term Browsertrix/default-backend strategy after the current fallback run completes (owner=Jeremy Dawson, priority=medium, due=2026-04-30)
+- [ ] Revisit PHAC’s long-term Browsertrix/default-backend strategy after reviewing the indexed fallback coverage (owner=Jeremy Dawson, priority=medium, due=2026-04-30)
 - [ ] Restart the worker during the next safe maintenance window after PHAC/CIHR are idle so the deployed `a3e0dece` worker-side rowcount/logging fix becomes active in production (owner=Jeremy Dawson, priority=medium, due=2026-05-15)
 - [ ] Review the preserved VPS branch `prod-pre-a3e0dece` and decide whether its detached pre-deploy commits (`d8e2534e`, `607df02b`, `48cfe3f9`) need cherry-pick, replacement, or explicit retirement (owner=Jeremy Dawson, priority=medium, due=2026-05-01)
 - [ ] Convert annual output dirs from direct `sshfs` mounts to bind mounts during the next acceptable maintenance window after the annual crawl is idle (owner=Jeremy Dawson, priority=medium, due=2026-05-15)

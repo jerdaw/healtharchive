@@ -18,24 +18,23 @@ Active plans:
 
 Treat the following as the current "what's next" order across roadmap docs:
 
-1. Monitor PHAC and CIHR to completion, then index the completed annual jobs.
-   - PHAC is no longer parked: as of 2026-04-20 it is running under the
-     validated `playwright_warc` fallback path after post-reboot storage repair
-     and Browsertrix seed-failure confirmation.
+1. Monitor CIHR to completion, then index CIHR and regenerate its annual
+   edition report.
+   - HC and PHAC are indexed, search-ready, and research-ready as of
+     2026-04-29.
+   - CIHR is the only remaining active annual blocker.
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
-2. Convert annual output dirs from direct `sshfs` mounts to bind mounts during a later maintenance window.
+2. Convert annual output dirs from direct `sshfs` mounts to bind mounts during
+   a later maintenance window.
    - This remains intentionally deferred until the active annual crawl is idle.
    - Canonical plan: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
-3. Keep CIHR under observation on the repaired 2026-04-14 scoped attempt; no further live intervention is planned unless it regresses.
-   - Settled outcome: the scope/content-cost diagnosis loop is complete, the
-     maintenance-window remediation is live, and the annual job remains under
-     observation on that repaired scope.
-   - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
-4. After the crawl/ops path is stabilized, the main project emphasis is the active admissions-strengthening plan.
-   - That plan is the canonical home for the next external-validation, methods-paper, and dataset-release work.
+3. After the crawl/ops path is stabilized, the main project emphasis is the
+   active admissions-strengthening plan.
+   - That plan is the canonical home for the next external-validation,
+     methods-paper, and dataset-release work.
    - Canonical plan: `2026-02-admissions-strengthening-plan.md`
-5. Any docs-site migration planning should use the archived prep inventory as
+4. Any docs-site migration planning should use the archived prep inventory as
    the starting point, but the actual generator swap remains a separate change
    series.
    - Canonical reference:
@@ -47,15 +46,6 @@ Some plans are "implemented in repo" but still require a short, operator-run mai
 
 Current known items:
 
-- PHAC annual-crawl follow-up after the 2026-03-23 canada.ca incident:
-  - Current state: job `7` (`phac-20260101`) is running under
-    `playwright_warc` after the 2026-04-20 recovery session.
-  - Settled repo-side outcome: PHAC storage repair, fallback probing, rescue
-    visibility, and stable-fallback-WARC numbering are now all deployed
-    together.
-  - Next action: monitor the current fallback run and index it on successful
-    completion.
-  - Status tracking + next-step guidance: `../operations/healtharchive-ops-roadmap.md`
 - CIHR scope/content-cost follow-through:
   - Current state: the repo-side remediation completed on 2026-04-14 via a
     controlled maintenance window, and job `8` continues running on that
@@ -63,9 +53,18 @@ Current known items:
   - Settled outcome: job `8` restarted under source-managed custom scope and
     the new combined log shows clean HTML frontier pages without live
     `wbdisable=false`, `asl-video`, or document/media frontier expansion.
-  - Next action: monitor only; no further maintenance step is queued unless the
-    repaired run regresses.
+  - Next action: monitor while fresh progress continues; after it completes,
+    run detached indexing, regenerate the CIHR annual edition report, and then
+    verify global annual search readiness.
   - Historical plan: `implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
+- PHAC annual-crawl policy follow-up after the 2026-03-23 canada.ca incident:
+  - Current state: job `7` indexed successfully on 2026-04-29 through the
+    labeled `playwright_warc` fallback path, and the PHAC annual edition report
+    is research-ready.
+  - Next action: review indexed fallback coverage, decide the future PHAC
+    Browsertrix/default-backend posture, and decide whether the temporary
+    `public-health-notices` exclusion is still needed.
+  - Status tracking + next-step guidance: `../operations/healtharchive-ops-roadmap.md`
 - Annual output-dir mount topology conversion (direct `sshfs` mounts → bind mounts):
   - Current state: the active 2026 annual job output dirs are mounted directly via `sshfs` (higher Errno 107/staleness risk).
   - Next action: convert to bind mounts after the 2026 annual crawl is idle.
@@ -75,6 +74,8 @@ Current known items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Annual edition recovery handoff docs:
+  `implemented/2026-04-29-annual-edition-recovery-handoff-docs.md`
 - Repo audit truth maintenance: `implemented/2026-04-24-repo-audit-truth-maintenance.md`
 - Frontend + backend monorepo consolidation: `implemented/2026-04-14-healtharchive-monorepo-consolidation-plan.md`
 - Monorepo phase 0 inventory and execution checklist: `implemented/2026-04-14-healtharchive-monorepo-phase0-inventory.md`

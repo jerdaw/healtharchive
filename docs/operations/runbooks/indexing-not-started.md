@@ -59,12 +59,27 @@ state.
 ## Mitigation
 
 1. If the job is still `completed` and WARCs are visible on the hot path, run
-   the idempotent reconciler first:
+   the idempotent reconciler first. On production, always source the backend
+   environment first so the CLI uses PostgreSQL rather than falling back to the
+   repo-local SQLite default:
 
    ```bash
    cd /opt/healtharchive
    set -a; source /etc/healtharchive/backend.env; set +a
    /opt/healtharchive/.venv/bin/healtharchive reconcile-completed-indexing --limit 5
+   ```
+
+   For a large single source/job, prefer a detached run with a captured log:
+
+   ```bash
+   cd /opt/healtharchive
+   set -a; source /etc/healtharchive/backend.env; set +a
+   mkdir -p /srv/healtharchive/ops/manual-runs
+   ts="$(date -u +%Y%m%dT%H%M%SZ)"
+   nohup ./.venv/bin/healtharchive reconcile-completed-indexing --source <source> --limit 1 \
+     > "/srv/healtharchive/ops/manual-runs/<source>-reindex-${ts}.log" 2>&1 &
+   echo "pid=$! log=/srv/healtharchive/ops/manual-runs/<source>-reindex-${ts}.log"
+   renice +10 -p "$!"
    ```
 
    If you need to target one job only, use `index-job --id <JOB_ID>` after
@@ -91,6 +106,14 @@ state.
 
 - Large indexing runs can take hours and may not show intermediate committed
   progress from a second shell.
+- During a healthy long indexing run, high CPU plus increasing
+  `/proc/<pid>/io` `rchar` means the process is still reading/parsing WARC
+  records. Avoid starting duplicate reconciles for the same source/job.
+- If the indexing client process exits unexpectedly and the job did not commit,
+  check `pg_stat_activity` for stale `idle in transaction` backends and
+  blockers before terminating anything. Terminate only the abandoned backend
+  after confirming there is no live reconcile process and the job remains
+  unindexed.
 - A negative page-group count in older logs (for example `Rebuilt -2 page
   group(s)`) was a rowcount/reporting bug, not negative real work. Newer code
   formats that case as `unknown`.

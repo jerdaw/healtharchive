@@ -158,11 +158,35 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - First-pass implementation now models `{source, year}` as `AnnualEdition`,
     attaches legacy 2026 jobs as salvage shards, reconciles completed-job
     indexing, and generates coverage/provenance artifacts.
+  - Live 2026 salvage status as of 2026-04-29:
+    - HC and PHAC are indexed, search-ready, and research-ready with labeled
+      fallback provenance.
+    - CIHR remains in progress until its crawl completes, is indexed, and its
+      annual edition report is regenerated.
   - Remaining work: richer target ledger sources (sitemaps/public inventories),
-    operator UI for shard split/retry decisions, and stricter watchdog budgets
-    once live deployment validates the new model.
+    path/language shard creation for future campaigns, operator UI for shard
+    split/retry/acceptance decisions, stricter watchdog `needs_review`
+    escalation for repeated recoveries, and final production validation after
+    CIHR completes.
+- Large indexing robustness follow-through.
+  - Context: the 2026 PHAC reindex succeeded only after being rerun under
+    `nohup`; the first interactive attempt left a stale PostgreSQL
+    `idle in transaction` backend after the client died.
+  - Remaining work:
+    - add progress heartbeats/logging during long WARC indexing runs
+    - evaluate safer transaction/checkpoint behavior for very large jobs, or
+      document why the current all-at-once transaction remains required
+    - add clearer stale-transaction detection/remediation guidance for manual
+      reconciles
+    - provide a first-class detached-run wrapper or runbook pattern for
+      production `reconcile-completed-indexing`
+    - ensure operators can distinguish healthy CPU-bound parsing from a stale
+      DB transaction without ad hoc `/proc` and `pg_stat_activity` archaeology
 - Resolve the long-term PHAC Browsertrix compatibility posture and re-evaluate the temporary `public-health-notices` exclusion.
   - Context: the 2026 PHAC annual crawl first hit sustained `net::ERR_HTTP2_PROTOCOL_ERROR` churn on canada.ca. On 2026-04-20, a fresh Browsertrix retry still failed at both seed documents, while the validated `playwright_warc` fallback succeeded and the live PHAC job resumed healthy progress under fallback.
+  - Live 2026 outcome: the PHAC fallback crawl was indexed on 2026-04-29 with
+    `121940` snapshot rows; the annual edition report marks PHAC
+    `research_ready` with labeled fallback provenance.
   - Current repo status:
     - the monitor/control-plane gap is closed in git, so stages that emit no
       `crawlStatus` for a full stall window now trigger an explicit `no_stats`
@@ -176,10 +200,10 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Immediate follow-through is tracked in `../operations/healtharchive-ops-roadmap.md`; keep live-run monitoring and maintenance-window cutovers there rather than duplicating them in this backlog.
   - Remaining work:
     - decide whether PHAC should remain Browsertrix-first for future annual
-      campaigns or adopt a different default/fallback posture after the current
-      fallback run finishes
+      campaigns or adopt a different default/fallback posture after reviewing
+      the indexed fallback coverage
     - determine whether any remaining Browsertrix-only compatibility work is
-      worth doing once the current fallback run is fully measured
+      worth doing now that the fallback run has been measured
     - decide whether the temporary exclusion is still needed once post-run PHAC
       coverage is reviewed
     - keep the operator path centered on `annual-status`, `list-jobs`, and

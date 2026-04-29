@@ -215,27 +215,25 @@ Completed so far:
 - Public surface verification passed after the backend deploy.
 - PHAC live process verification showed the reconciled `scopeExcludeRx` was active after restart.
 - CIHR remained healthy and was not interrupted during PHAC-specific recovery.
+- The 2026 PHAC campaign was ultimately salvaged through the labeled
+  `playwright_warc` fallback path: job `7` indexed successfully on 2026-04-29
+  with `121940` snapshots, and the annual edition report marks PHAC
+  `research_ready`.
 
 Still required:
 
-- Redeploy the new poisoned-resume fallback before the next HC/PHAC retry so
-  the VPS skips the known-bad resume queue automatically.
-- Determine whether PHAC still reproduces the same failure from a deliberately
-  fresh crawl phase after the poisoned queue is skipped automatically.
 - Decide whether the temporary `public-health-notices` exclusion remains
-  justified once the deeper crawler/runtime issue is understood.
-- Design the next repo-side mitigation only if the fresh-phase path still shows
-  the deeper canada.ca runtime/state issue.
+  justified after reviewing indexed fallback coverage.
+- Decide whether future PHAC campaigns should remain Browsertrix-first with
+  fallback or use a different default posture. The 2026 fallback success does
+  not prove Browsertrix compatibility is resolved.
 
 ## Open questions (still unknown)
 
-- Why does the current PHAC resume queue/state terminate almost immediately with
-  `crawled=0 total=2 failed=2` even when the managed Browsertrix config is
-  present on resumed phases?
-- Is the current PHAC resume queue/state itself poisoned, or would the same
-  failure reproduce from a truly fresh crawl phase after resume is skipped?
-- Once the deeper runtime/state issue is understood, is the temporary
-  `public-health-notices` exclusion still necessary?
+- Should future PHAC annual campaigns remain Browsertrix-first with labeled
+  fallback, or should PHAC move to a different default backend?
+- Is the temporary `public-health-notices` exclusion still necessary after the
+  indexed fallback coverage is reviewed?
 
 ## Action items (TODOs)
 
@@ -254,8 +252,8 @@ Still required:
   `crawled=0 total=2 failed=2` empty-WARC resume state and restart from a new
   crawl phase with consolidation. (priority=medium)
 - [ ] Decide whether the temporary PHAC `public-health-notices` exclusion can be removed after live verification. (priority=medium)
-- [ ] Capture the current deeper PHAC no-progress failure mode and design a
-  follow-up mitigation before any future restart. (priority=medium)
+- [ ] Decide the future PHAC Browsertrix/default-backend posture after reviewing
+  the successful 2026 fallback index and coverage report. (priority=medium)
 - [x] Add hard-stop protections so HC/PHAC do not endlessly loop on poisoned
   resume state or stale `running` rows. (priority=high)
 
