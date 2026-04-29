@@ -1063,6 +1063,55 @@
         }
       }
     },
+    "/api/coverage/{source_code}/{year}": {
+      "get": {
+        "summary": "Get Annual Coverage",
+        "description": "Return public annual edition coverage/provenance summary for researchers.",
+        "operationId": "get_annual_coverage_api_coverage__source_code___year__get",
+        "parameters": [
+          {
+            "name": "source_code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "title": "Source Code"
+            }
+          },
+          {
+            "name": "year",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Year"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnualEditionCoverageSchema"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/sources/{source_code}/preview": {
       "get": {
         "summary": "Get Source Preview",
@@ -1666,6 +1715,286 @@
         }
       }
     },
+    "/api/admin/annual-editions": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "List Annual Editions",
+        "description": "List annual editions with coverage readiness summaries.",
+        "operationId": "list_annual_editions_api_admin_annual_editions_get",
+        "parameters": [
+          {
+            "name": "source",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Source"
+            }
+          },
+          {
+            "name": "year",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "integer"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Year"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "maximum": 500,
+              "minimum": 1,
+              "default": 50,
+              "title": "Limit"
+            }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0,
+              "title": "Offset"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "X-Admin-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnualEditionListResponseSchema"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/annual-editions/{edition_id}": {
+      "get": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Get Annual Edition",
+        "operationId": "get_annual_edition_api_admin_annual_editions__edition_id__get",
+        "parameters": [
+          {
+            "name": "edition_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Edition Id"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "X-Admin-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnualEditionAdminSchema"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/annual-editions/jobs/{job_id}/accept-gap": {
+      "post": {
+        "tags": [
+          "admin"
+        ],
+        "summary": "Accept Annual Shard Gap",
+        "description": "Accept a failed shard as a documented gap and regenerate edition coverage.",
+        "operationId": "accept_annual_shard_gap_api_admin_annual_editions_jobs__job_id__accept_gap_post",
+        "parameters": [
+          {
+            "name": "job_id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "title": "Job Id"
+            }
+          },
+          {
+            "name": "reason",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "minLength": 3,
+              "title": "Reason"
+            }
+          },
+          {
+            "name": "Authorization",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "Authorization"
+            }
+          },
+          {
+            "name": "X-Admin-Token",
+            "in": "header",
+            "required": false,
+            "schema": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "title": "X-Admin-Token"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successful Response",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AnnualEditionAdminSchema"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validation Error",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HTTPValidationError"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/jobs/{job_id}": {
       "get": {
         "tags": [
@@ -2226,6 +2555,417 @@
   },
   "components": {
     "schemas": {
+      "AnnualEditionAdminSchema": {
+        "properties": {
+          "editionId": {
+            "type": "integer",
+            "title": "Editionid"
+          },
+          "sourceCode": {
+            "type": "string",
+            "title": "Sourcecode"
+          },
+          "sourceName": {
+            "type": "string",
+            "title": "Sourcename"
+          },
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "searchReady": {
+            "type": "boolean",
+            "title": "Searchready"
+          },
+          "researchReady": {
+            "type": "boolean",
+            "title": "Researchready"
+          },
+          "intendedUrlCount": {
+            "type": "integer",
+            "title": "Intendedurlcount"
+          },
+          "capturedUrlCount": {
+            "type": "integer",
+            "title": "Capturedurlcount"
+          },
+          "failedUrlCount": {
+            "type": "integer",
+            "title": "Failedurlcount"
+          },
+          "missingUrlCount": {
+            "type": "integer",
+            "title": "Missingurlcount"
+          },
+          "excludedUrlCount": {
+            "type": "integer",
+            "title": "Excludedurlcount"
+          },
+          "fallbackUrlCount": {
+            "type": "integer",
+            "title": "Fallbackurlcount"
+          },
+          "shardCount": {
+            "type": "integer",
+            "title": "Shardcount"
+          },
+          "indexedShardCount": {
+            "type": "integer",
+            "title": "Indexedshardcount"
+          },
+          "needsReviewShardCount": {
+            "type": "integer",
+            "title": "Needsreviewshardcount"
+          },
+          "backendCounts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Backendcounts"
+          },
+          "coverageSummary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Coveragesummary"
+          },
+          "generatedAt": {
+            "anyOf": [
+              {
+                "type": "string",
+                "format": "date-time"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generatedat"
+          },
+          "targetLedgerPath": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Targetledgerpath"
+          },
+          "captureManifestPath": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capturemanifestpath"
+          },
+          "coverageReportJsonPath": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coveragereportjsonpath"
+          },
+          "coverageReportMdPath": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coveragereportmdpath"
+          },
+          "shards": {
+            "items": {
+              "$ref": "#/components/schemas/AnnualEditionShardSchema"
+            },
+            "type": "array",
+            "title": "Shards"
+          }
+        },
+        "type": "object",
+        "required": [
+          "editionId",
+          "sourceCode",
+          "sourceName",
+          "year",
+          "status",
+          "searchReady",
+          "researchReady",
+          "intendedUrlCount",
+          "capturedUrlCount",
+          "failedUrlCount",
+          "missingUrlCount",
+          "excludedUrlCount",
+          "fallbackUrlCount",
+          "shardCount",
+          "indexedShardCount",
+          "needsReviewShardCount",
+          "backendCounts",
+          "coverageSummary",
+          "generatedAt",
+          "targetLedgerPath",
+          "captureManifestPath",
+          "coverageReportJsonPath",
+          "coverageReportMdPath"
+        ],
+        "title": "AnnualEditionAdminSchema"
+      },
+      "AnnualEditionCoverageSchema": {
+        "properties": {
+          "editionId": {
+            "type": "integer",
+            "title": "Editionid"
+          },
+          "sourceCode": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcecode"
+          },
+          "sourceName": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Sourcename"
+          },
+          "year": {
+            "type": "integer",
+            "title": "Year"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "searchReady": {
+            "type": "boolean",
+            "title": "Searchready"
+          },
+          "researchReady": {
+            "type": "boolean",
+            "title": "Researchready"
+          },
+          "intendedUrlCount": {
+            "type": "integer",
+            "title": "Intendedurlcount"
+          },
+          "capturedUrlCount": {
+            "type": "integer",
+            "title": "Capturedurlcount"
+          },
+          "failedUrlCount": {
+            "type": "integer",
+            "title": "Failedurlcount"
+          },
+          "missingUrlCount": {
+            "type": "integer",
+            "title": "Missingurlcount"
+          },
+          "excludedUrlCount": {
+            "type": "integer",
+            "title": "Excludedurlcount"
+          },
+          "fallbackUrlCount": {
+            "type": "integer",
+            "title": "Fallbackurlcount"
+          },
+          "shardCount": {
+            "type": "integer",
+            "title": "Shardcount"
+          },
+          "indexedShardCount": {
+            "type": "integer",
+            "title": "Indexedshardcount"
+          },
+          "needsReviewShardCount": {
+            "type": "integer",
+            "title": "Needsreviewshardcount"
+          },
+          "backendCounts": {
+            "additionalProperties": {
+              "type": "integer"
+            },
+            "type": "object",
+            "title": "Backendcounts"
+          },
+          "coverageSummary": {
+            "additionalProperties": true,
+            "type": "object",
+            "title": "Coveragesummary"
+          },
+          "generatedAt": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Generatedat"
+          }
+        },
+        "type": "object",
+        "required": [
+          "editionId",
+          "sourceCode",
+          "sourceName",
+          "year",
+          "status",
+          "searchReady",
+          "researchReady",
+          "intendedUrlCount",
+          "capturedUrlCount",
+          "failedUrlCount",
+          "missingUrlCount",
+          "excludedUrlCount",
+          "fallbackUrlCount",
+          "shardCount",
+          "indexedShardCount",
+          "needsReviewShardCount",
+          "backendCounts",
+          "coverageSummary",
+          "generatedAt"
+        ],
+        "title": "AnnualEditionCoverageSchema"
+      },
+      "AnnualEditionListResponseSchema": {
+        "properties": {
+          "items": {
+            "items": {
+              "$ref": "#/components/schemas/AnnualEditionAdminSchema"
+            },
+            "type": "array",
+            "title": "Items"
+          },
+          "total": {
+            "type": "integer",
+            "title": "Total"
+          },
+          "limit": {
+            "type": "integer",
+            "title": "Limit"
+          },
+          "offset": {
+            "type": "integer",
+            "title": "Offset"
+          }
+        },
+        "type": "object",
+        "required": [
+          "items",
+          "total",
+          "limit",
+          "offset"
+        ],
+        "title": "AnnualEditionListResponseSchema"
+      },
+      "AnnualEditionShardSchema": {
+        "properties": {
+          "jobId": {
+            "type": "integer",
+            "title": "Jobid"
+          },
+          "name": {
+            "type": "string",
+            "title": "Name"
+          },
+          "status": {
+            "type": "string",
+            "title": "Status"
+          },
+          "shardKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shardkey"
+          },
+          "shardKind": {
+            "type": "string",
+            "title": "Shardkind"
+          },
+          "acceptanceState": {
+            "type": "string",
+            "title": "Acceptancestate"
+          },
+          "captureBackend": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Capturebackend"
+          },
+          "indexedPageCount": {
+            "type": "integer",
+            "title": "Indexedpagecount"
+          },
+          "pagesCrawled": {
+            "type": "integer",
+            "title": "Pagescrawled"
+          },
+          "pagesTotal": {
+            "type": "integer",
+            "title": "Pagestotal"
+          },
+          "pagesFailed": {
+            "type": "integer",
+            "title": "Pagesfailed"
+          },
+          "retryCount": {
+            "type": "integer",
+            "title": "Retrycount"
+          }
+        },
+        "type": "object",
+        "required": [
+          "jobId",
+          "name",
+          "status",
+          "shardKey",
+          "shardKind",
+          "acceptanceState",
+          "captureBackend",
+          "indexedPageCount",
+          "pagesCrawled",
+          "pagesTotal",
+          "pagesFailed",
+          "retryCount"
+        ],
+        "title": "AnnualEditionShardSchema"
+      },
       "ArchiveStatsSchema": {
         "properties": {
           "snapshotsTotal": {
@@ -3527,6 +4267,61 @@
             ],
             "title": "Statefilepath"
           },
+          "editionId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Editionid"
+          },
+          "shardKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shardkey"
+          },
+          "shardKind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shardkind"
+          },
+          "acceptanceState": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acceptancestate"
+          },
+          "coverageReportPath": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Coveragereportpath"
+          },
           "config": {
             "anyOf": [
               {
@@ -3822,6 +4617,50 @@
               }
             ],
             "title": "Storagescannedat"
+          },
+          "editionId": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Editionid"
+          },
+          "shardKey": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shardkey"
+          },
+          "shardKind": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Shardkind"
+          },
+          "acceptanceState": {
+            "anyOf": [
+              {
+                "type": "string"
+              },
+              {
+                "type": "null"
+              }
+            ],
+            "title": "Acceptancestate"
           }
         },
         "type": "object",
@@ -4368,6 +5207,16 @@
               }
             ],
             "title": "Statuscode"
+          },
+          "captureBackend": {
+            "type": "string",
+            "title": "Capturebackend",
+            "default": "browsertrix"
+          },
+          "captureFidelity": {
+            "type": "string",
+            "title": "Capturefidelity",
+            "default": "high"
           }
         },
         "type": "object",
@@ -4511,6 +5360,16 @@
               }
             ],
             "title": "Snippet"
+          },
+          "captureBackend": {
+            "type": "string",
+            "title": "Capturebackend",
+            "default": "browsertrix"
+          },
+          "captureFidelity": {
+            "type": "string",
+            "title": "Capturefidelity",
+            "default": "high"
           },
           "pageSnapshotsCount": {
             "anyOf": [

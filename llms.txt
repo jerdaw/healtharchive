@@ -1159,6 +1159,7 @@ deployment runbook, see `deployment/production-single-vps.md`.
 
 - **Backend package** (`src/ha_backend/`):
   - Orchestrates crawl **jobs** using `archive_tool` as a subprocess.
+  - Groups annual jobs into **AnnualEdition** records for `{source, year}`.
   - Stores job and snapshot metadata in a relational database via SQLAlchemy.
   - Indexes WARCs into `Snapshot` rows.
   - Exposes HTTP APIs via FastAPI.
@@ -1193,15 +1194,25 @@ deployment runbook, see `deployment/production-single-vps.md`.
        final ZIM build (depending on its configuration).
 
 3. **Indexing (WARCs → Snapshot)**:
-   - Worker calls `index_job(job_id)` when crawl succeeds.
+   - Worker calls `index_job(job_id)` when crawl succeeds, and also
+     reconciles `completed` jobs that were started outside the worker.
    - Backend:
-     - Uses `CrawlState` + `find_all_warc_files` to locate WARCs under
-       `output_dir`.
+     - Consolidates readable temp WARCs into stable storage where possible.
+     - Uses union WARC discovery across stable, temp, and fallback outputs.
      - Streams WARC records, extracts HTML, text, language, etc.
      - Writes `Snapshot` rows for each captured page.
      - Marks job `indexed` with `indexed_page_count`.
 
-4. **Change tracking (Snapshot → Change events)**:
+4. **Annual coverage reporting**:
+   - Annual edition services attach legacy/full-site jobs as salvage shards or
+     create deterministic shard jobs from configured source seeds.
+   - Coverage reports write durable JSON/Markdown artifacts next to crawl
+     outputs and summarize intended, captured, excluded, and review-needed
+     URLs.
+   - Public APIs expose the researcher-safe summary. Admin APIs expose shard
+     diagnostics and acceptance state.
+
+5. **Change tracking (Snapshot → Change events)**:
    - A background task (`healtharchive compute-changes`) computes **precomputed**
      change events between adjacent captures of the same `normalized_url_group`.
    - Outputs `SnapshotChange` rows with:
@@ -1324,18 +1335,65 @@ Relationships:
 
 - `jobs: List[ArchiveJob]` – all jobs for this source.
 - `snapshots: List[Snapshot]` – all snapshots for this source.
+- `annual_editions: List[AnnualEdition]` – one row per source/year annual
+  edition.
 
-### 3.2 ArchiveJob
+### 3.2 AnnualEdition
 
-Represents a single `archive_tool` run (or family of runs) for a source.
+Represents the researcher-facing annual archive for one source/year. It is
+usually built from multiple `ArchiveJob` shards plus any legacy full-site
+salvage jobs.
+
+Key fields:
+
+- Identity:
+  - `id: int` (PK)
+  - `source_id: int` → FK to `sources.id`
+  - `year: int`
+
+- Readiness:
+  - `status: str` – edition lifecycle (`planned`, `in_progress`,
+    `search_ready`, `research_ready`, `needs_review`, etc.).
+  - `search_ready: bool` – all blocking shard jobs have indexed searchable
+    snapshots.
+  - `research_ready: bool` – coverage/provenance review has accepted the
+    documented result.
+
+- Coverage summary:
+  - `intended_url_count`, `captured_url_count`, `failed_url_count`,
+    `excluded_url_count`
+  - `backend_counts: JSON | None`
+  - `coverage_summary: JSON | None`
+
+- Artifacts:
+  - `target_ledger_path`
+  - `capture_manifest_path`
+  - `coverage_report_json_path`
+  - `coverage_report_md_path`
+
+Relationships:
+
+- `source: Source`
+- `jobs: List[ArchiveJob]`
+
+### 3.3 ArchiveJob
+
+Represents a single `archive_tool` run for a source. In annual campaigns it is
+also a shard belonging to an `AnnualEdition`.
 
 Key fields:
 
 - Identity:
   - `id: int` (PK)
   - `source_id: int | None` → FK to `sources.id`
+  - `edition_id: int | None` → FK to `annual_editions.id`
   - `name: str` – must match `--name` for `archive_tool`; used in ZIM naming.
   - `output_dir: str` – host path used as `--output-dir` for `archive_tool`.
+  - `shard_key: str | None` – deterministic shard identifier within an edition.
+  - `shard_kind: str | None` – e.g. `path-language`, `legacy-full-site`,
+    `fallback-fill`.
+  - `acceptance_state: str | None` – `pending`, `needs_review`, `accepted`,
+    `accepted_gap`, or `excluded`.
 
 - Lifecycle/status:
   - `status: str` – high‑level state; typical values:
@@ -1386,6 +1444,7 @@ Key fields:
   - `final_zim_path: str | None` – if a ZIM is produced by `archive_tool` or manual `warc2zim`.
   - `combined_log_path: str | None` – path to the latest combined log, used for stats/debugging.
   - `state_file_path: str | None` – path to `.archive_state.json` within `output_dir` (may be `None` after cleanup).
+  - `coverage_report_path: str | None` – shard or edition report artifact.
 
 - Cleanup state (future):
   - `cleanup_status: str` – describes whether any cleanup has occurred:
@@ -1397,9 +1456,10 @@ Key fields:
 Relationships:
 
 - `source: Source | None` – parent source.
+- `edition: AnnualEdition | None` – annual edition this job contributes to.
 - `snapshots: List[Snapshot]` – all snapshots produced by this job.
 
-### 3.3 Snapshot
+### 3.4 Snapshot
 
 Represents a single captured web page (an HTML response) extracted from a WARC.
 
@@ -1423,6 +1483,12 @@ Key fields:
   - `title: str | None` – extracted from `<title>` or headings.
   - `snippet: str | None` – short preview text.
   - `language: str | None` – ISO language (e.g. `"en"`, `"fr"`).
+  - `capture_backend: str | None` – backend that produced the capture
+    (`browsertrix`, `playwright_warc`, etc.).
+  - `capture_fidelity: str | None` – fidelity label used in reports and public
+    exports (`high`, `fallback`, `unknown`).
+  - `provenance_json: JSON | None` – structured capture provenance, including
+    job/shard metadata.
 
 - Storage / replay:
   - `warc_path: str` – path to the `.warc.gz` file on disk.
@@ -2400,8 +2466,11 @@ All commands are available via the `healtharchive` entrypoint.
 
 - Persistent jobs (DB‑backed):
   - `create-job --source CODE` – create `ArchiveJob` using registry defaults.
-  - `run-db-job --id ID` – run `archive_tool` for an existing job.
+  - `run-db-job --id ID` – run `archive_tool` for an existing job, then index
+    it on crawl success unless `--no-index` is used.
   - `index-job --id ID` – index an existing job’s WARCs into snapshots.
+  - `reconcile-completed-indexing` – idempotently index completed jobs that were
+    started outside the worker.
   - `register-job-dir --source CODE --output-dir PATH [--name NAME]` –
     attach a DB `ArchiveJob` to an existing archive_tool output directory
     (useful when a crawl has already been run and you want to index its
@@ -2423,6 +2492,16 @@ All commands are available via the `healtharchive` entrypoint.
   - `replay-index-job --id ID` – create/refresh the pywb collection + CDX index
     for a job (so snapshots can be browsed via replay).
   - `start-worker [--poll-interval N] [--once]` – start the worker loop.
+
+- Annual editions and shards:
+  - `salvage-annual-edition --year YEAR` – attach existing annual jobs as
+    legacy full-site salvage shards and optionally regenerate reports.
+  - `plan-annual-shards --year YEAR [--apply]` – plan or create deterministic
+    edition shard jobs from source seeds.
+  - `annual-edition-report` – generate or display edition coverage/provenance
+    reports.
+  - `accept-annual-shard-gap --job-id ID --reason TEXT` – mark a reviewed shard
+    as accepted with a documented gap.
 
 ---
 
