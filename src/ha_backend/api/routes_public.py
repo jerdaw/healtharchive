@@ -1613,10 +1613,19 @@ def _search_snapshots_inner(
         else_=-1,
     )
 
+    skip_page_signals_for_fast_default_rank = (
+        ranking is None
+        and use_postgres_fts
+        and effective_sort == SearchSort.relevance
+        and rank_text is not None
+        and classify_query_mode(rank_text) == QueryMode.broad
+    )
+
     use_page_signals = (
         effective_sort == SearchSort.relevance
         and rank_text is not None
         and score_override is None
+        and not skip_page_signals_for_fast_default_rank
         and _has_table(db, "page_signals")
     )
     use_authority = use_page_signals

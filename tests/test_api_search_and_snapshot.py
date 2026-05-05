@@ -819,6 +819,85 @@ def test_postgres_text_search_uses_stored_search_vector_and_dedup_by_default(
     assert mode == "relevance_fts"
 
 
+def test_postgres_default_text_search_skips_page_signals_for_fast_rank(
+    monkeypatch,
+) -> None:
+    from ha_backend.api import routes_public
+
+    class FakeQuery:
+        def __init__(self) -> None:
+            self.filters: list[Any] = []
+
+        def join(self, *args, **kwargs):  # noqa: ANN002, ANN003
+            return self
+
+        def outerjoin(self, *args, **kwargs):  # noqa: ANN002, ANN003
+            raise AssertionError("default PostgreSQL text search should not join page_signals")
+
+        def filter(self, *criteria):  # noqa: ANN002
+            self.filters.extend(criteria)
+            return self
+
+        def with_entities(self, *args):  # noqa: ANN002
+            return self
+
+        def scalar(self):
+            return 1
+
+        def options(self, *args, **kwargs):  # noqa: ANN002, ANN003
+            return self
+
+        def order_by(self, *args):  # noqa: ANN002
+            return self
+
+        def offset(self, value):  # noqa: ANN001
+            return self
+
+        def limit(self, value):  # noqa: ANN001
+            return self
+
+        def all(self):
+            return []
+
+    class FakeDialect:
+        name = "postgresql"
+
+    class FakeBind:
+        dialect = FakeDialect()
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.query_obj = FakeQuery()
+
+        def get_bind(self):
+            return FakeBind()
+
+        def query(self, *args):  # noqa: ANN002
+            return self.query_obj
+
+    fake_db = FakeSession()
+    monkeypatch.setattr(routes_public, "_has_table", lambda db, table: table == "page_signals")
+    monkeypatch.setattr(routes_public, "_has_column", lambda db, table, column: False)
+
+    response, mode = routes_public._search_snapshots_inner(
+        q="covid",
+        source=None,
+        sort=None,
+        view=None,
+        includeNon2xx=False,
+        includeDuplicates=False,
+        from_date=None,
+        to_date=None,
+        page=1,
+        pageSize=1,
+        ranking=None,
+        db=cast(Session, fake_db),
+    )
+
+    assert response.total == 1
+    assert mode == "relevance_fts"
+
+
 def test_search_sort_newest(tmp_path, monkeypatch) -> None:
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_search_quality_data()
