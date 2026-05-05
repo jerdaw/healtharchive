@@ -7,6 +7,12 @@ from .archive_contract import ArchiveJobConfig
 from .job_registry import get_config_for_source
 
 PROMOTION_REASON_FRESH_FAILURE_BUDGET = "fresh_failure_budget_exhausted"
+WARC_COMPLETE_FINALIZATION_FAILED = "warc_complete_finalization_failed"
+WARC_COMPLETE_FINALIZATION_FAILED_STATUS = "warc-complete-finalization-failed"
+WARC_COMPLETE_FINALIZATION_FAILED_NOTE = (
+    "WARC capture completed; optional ZIM finalization failed and WARC output "
+    "was accepted for indexing"
+)
 
 
 def _normalize_backend(value: object, *, default: str) -> str:
@@ -66,6 +72,8 @@ class CrawlRescueStatus:
             return "fresh-failed"
         if self.crawler_stage == "fallback_exhausted":
             return "fallback-exhausted"
+        if self.crawler_stage == WARC_COMPLETE_FINALIZATION_FAILED:
+            return WARC_COMPLETE_FINALIZATION_FAILED_STATUS
         if self.crawler_stage and self.crawler_stage.endswith("_retry"):
             return "fallback-retry"
         return "normal"
@@ -90,6 +98,8 @@ class CrawlRescueStatus:
             )
         if self.crawler_stage == "fallback_exhausted":
             return f"fallback backend {self.effective_backend} exhausted its retry budget"
+        if self.crawler_stage == WARC_COMPLETE_FINALIZATION_FAILED:
+            return WARC_COMPLETE_FINALIZATION_FAILED_NOTE
         if self.crawler_stage and self.crawler_stage.endswith("_retry"):
             return f"retrying fallback backend {self.effective_backend}"
         return None
@@ -145,11 +155,13 @@ def summarize_crawl_operator_state(
         return CrawlOperatorState(label="waiting-retry", note=rescue.note)
 
     if status == "completed":
+        if rescue.short_status == WARC_COMPLETE_FINALIZATION_FAILED_STATUS:
+            return CrawlOperatorState(label="awaiting-index-warc-complete", note=rescue.note)
         return CrawlOperatorState(label="awaiting-index", note=None)
     if status == "indexing":
         return CrawlOperatorState(label="indexing", note=None)
     if status == "indexed":
-        return CrawlOperatorState(label="search-ready", note=None)
+        return CrawlOperatorState(label="search-ready", note=rescue.note)
     if status == "index_failed":
         return CrawlOperatorState(
             label="index-failed", note="crawl completed; indexing needs attention"
@@ -224,6 +236,8 @@ __all__ = [
     "CrawlOperatorState",
     "CrawlRescueStatus",
     "PROMOTION_REASON_FRESH_FAILURE_BUDGET",
+    "WARC_COMPLETE_FINALIZATION_FAILED",
+    "WARC_COMPLETE_FINALIZATION_FAILED_STATUS",
     "derive_crawl_rescue_status",
     "infer_primary_backend",
     "summarize_crawl_operator_state",

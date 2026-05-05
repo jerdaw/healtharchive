@@ -13,16 +13,19 @@ Active plans:
 
 - Admissions strengthening (OMSAS ABS + CanMEDS, ~12 weeks): `2026-02-admissions-strengthening-plan.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
+- Public search and CIHR follow-through: `2026-05-05-public-search-and-cihr-followthrough.md`
 
 ## Current priority sequence
 
 Treat the following as the current "what's next" order across roadmap docs:
 
-1. Monitor CIHR to completion, then index CIHR and regenerate its annual
-   edition report.
-   - HC and PHAC are indexed, search-ready, and research-ready as of
-     2026-04-29.
-   - CIHR is the only remaining active annual blocker.
+1. Close the post-CIHR public surface and recurrence-prevention follow-through.
+   - All 2026 annual jobs are indexed, search-ready, and research-ready as of
+     2026-05-05.
+   - Remaining work: commit/push/deploy and live-verify the local public search
+     latency fix, verifier fallback, and WARC-complete/ZIM-finalization
+     recurrence prevention; then complete CIHR failed URL review.
+   - Canonical plan: `2026-05-05-public-search-and-cihr-followthrough.md`
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
 2. Convert annual output dirs from direct `sshfs` mounts to bind mounts during
    a later maintenance window.
@@ -47,15 +50,13 @@ Some plans are "implemented in repo" but still require a short, operator-run mai
 Current known items:
 
 - CIHR scope/content-cost follow-through:
-  - Current state: the repo-side remediation completed on 2026-04-14 via a
-    controlled maintenance window, and job `8` continues running on that
-    repaired scope.
-  - Settled outcome: job `8` restarted under source-managed custom scope and
-    the new combined log shows clean HTML frontier pages without live
-    `wbdisable=false`, `asl-video`, or document/media frontier expansion.
-  - Next action: monitor while fresh progress continues; after it completes,
-    run detached indexing, regenerate the CIHR annual edition report, and then
-    verify global annual search readiness.
+  - Current state: job `8` completed WARC capture, was manually accepted after
+    a ZIM finalization failure, and indexed successfully with `557972` pages.
+    The CIHR annual edition is research-ready.
+  - Next action: execute
+    `2026-05-05-public-search-and-cihr-followthrough.md` to deploy and
+    live-verify the local public search latency fix, verifier fallback, and
+    recurrence prevention, then review failed URLs.
   - Historical plan: `implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
 - PHAC annual-crawl policy follow-up after the 2026-03-23 canada.ca incident:
   - Current state: job `7` indexed successfully on 2026-04-29 through the

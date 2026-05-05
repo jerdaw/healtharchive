@@ -267,3 +267,43 @@ def test_annual_status_text_surfaces_operator_state_and_note(tmp_path, monkeypat
     assert "operator_state=waiting-fresh-retry" in out
     assert "backend=browsertrix rescue=fresh-failed" in out
     assert "note: awaiting next fresh browsertrix retry within the configured rescue budget" in out
+
+
+def test_annual_status_surfaces_warc_complete_finalization_acceptance(
+    tmp_path, monkeypatch
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    with get_session() as session:
+        seed_sources(session)
+        session.flush()
+        _create_annual_job(
+            session,
+            source_code="cihr",
+            year=2027,
+            status="indexed",
+            indexed_page_count=557972,
+            crawler_exit_code=4,
+            crawler_status="success",
+            crawler_stage="warc_complete_finalization_failed",
+        )
+
+    json_out = _run_cli(["annual-status", "--year", "2027", "--json", "--sources", "cihr"])
+    payload = json.loads(json_out)
+
+    summary = payload["summary"]
+    assert summary["readyForSearch"] is True
+    assert summary["rescueStates"] == {"warc-complete-finalization-failed": 1}
+    assert summary["operatorStates"] == {"search-ready": 1}
+
+    job = payload["sources"][0]["job"]
+    assert job["rescue"]["status"] == "warc-complete-finalization-failed"
+    assert job["rescue"]["operatorState"] == "search-ready"
+    assert "optional ZIM finalization failed" in job["rescue"]["operatorNote"]
+
+    text_out = _run_cli(["annual-status", "--year", "2027", "--sources", "cihr"])
+    assert "Ready for search: YES" in text_out
+    assert "Rescue states: warc-complete-finalization-failed=1" in text_out
+    assert "operator_state=search-ready" in text_out
+    assert "rescue=warc-complete-finalization-failed" in text_out
+    assert "note: WARC capture completed; optional ZIM finalization failed" in text_out

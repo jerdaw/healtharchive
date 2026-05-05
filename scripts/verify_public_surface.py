@@ -350,12 +350,36 @@ def main(argv: list[str] | None = None) -> int:
                 _fail("api exports enabled=false (expected enabled=true for Phase 8)")
                 failures += 1
 
-    search_url = f"{api_base}/api/search?pageSize=1"
-    search, search_json = _http_json(search_url, timeout_s=timeout_s)
     first_snapshot_id: int | None = None
     browse_url: str | None = None
     raw_snapshot_path: str | None = None
     snapshot_title: str | None = None
+
+    def _capture_snapshot_probe_from_search(
+        search_json: dict[str, Any],
+        *,
+        label: str,
+    ) -> bool:
+        nonlocal first_snapshot_id, browse_url, raw_snapshot_path
+        results = search_json.get("results")
+        if not isinstance(results, list) or not results:
+            return False
+
+        row = results[0] if isinstance(results[0], dict) else {}
+        first_snapshot_id = row.get("id") if isinstance(row.get("id"), int) else None
+        browse_url = row.get("browseUrl") if isinstance(row.get("browseUrl"), str) else None
+        raw_snapshot_path = (
+            row.get("rawSnapshotUrl") if isinstance(row.get("rawSnapshotUrl"), str) else None
+        )
+        _ok(
+            f"api search{label} status=200 "
+            + (f"snapshot_id={first_snapshot_id} " if first_snapshot_id else "")
+            + (f"browseUrl={'yes' if bool(browse_url) else 'no'}" if first_snapshot_id else "")
+        )
+        return first_snapshot_id is not None
+
+    search_url = f"{api_base}/api/search?pageSize=1"
+    search, search_json = _http_json(search_url, timeout_s=timeout_s)
     if search.status != 200 or not isinstance(search_json, dict):
         _fail(f"api search {_format_http_failure(search)} url={search_url}")
         failures += 1
@@ -381,20 +405,30 @@ def main(argv: list[str] | None = None) -> int:
                 _fail(f"api search returned no results url={search_url}")
                 failures += 1
         else:
-            row = results[0] if isinstance(results[0], dict) else {}
-            first_snapshot_id = row.get("id") if isinstance(row.get("id"), int) else None
-            browse_url = row.get("browseUrl") if isinstance(row.get("browseUrl"), str) else None
-            raw_snapshot_path = (
-                row.get("rawSnapshotUrl") if isinstance(row.get("rawSnapshotUrl"), str) else None
-            )
-            _ok(
-                "api search status=200 "
-                + (f"snapshot_id={first_snapshot_id} " if first_snapshot_id else "")
-                + (f"browseUrl={'yes' if bool(browse_url) else 'no'}" if first_snapshot_id else "")
-            )
+            _capture_snapshot_probe_from_search(search_json, label="")
             if not raw_snapshot_path:
                 _fail("api search result missing rawSnapshotUrl (expected non-empty string)")
                 failures += 1
+
+    if first_snapshot_id is None and not args.allow_empty_index:
+        # Keep the primary search failure visible, but try a fast page-level
+        # lookup so one slow search mode does not hide snapshot/raw/replay status.
+        fallback_search_url = f"{api_base}/api/search?pageSize=1&view=pages"
+        fallback_search, fallback_search_json = _http_json(fallback_search_url, timeout_s=timeout_s)
+        if fallback_search.status == 200 and isinstance(fallback_search_json, dict):
+            if not _capture_snapshot_probe_from_search(fallback_search_json, label=" fallback"):
+                _fail(f"api search fallback returned no snapshot id url={fallback_search_url}")
+                failures += 1
+            elif not raw_snapshot_path:
+                _fail(
+                    "api search fallback result missing rawSnapshotUrl (expected non-empty string)"
+                )
+                failures += 1
+        else:
+            _fail(
+                f"api search fallback {_format_http_failure(fallback_search)} url={fallback_search_url}"
+            )
+            failures += 1
 
     if first_snapshot_id is not None:
         detail_url = f"{api_base}/api/snapshot/{first_snapshot_id}"

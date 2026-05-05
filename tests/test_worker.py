@@ -5,7 +5,10 @@ from pathlib import Path
 
 from ha_backend import db as db_module
 from ha_backend.archive_contract import ArchiveJobConfig
-from ha_backend.crawl_rescue_status import PROMOTION_REASON_FRESH_FAILURE_BUDGET
+from ha_backend.crawl_rescue_status import (
+    PROMOTION_REASON_FRESH_FAILURE_BUDGET,
+    WARC_COMPLETE_FINALIZATION_FAILED,
+)
 from ha_backend.db import Base, get_engine, get_session
 from ha_backend.job_registry import create_job_for_source
 from ha_backend.models import ArchiveJob, Source
@@ -527,3 +530,52 @@ def test_worker_indexes_completed_jobs_before_starting_new_crawls(monkeypatch, t
         assert completed_job.status == "indexed"
         assert queued_job is not None
         assert queued_job.status == "queued"
+
+
+def test_worker_indexes_warc_complete_finalization_failure(monkeypatch, tmp_path) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    archive_root = tmp_path / "jobs"
+    monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(archive_root))
+
+    with get_session() as session:
+        seed_sources(session)
+        job_row = create_job_for_source("cihr", session=session)
+        job_id = job_row.id
+
+    def fake_run_persistent_job(jid: int) -> int:
+        with get_session() as session:
+            job = session.get(ArchiveJob, jid)
+            assert job is not None
+            job.status = "completed"
+            job.crawler_status = "success"
+            job.crawler_stage = WARC_COMPLETE_FINALIZATION_FAILED
+            job.crawler_exit_code = 4
+            job.warc_file_count = 1
+        return 0
+
+    indexed_ids: list[int] = []
+
+    def fake_index_job(jid: int) -> int:
+        indexed_ids.append(jid)
+        with get_session() as session:
+            job = session.get(ArchiveJob, jid)
+            assert job is not None
+            job.status = "indexed"
+            job.indexed_page_count = 25
+        return 0
+
+    monkeypatch.setattr("ha_backend.worker.main.run_persistent_job", fake_run_persistent_job)
+    monkeypatch.setattr("ha_backend.worker.main.index_job", fake_index_job)
+
+    run_worker_loop(poll_interval=1, run_once=True)
+
+    assert indexed_ids == [job_id]
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        assert job.status == "indexed"
+        assert job.crawler_status == "success"
+        assert job.crawler_stage == WARC_COMPLETE_FINALIZATION_FAILED
+        assert job.crawler_exit_code == 4
+        assert job.indexed_page_count == 25

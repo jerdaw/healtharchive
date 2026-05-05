@@ -60,6 +60,11 @@ deployment runbook, see `deployment/production-single-vps.md`.
      - Runs `archive_tool` as a subprocess (no in‑process calls).
      - Marks job `running` → `completed` or `failed` with `crawler_exit_code`
        and `crawler_status`.
+     - Treats annual search readiness as WARC-first: if a Browsertrix/Zimit
+       run reaches a WARC-complete crawl state but optional ZIM finalization
+       fails, the backend can accept the job for WARC indexing with crawler
+       stage `warc_complete_finalization_failed` when final crawlStatus has
+       `pending=0` and discoverable indexable WARCs exist.
    - `archive_tool`:
      - Validates Docker.
      - Determines run mode (Fresh/Resume/New‑with‑Consolidation/Overwrite).
@@ -76,6 +81,8 @@ deployment runbook, see `deployment/production-single-vps.md`.
      - Streams WARC records, extracts HTML, text, language, etc.
      - Writes `Snapshot` rows for each captured page.
      - Marks job `indexed` with `indexed_page_count`.
+   - ZIM output is optional for the backend search/replay pipeline; WARCs are
+     the durable source of truth for `Snapshot` rows and raw/replay lookups.
 
 4. **Annual coverage reporting**:
    - Annual edition services attach legacy/full-site jobs as salvage shards or
@@ -1026,6 +1033,11 @@ Public Pydantic models:
       unknown, and 4xx/5xx captures.
   - Grouping:
     - Default view: `view="snapshots"` (returns individual captures; `total` counts snapshots).
+    - For broad newest snapshot browsing without query/date/URL filters and
+      with `includeDuplicates=false`, the API can use stored
+      `Snapshot.deduplicated` flags instead of rebuilding same-day content
+      de-duplication with a runtime window function. Query, date, URL, and
+      relevance searches keep the stricter runtime de-duplication path.
     - `view="pages"` returns only the **latest** snapshot for each page group
       (`normalized_url_group`, falling back to `url` with query/fragment stripped), and
       `total` counts page groups.

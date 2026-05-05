@@ -19,22 +19,18 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-04-29)
+## Current status (as of 2026-05-05)
 
 Live facts below come from operator-provided VPS output, not direct assistant
 production access.
 
-- Annual-edition convergence is deployed on the VPS at
-  `01e3e3f7565cd84d1e00b600b97bc8ac27109909`.
 - 2026 annual campaign status:
   - `hc` job `6` is indexed, search-ready, and research-ready.
     - Indexed pages: `262567`.
-    - Annual edition captured URL count: `65976`.
     - Backend: `playwright_warc` fallback, labeled through annual-edition
       provenance.
   - `phac` job `7` is indexed, search-ready, and research-ready.
     - Indexed pages: `121940`.
-    - Annual edition captured URL count: `20723`.
     - Backend: `playwright_warc` fallback, labeled through annual-edition
       provenance.
     - Manual reindex evidence:
@@ -42,35 +38,53 @@ production access.
       shows `Indexing for job 7 completed successfully with 121940
       snapshot(s).`, followed by `Indexed: 1`, `Failed: 0`, `Jobs: 7`.
       Completion timestamp in the log: `2026-04-29 14:45:29 UTC`.
-  - `cihr` job `8` is the only remaining active 2026 annual blocker.
-    - Latest known `ha-check` at about `2026-04-29T17:06Z` showed the job
-      running under Browsertrix with fresh progress: `8526 / 9165`,
-      `pending=1`, `failed=0`, and `658` discovered WARC files.
-    - Keep monitoring while progress remains fresh; do not interrupt a healthy
-      run.
-- Annual search is still not globally ready only because `cihr` is not yet
-  indexed. HC and PHAC are usable/search-ready.
+  - `cihr` job `8` is indexed, search-ready, and research-ready.
+    - Indexed pages: `557972`.
+    - Backend: `browsertrix`.
+    - Crawler stage: `operator_accepted_warcs_after_zim_build_failure`.
+    - Final WARC details: `689` stable WARC files, `689` discovered WARC files,
+      stable WARC source, manifest valid, total WARC size `709.83 GB`.
+    - Annual edition report:
+      `/srv/healtharchive/jobs/editions/cihr/2026/coverage-report.json`
+      reported `Status=research_ready`, `Search ready=True`, and
+      `Research ready=True`.
+- Annual search readiness is restored: `annual-status --year 2026` reports
+  `Ready for search: YES`, and `ha-check` at `2026-05-05T15:40:24Z` reported
+  `OK: snapshot complete`.
 - Job lock-dir cutover remains complete:
   - `/etc/healtharchive/backend.env` points at
     `/srv/healtharchive/ops/locks/jobs`.
   - API and worker were both restarted during the 2026-04-14 maintenance
     window, so the env change is live in production.
-- Annual output-dir mount topology is still unexpected for active 2026 jobs:
+- Annual output-dir mount topology is still unexpected for 2026 annual output
+  dirs:
   - direct `sshfs` mounts remain in place instead of bind mounts.
   - conversion remains intentionally deferred until a future maintenance window
     after the annual crawl is idle or during an explicitly accepted
     interruption.
-- Deploy follow-through for `a3e0dece` remains partially complete in
-  production:
-  - the API-side changes were deployed and verified on 2026-04-23.
-  - the worker restart was intentionally skipped while annual crawls were
-    active; the worker-side rowcount/log-formatting fix from `a3e0dece` will
-    not be live until the next safe worker restart.
-  - the VPS branch `prod-pre-a3e0dece` preserves detached pre-deploy commits
-    (`d8e2534e`, `607df02b`, `48cfe3f9`) and should be kept until reviewed.
-- Replay + public-surface follow-through from 2026-04-23 remains complete:
-  replay ownership, header sanitization, raw snapshot lookup, and public
-  surface verification were repaired before the annual-edition deployment.
+- Worker/watchdog posture was restored after CIHR indexing:
+  - `healtharchive-worker.service` active
+  - `healtharchive-crawl-auto-recover.timer` active
+  - `/etc/healtharchive/crawl-auto-recover-enabled` present
+  - `healtharchive-storage-hotpath-auto-recover.timer` active
+- Public-surface verification is partially blocked by search latency:
+  - source-filtered CIHR search returned `search_total=485160` quickly enough
+    for manual verification
+  - the generic verifier probe `/api/search?pageSize=1` timed out at a
+    60-second verifier timeout, and a manual timing probe returned in
+    `69.043s`
+  - `view=pages` probes were much faster (`0.936s` unfiltered and `0.342s` for
+    CIHR), so local verifier code now falls back to `view=pages` for snapshot
+    selection while preserving the slow primary search failure
+  - raw snapshot/replay verification remains unresolved because the production
+    verifier run did not reach those checks before the search timeout
+- Local repo-side follow-through is not live until committed, pushed, and
+  deployed on the VPS:
+  - public-surface verifier fallback to `view=pages` for snapshot selection
+  - default broad snapshot-browse search optimization that avoids runtime
+    de-duplication when stored `Snapshot.deduplicated` is sufficient
+  - WARC-complete/ZIM-finalization recurrence prevention with operator-visible
+    `warc-complete-finalization-failed` rescue state
 - Alerting/report hygiene from the recent crawl work is deployed:
   - bounded content reporting is the preferred operator diagnostic for live
     crawl cost/failure classification.
@@ -81,17 +95,23 @@ production access.
 
 Treat the following as the current ops execution order:
 
-1. Monitor CIHR at a human-friendly cadence while progress remains fresh.
-2. When CIHR completes, index it and regenerate its annual edition report.
-3. Restart the worker in the next safe maintenance window after the annual
-   crawl is idle (or during an explicitly accepted interruption) so the
-   `a3e0dece` worker-side log-formatting fix is actually loaded.
-4. Annual output-dir bind-mount conversion during the next acceptable
+1. Commit, push, deploy, and live-verify the local public-search latency fix
+   for default `/api/search` probes after the 2026 annual index load.
+2. Deploy the local public-surface verifier fallback and rerun the verifier so
+   snapshot metadata, raw HTML, and replay checks are exercised even if one
+   search mode is slow.
+3. Deploy and verify recurrence prevention for WARC-complete/ZIM-finalization
+   failures: WARC-complete Browsertrix runs with final crawlStatus `pending=0`
+   and discoverable WARCs should be eligible for indexing instead of
+   automatically starting another resume crawl.
+4. Review the 26 failed CIHR crawl URLs and decide whether they are acceptable
+   coverage gaps or require targeted follow-up capture.
+5. Annual output-dir bind-mount conversion during the next acceptable
    maintenance window after the annual crawl is idle.
-5. Review and resolve the preserved VPS branch `prod-pre-a3e0dece`.
-6. Decide PHAC long-term backend/exclusion policy after reviewing the indexed
+6. Review and resolve the preserved VPS branch `prod-pre-a3e0dece`.
+7. Decide PHAC long-term backend/exclusion policy after reviewing the indexed
    fallback coverage.
-7. Routine quarterly ops and evidence collection.
+8. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
@@ -102,44 +122,16 @@ Treat the following as the current ops execution order:
     with fallback or use a different default posture, and decide whether the
     temporary `public-health-notices` exclusion is still needed after reviewing
     the indexed fallback coverage.
-- CIHR follow-through is now monitoring-only, not another planned intervention.
-  - Current state: job `8` is running under the source-managed custom scope
-    deployed on 2026-04-14.
-  - Settled live evidence from the restarted run:
-    - the startup log shows `--scopeType custom` with the intended include and
-      exclude regexes
-    - recent `crawlStatus` lines show clean HTML pages at depth `3`
-    - spot checks on the new combined log no longer show live
-      `wbdisable=false`, `asl-video`, `.mp4`, or `.pdf` frontier churn beyond
-      the startup config lines
-  - Current handoff:
-    - Check with `ha-check` every few hours or before bed; hourly checks are not
-      required while progress remains fresh.
-    - If CIHR is still `running` with fresh progress, leave it alone.
-    - If CIHR becomes `completed`, run indexing detached and then regenerate the
-      report:
-
-      ```bash
-      cd /opt/healtharchive
-      set -a; source /etc/healtharchive/backend.env; set +a
-      mkdir -p /srv/healtharchive/ops/manual-runs
-      ts="$(date -u +%Y%m%dT%H%M%SZ)"
-      nohup ./.venv/bin/healtharchive reconcile-completed-indexing --source cihr --limit 1 \
-        > "/srv/healtharchive/ops/manual-runs/cihr-reindex-${ts}.log" 2>&1 &
-      echo "pid=$! log=/srv/healtharchive/ops/manual-runs/cihr-reindex-${ts}.log"
-      ```
-
-      After indexing succeeds:
-
-      ```bash
-      ./.venv/bin/healtharchive annual-edition-report --source cihr --year 2026 --generate
-      ha-check
-      ```
-
-    - Intervene only if progress stalls again, restart budget starts climbing,
-      or excluded families reappear in the live frontier.
-    - Do not treat preserved historical WARCs or consolidated temp-WARC bytes
-      as proof that the repaired scope regressed.
+- CIHR incident follow-through:
+  - Job `8` is indexed and annual search-ready; do not start additional
+    indexing unless later checks prove the indexed rows are unusable.
+  - Remaining checks are public search performance, raw/replay spot checks, and
+    review of the 26 failed crawl URLs.
+  - Repo-side recurrence prevention and public-search/verifier follow-through
+    exist locally but still need commit, push, deploy, and production
+    verification before the live system is protected.
+  - The incident note is
+    `incidents/2026-05-03-cihr-warc-complete-zim-build-resume-loop.md`.
 - Large indexing hygiene for manual production runs:
   - Always load production env first:
     `cd /opt/healtharchive && set -a; source /etc/healtharchive/backend.env; set +a`.
@@ -181,19 +173,14 @@ Treat the following as the current ops execution order:
   - Review notification volume and alert outcomes after 7 days (firing + resolved counts by alertname/severity).
   - Confirm crawl throughput/churn investigations are being done via Grafana (`HealthArchive - Pipeline Health`) and not missed due to notification removal.
   - Consider a future composite crawl-degradation alert only if dashboard review repeatedly reveals actionable issues that are not otherwise alerted.
-  - After the next safe worker restart, verify that page-group rebuild logs now
-    show `unknown` instead of negative counts when PostgreSQL rowcount is
-    indeterminate.
-- After CIHR completes:
-  - index CIHR if it is completed but still not indexed
-  - verify `annual-status --year 2026` reaches search-ready state only after
-    HC, PHAC, and CIHR are all indexed successfully
+  - On the next relevant page-group rebuild, verify that logs show `unknown`
+    instead of negative counts when PostgreSQL rowcount is indeterminate.
 
 ## IRL / external validation (active; runs in parallel with ops)
 
 External validation work is **not blocked** by the active CIHR monitoring or
 the remaining maintenance-window items. HC and PHAC are indexed and
-research-ready, CIHR is running on the repaired scope, and the bind-mount
+research-ready, CIHR is indexed and research-ready, and the bind-mount
 conversion remains deferred to a later maintenance window. Outreach and
 scholarly output can proceed independently on any day.
 

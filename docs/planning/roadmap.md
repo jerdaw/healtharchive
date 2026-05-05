@@ -51,6 +51,7 @@ Individual items (for reference; see the plan above for execution order):
   - `../operations/mentions-log.md` (links only; no private contact data)
 - Healthchecks.io alignment: keep systemd timers, `/etc/healtharchive/healthchecks.env`, and the Healthchecks UI in sync.
   - See: `../operations/playbooks/validation/healthchecks-parity.md` and `../deployment/production-single-vps.md`
+- Investigate Ontario Health811 (https://health811.ontario.ca/static/guest/home/) to see what value our project has in relation to that service.
 
 Track the current status and next actions in:
 
@@ -158,22 +159,56 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - First-pass implementation now models `{source, year}` as `AnnualEdition`,
     attaches legacy 2026 jobs as salvage shards, reconciles completed-job
     indexing, and generates coverage/provenance artifacts.
-  - Live 2026 salvage status as of 2026-04-29:
+  - Live 2026 salvage status as of 2026-05-05:
     - HC and PHAC are indexed, search-ready, and research-ready with labeled
       fallback provenance.
-    - CIHR remains in progress until its crawl completes, is indexed, and its
-      annual edition report is regenerated.
+    - CIHR is indexed, search-ready, and research-ready after manual
+      WARC-complete acceptance and completed-job indexing reconciliation.
   - Remaining work: richer target ledger sources (sitemaps/public inventories),
     path/language shard creation for future campaigns, operator UI for shard
     split/retry/acceptance decisions, stricter watchdog `needs_review`
-    escalation for repeated recoveries, and final production validation after
-    CIHR completes.
+    escalation for repeated recoveries, and final post-run production
+    validation of replay/search coverage.
+- WARC-complete / ZIM-finalization failure handling.
+  - Context: the 2026 CIHR Browsertrix crawl reached final crawlStatus
+    `pending=0`, but Zimit `warc2zim` exited RC `4` because the seed page was
+    absent from the WARC subset used for finalization. The wrapper treated the
+    non-zero finalization exit as a failed crawl and started another resume
+    attempt, even though the WARC output was sufficient for backend indexing.
+  - Repo-side implementation exists locally, pending commit/push/deploy:
+    - backend `run_persistent_job` classifies the observed
+      WARC-complete/ZIM-failed condition as eligible for indexing when final
+      crawlStatus has `pending=0` and backend WARC discovery finds indexable
+      WARCs
+    - regression coverage covers final crawlStatus `pending=0` plus Zimit RC
+      `4`, the worker indexing path, and operator-visible annual status
+    - `annual-status` and `show-job` surface
+      `warc-complete-finalization-failed` with an operator note
+  - Remaining work:
+    - commit, push, deploy, and verify the local implementation in production
+    - add a metric/alert for accepted WARC-complete finalization failures if
+      this state recurs in a future run
+    - decide whether WARC-only jobs should suppress Zimit's internal
+      `warc2zim` path, or tolerate that finalization failure only after WARC
+      completeness is proven
 - Large indexing robustness follow-through.
   - Context: the 2026 PHAC reindex succeeded only after being rerun under
     `nohup`; the first interactive attempt left a stale PostgreSQL
     `idle in transaction` backend after the client died.
+  - Additional 2026 CIHR context: manual WARC acceptance after a ZIM build
+    failure exposed a long quiet period where the system was actively
+    consolidating/hashing and then indexing hundreds of large WARC files, but
+    operators had to infer health from `/proc/<pid>/io`, `lsof`, CPU, and
+    current open WARC paths because application logs and database-visible state
+    did not show live progress.
   - Remaining work:
-    - add progress heartbeats/logging during long WARC indexing runs
+    - add progress heartbeats/logging during stable WARC consolidation and long
+      WARC indexing runs, including current phase, current WARC, WARC index /
+      total, bytes or records processed where available, elapsed time, and
+      last-progress timestamp
+    - expose enough indexing progress outside the final all-at-once transaction
+      for `show-job`, `annual-status`, `ha-check`, and metrics to distinguish
+      "healthy but quiet" from "stalled"
     - evaluate safer transaction/checkpoint behavior for very large jobs, or
       document why the current all-at-once transaction remains required
     - add clearer stale-transaction detection/remediation guidance for manual
@@ -182,6 +217,40 @@ Keep this list short; prefer linking to the canonical doc that explains the item
       production `reconcile-completed-indexing`
     - ensure operators can distinguish healthy CPU-bound parsing from a stale
       DB transaction without ad hoc `/proc` and `pg_stat_activity` archaeology
+
+### Search/API performance (backend)
+
+- Public search latency after 2026 annual indexing.
+  - Context: after CIHR indexing completed, production contained about
+    `1.2M` snapshots. The generic public verifier search probe
+    `/api/search?pageSize=1` timed out at a 60-second verifier timeout, while
+    manual timing probes on 2026-05-05 showed:
+    - `pageSize=1`: `69.043s`
+    - `pageSize=1&view=pages`: `0.936s`
+    - `pageSize=1&source=cihr`: `16.985s`
+    - `pageSize=1&source=cihr&view=pages`: `0.342s`
+    - `q=covid&pageSize=1`: `73.491s`
+    - `q=covid&pageSize=1&view=pages`: `58.538s`
+  - Local verifier follow-through: `scripts/verify_public_surface.py` now keeps
+    reporting the slow primary search as a failure but falls back to
+    `view=pages` to obtain a snapshot id, so snapshot/raw/replay checks can
+    still run when one search mode is slow. This needs deployment before it
+    affects production verification.
+  - Local search optimization follow-through: broad newest
+    `view=snapshots` browse can now skip runtime same-day content
+    de-duplication/counting when stored `Snapshot.deduplicated` is sufficient.
+    This needs deployment and live timing before it can be considered
+    production-resolved.
+  - Remaining work:
+    - commit, push, deploy, and live-test the local default browse optimization
+    - decide from production timings/EXPLAIN whether an additional index or
+      materialized metadata is still needed
+    - decide whether broad unfiltered public search should default to
+      `view=pages` only after a documented product/API decision
+    - keep same-day duplicate hiding semantics intact unless a product decision
+      explicitly changes the public snapshot view contract
+    - deploy the verifier fallback and rerun public-surface verification to
+      separate search latency from snapshot/raw/replay health
 - Resolve the long-term PHAC Browsertrix compatibility posture and re-evaluate the temporary `public-health-notices` exclusion.
   - Context: the 2026 PHAC annual crawl first hit sustained `net::ERR_HTTP2_PROTOCOL_ERROR` churn on canada.ca. On 2026-04-20, a fresh Browsertrix retry still failed at both seed documents, while the validated `playwright_warc` fallback succeeded and the live PHAC job resumed healthy progress under fallback.
   - Live 2026 outcome: the PHAC fallback crawl was indexed on 2026-04-29 with
