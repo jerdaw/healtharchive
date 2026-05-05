@@ -1040,16 +1040,19 @@ def _can_use_storage_dedup_only_for_snapshots(
     range_start: datetime | None,
     range_end_exclusive: datetime | None,
     effective_sort: SearchSort,
+    use_postgres_fts: bool,
 ) -> bool:
     return (
         effective_view == SearchView.snapshots
         and not includeDuplicates
-        and raw_q is None
         and boolean_query is None
         and not url_search_targets
         and range_start is None
         and range_end_exclusive is None
-        and effective_sort == SearchSort.newest
+        and (
+            (raw_q is None and effective_sort == SearchSort.newest)
+            or (raw_q is not None and use_postgres_fts and effective_sort == SearchSort.relevance)
+        )
     )
 
 
@@ -1194,6 +1197,7 @@ def _search_snapshots_inner(
         range_start=range_start,
         range_end_exclusive=range_end_exclusive,
         effective_sort=effective_sort,
+        use_postgres_fts=use_postgres_fts,
     )
 
     # Fast path: when browsing pages without a search query or date range,
