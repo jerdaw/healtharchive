@@ -329,3 +329,38 @@ Run:
 make backend-ci
 make docs-build && git diff --check
 ```
+
+### Task 7: Keep Broad Default Ranking On The Fast Path
+
+**Files:**
+- Modify: `src/ha_backend/api/routes_public.py`
+- Modify: `tests/test_api_search_and_snapshot.py`
+
+- [x] **Step 1: Capture the post-deploy result**
+
+After deploying the stored-dedup optimization, production public verification
+passed and broad text-search latency improved, but remained higher than the raw
+stored-dedup query plan:
+
+```text
+q=covid&pageSize=1              17.630s
+q=covid&pageSize=1&view=pages    6.410s
+```
+
+The remaining likely hot path is default broad-query ranking over a large match
+set. The prior production `EXPLAIN` showed the ranked stored-dedup path still
+spent most of its time joining/scoring `page_signals` over about 100k matching
+snapshots.
+
+- [x] **Step 2: Add regression coverage**
+
+Add a PostgreSQL mock test where `page_signals` exists and default
+`q=covid` search raises if the query builder calls `outerjoin(PageSignal, ...)`.
+Keep separate existing tests for SQLite/local authority boosts and explicit
+`ranking=v2` hubness behavior.
+
+- [x] **Step 3: Keep default broad PostgreSQL search fast**
+
+Skip `page_signals` ranking only for default broad PostgreSQL relevance
+queries. Explicit ranking modes, non-PostgreSQL behavior, and narrower query
+modes keep the existing ranking path.
