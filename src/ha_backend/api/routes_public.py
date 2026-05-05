@@ -1030,6 +1030,29 @@ class SearchView(str, Enum):
     pages = "pages"
 
 
+def _can_use_storage_dedup_only_for_snapshots(
+    *,
+    effective_view: SearchView,
+    includeDuplicates: bool,
+    raw_q: str | None,
+    boolean_query: BoolNode | None,
+    url_search_targets: list[str] | None,
+    range_start: datetime | None,
+    range_end_exclusive: datetime | None,
+    effective_sort: SearchSort,
+) -> bool:
+    return (
+        effective_view == SearchView.snapshots
+        and not includeDuplicates
+        and raw_q is None
+        and boolean_query is None
+        and not url_search_targets
+        and range_start is None
+        and range_end_exclusive is None
+        and effective_sort == SearchSort.newest
+    )
+
+
 def _search_snapshots_inner(
     *,
     q: str | None,
@@ -1162,6 +1185,16 @@ def _search_snapshots_inner(
 
     offset = (page - 1) * pageSize
     replay_ready_cache: dict[int, bool] = {}
+    use_storage_dedup_only = _can_use_storage_dedup_only_for_snapshots(
+        effective_view=effective_view,
+        includeDuplicates=includeDuplicates,
+        raw_q=raw_q,
+        boolean_query=boolean_query,
+        url_search_targets=url_search_targets,
+        range_start=range_start,
+        range_end_exclusive=range_end_exclusive,
+        effective_sort=effective_sort,
+    )
 
     # Fast path: when browsing pages without a search query or date range,
     # prefer the Page table (if present) to avoid window functions over the
@@ -1344,6 +1377,8 @@ def _search_snapshots_inner(
             )
             return db.query(func.count()).select_from(distinct_pages).scalar() or 0
         if effective_view == SearchView.snapshots and not includeDuplicates:
+            if use_storage_dedup_only:
+                return query.with_entities(func.count(Snapshot.id)).scalar() or 0
             capture_day = capture_date_expr(Snapshot.capture_timestamp).label("capture_day")
             content_key = cast(
                 func.coalesce(Snapshot.content_hash, cast(Snapshot.id, String)), String
@@ -1560,7 +1595,11 @@ def _search_snapshots_inner(
     else:
         total = compute_total(query)
 
-    if effective_view == SearchView.snapshots and not includeDuplicates:
+    if (
+        effective_view == SearchView.snapshots
+        and not includeDuplicates
+        and not use_storage_dedup_only
+    ):
         query = apply_snapshot_dedup(query)
 
     mode = search_mode or "newest"

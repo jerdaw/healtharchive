@@ -181,9 +181,11 @@ nav:
               - PHAC Permission Denied (2026-01-09): operations/incidents/2026-01-09-annual-crawl-phac-output-dir-permission-denied.md
               - Replay Smoke 503 (2026-01-16): operations/incidents/2026-01-16-replay-smoke-503-and-warctieringfailed.md
               - PHAC Fallback Recovery (2026-04-20): operations/incidents/2026-04-20-phac-post-reboot-tiering-loss-and-fallback-recovery.md
+              - CIHR WARC/ZIM Resume Loop (2026-05-03): operations/incidents/2026-05-03-cihr-warc-complete-zim-build-resume-loop.md
   - Planning & Roadmaps:
       - Active Work: planning/README.md
       - Active Plans:
+          - Public Search and CIHR Follow-Through: planning/2026-05-05-public-search-and-cihr-followthrough.md
           - Admissions Strengthening (OMSAS): planning/2026-02-admissions-strengthening-plan.md
           - Crawl Operability (Locks and Retry Controls): planning/implemented/2026-02-06-crawl-operability-locks-and-retry-controls.md
           - Hot-Path Staleness Root-Cause Investigation: planning/2026-02-06-hotpath-staleness-root-cause-investigation.md

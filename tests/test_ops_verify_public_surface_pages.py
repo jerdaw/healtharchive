@@ -40,3 +40,94 @@ def test_verify_public_surface_canonicalizes_www_frontend_alias() -> None:
     assert (
         module._canonicalize_frontend_base("https://healtharchive.ca") == "https://healtharchive.ca"
     )
+
+
+def test_verify_public_surface_uses_pages_search_fallback_for_snapshot_probe(
+    monkeypatch, capsys
+) -> None:
+    module = _load_script_module()
+    calls: list[str] = []
+
+    def response(
+        status: int,
+        body: dict[str, Any] | list[Any] | str,
+        content_type: str = "application/json",
+    ):
+        if isinstance(body, str):
+            raw = body.encode("utf-8")
+        else:
+            import json
+
+            raw = json.dumps(body).encode("utf-8")
+        return module.HttpResponse(status=status, headers={"Content-Type": content_type}, body=raw)
+
+    def fake_http_request(
+        url: str,
+        *,
+        timeout_s: float,
+        method: str = "GET",
+        headers: dict[str, str] | None = None,
+        json_body: dict[str, Any] | None = None,
+        read_limit_bytes: int = 64 * 1024,
+    ):
+        del timeout_s, method, headers, json_body, read_limit_bytes
+        calls.append(url)
+        if url.endswith("/api/health"):
+            return response(200, {"status": "ok"})
+        if url.endswith("/api/stats"):
+            return response(200, {"snapshotsTotal": 1})
+        if url.endswith("/api/sources"):
+            return response(200, [{"sourceCode": "cihr"}])
+        if url.endswith("/api/search?pageSize=1"):
+            return module.HttpResponse(
+                status=0,
+                headers={},
+                body=b"",
+                error="TimeoutError: The read operation timed out",
+            )
+        if url.endswith("/api/search?pageSize=1&view=pages"):
+            return response(
+                200,
+                {
+                    "results": [
+                        {
+                            "id": 123,
+                            "rawSnapshotUrl": "/api/snapshots/raw/123",
+                            "browseUrl": "https://replay.example/123",
+                        }
+                    ],
+                    "total": 1,
+                    "page": 1,
+                    "pageSize": 1,
+                },
+            )
+        if url.endswith("/api/snapshot/123"):
+            return response(200, {"id": 123, "title": "Fallback Probe"})
+        if url.endswith("/api/snapshots/raw/123"):
+            return response(200, "<html>Fallback Probe</html>", "text/html; charset=utf-8")
+        if url.endswith("/api/usage"):
+            return response(200, {"enabled": True, "windowDays": 30})
+        raise AssertionError(f"unexpected URL: {url}")
+
+    monkeypatch.setattr(module, "_http_request", fake_http_request)
+
+    exit_code = module.main(
+        [
+            "--api-base",
+            "https://api.example",
+            "--frontend-base",
+            "https://front.example",
+            "--skip-exports",
+            "--skip-changes",
+            "--skip-frontend",
+            "--skip-replay",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 1
+    assert "FAIL api search status=0 error=TimeoutError" in output
+    assert "OK   api search fallback status=200 snapshot_id=123 browseUrl=yes" in output
+    assert "OK   api snapshot detail status=200 id=123" in output
+    assert "OK   raw snapshot status=200 url=https://api.example/api/snapshots/raw/123" in output
+    assert "https://api.example/api/search?pageSize=1&view=pages" in calls

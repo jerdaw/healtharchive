@@ -699,6 +699,27 @@ def test_search_hides_same_day_content_duplicates_by_default(tmp_path, monkeypat
     assert data_dupes["total"] == 2
 
 
+def test_search_default_browse_uses_storage_dedup_without_runtime_window(
+    tmp_path, monkeypatch
+) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_search_data()
+
+    from ha_backend.api import routes_public
+
+    def fail_row_number(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise AssertionError("default browse should not build runtime dedup row_number")
+
+    monkeypatch.setattr(routes_public.func, "row_number", fail_row_number)
+
+    resp = client.get("/api/search", params={"pageSize": 1})
+    assert resp.status_code == 200
+    data = resp.json()
+    assert data["total"] == 3
+    assert len(data["results"]) == 1
+    assert data["results"][0]["title"] == "General health advice"
+
+
 def test_search_sort_newest(tmp_path, monkeypatch) -> None:
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_search_quality_data()

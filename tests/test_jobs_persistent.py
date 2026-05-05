@@ -334,6 +334,112 @@ def test_run_persistent_job_marks_cli_usage_errors_as_infra_error_config(
         assert stored.combined_log_path is not None
 
 
+def test_run_persistent_job_accepts_warc_complete_zim_finalization_failure(
+    tmp_path, monkeypatch
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(tmp_path / "jobs"))
+
+    with get_session() as session:
+        seed_sources(session)
+
+    with get_session() as session:
+        job_row = create_job_for_source("cihr", session=session)
+        job_id = job_row.id
+
+    class WarcCompleteFinalizationFailureRuntime:
+        def __init__(self, name, seeds):
+            self.name = name
+            self.seeds = list(seeds)
+
+        def run(self, **kwargs):
+            output_dir = Path(str(kwargs["output_dir_override"]))
+            output_dir.mkdir(parents=True, exist_ok=True)
+            warcs_dir = output_dir / "warcs"
+            warcs_dir.mkdir(parents=True, exist_ok=True)
+            (warcs_dir / "warc-000001.warc.gz").write_bytes(b"not-empty")
+            log_path = output_dir / "archive_resume_crawl_-_attempt_1_test.combined.log"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        '{"timestamp":"2026-05-03T01:10:00Z","context":"crawlStatus","message":"Crawl statistics","details":{"crawled":9208,"total":9208,"pending":0,"failed":26}}',
+                        "[warc2zim::2026-05-03 01:13:44,057] ERROR:Unable to find WARC record for main page: ZimPath(cihr-irsc.gc.ca/e/193.html), aborting",
+                        "Final Overall Status: FAILED",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            return 4
+
+    monkeypatch.setattr("ha_backend.jobs.RuntimeArchiveJob", WarcCompleteFinalizationFailureRuntime)
+
+    rc = run_persistent_job(job_id)
+    assert rc == 0
+
+    with get_session() as session:
+        stored = session.get(ArchiveJob, job_id)
+        assert stored is not None
+        assert stored.status == "completed"
+        assert stored.crawler_status == "success"
+        assert stored.crawler_stage == "warc_complete_finalization_failed"
+        assert stored.crawler_exit_code == 4
+        assert stored.warc_file_count == 1
+        assert stored.combined_log_path is not None
+
+
+def test_run_persistent_job_rejects_zim_finalization_failure_without_warc_completion(
+    tmp_path, monkeypatch
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(tmp_path / "jobs"))
+
+    with get_session() as session:
+        seed_sources(session)
+
+    with get_session() as session:
+        job_row = create_job_for_source("cihr", session=session)
+        job_id = job_row.id
+
+    class IncompleteFinalizationFailureRuntime:
+        def __init__(self, name, seeds):
+            self.name = name
+            self.seeds = list(seeds)
+
+        def run(self, **kwargs):
+            output_dir = Path(str(kwargs["output_dir_override"]))
+            output_dir.mkdir(parents=True, exist_ok=True)
+            warcs_dir = output_dir / "warcs"
+            warcs_dir.mkdir(parents=True, exist_ok=True)
+            (warcs_dir / "warc-000001.warc.gz").write_bytes(b"not-empty")
+            log_path = output_dir / "archive_resume_crawl_-_attempt_1_test.combined.log"
+            log_path.write_text(
+                "\n".join(
+                    [
+                        '{"timestamp":"2026-05-03T01:10:00Z","context":"crawlStatus","message":"Crawl statistics","details":{"crawled":9208,"total":9252,"pending":44,"failed":26}}',
+                        "[warc2zim::2026-05-03 01:13:44,057] ERROR:Unable to find WARC record for main page: ZimPath(cihr-irsc.gc.ca/e/193.html), aborting",
+                        "Final Overall Status: FAILED",
+                    ]
+                )
+                + "\n",
+                encoding="utf-8",
+            )
+            return 4
+
+    monkeypatch.setattr("ha_backend.jobs.RuntimeArchiveJob", IncompleteFinalizationFailureRuntime)
+
+    rc = run_persistent_job(job_id)
+    assert rc == 4
+
+    with get_session() as session:
+        stored = session.get(ArchiveJob, job_id)
+        assert stored is not None
+        assert stored.status == "failed"
+        assert stored.crawler_status == "failed"
+        assert stored.crawler_stage != "warc_complete_finalization_failed"
+        assert stored.crawler_exit_code == 4
+
+
 def test_run_persistent_job_refuses_to_run_when_lock_held(tmp_path, monkeypatch) -> None:
     _init_test_db(tmp_path, monkeypatch)
 

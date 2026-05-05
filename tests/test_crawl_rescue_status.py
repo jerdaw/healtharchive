@@ -119,3 +119,31 @@ def test_summarize_crawl_operator_state_marks_running_fallback() -> None:
     assert operator_state.note == (
         "promoted from browsertrix to playwright_warc after fresh-failure budget exhaustion"
     )
+
+
+def test_warc_complete_finalization_failure_has_operator_visible_state() -> None:
+    rescue = derive_crawl_rescue_status(
+        source_code="cihr",
+        config={
+            "execution_policy": {
+                "capture_backend": "browsertrix",
+                "fallback_backend": "none",
+            }
+        },
+        crawler_stage="warc_complete_finalization_failed",
+        last_stats={},
+    )
+
+    assert rescue.short_status == "warc-complete-finalization-failed"
+    assert rescue.note == (
+        "WARC capture completed; optional ZIM finalization failed and WARC output "
+        "was accepted for indexing"
+    )
+
+    completed_state = summarize_crawl_operator_state(job_status="completed", rescue=rescue)
+    assert completed_state.label == "awaiting-index-warc-complete"
+    assert completed_state.note == rescue.note
+
+    indexed_state = summarize_crawl_operator_state(job_status="indexed", rescue=rescue)
+    assert indexed_state.label == "search-ready"
+    assert indexed_state.note == rescue.note

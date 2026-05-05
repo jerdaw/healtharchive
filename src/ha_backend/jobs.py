@@ -17,7 +17,7 @@ from sqlalchemy.orm import Session
 
 from .archive_contract import ArchiveExecutionPolicy, ArchiveJobConfig, ArchiveToolOptions
 from .config import get_archive_tool_config
-from .crawl_rescue_status import infer_primary_backend
+from .crawl_rescue_status import WARC_COMPLETE_FINALIZATION_FAILED, infer_primary_backend
 from .crawl_stats import update_job_stats_from_logs
 from .db import get_session
 from .infra_errors import (
@@ -212,6 +212,63 @@ def _looks_like_infra_error_from_log(tail: str) -> bool:
     """
     lower = tail.lower()
     return any(marker in lower for marker in _LOG_INFRA_ERROR_MARKERS)
+
+
+def _looks_like_warc_finalization_failure_from_log(tail: str) -> bool:
+    lower = tail.lower()
+    return (
+        "warc2zim" in lower
+        and "unable to find warc record for main page" in lower
+        and "final overall status: failed" in lower
+    )
+
+
+def _log_has_warc_complete_crawl_status(log_path: Path) -> bool:
+    try:
+        from archive_tool.utils import parse_last_stats_from_log
+
+        stats = parse_last_stats_from_log(log_path)
+    except Exception:
+        return False
+
+    if not isinstance(stats, dict):
+        return False
+    try:
+        crawled = int(stats.get("crawled") or 0)
+        total = int(stats.get("total") or 0)
+        pending = int(stats.get("pending") or 0)
+    except Exception:
+        return False
+    return crawled > 0 and total > 0 and pending == 0
+
+
+def _discover_indexable_warc_count(job: ORMArchiveJob) -> int:
+    try:
+        from ha_backend.indexing.warc_discovery import discover_warcs_for_job
+
+        return len(discover_warcs_for_job(job))
+    except Exception as exc:
+        logger.warning("Failed to discover indexable WARCs for job %s: %s", job.id, exc)
+        return 0
+
+
+def _is_warc_complete_finalization_failure(
+    job: ORMArchiveJob,
+    *,
+    combined_log_path: Path | None,
+) -> tuple[bool, int]:
+    if combined_log_path is None:
+        return False, 0
+    tail = _read_log_tail(combined_log_path)
+    if not _looks_like_warc_finalization_failure_from_log(tail):
+        return False, 0
+    if not _log_has_warc_complete_crawl_status(combined_log_path):
+        return False, 0
+
+    warc_count = _discover_indexable_warc_count(job)
+    if warc_count <= 0:
+        return False, 0
+    return True, warc_count
 
 
 @dataclass
@@ -667,6 +724,24 @@ def run_persistent_job(job_id: int) -> int:
                         job_row.status = "failed"
                         job_row.crawler_status = "infra_error"
                 else:
+                    accepted_warc_complete, warc_count = _is_warc_complete_finalization_failure(
+                        job_row,
+                        combined_log_path=combined_log_path,
+                    )
+                    if accepted_warc_complete:
+                        logger.warning(
+                            "Job %s returned RC=%s after WARC-complete crawl and optional ZIM finalization failure; accepting %d WARC(s) for indexing.",
+                            job_id,
+                            rc,
+                            warc_count,
+                        )
+                        job_row.status = "completed"
+                        job_row.crawler_status = "success"
+                        job_row.crawler_stage = WARC_COMPLETE_FINALIZATION_FAILED
+                        job_row.warc_file_count = int(warc_count)
+                        job_row.crawler_exit_code = rc
+                        return 0
+
                     # Classify common CLI/runtime errors (e.g. invalid Zimit args) as
                     # infra_error_config so the worker doesn't churn retry budget.
                     #
