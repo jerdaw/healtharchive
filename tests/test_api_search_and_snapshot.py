@@ -2,8 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 from pathlib import Path
+from types import SimpleNamespace
+from typing import Any, cast
 
 from fastapi.testclient import TestClient
+from sqlalchemy import literal_column
+from sqlalchemy.orm import Session
 
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
@@ -718,6 +722,98 @@ def test_search_default_browse_uses_storage_dedup_without_runtime_window(
     assert data["total"] == 3
     assert len(data["results"]) == 1
     assert data["results"][0]["title"] == "General health advice"
+
+
+def test_postgres_text_search_uses_stored_search_vector_by_default(monkeypatch) -> None:
+    from ha_backend.api import routes_public
+
+    class FakeQuery:
+        def __init__(self) -> None:
+            self.filters: list[Any] = []
+
+        def join(self, *args, **kwargs):  # noqa: ANN002, ANN003
+            return self
+
+        def filter(self, *criteria):  # noqa: ANN002
+            self.filters.extend(criteria)
+            return self
+
+        def with_entities(self, *args):  # noqa: ANN002
+            return self
+
+        def distinct(self):
+            return self
+
+        def subquery(self):
+            return SimpleNamespace(
+                c=SimpleNamespace(
+                    id=literal_column("id"),
+                    rn=literal_column("rn"),
+                )
+            )
+
+        def select_from(self, *args):  # noqa: ANN002
+            return self
+
+        def scalar(self):
+            return 1
+
+        def options(self, *args, **kwargs):  # noqa: ANN002, ANN003
+            return self
+
+        def order_by(self, *args):  # noqa: ANN002
+            return self
+
+        def offset(self, value):  # noqa: ANN001
+            return self
+
+        def limit(self, value):  # noqa: ANN001
+            return self
+
+        def all(self):
+            return []
+
+    class FakeDialect:
+        name = "postgresql"
+
+    class FakeBind:
+        dialect = FakeDialect()
+
+    class FakeSession:
+        def __init__(self) -> None:
+            self.query_obj = FakeQuery()
+
+        def get_bind(self):
+            return FakeBind()
+
+        def query(self, *args):  # noqa: ANN002
+            return self.query_obj
+
+    def fail_build_search_vector(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise AssertionError("default PostgreSQL search should not build computed vectors")
+
+    fake_db = FakeSession()
+    monkeypatch.setattr(routes_public, "build_search_vector", fail_build_search_vector)
+    monkeypatch.setattr(routes_public, "_has_table", lambda db, table: False)
+    monkeypatch.setattr(routes_public, "_has_column", lambda db, table, column: False)
+
+    response, mode = routes_public._search_snapshots_inner(
+        q="covid",
+        source=None,
+        sort=None,
+        view=None,
+        includeNon2xx=False,
+        includeDuplicates=False,
+        from_date=None,
+        to_date=None,
+        page=1,
+        pageSize=1,
+        ranking=None,
+        db=cast(Session, fake_db),
+    )
+
+    assert response.total == 1
+    assert mode == "relevance_fts"
 
 
 def test_search_sort_newest(tmp_path, monkeypatch) -> None:

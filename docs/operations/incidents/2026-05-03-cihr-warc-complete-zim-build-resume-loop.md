@@ -352,6 +352,11 @@ Indexing completion and service restoration have been verified.
     `view=pages` as a fallback snapshot probe, so future verifier runs can
     still exercise `/api/snapshot`, raw HTML, and replay checks when one search
     mode is slow; this needs deployment before it affects production checks
+  - 2026-05-05 follow-up: browse search was restored to low-single-second
+    latency after deploying the stored-dedup browse fast path; remaining
+    `q=...` latency is tracked as search-vector/index usage work, and
+    PostgreSQL text search should rely on populated `snapshots.search_vector`
+    rather than per-request computed vectors
   - pending: complete public search/API smoke checks across the remaining
     sample snapshots and investigate generic unfiltered search latency
 - Worker/job health checks:
