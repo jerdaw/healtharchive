@@ -75,7 +75,7 @@ from ha_backend.rate_limiting import (
     limiter,
 )
 from ha_backend.runtime_metrics import observe_search_request
-from ha_backend.search import TS_CONFIG, build_search_vector
+from ha_backend.search import TS_CONFIG
 from ha_backend.search_fuzzy import (
     pick_word_similarity_threshold,
     should_use_url_similarity,
@@ -1446,17 +1446,13 @@ def _search_snapshots_inner(
         if q_filter is None:
             raise ValueError("apply_fts_filter called without q_filter")
         tsquery = func.websearch_to_tsquery(TS_CONFIG, q_filter)
-        computed_vector = build_search_vector(Snapshot.title, Snapshot.snippet, Snapshot.url)
 
-        # Filter using the indexed column where possible so Postgres can use the
-        # `ix_snapshots_search_vector` GIN index; only fall back to an on-the-fly
-        # computed vector for rows that are missing the cached value.
-        vector_expr = func.coalesce(Snapshot.search_vector, computed_vector)
-        fts_filter = or_(
-            Snapshot.search_vector.op("@@")(tsquery),
-            and_(Snapshot.search_vector.is_(None), computed_vector.op("@@")(tsquery)),
-        )
-        return qry.filter(fts_filter)
+        # Public PostgreSQL search relies on the stored tsvector so the
+        # `ix_snapshots_search_vector` GIN index can be used. Missing vectors
+        # should be repaired with `healtharchive backfill-search-vector` rather
+        # than recomputed per request over the public API hot path.
+        vector_expr = Snapshot.search_vector
+        return qry.filter(Snapshot.search_vector.op("@@")(tsquery))
 
     def apply_fuzzy_filter(qry: Any) -> Any:
         nonlocal score_override

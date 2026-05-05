@@ -132,7 +132,41 @@ for existing rows:
 healtharchive backfill-search-vector
 ```
 
-### 5.1.1 Enable fuzzy search (Postgres only)
+### 5.1.1 Production slow text search triage
+
+If `/api/search?q=...` is much slower than browse searches, first verify the
+stored PostgreSQL FTS vector is populated. The public API expects
+`snapshots.search_vector` to be the searchable index for PostgreSQL text search.
+It does not recompute missing vectors on the public request path.
+
+```bash
+cd /opt/healtharchive
+set -a; source /etc/healtharchive/backend.env; set +a
+
+./.venv/bin/python - <<'PY'
+from ha_backend.db import get_session
+from ha_backend.models import Snapshot
+
+with get_session() as session:
+    total = session.query(Snapshot).count()
+    missing = session.query(Snapshot).filter(Snapshot.search_vector.is_(None)).count()
+    print(f"snapshot_total={total}")
+    print(f"search_vector_missing={missing}")
+PY
+```
+
+If `search_vector_missing` is non-zero, run:
+
+```bash
+cd /opt/healtharchive
+set -a; source /etc/healtharchive/backend.env; set +a
+./.venv/bin/healtharchive backfill-search-vector
+```
+
+Then repeat representative timing probes, including both browse and text-search
+queries.
+
+### 5.1.2 Enable fuzzy search (Postgres only)
 
 Fuzzy matching for misspellings relies on the `pg_trgm` extension and trigram
 GIN indexes (see Alembic migration `0007_pg_trgm_fuzzy_search`).
