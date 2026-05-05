@@ -282,3 +282,50 @@ set -a; source /etc/healtharchive/backend.env; set +a
 ```
 
 Then repeat the timing probes.
+
+### Task 6: Remove Runtime Snapshot Dedup From PostgreSQL Text Search
+
+**Files:**
+- Modify: `src/ha_backend/api/routes_public.py`
+- Modify: `tests/test_api_search_and_snapshot.py`
+
+- [x] **Step 1: Capture the production bottleneck**
+
+After the stored-vector deployment, production timing probes improved browse
+searches but still showed slow text search:
+
+```text
+q=covid&pageSize=1              58.924s
+q=covid&pageSize=1&view=pages   10.365s
+```
+
+Production `EXPLAIN (ANALYZE, BUFFERS)` showed the FTS match count was fast
+enough on its own, while the current ranked snapshot path spent about 51s in a
+runtime `row_number()` same-day dedup plan and per-row `page_signals` lookups.
+The same ranked query using stored `snapshots.deduplicated = false` completed
+in about 6.37s.
+
+- [x] **Step 2: Add regression coverage**
+
+Extend the PostgreSQL mock search test so the default `q=...` path raises if it
+builds `func.row_number()`. This preserves the existing SQLite/dev runtime
+dedup fallback while proving production PostgreSQL text search uses stored
+deduplication metadata.
+
+- [x] **Step 3: Broaden the stored-dedup fast path**
+
+Allow `_can_use_storage_dedup_only_for_snapshots()` to return true for
+PostgreSQL FTS relevance searches when there is no date range, boolean query,
+URL search, or explicit duplicate inclusion. Leave runtime dedup in place for
+non-PostgreSQL fallbacks and modes where stored dedup is not enough to preserve
+the public API contract.
+
+- [x] **Step 4: Verify locally**
+
+Run:
+
+```bash
+.venv/bin/pytest -s tests/test_api_search_and_snapshot.py tests/test_api_contracts.py tests/test_ops_verify_public_surface_pages.py -q
+make backend-ci
+make docs-build && git diff --check
+```

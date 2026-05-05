@@ -724,7 +724,9 @@ def test_search_default_browse_uses_storage_dedup_without_runtime_window(
     assert data["results"][0]["title"] == "General health advice"
 
 
-def test_postgres_text_search_uses_stored_search_vector_by_default(monkeypatch) -> None:
+def test_postgres_text_search_uses_stored_search_vector_and_dedup_by_default(
+    monkeypatch,
+) -> None:
     from ha_backend.api import routes_public
 
     class FakeQuery:
@@ -789,11 +791,12 @@ def test_postgres_text_search_uses_stored_search_vector_by_default(monkeypatch) 
         def query(self, *args):  # noqa: ANN002
             return self.query_obj
 
-    def fail_build_search_vector(*args, **kwargs):  # noqa: ANN002, ANN003
-        raise AssertionError("default PostgreSQL search should not build computed vectors")
+    def fail_row_number(*args, **kwargs):  # noqa: ANN002, ANN003
+        raise AssertionError("default PostgreSQL search should not build runtime dedup row_number")
 
     fake_db = FakeSession()
-    monkeypatch.setattr(routes_public, "build_search_vector", fail_build_search_vector)
+    assert not hasattr(routes_public, "build_search_vector")
+    monkeypatch.setattr(routes_public.func, "row_number", fail_row_number)
     monkeypatch.setattr(routes_public, "_has_table", lambda db, table: False)
     monkeypatch.setattr(routes_public, "_has_column", lambda db, table, column: False)
 
