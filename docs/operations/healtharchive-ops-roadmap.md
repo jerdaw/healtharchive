@@ -109,30 +109,6 @@ Treat the following as the current ops execution order:
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
-- PHAC 2026 salvage/indexing is complete.
-  - Job `7` is indexed and its annual edition report is regenerated.
-  - PHAC policy follow-through is closed for the next annual cycle: keep the
-    labeled `playwright_warc` fallback posture and keep the temporary
-    high-churn exclusions unless a separate live verification proves those
-    Browsertrix paths are stable.
-  - 2026 PHAC coverage is research-ready with `missingUrlCount=0`;
-    no targeted recrawl is needed.
-- Annual output-dir mount topology conversion is complete.
-  - On 2026-05-06, jobs `6`, `7`, and `8` were converted from direct per-job
-    `sshfs` mounts to hot paths rooted in the single Storage Box mount.
-  - Verification showed one `sshfs` process for `/srv/healtharchive/storagebox`,
-    matching hot/cold directory identity, annual status `indexed=3`, and replay
-    smoke `200` for HC, PHAC, and CIHR.
-- CIHR incident follow-through:
-  - Job `8` is indexed and annual search-ready; do not start additional
-    indexing unless later checks prove the indexed rows are unusable.
-  - Public search performance, raw snapshot checks, replay checks, and
-    WARC-complete/ZIM-finalization recurrence prevention are deployed and
-    verified.
-  - Failed-URL review is complete; no targeted follow-up capture is needed for
-    this incident.
-  - The incident note is
-    `incidents/2026-05-03-cihr-warc-complete-zim-build-resume-loop.md`.
 - Large indexing hygiene for manual production runs:
   - Always load production env first:
     `cd /opt/healtharchive && set -a; source /etc/healtharchive/backend.env; set +a`.
@@ -145,21 +121,7 @@ Treat the following as the current ops execution order:
   - If a client process exits but PostgreSQL shows a long-lived
     `idle in transaction`, confirm the job did not commit and inspect blockers
     before terminating only the stale backend.
-- Preserved VPS branch review is complete.
-  - `prod-pre-a3e0dece` forked at `37a48988` and contains three old
-    pre-deploy commits.
-  - The deployed `HEAD` includes the later synchronized follow-up PR
-    `58cefc5a` plus newer annual edition, replay, public-search, and incident
-    closeout work.
-  - Decision: do not merge or cherry-pick `prod-pre-a3e0dece`; its diff
-    against deployed `HEAD` would delete newer production state.
-  - Follow-through: the branch was deleted from the VPS after the review.
-- Annual output-dir mount topology conversion is complete for the 2026 annual jobs.
-  - Jobs `6`, `7`, and `8` were converted from direct annual `sshfs` mounts to
-    hot-path mounts backed by the Storage Box tree.
-  - Verification showed annual status remained `indexed=3`, hot/cold identity
-    matched for HC/PHAC/CIHR, and replay smoke returned `200` for all three
-    annual sources.
+- Annual output-dir drift checks:
   - Future maintenance should keep using
     `python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --year <YEAR>`
     as the dry-run detector and the same script with `--apply` during an
@@ -192,10 +154,11 @@ The active plan is:
 
 - **`../planning/2026-02-admissions-strengthening-plan.md`** — phases, effort, and sequence for all external/IRL work.
 
-Current status as of 2026-04-14:
+Current status as of 2026-05-06:
 
 - Phase 1 items (outreach, uptime monitoring, portfolio page, ethics/governance update) are **not yet started**.
-- The plan was created 2026-02-25; 4 weeks have elapsed, placing the timeline in Phase 1–2 territory.
+- The plan was created 2026-02-25; about 10 weeks have elapsed, placing the
+  timeline in Phase 3 territory.
 - The mentions log remains empty (zero confirmed partners, verifiers, or citations).
 - **The single highest-leverage unblocking action is: send the first outreach batch** (5–10 contacts, using existing templates at `../operations/outreach-templates.md` and the playbook at `playbooks/external/outreach-and-verification.md`).
 

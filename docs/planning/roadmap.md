@@ -55,7 +55,8 @@ Individual items (for reference; see the plan above for execution order):
 
 Track the current status and next actions in:
 
-- `../operations/healtharchive-ops-roadmap.md` for immediate PHAC + maintenance-window ops follow-through
+- `../operations/healtharchive-ops-roadmap.md` for the current ops posture,
+  optional search tuning, and routine quarterly evidence collection
 - `2026-02-admissions-strengthening-plan.md` for the external-validation and scholarly-output sequence
 
 Supporting materials:
@@ -321,6 +322,13 @@ Completed items were removed from this backlog and archived in:
     - Next action: watch for a Next release that carries `postcss>=8.5.10`,
       then update through the normal human-authored dependency workflow and run
       frontend parity checks.
+25b. **Upgrade frontend ESLint to 10 only after the plugin stack supports it** (S: 1-2h)
+     - Current evidence: local verification on 2026-05-06 showed
+       `eslint@10.x` fails with `eslint-plugin-react@7.37.5` because the
+       plugin peer range only supports ESLint through `^9.7`.
+     - Next action: wait for compatible `eslint-plugin-react`/Next ESLint
+       support, then re-test the ESLint 10 upgrade through a human-authored
+       dependency commit.
 
 ### Documentation and operations maturity
 
