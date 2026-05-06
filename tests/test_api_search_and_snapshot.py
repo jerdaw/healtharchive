@@ -732,6 +732,7 @@ def test_postgres_text_search_uses_stored_search_vector_and_dedup_by_default(
     class FakeQuery:
         def __init__(self) -> None:
             self.filters: list[Any] = []
+            self.order_by_exprs: list[str] = []
 
         def join(self, *args, **kwargs):  # noqa: ANN002, ANN003
             return self
@@ -764,6 +765,7 @@ def test_postgres_text_search_uses_stored_search_vector_and_dedup_by_default(
             return self
 
         def order_by(self, *args):  # noqa: ANN002
+            self.order_by_exprs.extend(str(arg) for arg in args)
             return self
 
         def offset(self, value):  # noqa: ANN001
@@ -817,6 +819,12 @@ def test_postgres_text_search_uses_stored_search_vector_and_dedup_by_default(
 
     assert response.total == 1
     assert mode == "relevance_fts"
+    order_by_sql = " ".join(fake_db.query_obj.order_by_exprs)
+    assert "snapshots.title" not in order_by_sql
+    assert "replace(snapshots.url" not in order_by_sql
+    assert "utm_" not in order_by_sql
+    assert "gclid=" not in order_by_sql
+    assert "fbclid=" not in order_by_sql
 
 
 def test_postgres_default_text_search_skips_page_signals_for_fast_rank(

@@ -364,3 +364,43 @@ Keep separate existing tests for SQLite/local authority boosts and explicit
 Skip `page_signals` ranking only for default broad PostgreSQL relevance
 queries. Explicit ranking modes, non-PostgreSQL behavior, and narrower query
 modes keep the existing ranking path.
+
+### Task 8: Trim Per-Row String Heuristics From Default Broad Rank
+
+**Files:**
+- Modify: `src/ha_backend/api/routes_public.py`
+- Modify: `tests/test_api_search_and_snapshot.py`
+
+- [x] **Step 1: Capture the post-deploy query plan**
+
+After deploying Task 7, the target query improved again but remained above the
+low-single-second goal:
+
+```text
+q=covid&pageSize=1              12.028s
+q=covid&pageSize=1&view=pages    7.932s
+```
+
+Fresh production `EXPLAIN (ANALYZE, BUFFERS)` showed:
+
+```text
+current_snapshot_count        578.691 ms
+current_snapshot_ranked_top1  3349.317 ms
+```
+
+The count is now fast enough. The top-result query still evaluates title and
+URL string heuristics across roughly 141k FTS hits before returning page one.
+
+- [x] **Step 2: Add regression coverage**
+
+Extend the PostgreSQL mock default text-search test to inspect the generated
+`ORDER BY` and fail if the default broad path includes title or URL string
+heuristics such as `lower(snapshots.title)`, URL query penalties, tracking
+parameter penalties, or URL-depth `replace()` work.
+
+- [x] **Step 3: Keep default broad ranking lean**
+
+For default broad PostgreSQL text search, rank by stored FTS rank only and keep
+the existing status, capture timestamp, and id tie-breakers. Richer title, URL,
+authority, hubness, and PageRank heuristics remain available to explicit
+ranking modes and non-default paths.

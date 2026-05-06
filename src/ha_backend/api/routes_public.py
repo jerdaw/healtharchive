@@ -1867,6 +1867,8 @@ def _search_snapshots_inner(
                 rank = func.ts_rank_cd(vector_expr, tsquery, 32)
             else:
                 rank = func.ts_rank_cd(vector_expr, tsquery)
+            if skip_page_signals_for_fast_default_rank:
+                return rank
             depth_basis = (
                 group_key
                 if (
