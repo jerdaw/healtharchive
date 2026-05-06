@@ -85,6 +85,14 @@ state.
    If you need to target one job only, use `index-job --id <JOB_ID>` after
    confirming it is still safe to index.
 
+   Jobs that reached a WARC-complete crawl state but failed optional
+   finalization, such as a Zimit `warc2zim` seed-record failure, may appear with
+   the operator rescue state `warc-complete-finalization-failed`. Treat that as
+   eligible for indexing only when `show-job --warc-details` shows discoverable
+   WARCs and the final crawlStatus has no pending URLs. Do not restart the crawl
+   solely to retry optional finalization when the backend search/replay path
+   only needs WARCs.
+
 2. If the job is `index_failed` after a transient issue and the WARCs are
    healthy, move it back to `completed` and retry indexing:
 

@@ -175,7 +175,7 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     absent from the WARC subset used for finalization. The wrapper treated the
     non-zero finalization exit as a failed crawl and started another resume
     attempt, even though the WARC output was sufficient for backend indexing.
-  - Repo-side implementation exists locally, pending commit/push/deploy:
+  - Repo-side implementation is deployed:
     - backend `run_persistent_job` classifies the observed
       WARC-complete/ZIM-failed condition as eligible for indexing when final
       crawlStatus has `pending=0` and backend WARC discovery finds indexable
@@ -185,7 +185,6 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     - `annual-status` and `show-job` surface
       `warc-complete-finalization-failed` with an operator note
   - Remaining work:
-    - commit, push, deploy, and verify the local implementation in production
     - add a metric/alert for accepted WARC-complete finalization failures if
       this state recurs in a future run
     - decide whether WARC-only jobs should suppress Zimit's internal
@@ -220,37 +219,33 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 
 ### Search/API performance (backend)
 
-- Public search latency after 2026 annual indexing.
-  - Context: after CIHR indexing completed, production contained about
-    `1.2M` snapshots. The generic public verifier search probe
-    `/api/search?pageSize=1` timed out at a 60-second verifier timeout, while
-    manual timing probes on 2026-05-05 showed:
-    - `pageSize=1`: `69.043s`
-    - `pageSize=1&view=pages`: `0.936s`
-    - `pageSize=1&source=cihr`: `16.985s`
-    - `pageSize=1&source=cihr&view=pages`: `0.342s`
-    - `q=covid&pageSize=1`: `73.491s`
-    - `q=covid&pageSize=1&view=pages`: `58.538s`
-  - Local verifier follow-through: `scripts/verify_public_surface.py` now keeps
-    reporting the slow primary search as a failure but falls back to
-    `view=pages` to obtain a snapshot id, so snapshot/raw/replay checks can
-    still run when one search mode is slow. This needs deployment before it
-    affects production verification.
-  - Local search optimization follow-through: broad newest
-    `view=snapshots` browse can now skip runtime same-day content
-    de-duplication/counting when stored `Snapshot.deduplicated` is sufficient.
-    This needs deployment and live timing before it can be considered
-    production-resolved.
-  - Remaining work:
-    - commit, push, deploy, and live-test the local default browse optimization
-    - decide from production timings/EXPLAIN whether an additional index or
-      materialized metadata is still needed
-    - decide whether broad unfiltered public search should default to
+- Optional broad `q=...&view=pages` DB/index-plan tuning.
+  - Context: after CIHR indexing completed, production contained about `1.2M`
+    snapshots and default public search initially regressed into timeout /
+    60-second latency. The 2026-05-05/2026-05-06 search-performance deploys
+    restored the default broad snapshot search path by using stored
+    `snapshots.search_vector`, stored `Snapshot.deduplicated`, and a lean
+    default broad-query rank.
+  - Final warm-up samples after deploy:
+    - `q=covid&pageSize=1`: `3.252s`, `5.476s`, `2.487s`, `2.389s`, `1.959s`
+    - `q=covid&pageSize=1&view=pages`: `8.959s`, `6.742s`, `4.787s`,
+      `4.566s`, `4.285s`
+    - `pageSize=1`: `6.793s`, `1.885s`, `3.678s`, `2.339s`, `2.067s`
+    - `pageSize=1&source=cihr`: `5.919s`, `2.329s`, `2.502s`, `3.070s`,
+      `2.491s`
+  - Done for now:
+    - default `q=covid&pageSize=1` is no longer in the timeout / 60s class and
+      settles in the low-single-digit range after warm-up
+    - public-surface verification reaches snapshot metadata, raw HTML, replay,
+      and frontend checks
+  - Remaining backlog:
+    - if `q=...&view=pages` repeatedly exceeds the desired target after
+      warm-up, investigate DB/index-plan tuning or materialized page-search
+      metadata
+    - decide whether any default public browse/search mode should become
       `view=pages` only after a documented product/API decision
     - keep same-day duplicate hiding semantics intact unless a product decision
       explicitly changes the public snapshot view contract
-    - deploy the verifier fallback and rerun public-surface verification to
-      separate search latency from snapshot/raw/replay health
 - Resolve the long-term PHAC Browsertrix compatibility posture and re-evaluate the temporary `public-health-notices` exclusion.
   - Context: the 2026 PHAC annual crawl first hit sustained `net::ERR_HTTP2_PROTOCOL_ERROR` churn on canada.ca. On 2026-04-20, a fresh Browsertrix retry still failed at both seed documents, while the validated `playwright_warc` fallback succeeded and the live PHAC job resumed healthy progress under fallback.
   - Live 2026 outcome: the PHAC fallback crawl was indexed on 2026-04-29 with

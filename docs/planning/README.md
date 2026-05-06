@@ -22,9 +22,12 @@ Treat the following as the current "what's next" order across roadmap docs:
 1. Close the post-CIHR public surface and recurrence-prevention follow-through.
    - All 2026 annual jobs are indexed, search-ready, and research-ready as of
      2026-05-05.
-   - Remaining work: commit/push/deploy and live-verify the local public search
-     latency fix, verifier fallback, and WARC-complete/ZIM-finalization
-     recurrence prevention; then complete CIHR failed URL review.
+   - Public search latency fixes, verifier fallback, raw/replay verification,
+     and WARC-complete/ZIM-finalization recurrence prevention are deployed and
+     live-verified.
+   - Remaining work: complete CIHR failed URL review and optionally revisit
+     broad `q=...&view=pages` DB/index-plan tuning if repeated warm-cache
+     samples exceed the desired response target.
    - Canonical plan: `2026-05-05-public-search-and-cihr-followthrough.md`
    - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
 2. Convert annual output dirs from direct `sshfs` mounts to bind mounts during
@@ -52,11 +55,10 @@ Current known items:
 - CIHR scope/content-cost follow-through:
   - Current state: job `8` completed WARC capture, was manually accepted after
     a ZIM finalization failure, and indexed successfully with `557972` pages.
-    The CIHR annual edition is research-ready.
-  - Next action: execute
-    `2026-05-05-public-search-and-cihr-followthrough.md` to deploy and
-    live-verify the local public search latency fix, verifier fallback, and
-    recurrence prevention, then review failed URLs.
+    The CIHR annual edition is research-ready, and the public verifier reaches
+    search, snapshot metadata, raw HTML, replay, and frontend checks.
+  - Next action: review failed URLs from the CIHR crawlStatus and decide
+    whether they are acceptable gaps or require targeted follow-up capture.
   - Historical plan: `implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
 - PHAC annual-crawl policy follow-up after the 2026-03-23 canada.ca incident:
   - Current state: job `7` indexed successfully on 2026-04-29 through the

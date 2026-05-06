@@ -19,7 +19,7 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-05-05)
+## Current status (as of 2026-05-06)
 
 Live facts below come from operator-provided VPS output, not direct assistant
 production access.
@@ -49,8 +49,8 @@ production access.
       reported `Status=research_ready`, `Search ready=True`, and
       `Research ready=True`.
 - Annual search readiness is restored: `annual-status --year 2026` reports
-  `Ready for search: YES`, and `ha-check` at `2026-05-05T15:40:24Z` reported
-  `OK: snapshot complete`.
+  `Ready for search: YES`, and production deploy/public-surface verification
+  after the search follow-through passed on 2026-05-06.
 - Job lock-dir cutover remains complete:
   - `/etc/healtharchive/backend.env` points at
     `/srv/healtharchive/ops/locks/jobs`.
@@ -67,24 +67,27 @@ production access.
   - `healtharchive-crawl-auto-recover.timer` active
   - `/etc/healtharchive/crawl-auto-recover-enabled` present
   - `healtharchive-storage-hotpath-auto-recover.timer` active
-- Public-surface verification is partially blocked by search latency:
-  - source-filtered CIHR search returned `search_total=485160` quickly enough
-    for manual verification
-  - the generic verifier probe `/api/search?pageSize=1` timed out at a
-    60-second verifier timeout, and a manual timing probe returned in
-    `69.043s`
-  - `view=pages` probes were much faster (`0.936s` unfiltered and `0.342s` for
-    CIHR), so local verifier code now falls back to `view=pages` for snapshot
-    selection while preserving the slow primary search failure
-  - raw snapshot/replay verification remains unresolved because the production
-    verifier run did not reach those checks before the search timeout
-- Local repo-side follow-through is not live until committed, pushed, and
-  deployed on the VPS:
-  - public-surface verifier fallback to `view=pages` for snapshot selection
-  - default broad snapshot-browse search optimization that avoids runtime
-    de-duplication when stored `Snapshot.deduplicated` is sufficient
-  - WARC-complete/ZIM-finalization recurrence prevention with operator-visible
-    `warc-complete-finalization-failed` rescue state
+- Public-surface verification is no longer blocked by search latency:
+  - Deploys through `e9129c4eda31ce8a2b6072454e2ae48f484ecbad` passed the
+    production deploy helper, baseline drift check, and public-surface
+    verifier.
+  - Public verifier now reaches API health/stats/sources/exports/search,
+    snapshot detail, raw HTML, replay URL, usage/changes/RSS, frontend English
+    and French pages, snapshot pages, and report forwarder checks.
+  - Final warm-up timing samples after the search-performance deploys:
+    - `q=covid&pageSize=1`: `3.252s`, `5.476s`, `2.487s`, `2.389s`, `1.959s`
+    - `q=covid&pageSize=1&view=pages`: `8.959s`, `6.742s`, `4.787s`,
+      `4.566s`, `4.285s`
+    - `pageSize=1`: `6.793s`, `1.885s`, `3.678s`, `2.339s`, `2.067s`
+    - `pageSize=1&source=cihr`: `5.919s`, `2.329s`, `2.502s`, `3.070s`,
+      `2.491s`
+  - Remaining search work is future DB/index-plan tuning for broad
+    `q=...&view=pages` if repeated warm-cache samples exceed the desired
+    response target.
+- Repo-side WARC-complete/ZIM-finalization recurrence prevention is deployed:
+  WARC-complete Browsertrix runs with final crawlStatus `pending=0` and
+  discoverable WARCs are eligible for indexing instead of automatically
+  starting another resume crawl.
 - Alerting/report hygiene from the recent crawl work is deployed:
   - bounded content reporting is the preferred operator diagnostic for live
     crawl cost/failure classification.
@@ -95,23 +98,16 @@ production access.
 
 Treat the following as the current ops execution order:
 
-1. Commit, push, deploy, and live-verify the local public-search latency fix
-   for default `/api/search` probes after the 2026 annual index load.
-2. Deploy the local public-surface verifier fallback and rerun the verifier so
-   snapshot metadata, raw HTML, and replay checks are exercised even if one
-   search mode is slow.
-3. Deploy and verify recurrence prevention for WARC-complete/ZIM-finalization
-   failures: WARC-complete Browsertrix runs with final crawlStatus `pending=0`
-   and discoverable WARCs should be eligible for indexing instead of
-   automatically starting another resume crawl.
-4. Review the 26 failed CIHR crawl URLs and decide whether they are acceptable
+1. Review the 26 failed CIHR crawl URLs and decide whether they are acceptable
    coverage gaps or require targeted follow-up capture.
-5. Annual output-dir bind-mount conversion during the next acceptable
+2. Annual output-dir bind-mount conversion during the next acceptable
    maintenance window after the annual crawl is idle.
-6. Review and resolve the preserved VPS branch `prod-pre-a3e0dece`.
-7. Decide PHAC long-term backend/exclusion policy after reviewing the indexed
+3. Review and resolve the preserved VPS branch `prod-pre-a3e0dece`.
+4. Decide PHAC long-term backend/exclusion policy after reviewing the indexed
    fallback coverage.
-8. Routine quarterly ops and evidence collection.
+5. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
+   repeated warm-cache samples stay above the desired response target.
+6. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
@@ -125,11 +121,10 @@ Treat the following as the current ops execution order:
 - CIHR incident follow-through:
   - Job `8` is indexed and annual search-ready; do not start additional
     indexing unless later checks prove the indexed rows are unusable.
-  - Remaining checks are public search performance, raw/replay spot checks, and
-    review of the 26 failed crawl URLs.
-  - Repo-side recurrence prevention and public-search/verifier follow-through
-    exist locally but still need commit, push, deploy, and production
-    verification before the live system is protected.
+  - Public search performance, raw snapshot checks, replay checks, and
+    WARC-complete/ZIM-finalization recurrence prevention are deployed and
+    verified.
+  - Remaining CIHR check is review of the 26 failed crawl URLs.
   - The incident note is
     `incidents/2026-05-03-cihr-warc-complete-zim-build-resume-loop.md`.
 - Large indexing hygiene for manual production runs:

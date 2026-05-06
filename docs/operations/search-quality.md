@@ -166,7 +166,38 @@ set -a; source /etc/healtharchive/backend.env; set +a
 Then repeat representative timing probes, including both browse and text-search
 queries.
 
-### 5.1.2 Enable fuzzy search (Postgres only)
+### 5.1.2 Production search latency baseline
+
+After the 2026 annual CIHR indexing brought production to about `1.2M`
+snapshots, broad public search initially regressed into timeout / 60-second
+latency. The deployed 2026-05-05/2026-05-06 follow-through made PostgreSQL
+public search rely on stored `snapshots.search_vector`, stored
+`Snapshot.deduplicated`, and a lean default broad-query ranking path.
+
+Final post-deploy warm-up samples:
+
+```text
+q=covid&pageSize=1:
+  3.252s, 5.476s, 2.487s, 2.389s, 1.959s
+q=covid&pageSize=1&view=pages:
+  8.959s, 6.742s, 4.787s, 4.566s, 4.285s
+pageSize=1:
+  6.793s, 1.885s, 3.678s, 2.339s, 2.067s
+pageSize=1&source=cihr:
+  5.919s, 2.329s, 2.502s, 3.070s, 2.491s
+```
+
+Operational interpretation:
+
+- Treat occasional cold-cache spikes immediately after API restart as expected
+  unless they persist across repeated probes.
+- Treat repeated `q=...&view=pages` samples above the desired target as a
+  future DB/index-plan tuning item, not an immediate incident if public
+  verification and snapshot/raw/replay checks remain green.
+- Keep explicit ranking modes available for quality evaluation; the default
+  broad public path is intentionally latency-biased.
+
+### 5.1.3 Enable fuzzy search (Postgres only)
 
 Fuzzy matching for misspellings relies on the `pg_trgm` extension and trigram
 GIN indexes (see Alembic migration `0007_pg_trgm_fuzzy_search`).

@@ -404,3 +404,48 @@ For default broad PostgreSQL text search, rank by stored FTS rank only and keep
 the existing status, capture timestamp, and id tie-breakers. Richer title, URL,
 authority, hubness, and PageRank heuristics remain available to explicit
 ranking modes and non-default paths.
+
+### Task 9: Record Final Production Outcome
+
+**Files:**
+- Modify: `docs/superpowers/plans/2026-05-05-search-query-performance.md`
+- Modify: `docs/operations/search-quality.md`
+- Modify: `docs/planning/roadmap.md`
+
+- [x] **Step 1: Capture deployed commits**
+
+Search performance follow-through landed in four production deploys:
+
+```text
+b9a919d8e22075dc22b0065064b71758ba6b9fb9  use stored search vectors
+3dd8eb9f1215cea8ec849c5b9426c90cb1290b4e  avoid runtime snapshot dedup
+60a9f1faf23d5321883d9051875398c2a850dd3e  skip PageSignal ranking on default broad search
+e9129c4eda31ce8a2b6072454e2ae48f484ecbad  trim default broad rank to FTS rank
+```
+
+Each deploy passed the production deploy helper, baseline drift check, and
+public-surface verifier.
+
+- [x] **Step 2: Capture final timing samples**
+
+After the final deploy and warm-up sampling, production public API timings were:
+
+```text
+q=covid&pageSize=1:
+  3.252s, 5.476s, 2.487s, 2.389s, 1.959s
+q=covid&pageSize=1&view=pages:
+  8.959s, 6.742s, 4.787s, 4.566s, 4.285s
+pageSize=1:
+  6.793s, 1.885s, 3.678s, 2.339s, 2.067s
+pageSize=1&source=cihr:
+  5.919s, 2.329s, 2.502s, 3.070s, 2.491s
+```
+
+The main target (`q=covid&pageSize=1`) is no longer in the timeout / 60s class
+and settles into the low-single-digit range after warm-up.
+
+- [x] **Step 3: Move remaining tuning to backlog**
+
+Do not keep patching the hot path without new repeated evidence. Remaining
+work is optional DB/index-plan tuning for broad `q=...&view=pages`, especially
+if it repeatedly exceeds the desired response target after cache warm-up.

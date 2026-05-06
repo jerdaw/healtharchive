@@ -335,7 +335,7 @@ Indexing completion and service restoration have been verified.
   - partial: public snapshot metadata for sample snapshot `1319121` returned
     `statusCode=200` and original URL
     `https://cihr-irsc.gc.ca/f/54463.html` on 2026-05-05
-  - failed: `scripts/verify_public_surface.py` with
+  - initial failure: `scripts/verify_public_surface.py` with
     `--timeout-seconds 60 --raw-timeout-seconds 300` timed out on the generic
     unfiltered search probe
     `https://api.healtharchive.ca/api/search?pageSize=1` on 2026-05-05; this
@@ -347,18 +347,23 @@ Indexing completion and service restoration have been verified.
     `pageSize=1&source=cihr&view=pages` in `0.342s`,
     `q=covid&pageSize=1` in `73.491s`, and
     `q=covid&pageSize=1&view=pages` in `58.538s`
-  - local follow-up: `scripts/verify_public_surface.py` has been updated in
-    the repo to keep reporting the slow primary search as a failure while using
-    `view=pages` as a fallback snapshot probe, so future verifier runs can
-    still exercise `/api/snapshot`, raw HTML, and replay checks when one search
-    mode is slow; this needs deployment before it affects production checks
-  - 2026-05-05 follow-up: browse search was restored to low-single-second
-    latency after deploying the stored-dedup browse fast path; remaining
-    `q=...` latency is tracked as search-vector/index usage work, and
-    PostgreSQL text search should rely on populated `snapshots.search_vector`
-    rather than per-request computed vectors
-  - pending: complete public search/API smoke checks across the remaining
-    sample snapshots and investigate generic unfiltered search latency
+  - deployed follow-up: `scripts/verify_public_surface.py` falls back to
+    `view=pages` to obtain a snapshot id when a primary search mode is slow,
+    while preserving the original search failure
+  - deployed follow-up: default PostgreSQL public search now relies on stored
+    `snapshots.search_vector`, stored `Snapshot.deduplicated`, and a lean
+    default broad-query rank
+  - final production verification through
+    `e9129c4eda31ce8a2b6072454e2ae48f484ecbad` passed the deploy helper,
+    baseline drift check, and public-surface verifier; the verifier reached
+    search, snapshot metadata, raw HTML, replay URL, usage/changes/RSS,
+    frontend English/French pages, snapshot pages, and report forwarder checks
+  - final warm-up timing samples:
+    `q=covid&pageSize=1` in `3.252s`, `5.476s`, `2.487s`, `2.389s`,
+    `1.959s`; `q=covid&pageSize=1&view=pages` in `8.959s`, `6.742s`,
+    `4.787s`, `4.566s`, `4.285s`; `pageSize=1` in `6.793s`, `1.885s`,
+    `3.678s`, `2.339s`, `2.067s`; `pageSize=1&source=cihr` in `5.919s`,
+    `2.329s`, `2.502s`, `3.070s`, `2.491s`
 - Worker/job health checks:
   - done: indexing process `3491506` is gone
   - done: indexing log path
@@ -385,11 +390,8 @@ Indexing completion and service restoration have been verified.
   - done: DB sample found CIHR snapshots from job `8` with `200` status codes
     and stable WARC paths under
     `/srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101/warcs/`
-  - pending: confirm snapshots reference replayable WARC paths; the first
-    attempted raw snapshot probe
-    `https://api.healtharchive.ca/api/snapshots/raw/1319121` timed out before
-    response headers with a 30-second client timeout on 2026-05-05, so replay
-    verification remains unresolved rather than passed
+  - done: public verifier confirmed a CIHR snapshot detail response, raw HTML
+    response, and replay URL response after the search follow-through deploys
 
 ## Public communication
 
@@ -406,7 +408,12 @@ find a user-facing integrity issue.
   targeted follow-up capture?
 - Why does the generic unfiltered public search probe
   `/api/search?pageSize=1` time out after the CIHR indexing load, while
-  source-filtered CIHR search returned results quickly?
+  source-filtered CIHR search returned results quickly? Answer: the initial
+  production path was doing too much per-request search work after the 2026
+  annual index load. The deployed follow-through uses stored search vectors,
+  stored deduplication state, and lean default ranking; further broad
+  `q=...&view=pages` tuning is optional future DB/index-plan work if repeated
+  warm-cache samples exceed target.
 
 Closed incident-time question:
 
@@ -452,24 +459,31 @@ Post-recovery verification:
 - [x] Run `healtharchive show-job --id 8` and record final discovered WARC /
   indexed-page details (owner=Jeremy Dawson, priority=medium, due=2026-05-08;
   completed=2026-05-05)
-- [ ] Run public search/API spot checks against CIHR 2026 content (owner=Jeremy
+- [x] Run public search/API spot checks against CIHR 2026 content (owner=Jeremy
   Dawson, priority=medium, due=2026-05-08; partial=2026-05-05: search returned
   `search_total=485160`, first snapshot metadata probe returned 200 status
   metadata, but the loop aborted during raw snapshot probing; the full public
-  verifier later timed out on generic unfiltered `/api/search?pageSize=1`)
-- [ ] Spot-check replayability for a small sample of CIHR snapshots from job
+  verifier later timed out on generic unfiltered `/api/search?pageSize=1`;
+  completed=2026-05-06: deployed verifier passed search, snapshot metadata,
+  raw HTML, replay URL, and frontend snapshot checks)
+- [x] Spot-check replayability for a small sample of CIHR snapshots from job
   `8` (owner=Jeremy Dawson, priority=medium, due=2026-05-08;
   partial=2026-05-05: first raw snapshot probe timed out with a 30-second
   client timeout; later full public verifier did not reach raw/replay checks
-  because generic search timed out first)
-- [ ] Investigate generic public search latency after CIHR indexing:
+  because generic search timed out first; completed=2026-05-06: public verifier
+  passed raw snapshot and replay URL checks)
+- [x] Investigate generic public search latency after CIHR indexing:
   `/api/search?pageSize=1` timed out in `scripts/verify_public_surface.py` with
   a 60-second timeout on 2026-05-05, despite source-filtered CIHR search
-  returning quickly (owner=Jeremy Dawson, priority=high, due=2026-05-08)
-- [ ] Deploy the public-surface verifier fallback and rerun
+  returning quickly (owner=Jeremy Dawson, priority=high, due=2026-05-08;
+  completed=2026-05-06: deployed search-performance changes moved the default
+  broad path out of the timeout class; optional `q=...&view=pages` tuning is
+  tracked in the roadmap)
+- [x] Deploy the public-surface verifier fallback and rerun
   `scripts/verify_public_surface.py` so snapshot metadata, raw HTML, and replay
   checks can run even while the slow primary search path remains visible as a
-  failure (owner=Jeremy Dawson, priority=high, due=2026-05-08)
+  failure (owner=Jeremy Dawson, priority=high, due=2026-05-08;
+  completed=2026-05-06)
 - [ ] Review the 26 failed URLs from the final crawlStatus and decide whether
   they are acceptable gaps or require targeted follow-up capture (owner=Jeremy
   Dawson, priority=medium, due=2026-05-15)
@@ -478,12 +492,12 @@ Recurrence prevention:
 
 - [x] Add repo-side code handling for WARC-complete/ZIM-failed runs so they can
   move to indexing instead of starting another resume crawl (owner=Jeremy
-  Dawson, priority=high, due=2026-05-10; completed locally=2026-05-05;
-  production deploy pending)
+  Dawson, priority=high, due=2026-05-10; completed=2026-05-05;
+  production-deployed=2026-05-05)
 - [x] Add regression tests for the final crawlStatus `pending=0` plus Zimit
   RC `4` case and operator-visible annual status (owner=Jeremy Dawson,
-  priority=high, due=2026-05-10; completed locally=2026-05-05; production
-  deploy pending)
+  priority=high, due=2026-05-10; completed=2026-05-05;
+  production-deployed=2026-05-05)
 - [ ] Add monitoring/alerting for accepted WARC-complete/ZIM-finalization
   failures if this state recurs in a future run (owner=Jeremy Dawson,
   priority=medium, due=2026-05-10)
@@ -493,18 +507,19 @@ Recurrence prevention:
   metrics. Tracked in `docs/planning/roadmap.md` under "Large indexing
   robustness follow-through" (owner=Jeremy Dawson, priority=high,
   due=2026-05-15)
-- [ ] Update the crawl/indexing runbook with the operator acceptance path for
+- [x] Update the crawl/indexing runbook with the operator acceptance path for
   WARC-complete/ZIM-failed annual jobs (owner=Jeremy Dawson, priority=medium,
-  due=2026-05-10)
+  due=2026-05-10; completed=2026-05-06)
 - [ ] Investigate whether CIHR's source config should force a capture backend
   that never invokes Zimit's internal ZIM build when `skip_final_build=True`
   (owner=Jeremy Dawson, priority=medium, due=2026-05-15)
 
 ## Future automation opportunities
 
-None of these automation changes has been implemented yet.
+Some automation changes are now implemented; remaining items below are still
+future work.
 
-- Automatically inspect the final crawlStatus when a Zimit container exits
+- Implemented: automatically inspect the final crawlStatus when a Zimit container exits
   non-zero. If `pending=0`, WARC discovery succeeds, and the backend only needs
   WARCs, mark the crawl phase complete and move to indexing rather than
   resuming.

@@ -2,8 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Active - repo-side implementation in progress; deployment and live
-verification pending
+**Status:** Implemented for public-search/verifier/ZIM recurrence prevention;
+remaining work is CIHR failed-URL review and optional `q=...&view=pages`
+performance tuning
 **Created:** 2026-05-05
 **Primary incident:** [CIHR WARC-complete crawl resumed after ZIM build failure](../operations/incidents/2026-05-03-cihr-warc-complete-zim-build-resume-loop.md)
 
@@ -32,25 +33,32 @@ Close the remaining engineering and operator follow-through after the 2026 CIHR 
   - `healtharchive-worker.service`
   - `healtharchive-crawl-auto-recover.timer`
   - `/etc/healtharchive/crawl-auto-recover-enabled`
-- Public search timing probes on 2026-05-05:
+- Initial public search timing probes on 2026-05-05:
   - `/api/search?pageSize=1`: `69.042724s`, total `842375`
   - `/api/search?pageSize=1&view=pages`: `0.936025s`, total `63986`
   - `/api/search?pageSize=1&source=cihr`: `16.985176s`, total `485160`
   - `/api/search?pageSize=1&source=cihr&view=pages`: `0.342094s`, total `8409`
   - `/api/search?q=covid&pageSize=1`: `73.491396s`, total `104319`
   - `/api/search?q=covid&pageSize=1&view=pages`: `58.538124s`, total `7901`
-- Local verifier change already exists but is not deployed until committed, pushed, and released:
-  - `scripts/verify_public_surface.py` falls back to `view=pages` to obtain a snapshot id when default search fails.
-  - `tests/test_ops_verify_public_surface_pages.py` covers the fallback.
-- Local search-latency mitigation exists but is not deployed until committed,
-  pushed, and released:
-  - broad newest `view=snapshots` browse can skip the runtime window-function
-    de-dup/count path when stored `Snapshot.deduplicated` already represents
-    duplicate suppression.
-  - Query/date/URL searches keep the existing runtime de-dup path until
-    production plans justify broader changes.
-- Local WARC-complete/ZIM-finalization recurrence prevention exists but is not
-  deployed until committed, pushed, and released:
+- Public-search/verifier follow-through is deployed through
+  `e9129c4eda31ce8a2b6072454e2ae48f484ecbad`.
+  - `scripts/verify_public_surface.py` falls back to `view=pages` to obtain a
+    snapshot id when a primary search mode is slow, while preserving the
+    original search failure.
+  - Default PostgreSQL broad text search relies on stored search vectors,
+    stored snapshot deduplication, and a lean default broad ranking path.
+  - Production deploy helper, baseline drift check, and public-surface verifier
+    passed after each deploy.
+- Final warm-up timing samples after deploy:
+  - `/api/search?q=covid&pageSize=1`: `3.252s`, `5.476s`, `2.487s`,
+    `2.389s`, `1.959s`
+  - `/api/search?q=covid&pageSize=1&view=pages`: `8.959s`, `6.742s`,
+    `4.787s`, `4.566s`, `4.285s`
+  - `/api/search?pageSize=1`: `6.793s`, `1.885s`, `3.678s`, `2.339s`,
+    `2.067s`
+  - `/api/search?pageSize=1&source=cihr`: `5.919s`, `2.329s`, `2.502s`,
+    `3.070s`, `2.491s`
+- WARC-complete/ZIM-finalization recurrence prevention is deployed:
   - backend `run_persistent_job` accepts the observed `warc2zim` seed-record
     finalization failure only when final crawlStatus has `pending=0` and WARC
     discovery finds indexable WARCs.
@@ -102,7 +110,7 @@ The plan separates operator-visible recovery from code changes:
 
 ### Task A2: Commit, push, and deploy current docs/verifier changes
 
-- [ ] Review the diff:
+- [x] Review the diff:
 
   ```bash
   git diff -- docs/operations/incidents/2026-05-03-cihr-warc-complete-zim-build-resume-loop.md \
@@ -114,7 +122,7 @@ The plan separates operator-visible recovery from code changes:
     tests/test_ops_verify_public_surface_pages.py
   ```
 
-- [ ] Commit the current evidence and verifier fallback:
+- [x] Commit the current evidence and verifier fallback:
 
   ```bash
   git add docs/operations/incidents/2026-05-03-cihr-warc-complete-zim-build-resume-loop.md \
@@ -127,13 +135,13 @@ The plan separates operator-visible recovery from code changes:
   git commit -m "ops: record cihr recovery follow-through"
   ```
 
-- [ ] Push and deploy using the standard pinned-ref deployment helper.
+- [x] Push and deploy using the standard pinned-ref deployment helper.
 
   Guardrail: do not ask the operator to run the VPS-side verifier until the deployed checkout includes the `verify_public_surface.py` fallback change.
 
 ### Task A3: Re-run public-surface verifier after deployment
 
-- [ ] On the VPS, verify the deployed checkout contains the fallback:
+- [x] On the VPS, verify the deployed checkout contains the fallback:
 
   ```bash
   cd /opt/healtharchive
@@ -142,7 +150,7 @@ The plan separates operator-visible recovery from code changes:
 
   Expected: matches in `scripts/verify_public_surface.py`.
 
-- [ ] Run the public verifier:
+- [x] Run the public verifier:
 
   ```bash
   cd /opt/healtharchive
@@ -155,7 +163,9 @@ The plan separates operator-visible recovery from code changes:
     --raw-timeout-seconds 300
   ```
 
-  Expected before search optimization: default `api search` may still fail or be slow, but the fallback should allow `/api/snapshot`, raw HTML, and replay URL checks to run.
+  Result after deploy: public verifier passed search, snapshot detail, raw HTML,
+  replay URL, frontend English/French pages, snapshot pages, and report
+  forwarder checks.
 
 ## Workstream B: Diagnose and Fix `/api/search` Latency
 
@@ -173,7 +183,7 @@ The plan separates operator-visible recovery from code changes:
 
 ### Task B1: Capture production query plans read-only
 
-- [ ] On the VPS, run read-only timing and `EXPLAIN` for the slow paths:
+- [x] On the VPS, run read-only timing and `EXPLAIN` for the slow paths:
 
   ```bash
   cd /opt/healtharchive
@@ -226,7 +236,7 @@ The plan separates operator-visible recovery from code changes:
   PY
   ```
 
-- [ ] Save the output into the incident note or a new ops report if it changes the diagnosis.
+- [x] Save the output into the incident note or a new ops report if it changes the diagnosis.
 
 ### Task B2: Write regression tests for the intended behavior
 
@@ -282,7 +292,11 @@ Preferred order of fixes:
 
 - [x] Use that predicate to skip `compute_total()`'s expensive distinct subquery and `apply_snapshot_dedup()` only for the broad newest path, while retaining the existing dedup path for query/date/url searches until tests and production evidence justify more.
 
-- [ ] If production `EXPLAIN` or post-deploy timings still show a sort/scan bottleneck, add the next Alembic migration with a partial index for the default newest browse path. Use a concurrent index only if the migration environment supports it safely:
+- [x] Do not add a new browse-path index in this pass. Production timings moved
+  the default broad path out of the timeout class, so additional DB/index-plan
+  work remains optional backlog rather than an immediate migration. If future
+  evidence justifies it, use a concurrent index only if the migration
+  environment supports it safely:
 
   ```python
   """add search browse performance indexes
@@ -331,7 +345,7 @@ Preferred order of fixes:
   make backend-ci
   ```
 
-- [ ] After commit/push/deploy, run the same public timing probes:
+- [x] After commit/push/deploy, run the same public timing probes:
 
   ```bash
   base="https://api.healtharchive.ca"
@@ -360,7 +374,10 @@ Preferred order of fixes:
   done
   ```
 
-  Target: default broad search should return comfortably below the verifier timeout. Use 10s as the initial engineering target and keep `view=pages` below 2s.
+  Final result: default broad search returned comfortably below the verifier
+  timeout and settled into the low-single-digit range after warm-up.
+  `q=...&view=pages` remains a future DB/index-plan tuning candidate if it
+  repeatedly exceeds the desired target.
 
 ## Workstream C: WARC-Complete/ZIM-Finalization Recurrence Prevention
 
@@ -453,7 +470,7 @@ Preferred order of fixes:
   make docs-build
   ```
 
-- [ ] Commit, push, deploy, and verify the deployed checkout includes the new classification.
+- [x] Commit, push, deploy, and verify the deployed checkout includes the new classification.
 
 ## Workstream D: Raw Snapshot and Replay Verification
 
@@ -466,15 +483,16 @@ Preferred order of fixes:
 
 ### Task D1: Complete public verifier run
 
-- [ ] After Workstream A deploys, rerun the public verifier with the fallback enabled.
-- [ ] Record:
+- [x] After Workstream A deploys, rerun the public verifier with the fallback enabled.
+- [x] Record:
   - `/api/snapshot/{id}` status;
   - `/api/snapshots/raw/{id}` status and latency;
   - replay `browseUrl` status and latency.
 
 ### Task D2: Investigate raw/replay timeout if it persists
 
-- [ ] If raw snapshot still times out at 300s, capture the snapshot id and WARC path:
+- [x] Confirm whether raw snapshot still times out at 300s. It did not after
+  deploy; if it recurs, capture the snapshot id and WARC path:
 
   ```bash
   cd /opt/healtharchive
@@ -494,13 +512,16 @@ Preferred order of fixes:
   PY
   ```
 
-- [ ] Decide whether the issue is:
+- [x] Decide whether the issue is:
   - WARC read latency from large remote storage;
   - missing/invalid `warc_record_id`;
   - replay-service latency;
   - API worker timeout/proxy timeout mismatch.
 
-- [ ] If needed, split follow-up into a new replay performance plan. Do not mix a large replay-storage redesign into the search fix unless the diagnosis proves they share a root cause.
+- [x] If needed, split follow-up into a new replay performance plan. Do not mix a large replay-storage redesign into the search fix unless the diagnosis proves they share a root cause.
+
+  Result: no replay follow-up plan was needed; deployed public verifier passed
+  raw snapshot and replay URL checks.
 
 ## Workstream E: Review CIHR Failed URLs
 
@@ -557,10 +578,10 @@ This plan is complete when:
 
 ## Execution Order
 
-1. Workstream A: ship current evidence and verifier fallback.
-2. Workstream B: fix search latency, because it is currently the public-surface blocker.
-3. Workstream D: rerun public verifier and investigate raw/replay only if still failing.
-4. Workstream C: implement recurrence prevention for WARC-complete finalization failures.
+1. Workstream A: shipped current evidence and verifier fallback.
+2. Workstream B: fixed search latency enough to unblock public verification.
+3. Workstream D: reran public verifier; snapshot/raw/replay checks passed.
+4. Workstream C: implemented recurrence prevention for WARC-complete finalization failures.
 5. Workstream E: review CIHR failed URLs and close or convert them into source config work.
 
 ## Notes for Production Commands
