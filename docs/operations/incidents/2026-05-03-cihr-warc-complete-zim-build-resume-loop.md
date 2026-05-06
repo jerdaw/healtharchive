@@ -96,8 +96,8 @@ auto-recover timer active, crawl auto-recover sentinel present, and all three
 - 2026-05-03, before manual indexing - Operator decision: mark job `8` as
   `completed` after verifying the previous attempt's last crawlStatus had
   `pending=0` (why: HealthArchive indexes WARCs, and the WARC crawl had
-  completed; risks: the 26 failed crawl URLs remain absent unless separately
-  recovered).
+  completed; risks: the 26 final retry failures need coverage review before
+  closure).
 - 2026-05-03T01:39:52Z - Operator decision: start detached
   `reconcile-completed-indexing --source cihr --limit 1` (why: make the
   WARC-complete job search-ready without restarting crawl, risks: indexing may
@@ -405,7 +405,14 @@ find a user-facing integrity issue.
 - What exact code/config path should suppress Zimit's internal `warc2zim` build
   when HealthArchive only needs WARC output?
 - Are the 26 failed URLs acceptable CIHR coverage gaps, or do any require a
-  targeted follow-up capture?
+  targeted follow-up capture? Answer: the final failed counter increments were
+  retry-budget exhaustion events during direct fetch. Production DB review on
+  2026-05-06 found exact job `8` snapshots for 25 page/route URLs, including
+  `200` latest snapshots for the real CIHR pages and a `404` snapshot for the
+  malformed `/f/bit.ly/4alz5pv` path. The remaining URL,
+  `/images/ipph_launch_may_2024-1.jpg`, is a render asset and is acceptable as
+  a documented non-page gap. No targeted follow-up capture or source-config
+  change is needed for this incident.
 - Why does the generic unfiltered public search probe
   `/api/search?pageSize=1` time out after the CIHR indexing load, while
   source-filtered CIHR search returned results quickly? Answer: the initial
@@ -484,9 +491,11 @@ Post-recovery verification:
   checks can run even while the slow primary search path remains visible as a
   failure (owner=Jeremy Dawson, priority=high, due=2026-05-08;
   completed=2026-05-06)
-- [ ] Review the 26 failed URLs from the final crawlStatus and decide whether
+- [x] Review the 26 failed URLs from the final crawlStatus and decide whether
   they are acceptable gaps or require targeted follow-up capture (owner=Jeremy
-  Dawson, priority=medium, due=2026-05-15)
+  Dawson, priority=medium, due=2026-05-15; completed=2026-05-06: 25 URLs were
+  already covered by exact job `8` snapshots; the remaining image URL is an
+  acceptable render-asset gap)
 
 Recurrence prevention:
 

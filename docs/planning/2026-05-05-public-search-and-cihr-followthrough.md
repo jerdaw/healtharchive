@@ -2,9 +2,9 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:subagent-driven-development` or `superpowers:executing-plans` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Implemented for public-search/verifier/ZIM recurrence prevention;
-remaining work is CIHR failed-URL review and optional `q=...&view=pages`
-performance tuning
+**Status:** Implemented for public-search/verifier/ZIM recurrence prevention
+and CIHR failed-URL review; optional `q=...&view=pages` performance tuning
+remains a future backlog item
 **Created:** 2026-05-05
 **Primary incident:** [CIHR WARC-complete crawl resumed after ZIM build failure](../operations/incidents/2026-05-03-cihr-warc-complete-zim-build-resume-loop.md)
 
@@ -15,7 +15,7 @@ Close the remaining engineering and operator follow-through after the 2026 CIHR 
 - restore public `/api/search` latency to verifier-safe levels after the dataset grew to about 1.2M snapshots;
 - deploy and use the improved public-surface verifier so raw snapshot and replay checks are not hidden by one slow search mode;
 - implement recurrence prevention for the WARC-complete/ZIM-finalization failure mode;
-- review the remaining CIHR failed URLs and record the coverage decision.
+- review the CIHR failed URLs and record the coverage decision.
 
 ## Current Evidence
 
@@ -64,6 +64,14 @@ Close the remaining engineering and operator follow-through after the 2026 CIHR 
     discovery finds indexable WARCs.
   - the accepted condition is marked as
     `warc_complete_finalization_failed` and surfaced in operator rescue state.
+- CIHR failed-URL review is complete:
+  - final crawlStatus ended `crawled=9226`, `total=9252`, `pending=0`,
+    `failed=26`;
+  - the 26 increments were final retry exhaustion events from direct-fetch
+    timeouts;
+  - DB review found exact job `8` snapshot coverage for 25 page/route URLs;
+  - the lone uncovered URL is `/images/ipph_launch_may_2024-1.jpg`, a
+    render-asset image, accepted as a non-page gap.
 
 ## Architecture
 
@@ -535,35 +543,46 @@ Preferred order of fixes:
 
 ### Task E1: Export failed URL evidence
 
-- [ ] On the VPS, inspect the generated CIHR annual report:
+- [x] On the VPS, inspect final crawl evidence and DB coverage:
 
   ```bash
   cd /opt/healtharchive
-  jq '.failedUrls // .failed_urls // .coverageSummary // .' \
-    /srv/healtharchive/jobs/editions/cihr/2026/coverage-report.json | head -200
+  # Inspect final crawlStatus failed-count increments in the job combined log.
+  # Then compare the 26 final retry-failed URLs against job 8 Snapshot rows.
   ```
 
-- [ ] If the report schema needs a helper command, add one locally rather than using ad hoc JSON parsing forever.
+- [x] If the evidence path needs a helper command, add one locally rather than using ad hoc parsing forever.
+
+  Result: no helper command was needed for this closure pass. The final
+  combined log and DB snapshot coverage were enough to classify the 26 final
+  retry failures.
 
 ### Task E2: Classify failed URLs
 
-- [ ] Classify each failed URL as:
+- [x] Classify each failed URL as:
   - acceptable excluded/non-HTML/media/document path;
   - transient crawler miss but low research impact;
   - source configuration bug;
   - replay/indexing bug.
 
-- [ ] Record the decision in the incident note.
+- [x] Record the decision in the incident note.
+
+  Result: 25 page/route URLs already had exact job `8` snapshot coverage. The
+  remaining uncovered URL was a render-asset image and was accepted as a
+  documented non-page gap.
 
 ### Task E3: Implement config fix only if needed
 
-- [ ] If failed URLs reveal a real CIHR scope/config bug, update `src/ha_backend/job_registry.py` and `tests/test_job_registry.py`.
-- [ ] Run:
+- [x] If failed URLs reveal a real CIHR scope/config bug, update `src/ha_backend/job_registry.py` and `tests/test_job_registry.py`.
+- [x] Decide whether a backend test run is required:
 
   ```bash
   .venv/bin/pytest -s tests/test_job_registry.py -q
   make backend-ci
   ```
+
+  Result: no source-config bug was found and no code change was needed; no
+  backend test run was required for this docs/evidence-only closure.
 
 ## Completion Criteria
 
@@ -582,7 +601,7 @@ This plan is complete when:
 2. Workstream B: fixed search latency enough to unblock public verification.
 3. Workstream D: reran public verifier; snapshot/raw/replay checks passed.
 4. Workstream C: implemented recurrence prevention for WARC-complete finalization failures.
-5. Workstream E: review CIHR failed URLs and close or convert them into source config work.
+5. Workstream E: reviewed CIHR failed URLs; no source config work required.
 
 ## Notes for Production Commands
 

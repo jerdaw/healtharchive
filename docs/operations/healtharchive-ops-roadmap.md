@@ -88,6 +88,12 @@ production access.
   WARC-complete Browsertrix runs with final crawlStatus `pending=0` and
   discoverable WARCs are eligible for indexing instead of automatically
   starting another resume crawl.
+- CIHR failed-URL review is complete:
+  - final crawlStatus reported `failed=26`, but the failure increments were
+    final retry exhaustion events;
+  - 25 page/route URLs already had exact job `8` snapshot coverage;
+  - the lone uncovered URL was a render-asset image
+    `/images/ipph_launch_may_2024-1.jpg`, accepted as a non-page gap.
 - Alerting/report hygiene from the recent crawl work is deployed:
   - bounded content reporting is the preferred operator diagnostic for live
     crawl cost/failure classification.
@@ -98,16 +104,14 @@ production access.
 
 Treat the following as the current ops execution order:
 
-1. Review the 26 failed CIHR crawl URLs and decide whether they are acceptable
-   coverage gaps or require targeted follow-up capture.
-2. Annual output-dir bind-mount conversion during the next acceptable
+1. Annual output-dir bind-mount conversion during the next acceptable
    maintenance window after the annual crawl is idle.
-3. Review and resolve the preserved VPS branch `prod-pre-a3e0dece`.
-4. Decide PHAC long-term backend/exclusion policy after reviewing the indexed
+2. Review and resolve the preserved VPS branch `prod-pre-a3e0dece`.
+3. Decide PHAC long-term backend/exclusion policy after reviewing the indexed
    fallback coverage.
-5. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
+4. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
    repeated warm-cache samples stay above the desired response target.
-6. Routine quarterly ops and evidence collection.
+5. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
@@ -124,7 +128,8 @@ Treat the following as the current ops execution order:
   - Public search performance, raw snapshot checks, replay checks, and
     WARC-complete/ZIM-finalization recurrence prevention are deployed and
     verified.
-  - Remaining CIHR check is review of the 26 failed crawl URLs.
+  - Failed-URL review is complete; no targeted follow-up capture is needed for
+    this incident.
   - The incident note is
     `incidents/2026-05-03-cihr-warc-complete-zim-build-resume-loop.md`.
 - Large indexing hygiene for manual production runs:

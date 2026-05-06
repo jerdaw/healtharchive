@@ -164,11 +164,14 @@ Keep this list short; prefer linking to the canonical doc that explains the item
       fallback provenance.
     - CIHR is indexed, search-ready, and research-ready after manual
       WARC-complete acceptance and completed-job indexing reconciliation.
+    - CIHR failed-URL review found exact job `8` snapshot coverage for 25 final
+      retry-failed page/route URLs; the lone uncovered image was accepted as a
+      non-page render-asset gap.
   - Remaining work: richer target ledger sources (sitemaps/public inventories),
     path/language shard creation for future campaigns, operator UI for shard
     split/retry/acceptance decisions, stricter watchdog `needs_review`
-    escalation for repeated recoveries, and final post-run production
-    validation of replay/search coverage.
+    escalation for repeated recoveries, and richer post-run coverage review
+    tooling.
 - WARC-complete / ZIM-finalization failure handling.
   - Context: the 2026 CIHR Browsertrix crawl reached final crawlStatus
     `pending=0`, but Zimit `warc2zim` exited RC `4` because the seed page was
