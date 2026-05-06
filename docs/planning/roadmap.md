@@ -313,6 +313,14 @@ Completed items were removed from this backlog and archived in:
 
 23. **Create formal accessibility audit document** (M: 1-2 days) — covered by `2026-02-admissions-strengthening-plan.md` Phase 3, item 4
 24. **Add frontend error boundary components** (M: 1 day)
+25. **Track the frontend Next/PostCSS production dependency advisory until an upstream-safe fix exists** (S: 1-2h)
+    - Current evidence: `npm audit --omit=dev --json` on 2026-05-06 reports
+      the PostCSS XSS advisory through `next@16.2.4` / bundled `postcss`;
+      npm's suggested fix points to an old Next major downgrade and should not
+      be applied.
+    - Next action: watch for a Next release that carries `postcss>=8.5.10`,
+      then update through the normal human-authored dependency workflow and run
+      frontend parity checks.
 
 ### Documentation and operations maturity
 
