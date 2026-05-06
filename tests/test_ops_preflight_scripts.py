@@ -349,6 +349,82 @@ def test_vps_annual_output_tiering_cold_path_mapping() -> None:
     assert out == Path("/srv/healtharchive/storagebox/jobs/cihr/20260101T000000Z__cihr-2026")
 
 
+def test_vps_annual_output_tiering_detects_sshfs_backed_bind_mount(monkeypatch) -> None:
+    mod = _load_script_module(
+        "vps-annual-output-tiering.py",
+        module_name="ha_test_vps_annual_output_tiering_bind_detect",
+    )
+
+    storage = Path("/srv/healtharchive/storagebox")
+    hot = Path("/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101")
+    cold = Path("/srv/healtharchive/storagebox/jobs/hc/20260101T000502Z__hc-20260101")
+
+    def fake_mountinfo(path: Path) -> dict[str, str] | None:
+        if path == storage:
+            return {
+                "major_minor": "0:64",
+                "root": "/",
+                "target": str(storage),
+                "fstype": "fuse.sshfs",
+                "source": "u524803@u524803.your-storagebox.de:",
+            }
+        if path == hot:
+            return {
+                "major_minor": "0:64",
+                "root": "/jobs/hc/20260101T000502Z__hc-20260101",
+                "target": str(hot),
+                "fstype": "fuse.sshfs",
+                "source": "u524803@u524803.your-storagebox.de:",
+            }
+        return None
+
+    monkeypatch.setattr(mod, "_get_mountinfo_for_target", fake_mountinfo)
+
+    assert mod._is_expected_storagebox_bind_mount(
+        output_dir=hot,
+        cold_dir=cold,
+        storagebox_mount=storage,
+    )
+
+
+def test_vps_annual_output_tiering_rejects_direct_sshfs_submount(monkeypatch) -> None:
+    mod = _load_script_module(
+        "vps-annual-output-tiering.py",
+        module_name="ha_test_vps_annual_output_tiering_direct_reject",
+    )
+
+    storage = Path("/srv/healtharchive/storagebox")
+    hot = Path("/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101")
+    cold = Path("/srv/healtharchive/storagebox/jobs/hc/20260101T000502Z__hc-20260101")
+
+    def fake_mountinfo(path: Path) -> dict[str, str] | None:
+        if path == storage:
+            return {
+                "major_minor": "0:64",
+                "root": "/",
+                "target": str(storage),
+                "fstype": "fuse.sshfs",
+                "source": "u524803@u524803.your-storagebox.de:",
+            }
+        if path == hot:
+            return {
+                "major_minor": "0:65",
+                "root": "/",
+                "target": str(hot),
+                "fstype": "fuse.sshfs",
+                "source": "u524803@u524803.your-storagebox.de:",
+            }
+        return None
+
+    monkeypatch.setattr(mod, "_get_mountinfo_for_target", fake_mountinfo)
+
+    assert not mod._is_expected_storagebox_bind_mount(
+        output_dir=hot,
+        cold_dir=cold,
+        storagebox_mount=storage,
+    )
+
+
 def test_vps_annual_output_tiering_plan_selects_annual_jobs(tmp_path, monkeypatch) -> None:
     mod = _load_script_module(
         "vps-annual-output-tiering.py",

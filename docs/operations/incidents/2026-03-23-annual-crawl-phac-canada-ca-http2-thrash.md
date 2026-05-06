@@ -222,18 +222,23 @@ Completed so far:
 
 Still required:
 
-- Decide whether the temporary `public-health-notices` exclusion remains
-  justified after reviewing indexed fallback coverage.
-- Decide whether future PHAC campaigns should remain Browsertrix-first with
-  fallback or use a different default posture. The 2026 fallback success does
-  not prove Browsertrix compatibility is resolved.
+- No live rescue work remains for this incident.
+- Future Browsertrix compatibility work should be handled as a separate
+  verification project, not as a blocker for the 2026 PHAC annual edition.
 
 ## Open questions (still unknown)
 
-- Should future PHAC annual campaigns remain Browsertrix-first with labeled
-  fallback, or should PHAC move to a different default backend?
-- Is the temporary `public-health-notices` exclusion still necessary after the
-  indexed fallback coverage is reviewed?
+- Answered 2026-05-06: keep PHAC Browsertrix-first with labeled
+  `playwright_warc` fallback for now. The 2026 annual edition is
+  research-ready through fallback provenance, but that does not prove the
+  Browsertrix canada.ca paths are stable.
+- Answered 2026-05-06: keep the temporary high-churn PHAC exclusions for the
+  next annual cycle unless a separate live verification proves those URL
+  families can be crawled cleanly.
+- Evidence: PHAC job `7` indexed successfully with `121940` snapshots,
+  `missingUrlCount=0`, `failedUrlCount=2`, `researchReady=true`,
+  `fallbackUrlCount=121940`, and backend counts entirely labeled
+  `playwright_warc`.
 
 ## Action items (TODOs)
 
@@ -251,9 +256,13 @@ Still required:
 - [x] Add a repo-side poisoned-resume fallback so HC/PHAC can skip the known
   `crawled=0 total=2 failed=2` empty-WARC resume state and restart from a new
   crawl phase with consolidation. (priority=medium)
-- [ ] Decide whether the temporary PHAC `public-health-notices` exclusion can be removed after live verification. (priority=medium)
-- [ ] Decide the future PHAC Browsertrix/default-backend posture after reviewing
-  the successful 2026 fallback index and coverage report. (priority=medium)
+- [x] Decide whether the temporary PHAC `public-health-notices` exclusion can
+  be removed after live verification. (priority=medium; completed=2026-05-06:
+  keep high-churn exclusions until separate live verification proves stability)
+- [x] Decide the future PHAC Browsertrix/default-backend posture after reviewing
+  the successful 2026 fallback index and coverage report. (priority=medium;
+  completed=2026-05-06: keep Browsertrix-first with labeled
+  `playwright_warc` fallback)
 - [x] Add hard-stop protections so HC/PHAC do not endlessly loop on poisoned
   resume state or stale `running` rows. (priority=high)
 

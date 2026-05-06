@@ -286,6 +286,15 @@ sudo systemctl restart healtharchive-replay.service
 sudo systemctl start healtharchive-replay-smoke.service
 ```
 
+## Current annual output topology
+
+As of 2026-05-06, the 2026 annual job output directories for HC, PHAC, and
+CIHR are hot paths under `/srv/healtharchive/jobs/**` backed by the single
+Storage Box mount at `/srv/healtharchive/storagebox`. On sshfs-backed bind
+mounts, `findmnt` may still display `fstype=fuse.sshfs`; validate the topology
+with `vps-annual-output-tiering.py --year 2026` and, when needed, `/proc/self/mountinfo`
+or hot/cold `stat` identity rather than relying only on a visible `bind` option.
+
 ## Annual outputs: automatically tier to Storage Box
 
 If you use the annual scheduler timer (`healtharchive-schedule-annual.timer`), the
@@ -327,7 +336,8 @@ sudo systemctl stop healtharchive-worker.service
 set -a; source /etc/healtharchive/backend.env; set +a
 systemctl is-active postgresql.service
 
-sudo /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py \
+sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
+  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py \
   --apply \
   --repair-stale-mounts \
   --allow-repair-running-jobs \

@@ -4,6 +4,8 @@ from __future__ import annotations
 import argparse
 import errno
 import os
+import posixpath
+import re
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -13,9 +15,57 @@ from pathlib import Path
 from ha_backend.db import get_session
 from ha_backend.models import ArchiveJob, Source
 
+_MOUNTINFO_ESCAPE_RX = re.compile(r"\\([0-7]{3})")
+
 
 def _now_year_utc() -> int:
     return datetime.now(timezone.utc).year
+
+
+def _decode_mountinfo_path(value: str) -> str:
+    return _MOUNTINFO_ESCAPE_RX.sub(lambda m: chr(int(m.group(1), 8)), value)
+
+
+def _get_mountinfo_for_target(path: Path) -> dict[str, str] | None:
+    """
+    Return the exact /proc/self/mountinfo record for `path`, or None.
+
+    `findmnt` formats bind mounts from sshfs subdirectories as fuse.sshfs
+    mounts whose SOURCE can look like a direct remote submount. mountinfo keeps
+    the filesystem root for that mount, which lets us distinguish:
+
+    - expected: Storage Box base mount root `/` plus hot bind root `/jobs/...`
+    - unexpected: independent direct sshfs mount root `/`
+    """
+    target = str(path)
+    try:
+        lines = Path("/proc/self/mountinfo").read_text(encoding="utf-8").splitlines()
+    except OSError:
+        return None
+
+    for line in lines:
+        before, sep, after = line.partition(" - ")
+        if not sep:
+            continue
+        fields = before.split()
+        fs_fields = after.split()
+        if len(fields) < 5 or len(fs_fields) < 3:
+            continue
+        mount_target = _decode_mountinfo_path(fields[4])
+        if mount_target != target:
+            continue
+        return {
+            "id": fields[0],
+            "parent": fields[1],
+            "major_minor": fields[2],
+            "root": _decode_mountinfo_path(fields[3]),
+            "target": mount_target,
+            "options": fields[5] if len(fields) > 5 else "",
+            "fstype": fs_fields[0],
+            "source": _decode_mountinfo_path(fs_fields[1]),
+            "super_options": fs_fields[2],
+        }
+    return None
 
 
 def _get_mount_info(path: Path) -> dict[str, str] | None:
@@ -135,6 +185,52 @@ def _cold_path_for_output_dir(
     except ValueError as e:
         raise ValueError(f"output_dir is not under archive_root: {out} (root={hot})") from e
     return cold_root / rel
+
+
+def _expected_mountinfo_root(cold_dir: Path, storagebox_mount: Path) -> str:
+    cold = Path(str(cold_dir)).absolute()
+    storage = Path(str(storagebox_mount)).absolute()
+    try:
+        rel = cold.relative_to(storage)
+    except ValueError as e:
+        raise ValueError(f"cold_dir is not under storagebox_mount: {cold} (mount={storage})") from e
+    rel_posix = rel.as_posix()
+    if rel_posix == ".":
+        rel_posix = ""
+    storage_info = _get_mountinfo_for_target(storage)
+    storage_root = str(storage_info.get("root") or "/") if storage_info else "/"
+    return posixpath.normpath(posixpath.join(storage_root, rel_posix))
+
+
+def _is_expected_storagebox_bind_mount(
+    *,
+    output_dir: Path,
+    cold_dir: Path,
+    storagebox_mount: Path,
+) -> bool:
+    """
+    Return True when `output_dir` is the expected view of `cold_dir`.
+
+    For sshfs-backed bind mounts, `findmnt` may still report fstype=fuse.sshfs
+    and omit a `bind` option. The reliable signal is in mountinfo: the hot
+    mount must share the same filesystem as the Storage Box base mount and its
+    mount root must be the cold path relative to that base mount.
+    """
+    storage_info = _get_mountinfo_for_target(storagebox_mount)
+    hot_info = _get_mountinfo_for_target(output_dir)
+    if not storage_info or not hot_info:
+        return False
+    if hot_info.get("major_minor") != storage_info.get("major_minor"):
+        return False
+    if hot_info.get("fstype") != storage_info.get("fstype"):
+        return False
+    if hot_info.get("source") != storage_info.get("source"):
+        return False
+    try:
+        expected_root = _expected_mountinfo_root(cold_dir, storagebox_mount)
+    except ValueError:
+        return False
+    return posixpath.normpath(str(hot_info.get("root") or "/")) == expected_root
 
 
 @dataclass(frozen=True)
@@ -412,7 +508,11 @@ def main(argv: list[str] | None = None) -> int:
             if item.output_dir_ok == 1:
                 opts = str(item.mount_options or "")
                 is_bind = "bind" in {o.strip().lower() for o in opts.split(",") if o.strip()}
-                if is_bind:
+                if is_bind or _is_expected_storagebox_bind_mount(
+                    output_dir=item.output_dir,
+                    cold_dir=item.cold_dir,
+                    storagebox_mount=storagebox_mount,
+                ):
                     print(
                         f"OK   job={item.job_id} {item.source_code} {item.job_name} (already mounted)"
                     )

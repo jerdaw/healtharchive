@@ -104,24 +104,26 @@ production access.
 
 Treat the following as the current ops execution order:
 
-1. Annual output-dir bind-mount conversion during the next acceptable
-   maintenance window after the annual crawl is idle.
-2. Review and resolve the preserved VPS branch `prod-pre-a3e0dece`.
-3. Decide PHAC long-term backend/exclusion policy after reviewing the indexed
-   fallback coverage.
-4. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
+1. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
    repeated warm-cache samples stay above the desired response target.
-5. Routine quarterly ops and evidence collection.
+2. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
 - PHAC 2026 salvage/indexing is complete.
   - Job `7` is indexed and its annual edition report is regenerated.
-  - Remaining PHAC work is policy/architecture follow-through, not live rescue:
-    decide whether future PHAC annual campaigns should remain Browsertrix-first
-    with fallback or use a different default posture, and decide whether the
-    temporary `public-health-notices` exclusion is still needed after reviewing
-    the indexed fallback coverage.
+  - PHAC policy follow-through is closed for the next annual cycle: keep the
+    labeled `playwright_warc` fallback posture and keep the temporary
+    high-churn exclusions unless a separate live verification proves those
+    Browsertrix paths are stable.
+  - 2026 PHAC coverage is research-ready with `missingUrlCount=0`;
+    no targeted recrawl is needed.
+- Annual output-dir mount topology conversion is complete.
+  - On 2026-05-06, jobs `6`, `7`, and `8` were converted from direct per-job
+    `sshfs` mounts to hot paths rooted in the single Storage Box mount.
+  - Verification showed one `sshfs` process for `/srv/healtharchive/storagebox`,
+    matching hot/cold directory identity, annual status `indexed=3`, and replay
+    smoke `200` for HC, PHAC, and CIHR.
 - CIHR incident follow-through:
   - Job `8` is indexed and annual search-ready; do not start additional
     indexing unless later checks prove the indexed rows are unusable.
@@ -144,10 +146,15 @@ Treat the following as the current ops execution order:
   - If a client process exits but PostgreSQL shows a long-lived
     `idle in transaction`, confirm the job did not commit and inspect blockers
     before terminating only the stale backend.
-- Preserve and review the pre-deploy production-only branch.
-  - Current state: `prod-pre-a3e0dece` exists on the VPS and preserves the
-    detached pre-deploy commits that would otherwise have been left unreachable
-    by the 2026-04-23 deploy.
+- Preserved VPS branch review is complete.
+  - `prod-pre-a3e0dece` forked at `37a48988` and contains three old
+    pre-deploy commits.
+  - The deployed `HEAD` includes the later synchronized follow-up PR
+    `58cefc5a` plus newer annual edition, replay, public-search, and incident
+    closeout work.
+  - Do not merge or cherry-pick `prod-pre-a3e0dece`; its diff against deployed
+    `HEAD` would delete newer production state. It can be deleted on the VPS
+    after this roadmap update is deployed.
   - Next steps:
     - compare `prod-pre-a3e0dece` against `main`
     - decide whether each preserved commit needs cherry-pick, replacement, or

@@ -162,6 +162,10 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Live 2026 salvage status as of 2026-05-05:
     - HC and PHAC are indexed, search-ready, and research-ready with labeled
       fallback provenance.
+    - PHAC follow-up policy is closed for the next annual cycle: retain
+      Browsertrix-first scheduling with labeled `playwright_warc` fallback and
+      keep the temporary high-churn exclusions unless a separate live
+      verification proves those Browsertrix paths are stable.
     - CIHR is indexed, search-ready, and research-ready after manual
       WARC-complete acceptance and completed-job indexing reconciliation.
     - CIHR failed-URL review found exact job `8` snapshot coverage for 25 final

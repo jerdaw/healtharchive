@@ -1,36 +1,34 @@
 # 2026-02-06: Hot-Path Staleness Root-Cause Investigation
 
 **Plan Version**: v1.4
-**Status**: In Progress (Phases 0-2 implemented in repo; evidence capture + drills require operator execution on VPS)
+**Status**: In Progress (Phases 0-2 implemented in repo; 2026 annual output topology conversion completed on production)
 **Scope**: Determine and mitigate underlying causes of recurring hot-path stale mount events (Errno 107).
 **Batched items**: #6
 
-## Current Operator Decision (as of 2026-02-07)
+## Current Operator Decision (as of 2026-05-06)
 
-During the active 2026 annual crawl, we are **not** converting existing annual job output dirs from direct `sshfs` mounts into
-bind mounts yet, even though this is likely a contributor to hot-path staleness risk.
+After the 2026 annual crawl became idle and all annual jobs were indexed, the
+operator converted the 2026 annual job output dirs from direct per-job `sshfs`
+mounts to hot paths rooted in the single Storage Box mount.
 
-**Why we are holding off**:
+Verification evidence:
 
-- Converting mount topology requires an unmount + re-mount of the job output dir.
-- If a crawler container is actively writing to that output dir, this can interrupt the crawl and/or create confusing partial
-  failure modes.
-- The watchdog + playbooks already provide bounded recovery for Errno 107; the incremental benefit of a topology conversion is
-  real, but not worth intentionally interrupting an in-progress annual crawl.
+- `scripts/vps-annual-output-tiering.py --apply --year 2026` mounted jobs `6`,
+  `7`, and `8`.
+- `/proc/self/mountinfo` showed one base Storage Box `sshfs` mount at
+  `/srv/healtharchive/storagebox` and hot annual mount roots under `/jobs/...`.
+- Hot and cold annual paths had matching device/inode identity.
+- Annual status remained `indexed=3` and `readyForSearch=true`.
+- Replay smoke returned `200` for HC, PHAC, and CIHR after replay restart.
 
-**What we will do instead (crawl-safe)**:
+## Current observations (as of 2026-05-06)
 
-- Keep capturing pre/post evidence bundles on any Errno 107 event.
-- Run Phase 2 dry-run drills (simulation only) to ensure planned recovery remains sensible.
-- Schedule the mount-topology conversion for a maintenance window after the campaign is idle.
-
-## Current observations (as of 2026-02-07)
-
-- The active 2026 annual job output dirs are mounted directly as `sshfs` mountpoints (not bind mounts):
-  - This was confirmed via `findmnt` and via `scripts/vps-annual-output-tiering.py --year 2026` warnings
-    (`reason=unexpected_mount_type`).
-  - Benefit of fixing: reduce Errno 107 blast radius and make hot-path recovery simpler/more deterministic.
-  - Why deferred: fixing requires unmount/re-mount of job output dirs and risks interrupting active crawls.
+- The 2026 annual job output dirs are no longer independent per-job `sshfs`
+  mounts.
+- On sshfs-backed bind mounts, `findmnt` may still display `fuse.sshfs` and omit
+  an obvious `bind` option. Use mountinfo root and hot/cold identity checks, or
+  the updated `scripts/vps-annual-output-tiering.py`, to distinguish the intended
+  topology from direct remote submounts.
 - Deploy-lock suppression was observed and cleared:
   - A stale `/tmp/healtharchive-deploy.lock` existed and caused apply-mode watchdogs to skip.
   - The lock file was removed; metrics now show deploy lock inactive.

@@ -210,14 +210,16 @@ Preferred (avoids the systemd unit’s internal worker stop/start):
 set -a; source /etc/healtharchive/backend.env; set +a
 systemctl is-active postgresql.service
 
-sudo /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --apply --year "$(date -u +%Y)"
+sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
+  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --apply --year "$(date -u +%Y)"
 ```
 
 If you want the script to attempt targeted repair for stale mountpoints (Errno 107),
 pass:
 
 ```bash
-sudo /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --apply --repair-stale-mounts --allow-repair-running-jobs --year "$(date -u +%Y)"
+sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
+  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --apply --repair-stale-mounts --allow-repair-running-jobs --year "$(date -u +%Y)"
 ```
 
 Alternative (uses the systemd unit, which stops/starts the worker internally):

@@ -121,7 +121,8 @@ This is the preferred app-local fix for annual metadata/config drift.
 ## 5) Run Annual Output Tiering Dry-Run
 
 ```bash
-/opt/healtharchive/.venv/bin/python3 \
+sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
+  /opt/healtharchive/.venv/bin/python3 \
   /opt/healtharchive/scripts/vps-annual-output-tiering.py \
   --year "$YEAR"
 ```
@@ -131,6 +132,10 @@ Expected:
 - annual jobs show `OK`
 - or the script prints a bounded reason such as `STALE`, `WARN ...
   unexpected_mount_type`, or `UNHEALTHY`
+
+Note: run the script with preserved `HEALTHARCHIVE_DATABASE_URL` when using
+`sudo`. Otherwise the process can fall back to local SQLite and report
+misleading database errors such as `no such table: sources`.
 
 If the script reports stale or unexpected mounts, repair them before retrying.
 
@@ -145,7 +150,8 @@ sudo systemctl stop healtharchive-worker.service
 Repair stale annual output-dir mounts:
 
 ```bash
-sudo /opt/healtharchive/.venv/bin/python3 \
+sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
+  /opt/healtharchive/.venv/bin/python3 \
   /opt/healtharchive/scripts/vps-annual-output-tiering.py \
   --year "$YEAR" \
   --apply \
@@ -156,7 +162,8 @@ sudo /opt/healtharchive/.venv/bin/python3 \
 If the script reported `unexpected_mount_type`, use:
 
 ```bash
-sudo /opt/healtharchive/.venv/bin/python3 \
+sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
+  /opt/healtharchive/.venv/bin/python3 \
   /opt/healtharchive/scripts/vps-annual-output-tiering.py \
   --year "$YEAR" \
   --apply \
