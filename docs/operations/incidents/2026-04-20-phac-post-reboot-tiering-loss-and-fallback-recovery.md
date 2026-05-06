@@ -179,19 +179,19 @@ What we did to confirm we’re actually healthy (and not just “running”).
 - [x] Deploy the API-side browse-URL suppression patch so public `browseUrl` fields are omitted whenever a job’s replay collection is missing or incomplete (completed 2026-04-23 via `c9600341`) (owner=Jeremy Dawson, priority=high, due=2026-04-24)
 - [x] Fix the remaining HC public replay `502`: repaired replay ownership/readiness, then fixed the malformed archived cookie-header path by loading replay header sanitization through `PYTHONPATH=/webarchive`; public replay and `browseUrl` verification now pass (completed 2026-04-23 via `c9600341`, `8f9558d6`, and `ca085c58`) (owner=Jeremy Dawson, priority=high, due=2026-04-24)
 - [x] Stabilize raw snapshot public verification: optimized WARC lookup and updated the verifier to handle transport timeouts cleanly with a dedicated raw-snapshot timeout budget; `./scripts/verify_public_surface.py` now passes with default settings on production (completed 2026-04-23 via `2b0b4001`, `88e97736`, and `a27a0d05`) (owner=Jeremy Dawson, priority=high, due=2026-04-24)
-- [ ] Revisit PHAC’s long-term Browsertrix/default-backend strategy after reviewing the indexed fallback coverage (owner=Jeremy Dawson, priority=medium, due=2026-04-30)
-- [ ] Restart the worker during the next safe maintenance window after PHAC/CIHR are idle so the deployed `a3e0dece` worker-side rowcount/logging fix becomes active in production (owner=Jeremy Dawson, priority=medium, due=2026-05-15)
-- [ ] Review the preserved VPS branch `prod-pre-a3e0dece` and decide whether its detached pre-deploy commits (`d8e2534e`, `607df02b`, `48cfe3f9`) need cherry-pick, replacement, or explicit retirement (owner=Jeremy Dawson, priority=medium, due=2026-05-01)
-- [ ] Convert annual output dirs from direct `sshfs` mounts to bind mounts during the next acceptable maintenance window after the annual crawl is idle (owner=Jeremy Dawson, priority=medium, due=2026-05-15)
+- [x] Revisit PHAC’s long-term Browsertrix/default-backend strategy after reviewing the indexed fallback coverage: keep Browsertrix-first with labeled `playwright_warc` fallback for now, and keep the temporary high-churn exclusions until a separate live verification proves those paths are stable (completed 2026-05-06) (owner=Jeremy Dawson, priority=medium, due=2026-04-30)
+- [x] Restart the worker during the next safe maintenance window after PHAC/CIHR are idle so the deployed `a3e0dece` worker-side rowcount/logging fix becomes active in production (completed by subsequent deploy restarts on 2026-05-06) (owner=Jeremy Dawson, priority=medium, due=2026-05-15)
+- [x] Review the preserved VPS branch `prod-pre-a3e0dece` and decide whether its detached pre-deploy commits (`d8e2534e`, `607df02b`, `48cfe3f9`) need cherry-pick, replacement, or explicit retirement; decision was explicit retirement and the VPS branch was deleted (completed 2026-05-06) (owner=Jeremy Dawson, priority=medium, due=2026-05-01)
+- [x] Convert annual output dirs from direct `sshfs` mounts to bind mounts during the next acceptable maintenance window after the annual crawl is idle (completed 2026-05-06 for jobs `6`, `7`, and `8`) (owner=Jeremy Dawson, priority=medium, due=2026-05-15)
 
 ## Automation opportunities
 
 - Keep the post-reboot verification path centered on `annual-status`,
   `show-job`, `vps-crawl-status.sh`, and `probe-browser-fetch` so future PHAC
   recoveries do not rely on ad hoc log archaeology.
-- The direct-`sshfs` annual output-dir topology should still be retired in a
-  later maintenance window; that remains the long-term reduction in post-reboot
-  tiering drift risk.
+- The direct-`sshfs` annual output-dir topology was retired for jobs `6`, `7`,
+  and `8` on 2026-05-06; keep the annual tiering script as the standard
+  post-reboot detector and maintenance-window repair path.
 
 ## References / Artifacts
 

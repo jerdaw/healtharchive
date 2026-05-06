@@ -56,12 +56,11 @@ production access.
     `/srv/healtharchive/ops/locks/jobs`.
   - API and worker were both restarted during the 2026-04-14 maintenance
     window, so the env change is live in production.
-- Annual output-dir mount topology is still unexpected for 2026 annual output
-  dirs:
-  - direct `sshfs` mounts remain in place instead of bind mounts.
-  - conversion remains intentionally deferred until a future maintenance window
-    after the annual crawl is idle or during an explicitly accepted
-    interruption.
+- Annual output-dir mount topology was corrected for 2026 annual output dirs
+  on 2026-05-06:
+  - jobs `6`, `7`, and `8` were converted during a maintenance window;
+  - annual status remained `indexed=3`;
+  - replay smoke returned `200` for HC, PHAC, and CIHR.
 - Worker/watchdog posture was restored after CIHR indexing:
   - `healtharchive-worker.service` active
   - `healtharchive-crawl-auto-recover.timer` active
@@ -152,20 +151,19 @@ Treat the following as the current ops execution order:
   - The deployed `HEAD` includes the later synchronized follow-up PR
     `58cefc5a` plus newer annual edition, replay, public-search, and incident
     closeout work.
-  - Do not merge or cherry-pick `prod-pre-a3e0dece`; its diff against deployed
-    `HEAD` would delete newer production state. It can be deleted on the VPS
-    after this roadmap update is deployed.
-  - Next steps:
-    - compare `prod-pre-a3e0dece` against `main`
-    - decide whether each preserved commit needs cherry-pick, replacement, or
-      explicit retirement
-    - do not delete the branch until that review is documented
-- Maintenance window (after 2026 annual crawl is idle): convert annual output dirs from direct `sshfs` mounts to bind mounts.
-  - Why defer: unmount/re-mount of a live job output dir can interrupt in-progress crawls; benefit is reduced Errno 107 blast radius,
-    but not worth forced interruption mid-campaign.
-  - Detection (crawl-safe): `python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --year 2026`
-  - Repair (maintenance only): stop the worker and ensure crawl containers are stopped, then:
-    - `sudo python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --year 2026 --apply --repair-unexpected-mounts --allow-repair-running-jobs`
+  - Decision: do not merge or cherry-pick `prod-pre-a3e0dece`; its diff
+    against deployed `HEAD` would delete newer production state.
+  - Follow-through: the branch was deleted from the VPS after the review.
+- Annual output-dir mount topology conversion is complete for the 2026 annual jobs.
+  - Jobs `6`, `7`, and `8` were converted from direct annual `sshfs` mounts to
+    hot-path mounts backed by the Storage Box tree.
+  - Verification showed annual status remained `indexed=3`, hot/cold identity
+    matched for HC/PHAC/CIHR, and replay smoke returned `200` for all three
+    annual sources.
+  - Future maintenance should keep using
+    `python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --year <YEAR>`
+    as the dry-run detector and the same script with `--apply` during an
+    approved maintenance window.
 - After any reboot/rescue/maintenance where mounts may drift:
   - Verify Storage Box mount is active (`healtharchive-storagebox-sshfs.service`).
   - Re-apply annual output tiering for the active campaign year and confirm job output dirs are on Storage Box (see incident: `incidents/2026-02-04-annual-crawl-output-dirs-on-root-disk.md`).
@@ -185,11 +183,10 @@ Treat the following as the current ops execution order:
 
 ## IRL / external validation (active; runs in parallel with ops)
 
-External validation work is **not blocked** by the active CIHR monitoring or
-the remaining maintenance-window items. HC and PHAC are indexed and
-research-ready, CIHR is indexed and research-ready, and the bind-mount
-conversion remains deferred to a later maintenance window. Outreach and
-scholarly output can proceed independently on any day.
+External validation work is **not blocked** by crawl recovery or maintenance
+window items. HC, PHAC, and CIHR are indexed and research-ready, and the 2026
+annual output-dir mount conversion is complete. Outreach and scholarly output
+can proceed independently on any day.
 
 The active plan is:
 

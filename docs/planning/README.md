@@ -13,30 +13,20 @@ Active plans:
 
 - Admissions strengthening (OMSAS ABS + CanMEDS, ~12 weeks): `2026-02-admissions-strengthening-plan.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
-- Public search and CIHR follow-through: `2026-05-05-public-search-and-cihr-followthrough.md`
 
 ## Current priority sequence
 
 Treat the following as the current "what's next" order across roadmap docs:
 
-1. Close the post-CIHR public surface and recurrence-prevention follow-through.
-   - All 2026 annual jobs are indexed, search-ready, and research-ready as of
-     2026-05-05.
-   - Public search latency fixes, verifier fallback, raw/replay verification,
-     and WARC-complete/ZIM-finalization recurrence prevention are deployed and
-     live-verified.
-   - CIHR failed URL review is complete: 25 page/route URLs already had exact
-     job `8` snapshot coverage, and the lone uncovered render-asset image was
-     accepted as a non-page gap.
-   - Remaining work: optionally revisit broad `q=...&view=pages` DB/index-plan
-     tuning if repeated warm-cache samples exceed the desired response target.
-   - Canonical plan: `2026-05-05-public-search-and-cihr-followthrough.md`
-   - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
-2. After the crawl/ops path is stabilized, the main project emphasis is the
+1. After the crawl/ops path is stabilized, the main project emphasis is the
    active admissions-strengthening plan.
    - That plan is the canonical home for the next external-validation,
      methods-paper, and dataset-release work.
    - Canonical plan: `2026-02-admissions-strengthening-plan.md`
+2. Optional broad `q=...&view=pages` DB/index-plan tuning remains a future
+   backend/search backlog item if repeated warm-cache samples exceed the
+   desired response target.
+   - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
 3. Any docs-site migration planning should use the archived prep inventory as
    the starting point, but the actual generator swap remains a separate change
    series.
@@ -47,16 +37,18 @@ Treat the following as the current "what's next" order across roadmap docs:
 
 Some plans are "implemented in repo" but still require a short, operator-run maintenance step on the VPS.
 
-Current known items:
+Current known items: none.
+
+Recently closed items:
 
 - CIHR scope/content-cost follow-through:
-  - Current state: job `8` completed WARC capture, was manually accepted after
-    a ZIM finalization failure, and indexed successfully with `557972` pages.
-    The CIHR annual edition is research-ready, and the public verifier reaches
-    search, snapshot metadata, raw HTML, replay, and frontend checks.
-  - Failed URL review is complete; no targeted follow-up capture is needed for
-    this incident.
-  - Historical plan: `implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
+  - Current state: completed. Job `8` was manually accepted after a ZIM
+    finalization failure, indexed successfully with `557972` pages, and
+    reviewed for failed-URL coverage.
+  - No targeted follow-up capture is needed for this incident.
+  - Historical plans:
+    - `implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md`
+    - `implemented/2026-05-05-public-search-and-cihr-followthrough.md`
 - PHAC annual-crawl policy follow-up after the 2026-03-23 canada.ca incident:
   - Current state: job `7` indexed successfully on 2026-04-29 through the
     labeled `playwright_warc` fallback path, and the PHAC annual edition report
@@ -74,16 +66,16 @@ Current known items:
   - Status tracking: `../operations/healtharchive-ops-roadmap.md`
 - Preserved VPS branch follow-up:
   - Current state: `prod-pre-a3e0dece` was reviewed against deployed
-    `ca25d8ea`.
+    `ca25d8ea` and deleted from the VPS.
   - Decision: do not merge or cherry-pick it; the branch is older than current
     deployed state and would remove newer annual edition, replay, search, and
     incident documentation work.
-  - Next action: delete the branch from the VPS after the roadmap update is
-    deployed.
 
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Public search and CIHR follow-through:
+  `implemented/2026-05-05-public-search-and-cihr-followthrough.md`
 - Annual edition recovery handoff docs:
   `implemented/2026-04-29-annual-edition-recovery-handoff-docs.md`
 - Repo audit truth maintenance: `implemented/2026-04-24-repo-audit-truth-maintenance.md`
