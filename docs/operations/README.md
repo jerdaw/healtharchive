@@ -13,6 +13,7 @@
 
 | Task | Documentation |
 | :--- | :--- |
+| Current handoff state | [Current Work Tracker](current-work-tracker.md) |
 | Daily checks | [Ops Cadence](ops-cadence-checklist.md) |
 | Deploy changes | [Deploy & Verify](playbooks/core/deploy-and-verify.md) |
 | Investigate issues | [Incident Response](playbooks/core/incident-response.md) |
@@ -29,6 +30,7 @@ Operational default:
 ## All Operational Documentation
 
 - Ops playbooks (task-oriented checklists): `playbooks/README.md`
+- Current work tracker (crawl progress + fixes handoff): `current-work-tracker.md`
 - Assistant-guided production sessions (HealthArchive-specific prod session protocol): `playbooks/core/assistant-guided-production-session.md`
 - Incident notes / postmortems (internal): `incidents/README.md`
 - Observability + private stats contract (public vs private boundaries): `observability-and-private-stats.md`

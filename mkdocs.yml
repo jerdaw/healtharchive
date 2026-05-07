@@ -166,6 +166,7 @@ nav:
       - Documentation Guidelines: documentation-guidelines.md
       - Documentation Audit: documentation-process-audit.md
       - Decisions: decisions/README.md
+      - Current Work Tracker: operations/current-work-tracker.md
       - Ops Cadence: operations/ops-cadence-checklist.md
       - Monitoring Checklist: operations/monitoring-and-ci-checklist.md
       - Risk Register: operations/risk-register.md

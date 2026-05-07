@@ -6,6 +6,11 @@ For historical roadmaps and upgrade context, see:
 
 - `docs/planning/README.md` (backend repo)
 
+For the compact handoff view of crawl progress, recent fixes, and pickup
+commands, see:
+
+- `docs/operations/current-work-tracker.md`
+
 Keep the two synced copies of this file aligned:
 
 - Backend repo: `docs/operations/healtharchive-ops-roadmap.md`
