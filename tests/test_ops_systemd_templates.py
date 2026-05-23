@@ -76,6 +76,29 @@ def test_disk_threshold_cleanup_systemd_template_is_sentinel_and_env_gated() -> 
     assert "--apply" in text
 
 
+def test_db_backup_systemd_template_uses_repo_managed_short_cache_script() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    unit_path = repo_root / "docs" / "deployment" / "systemd" / "healtharchive-db-backup.service"
+    timer_path = repo_root / "docs" / "deployment" / "systemd" / "healtharchive-db-backup.timer"
+    script_path = repo_root / "scripts" / "vps-db-backup.sh"
+    unit = unit_path.read_text(encoding="utf-8")
+    timer = timer_path.read_text(encoding="utf-8")
+    script = script_path.read_text(encoding="utf-8")
+
+    assert "ConditionPathExists=/etc/healtharchive/backend.env" in unit
+    assert "ConditionPathExists=/opt/healtharchive/scripts/vps-db-backup.sh" in unit
+    assert "systemd-healthchecks-wrapper.sh --ping-var HC_DB_BACKUP_URL" in unit
+    assert "vps-db-backup.sh" in unit
+    assert "OnCalendar=*-*-* 03:30:00 UTC" in timer
+    assert "Persistent=true" in timer
+
+    assert "HEALTHARCHIVE_BACKUP_MIRROR_DIR" in script
+    assert "HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL" in script
+    assert "HEALTHARCHIVE_BACKUP_MIN_ROOT_FREE_MB" in script
+    assert "rsync -rt --size-only" in script
+    assert "healtharchive_db_backup_local_bytes" in script
+
+
 def test_storage_hotpath_auto_recover_script_has_no_top_level_backend_imports() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     script_path = repo_root / "scripts" / "vps-storage-hotpath-auto-recover.py"

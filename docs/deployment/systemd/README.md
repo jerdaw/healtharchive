@@ -8,6 +8,7 @@ They implement:
 - API service template (uvicorn on loopback; defaults to 2 workers)
 - Replay service template (pywb on loopback; hardened docker run)
 - Worker service template (canonical `healtharchive start-worker` entrypoint)
+- DB backup timer (short local cache + Storage Box mirror)
 - Annual scheduling timer (Jan 01 UTC)
 - Worker priority lowering during campaign (always-on, low-risk)
 - Storage Box mount (sshfs) for cold WARC storage (optional but recommended for tiering)
@@ -76,6 +77,12 @@ or stage the cutover manually (no restarts required until your maintenance windo
   - Repo-managed worker service template for the long-running crawl worker loop.
   - Uses the canonical CLI entrypoint:
     - `ExecStart=/opt/healtharchive/.venv/bin/healtharchive start-worker --poll-interval 30`
+- `healtharchive-db-backup.service` + `.timer`
+  - Runs `scripts/vps-db-backup.sh` nightly.
+  - Uses `/srv/healtharchive/backups` only as a short local cache, mirrors
+    successful dumps to `/srv/healtharchive/storagebox/backups/db`, and writes
+    `healtharchive_db_backup_*` textfile metrics.
+  - Pings `HC_DB_BACKUP_URL` from `/etc/healtharchive/healthchecks.env` when set.
 - `healtharchive-replay.service`
   - Repo-managed pywb replay service template for `replay.healtharchive.ca`.
   - Binds to loopback (`127.0.0.1:8090`) for Caddy to proxy.

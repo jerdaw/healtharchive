@@ -41,8 +41,12 @@ Documentation boundary note:
   - Healthchecks.io pings for DB backup success/failure
   - Healthchecks.io pings for disk-usage threshold
   - (External uptime checks recommended: `/api/health` and `/archive`)
-- **Backups:** Nightly `pg_dump -Fc` → `/srv/healtharchive/backups`, retained 14 days
-- **Offsite copy:** Synology NAS pulls backups over Tailscale via rsync/SSH
+- **Backups:** Nightly `pg_dump -Fc` stages briefly under
+  `/srv/healtharchive/backups`, mirrors successful dumps to
+  `/srv/healtharchive/storagebox/backups/db`, and keeps only a short local
+  cache on root.
+- **Offsite copy:** Synology NAS pulls retained mirrored backups over Tailscale
+  via rsync/SSH
 
 ---
 
@@ -501,9 +505,17 @@ Public SSH:
 VPS backup user:
 - `habackup` user with NAS public key in `/home/habackup/.ssh/authorized_keys`
 
-Backup script: `/usr/local/bin/healtharchive-db-backup`
+Backup script: `/opt/healtharchive/scripts/vps-db-backup.sh`
 - `pg_dump -Fc` to `/srv/healtharchive/backups/healtharchive_<ts>.dump`
-- Nightly `healtharchive_<ts>.dump` series retained 14 days
+  as a short local cache on root.
+- Successful dumps are mirrored to
+  `/srv/healtharchive/storagebox/backups/db/healtharchive_<ts>.dump`.
+- Local cache default: keep the newest 2 successful dumps and delete zero-byte
+  failed dumps.
+- Mirror retention default: keep 30 days on Storage Box.
+- The script refuses to create another local dump when root free space is below
+  `HEALTHARCHIVE_BACKUP_MIN_ROOT_FREE_MB` (default `8192`) or when the required
+  Storage Box mirror is unavailable.
 - One-off maintenance dumps such as `healtharchive_pre_<change>_<ts>.dump`
   are rollback artifacts, not part of the nightly retention set. After the
   maintenance window is closed and at least one newer nightly dump plus restore
@@ -513,8 +525,29 @@ Backup script: `/usr/local/bin/healtharchive-db-backup`
 - Healthchecks `/start`/`/fail`/success pings (see §8)
 
 Systemd:
-- `/etc/systemd/system/healtharchive-db-backup.service`
-- `/etc/systemd/system/healtharchive-db-backup.timer` (daily ~03:30 UTC, randomized delay)
+- Repo templates:
+  - `docs/deployment/systemd/healtharchive-db-backup.service`
+  - `docs/deployment/systemd/healtharchive-db-backup.timer` (daily ~03:30 UTC,
+    randomized delay)
+- Install/update with:
+
+```bash
+cd /opt/healtharchive
+sudo ./scripts/vps-install-systemd-units.sh --apply
+sudo systemctl enable --now healtharchive-db-backup.timer
+```
+
+Optional environment overrides in `/etc/healtharchive/backend.env`:
+
+```bash
+HEALTHARCHIVE_BACKUP_LOCAL_DIR=/srv/healtharchive/backups
+HEALTHARCHIVE_BACKUP_MIRROR_ROOT=/srv/healtharchive/storagebox
+HEALTHARCHIVE_BACKUP_MIRROR_DIR=/srv/healtharchive/storagebox/backups/db
+HEALTHARCHIVE_BACKUP_REQUIRE_MIRROR=1
+HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL=2
+HEALTHARCHIVE_BACKUP_MIRROR_RETENTION_DAYS=30
+HEALTHARCHIVE_BACKUP_MIN_ROOT_FREE_MB=8192
+```
 
 NAS pull:
 - NAS key: `~/.ssh/ha_backup_nas` (no passphrase)
@@ -533,7 +566,7 @@ Host ha-vps
 
 ```bash
 mkdir -p /volume1/nobak/healtharchive/backups/db
-rsync -av --delete ha-vps:/srv/healtharchive/backups/ /volume1/nobak/healtharchive/backups/db/
+rsync -rt --delete ha-vps:/srv/healtharchive/storagebox/backups/db/ /volume1/nobak/healtharchive/backups/db/
 ```
 
 - Make the DSM scheduled task run both lines, not just `rsync`, so the NAS pull
@@ -568,6 +601,12 @@ Disk check:
 - Service/Timer: `healtharchive-disk-check.service` / `healtharchive-disk-check.timer` (hourly)
 - Pings success; sends `/fail` if `/` or `/srv/healtharchive` exceeds 80%.
 
+Prometheus also alerts on:
+
+- root filesystem >80% warning and >88% critical
+- local backup cache >8GiB (`healtharchive_db_backup_local_bytes`)
+- failed repo-managed DB backup runs (`healtharchive_db_backup_last_success == 0`)
+
 ---
 
 ## 9) Synthetic snapshot for smoke testing
@@ -587,7 +626,7 @@ Use this to verify end-to-end viewer behavior after deploys.
 Procedure:
 
 ```bash
-latest="$(ls -t /srv/healtharchive/backups/healtharchive_*.dump | head -n 1)"
+latest="$(ls -t /srv/healtharchive/storagebox/backups/db/healtharchive_*.dump /srv/healtharchive/backups/healtharchive_*.dump 2>/dev/null | head -n 1)"
 sudo -u postgres dropdb --if-exists healtharchive_restore_test
 sudo -u postgres createdb healtharchive_restore_test
 sudo -u postgres pg_restore --no-owner --no-acl -d healtharchive_restore_test < "$latest"

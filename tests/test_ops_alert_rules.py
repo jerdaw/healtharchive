@@ -73,6 +73,28 @@ def test_storage_hotpath_apply_failed_persistent_alert_semantics() -> None:
     assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
 
 
+def test_root_disk_and_backup_cache_alerts_exist() -> None:
+    text = _rules_text()
+    root_warning = _extract_alert_block(text, "HealthArchiveRootDiskUsageWarning")
+    root_critical = _extract_alert_block(text, "HealthArchiveRootDiskUsageCritical")
+    backup_cache = _extract_alert_block(text, "HealthArchiveLocalBackupCacheHigh")
+    backup_failed = _extract_alert_block(text, "HealthArchiveDbBackupFailed")
+
+    assert 'node_filesystem_avail_bytes{mountpoint="/"' in root_warning
+    assert ")) > 80" in root_warning
+    assert re.search(r"^\s*for:\s*30m\s*$", root_warning, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*warning\s*$", root_warning, re.MULTILINE)
+
+    assert 'node_filesystem_avail_bytes{mountpoint="/"' in root_critical
+    assert ")) > 88" in root_critical
+    assert re.search(r"^\s*for:\s*10m\s*$", root_critical, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*critical\s*$", root_critical, re.MULTILINE)
+
+    assert "healtharchive_db_backup_local_bytes > 8589934592" in backup_cache
+    assert re.search(r"^\s*for:\s*30m\s*$", backup_cache, re.MULTILINE)
+    assert "healtharchive_db_backup_last_success == 0" in backup_failed
+
+
 def test_annual_output_dir_not_writable_alert_semantics() -> None:
     text = _rules_text()
     body = _extract_alert_block(text, "HealthArchiveAnnualOutputDirNotWritable")

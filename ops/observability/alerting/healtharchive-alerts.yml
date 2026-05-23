@@ -25,6 +25,19 @@ groups:
           description: "Disk usage has been > 85% for 30m on the filesystem backing __MOUNTPOINT__. Baseline is ~82% with automated cleanup; sustained usage above 85% indicates accumulation. Check Docker images, logs, and temp crawl dirs."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/core/incident-response.md"
 
+      - alert: HealthArchiveRootDiskUsageWarning
+        expr: |
+          (100 - (node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} /
+          node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} * 100)) > 80
+        for: 30m
+        labels:
+          severity: warning
+          service: healtharchive
+        annotations:
+          summary: "Root disk usage > 80%"
+          description: "Root disk usage has been above 80% for 30m. On the single VPS, PostgreSQL temp files and local backup staging share this filesystem; investigate before it reaches the worker's crawl-start guardrail."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/disk-baseline-and-cleanup.md"
+
       - alert: HealthArchiveDiskUsageCritical
         expr: |
           (100 - (node_filesystem_avail_bytes{mountpoint="__MOUNTPOINT__",fstype!~"tmpfs|overlay"} /
@@ -37,6 +50,41 @@ groups:
           summary: "Disk usage > 92% on __MOUNTPOINT__"
           description: "Disk usage has been > 92% for 10m on the filesystem backing __MOUNTPOINT__. Immediate action required: run docker-cleanup.sh, truncate container logs, or stop crawls to prevent disk-full failures."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/core/incident-response.md"
+
+      - alert: HealthArchiveRootDiskUsageCritical
+        expr: |
+          (100 - (node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} /
+          node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} * 100)) > 88
+        for: 10m
+        labels:
+          severity: critical
+          service: healtharchive
+        annotations:
+          summary: "Root disk usage > 88%"
+          description: "Root disk usage is above 88%. Stop new crawl/indexing work if needed and check /srv/healtharchive/backups, PostgreSQL temp files, Docker, and logs before the filesystem fills."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/disk-baseline-and-cleanup.md"
+
+      - alert: HealthArchiveLocalBackupCacheHigh
+        expr: healtharchive_db_backup_local_bytes > 8589934592
+        for: 30m
+        labels:
+          severity: warning
+          service: healtharchive
+        annotations:
+          summary: "Local backup cache > 8 GiB"
+          description: "The short local DB backup cache is larger than expected. The repo-managed backup job should keep only a small local cache and mirror retained dumps to Storage Box; check healtharchive-db-backup.service and /srv/healtharchive/backups."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/deployment/production-single-vps.md"
+
+      - alert: HealthArchiveDbBackupFailed
+        expr: healtharchive_db_backup_last_success == 0
+        for: 30m
+        labels:
+          severity: warning
+          service: healtharchive
+        annotations:
+          summary: "DB backup job failing"
+          description: "The repo-managed DB backup textfile metric reports the latest run failed. Check healtharchive-db-backup.service logs, Storage Box mount health, and root disk headroom."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/deployment/production-single-vps.md"
 
       - alert: HealthArchiveSearchErrorsSustained
         expr: |

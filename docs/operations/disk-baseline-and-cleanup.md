@@ -1,15 +1,18 @@
 # Disk Baseline and Automated Cleanup
 
-**Last Updated**: 2026-02-01
+**Last Updated**: 2026-05-23
 **VPS**: Hetzner 75GB single-VPS production
 
 ## Current Baseline
 
-**Normal operating disk usage**: ~82%
-**Available space**: ~14GB
+**Normal operating disk usage**: ~74-82%
+**Available space**: ~14-20GB
 **Alert thresholds**:
-- Warning: >85% for 30m
-- Critical: >92% for 10m
+- Root warning: >80% for 30m
+- Root critical: >88% for 10m
+- Generic filesystem warning: >85% for 30m
+- Generic filesystem critical: >92% for 10m
+- Local DB backup cache warning: >8GiB for 30m
 
 ## Why 82% Baseline?
 
@@ -22,6 +25,8 @@ Local disk breakdown (~61GB used):
 - Docker: ~7GB (`/var/lib/docker`)
 - Logs: ~2GB (`/var/log`)
 - Ephemeral data: ~1GB (`/srv` local, temp crawl dirs)
+- DB backup local cache: normally only the newest 1-2 dumps under
+  `/srv/healtharchive/backups`
 - OS/kernel: ~48GB (includes filesystem metadata, journal, reserves)
 
 ## Automated Cleanup
@@ -70,6 +75,25 @@ sudo truncate -s 0 /var/lib/docker/containers/*/CONTAINER-json.log
 sudo du -xsh /* 2>/dev/null | sort -hr | head -10
 ```
 
+### 4. DB Backup Cache
+
+The repo-managed `healtharchive-db-backup.timer` uses
+`scripts/vps-db-backup.sh`. It writes each `pg_dump -Fc` to
+`/srv/healtharchive/backups` as a short local cache, mirrors successful dumps
+to `/srv/healtharchive/storagebox/backups/db`, then prunes local dumps down to
+the newest small set.
+
+If `/srv/healtharchive/backups` grows unexpectedly:
+
+```bash
+sudo du -sh /srv/healtharchive/backups /srv/healtharchive/storagebox/backups/db
+sudo find /srv/healtharchive/backups -maxdepth 1 -type f -printf '%TY-%Tm-%Td %10s %p\n' | sort | tail -40
+sudo systemctl status healtharchive-db-backup.service --no-pager
+```
+
+Do not keep 14 days of database dumps on the root filesystem. Retained copies
+belong on the Storage Box mirror and any external NAS/offsite pull target.
+
 ## Worker Pre-Crawl Disk Check
 
 **Threshold**: 85%
@@ -89,8 +113,9 @@ This prevents starting crawls that would fail mid-flight due to disk pressure.
 
 1. Check Docker images: `docker system df`
 2. Check logs: `sudo du -sh /var/log`
-3. Check temp crawl dirs: `du -xsh /srv/healtharchive/jobs/*/`
-4. Run manual cleanup (see above)
+3. Check local backup cache: `sudo du -sh /srv/healtharchive/backups`
+4. Check temp crawl dirs: `du -xsh /srv/healtharchive/jobs/*/`
+5. Run manual cleanup (see above)
 
 ### Disk >92% (Critical)
 
@@ -115,3 +140,6 @@ Or just use `df -h /` for filesystem truth.
 - **2026-02-01**: Established 82% baseline after Docker/log cleanup freed 5.4GB
 - **2026-01-31**: Disk pressure incident (89% → cleanup → 82%)
 - **2026-01-24**: Automated tiering for annual jobs deployed
+- **2026-05-23**: Root reached 100% after local DB dumps accumulated under
+  `/srv/healtharchive/backups`; moved retained dumps to Storage Box and added
+  repo-managed short-cache backup flow plus root/backup-cache alerts.

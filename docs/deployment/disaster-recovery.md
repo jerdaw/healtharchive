@@ -140,14 +140,15 @@ Use this procedure when the VPS is running but the database is corrupted or drop
 
 #### Step 1: Locate Backup
 - **Format:** `pg_dump -Fc` (custom format, compressed).
-- **Local:** `/srv/healtharchive/backups/`
+- **Local cache:** `/srv/healtharchive/backups/` (short cache only)
     - Naming: `healtharchive_<timestamp>.dump`
-    - Retention: 14 days.
+- **Storage Box mirror:** `/srv/healtharchive/storagebox/backups/db/`
+    - Retained nightly dump set.
 - **NAS:** `/volume1/nobak/healtharchive/backups/db/` (needs retrieval)
-    - Offsite mirror of `/srv/healtharchive/backups` via NAS `rsync --delete`
-      pull.
-    - Retention follows the current VPS backup directory contents, not an
-      independent permanent archive. Archive one-off maintenance dumps under
+    - Offsite mirror of `/srv/healtharchive/storagebox/backups/db` via NAS
+      `rsync --delete` pull.
+    - Retention follows the Storage Box mirror contents, not the short local
+      root-disk cache. Archive one-off maintenance dumps under
       `/srv/healtharchive/ops/maintenance/...` if they must outlive the normal
       mirrored set.
 

@@ -1,0 +1,18 @@
+[Unit]
+Description=HealthArchive PostgreSQL backup
+Documentation=https://github.com/jerdaw/healtharchive
+ConditionPathExists=/etc/healtharchive/backend.env
+ConditionPathExists=/opt/healtharchive/scripts/vps-db-backup.sh
+After=postgresql@16-main.service healtharchive-storagebox-sshfs.service
+Wants=healtharchive-storagebox-sshfs.service
+
+[Service]
+Type=oneshot
+User=root
+Group=root
+WorkingDirectory=/opt/healtharchive
+EnvironmentFile=/etc/healtharchive/backend.env
+EnvironmentFile=-/etc/healtharchive/healthchecks.env
+ExecStart=/opt/healtharchive/scripts/systemd-healthchecks-wrapper.sh --ping-var HC_DB_BACKUP_URL -- /opt/healtharchive/scripts/vps-db-backup.sh
+TimeoutStartSec=3600
+NoNewPrivileges=true

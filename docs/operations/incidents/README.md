@@ -45,6 +45,7 @@ Example:
 
 ## Incident notes index
 
+- [Root disk filled by local DB backup cache (2026-05-23)](2026-05-23-root-disk-full-db-backup-cache.md)
 - [CIHR WARC-complete crawl resumed after ZIM build failure (2026-05-03)](2026-05-03-cihr-warc-complete-zim-build-resume-loop.md)
 - [PHAC post-reboot tiering loss and fallback recovery (2026-04-20)](2026-04-20-phac-post-reboot-tiering-loss-and-fallback-recovery.md)
 - [Annual crawl PHAC canada.ca HTTP/2 thrash (2026-03-23)](2026-03-23-annual-crawl-phac-canada-ca-http2-thrash.md)

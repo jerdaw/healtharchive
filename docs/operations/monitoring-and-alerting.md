@@ -55,12 +55,42 @@ Primary files (single-VPS annual campaign):
 | `healtharchive_crawl_running_job_progress_known` | Gauge | 1 = Progress metrics parsed from crawlStatus logs. |
 | `healtharchive_crawl_metrics_timestamp_seconds` | Gauge | Unix timestamp when metrics were last written. |
 | `healtharchive_jobs_infra_error_recent_total{window="10m"}` | Gauge | Count of jobs with infra errors in rolling window. |
+| `healtharchive_db_backup_last_success` | Gauge | 1 = the latest repo-managed DB backup run succeeded. |
+| `healtharchive_db_backup_local_bytes` | Gauge | Bytes used by the short local DB backup cache under `/srv/healtharchive/backups`. |
+| `healtharchive_db_backup_mirror_bytes` | Gauge | Bytes used by the Storage Box DB backup mirror. |
 
 ## Alerting Thresholds
 
 Alerts are defined in:
 
 - `ops/observability/alerting/healtharchive-alerts.yml`
+
+### Root Disk And Backup Cache
+
+**Alert:** `HealthArchiveRootDiskUsageWarning`
+
+- **Threshold:** root filesystem usage >80% for 30m.
+- **Meaning:** The single VPS root disk is approaching the worker crawl-start
+  guardrail and PostgreSQL temp-file risk zone.
+- **Action:** Check `/srv/healtharchive/backups`, PostgreSQL temp-file churn,
+  Docker images/logs, and `/var/log` before usage crosses 85%.
+
+**Alert:** `HealthArchiveRootDiskUsageCritical`
+
+- **Threshold:** root filesystem usage >88% for 10m.
+- **Meaning:** Immediate disk-pressure response is needed. PostgreSQL may fail
+  temp-file writes or crash recovery if the filesystem fills.
+- **Action:** Pause new worker/crawl activity if needed and free root space
+  before running expensive DB/search/indexing work.
+
+**Alert:** `HealthArchiveLocalBackupCacheHigh`
+
+- **Threshold:** `healtharchive_db_backup_local_bytes > 8 GiB` for 30m.
+- **Meaning:** The local backup staging/cache directory is larger than the
+  expected short cache. Retained backups should live under the Storage Box
+  mirror.
+- **Action:** Check `healtharchive-db-backup.service`, the Storage Box mount,
+  and `/srv/healtharchive/backups`.
 
 ## Alerting Policy (automation-first)
 
