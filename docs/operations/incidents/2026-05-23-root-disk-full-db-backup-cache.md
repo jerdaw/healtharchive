@@ -95,13 +95,28 @@ Repo-side follow-up implemented:
   - local backup cache >8GiB
   - failed repo-managed DB backup runs
 
+Production follow-up completed:
+
+- Deployed pinned ref `231597f2`.
+- Installed updated systemd templates and applied Prometheus alerting.
+- Enabled `healtharchive-db-backup.timer`.
+- Ran `healtharchive-db-backup.service` successfully at
+  `2026-05-23T14:05:05Z`.
+- Verified the successful dump was mirrored to
+  `/srv/healtharchive/storagebox/backups/db/`.
+- Verified backup metrics were exported with
+  `healtharchive_db_backup_last_success 1`.
+- Confirmed root usage was stable at `77%` after the backup run.
+- Confirmed `ha-check` still reported `Ready for search: YES`,
+  `indexed=3`, and `OK: snapshot complete`.
+
 ## Action items
 
 - [x] Free root disk and restore PostgreSQL.
 - [x] Verify annual campaign remains search-ready.
 - [x] Add repo-managed backup short-cache flow.
 - [x] Add root/backup-cache alert rules.
-- [ ] Deploy the repo change to production.
-- [ ] Install/update systemd units and enable the repo-managed backup timer.
-- [ ] Confirm the next backup writes metrics and keeps
+- [x] Deploy the repo change to production.
+- [x] Install/update systemd units and enable the repo-managed backup timer.
+- [x] Confirm the next backup writes metrics and keeps
   `/srv/healtharchive/backups` small.
