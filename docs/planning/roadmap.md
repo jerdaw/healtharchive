@@ -329,6 +329,20 @@ Completed items were removed from this backlog and archived in:
      - Next action: wait for compatible `eslint-plugin-react`/Next ESLint
        support, then re-test the ESLint 10 upgrade through a human-authored
        dependency commit.
+25c. **Bound or externalize the frontend Next.js runtime fetch cache** (M: 1 day)
+     - Current evidence: production cleanup on 2026-05-24 found
+       `healtharchive-frontend` had about `22G` under
+       `/app/.next/cache/fetch-cache` in the container writable layer.
+       Clearing that cache and restarting the container reduced root usage to
+       `46%` while frontend/API health stayed OK.
+     - Next action: decide whether to disable, bound, relocate, or periodically
+       clean this cache in the frontend/runtime deployment model.
+25d. **Add Docker writable-layer growth monitoring for shared VPS services** (S: 1-2h)
+     - Current evidence: root disk pressure was materially worsened by a large
+       live container writable layer that was not visible from application
+       backup metrics.
+     - Next action: add a lightweight check or metric for large Docker
+       container writable layers, then document the operator response path.
 
 ### Documentation and operations maturity
 

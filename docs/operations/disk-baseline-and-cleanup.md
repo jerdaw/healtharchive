@@ -1,12 +1,12 @@
 # Disk Baseline and Automated Cleanup
 
-**Last Updated**: 2026-05-23
+**Last Updated**: 2026-05-24
 **VPS**: Hetzner 75GB single-VPS production
 
 ## Current Baseline
 
-**Normal operating disk usage**: ~74-82%
-**Available space**: ~14-20GB
+**Normal operating disk usage**: ~46-55% after the 2026-05-24 cleanup.
+**Available space**: ~34-41GB
 **Alert thresholds**:
 - Root warning: >80% for 30m
 - Root critical: >88% for 10m
@@ -14,20 +14,16 @@
 - Generic filesystem critical: >92% for 10m
 - Local DB backup cache warning: >8GiB for 30m
 
-## Why 82% Baseline?
+## Why the baseline changed
 
 The VPS uses a **tiered storage architecture**:
 - **Local disk (75GB)**: System, Docker, logs, temp crawl data
 - **Storagebox (1TB)**: Final WARCs, ZIMs, large job data via SSHFS mounts
 
-Local disk breakdown (~61GB used):
-- System/packages: ~3.1GB (`/usr`)
-- Docker: ~7GB (`/var/lib/docker`)
-- Logs: ~2GB (`/var/log`)
-- Ephemeral data: ~1GB (`/srv` local, temp crawl dirs)
-- DB backup local cache: normally only the newest 1-2 dumps under
-  `/srv/healtharchive/backups`
-- OS/kernel: ~48GB (includes filesystem metadata, journal, reserves)
+The earlier 74-82% baseline was caused by accumulated local DB dumps, oversized
+rotated syslogs, and a large Next.js runtime fetch cache in the live frontend
+container. After cleanup, expected root usage is closer to the mid-40% range
+with a single local DB dump retained.
 
 ## Automated Cleanup
 
@@ -53,6 +49,11 @@ docker system prune -f    # Remove stopped containers, networks
 **Docker container logs** (`/etc/docker/daemon.json`):
 - `max-size: 10m` - Max 10MB per log file
 - `max-file: 3` - Keep 3 rotations (30MB total per container)
+
+**Rsyslog** (`/etc/logrotate.d/rsyslog`):
+- Include `su root syslog` inside the log block when `/var/log` is
+  `root:syslog` and group-writable. Without it, logrotate skips syslog files
+  with an "insecure permissions" warning.
 
 **Expected impact**: Prevents runaway log growth, keeps logs <2GB
 
@@ -93,6 +94,29 @@ sudo systemctl status healtharchive-db-backup.service --no-pager
 
 Do not keep 14 days of database dumps on the root filesystem. Retained copies
 belong on the Storage Box mirror and any external NAS/offsite pull target.
+
+### 5. Frontend Next.js Fetch Cache
+
+If Docker reports a large writable layer for `healtharchive-frontend`, inspect
+the Next.js cache before removing anything:
+
+```bash
+sudo docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Size}}' | grep healtharchive-frontend
+sudo docker exec healtharchive-frontend sh -lc 'du -xhd1 /app/.next/cache 2>/dev/null | sort -h'
+```
+
+If `/app/.next/cache/fetch-cache` is the large path, it can be cleared as a
+runtime cache:
+
+```bash
+sudo docker exec healtharchive-frontend sh -lc 'find /app/.next/cache/fetch-cache -mindepth 1 -maxdepth 1 -exec rm -rf {} +'
+sudo docker restart healtharchive-frontend
+curl -I https://healtharchive.ca/
+curl -i https://api.healtharchive.ca/api/health
+```
+
+This is an operational cleanup path. The durable prevention work is tracked in
+the future roadmap.
 
 ## Worker Pre-Crawl Disk Check
 
@@ -143,3 +167,6 @@ Or just use `df -h /` for filesystem truth.
 - **2026-05-23**: Root reached 100% after local DB dumps accumulated under
   `/srv/healtharchive/backups`; moved retained dumps to Storage Box and added
   repo-managed short-cache backup flow plus root/backup-cache alerts.
+- **2026-05-24**: Confirmed scheduled backup and NASD pull, set local DB dump
+  retention to one successful dump, fixed rsyslog logrotate `su root syslog`,
+  and cleared a 22GB frontend Next.js fetch cache. Root recovered to 46%.

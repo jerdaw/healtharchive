@@ -94,6 +94,7 @@ def test_db_backup_systemd_template_uses_repo_managed_short_cache_script() -> No
 
     assert "HEALTHARCHIVE_BACKUP_MIRROR_DIR" in script
     assert "HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL" in script
+    assert 'LOCAL_KEEP_SUCCESSFUL="${HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL:-1}"' in script
     assert "HEALTHARCHIVE_BACKUP_MIN_ROOT_FREE_MB" in script
     assert "rsync -rt --size-only" in script
     assert "healtharchive_db_backup_local_bytes" in script

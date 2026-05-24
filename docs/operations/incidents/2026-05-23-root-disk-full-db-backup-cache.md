@@ -110,6 +110,19 @@ Production follow-up completed:
 - Confirmed `ha-check` still reported `Ready for search: YES`,
   `indexed=3`, and `OK: snapshot complete`.
 
+Post-incident hardening completed:
+
+- Set live local backup retention to one successful dump and changed the repo
+  default to match.
+- Updated NASD replication to pull from
+  `/srv/healtharchive/storagebox/backups/db/` into
+  `/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/`.
+- Verified the NASD dry-run and wrapped DSM helper run succeeded.
+- Fixed rsyslog logrotate handling for `/var/log` group-writable by `syslog`.
+- Removed the large Next.js fetch cache from the live frontend container,
+  reducing root usage to `46%`.
+- Verified public frontend routes and API health still returned `200`.
+
 ## Action items
 
 - [x] Free root disk and restore PostgreSQL.
@@ -120,3 +133,6 @@ Production follow-up completed:
 - [x] Install/update systemd units and enable the repo-managed backup timer.
 - [x] Confirm the next backup writes metrics and keeps
   `/srv/healtharchive/backups` small.
+- [x] Update NASD backup automation and verify a real NAS pull.
+- [x] Restore root headroom below warning thresholds after post-incident log
+  and frontend-cache cleanup.

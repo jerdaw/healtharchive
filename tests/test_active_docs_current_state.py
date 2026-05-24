@@ -41,16 +41,34 @@ def test_active_docs_reflect_apex_canonical_frontend() -> None:
 def test_active_docs_backup_notes_cover_nas_destination_and_manual_dumps() -> None:
     production_runbook = _read("docs/deployment/production-single-vps.md")
     disaster_recovery = _read("docs/deployment/disaster-recovery.md")
+    decision = _read("docs/decisions/2026-05-24-db-backup-retention-and-nas-ingest.md")
 
     assert (
         "mkdir -p /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps"
         in production_runbook
     )
+    assert "HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL=1" in production_runbook
     assert "exit code `11`" in production_runbook
     assert "healtharchive_pre_<change>_<ts>.dump" in production_runbook
     assert "not part of the nightly retention set" in production_runbook
     assert "rsync --delete" in disaster_recovery
     assert "not an independent permanent archive" in disaster_recovery
+    assert "/srv/healtharchive/storagebox/backups/db/" in decision
+    assert (
+        "/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/" in decision
+    )
+
+
+def test_ops_docs_record_disk_cleanup_followups() -> None:
+    disk_cleanup = _read("docs/operations/disk-baseline-and-cleanup.md")
+    ops_roadmap = _read("docs/operations/healtharchive-ops-roadmap.md")
+    future_roadmap = _read("docs/planning/roadmap.md")
+
+    assert "su root syslog" in disk_cleanup
+    assert "/app/.next/cache/fetch-cache" in disk_cleanup
+    assert "final root usage was `46%`" in ops_roadmap
+    assert "Bound or externalize the frontend Next.js runtime fetch cache" in future_roadmap
+    assert "Docker writable-layer growth monitoring" in future_roadmap
 
 
 def test_active_entrypoints_point_shared_vps_facts_to_platform_ops() -> None:

@@ -24,7 +24,7 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-05-06)
+## Current status (as of 2026-05-24)
 
 Live facts below come from operator-provided VPS output, not direct assistant
 production access.
@@ -103,14 +103,28 @@ production access.
     crawl cost/failure classification.
   - stale historical crawl warnings are reduced; investigate throughput/churn
     trends in Grafana rather than via direct throughput pages.
+- Root disk recovery from the 2026-05-23 DB backup cache incident is complete:
+  - repo-managed DB backup timer is deployed and successful;
+  - local VPS DB backup retention is one successful dump;
+  - Storage Box mirror path is `/srv/healtharchive/storagebox/backups/db/`;
+  - NASD protected ingest path is
+    `/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/`;
+  - NASD dry-run and real wrapped sync succeeded;
+  - rsyslog logrotate now handles `/var/log` as `root:syslog`;
+  - the live frontend Next.js fetch cache was cleared after it reached about
+    `22G`;
+  - final root usage was `46%`, API health was `db: ok`, and `ha-check`
+    completed successfully.
 
 ## Current priority order
 
 Treat the following as the current ops execution order:
 
-1. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
+1. Watch the next scheduled DB backup and NASD pull for one normal cycle to
+   confirm metrics refresh and local retention remains one dump.
+2. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
    repeated warm-cache samples stay above the desired response target.
-2. Routine quarterly ops and evidence collection.
+3. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 
