@@ -81,7 +81,7 @@ The repo-managed `healtharchive-db-backup.timer` uses
 `scripts/vps-db-backup.sh`. It writes each `pg_dump -Fc` to
 `/srv/healtharchive/backups` as a short local cache, mirrors successful dumps
 to `/srv/healtharchive/storagebox/backups/db`, then prunes local dumps down to
-the newest small set.
+the newest successful dump on the current 75G VPS.
 
 If `/srv/healtharchive/backups` grows unexpectedly:
 

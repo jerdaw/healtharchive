@@ -94,7 +94,7 @@ If Tailscale is up on both ends:
 1.  SSH to NAS: `ssh user@nas-ip`.
 2.  Rsync backup to new VPS:
     ```bash
-    rsync -av /volume1/nobak/healtharchive/backups/db/latest.dump haadmin@new-vps-ip:/srv/healtharchive/backups/
+    rsync -av /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/latest.dump haadmin@new-vps-ip:/srv/healtharchive/backups/
     ```
     *Alternatively, pull from VPS:*
     ```bash
@@ -144,13 +144,15 @@ Use this procedure when the VPS is running but the database is corrupted or drop
     - Naming: `healtharchive_<timestamp>.dump`
 - **Storage Box mirror:** `/srv/healtharchive/storagebox/backups/db/`
     - Retained nightly dump set.
-- **NAS:** `/volume1/nobak/healtharchive/backups/db/` (needs retrieval)
+- **NAS:** `/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/` (needs retrieval)
     - Offsite mirror of `/srv/healtharchive/storagebox/backups/db` via NAS
       `rsync --delete` pull.
     - Retention follows the Storage Box mirror contents, not the short local
       root-disk cache. Archive one-off maintenance dumps under
       `/srv/healtharchive/ops/maintenance/...` if they must outlive the normal
       mirrored set.
+    - This NAS path is the protected homelab service-backup ingest location,
+      not an independent permanent archive.
 
 #### Step 2: Restore Database
 *Warning: This will overwrite the current database state.*

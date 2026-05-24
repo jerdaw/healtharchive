@@ -42,12 +42,15 @@ def test_active_docs_backup_notes_cover_nas_destination_and_manual_dumps() -> No
     production_runbook = _read("docs/deployment/production-single-vps.md")
     disaster_recovery = _read("docs/deployment/disaster-recovery.md")
 
-    assert "mkdir -p /volume1/nobak/healtharchive/backups/db" in production_runbook
+    assert (
+        "mkdir -p /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps"
+        in production_runbook
+    )
     assert "exit code `11`" in production_runbook
     assert "healtharchive_pre_<change>_<ts>.dump" in production_runbook
     assert "not part of the nightly retention set" in production_runbook
     assert "rsync --delete" in disaster_recovery
-    assert "independent permanent archive" in disaster_recovery
+    assert "not an independent permanent archive" in disaster_recovery
 
 
 def test_active_entrypoints_point_shared_vps_facts_to_platform_ops() -> None:

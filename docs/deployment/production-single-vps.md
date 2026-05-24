@@ -510,7 +510,7 @@ Backup script: `/opt/healtharchive/scripts/vps-db-backup.sh`
   as a short local cache on root.
 - Successful dumps are mirrored to
   `/srv/healtharchive/storagebox/backups/db/healtharchive_<ts>.dump`.
-- Local cache default: keep the newest 2 successful dumps and delete zero-byte
+- Local cache default: keep the newest 1 successful dump and delete zero-byte
   failed dumps.
 - Mirror retention default: keep 30 days on Storage Box.
 - The script refuses to create another local dump when root free space is below
@@ -544,7 +544,7 @@ HEALTHARCHIVE_BACKUP_LOCAL_DIR=/srv/healtharchive/backups
 HEALTHARCHIVE_BACKUP_MIRROR_ROOT=/srv/healtharchive/storagebox
 HEALTHARCHIVE_BACKUP_MIRROR_DIR=/srv/healtharchive/storagebox/backups/db
 HEALTHARCHIVE_BACKUP_REQUIRE_MIRROR=1
-HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL=2
+HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL=1
 HEALTHARCHIVE_BACKUP_MIRROR_RETENTION_DAYS=30
 HEALTHARCHIVE_BACKUP_MIN_ROOT_FREE_MB=8192
 ```
@@ -562,18 +562,24 @@ Host ha-vps
   StrictHostKeyChecking accept-new
 ```
 
+- NAS destination:
+  `/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps`
 - Rsync command (used manually + DSM scheduled task):
 
 ```bash
-mkdir -p /volume1/nobak/healtharchive/backups/db
-rsync -rt --delete ha-vps:/srv/healtharchive/storagebox/backups/db/ /volume1/nobak/healtharchive/backups/db/
+mkdir -p /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps
+rsync -rt --delete ha-vps:/srv/healtharchive/storagebox/backups/db/ /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/
 ```
 
 - Make the DSM scheduled task run both lines, not just `rsync`, so the NAS pull
   self-heals if the destination path disappears after a share rebuild or manual
   cleanup.
-- If `/volume1/nobak/healtharchive/backups/db` is missing and the task runs only
-  `rsync`, Synology Task Scheduler will report `rsync` exit code `11`
+- The homelab-managed DSM task should use
+  `/volume1/data/repos/homelab/nasd/tasks/dsm_healtharchive_db_backup.sh`,
+  with its source set to `ha-vps:/srv/healtharchive/storagebox/backups/db/`
+  and its destination set to the `logical-dumps` path above.
+- If the destination is missing and the task runs only `rsync`, Synology Task
+  Scheduler will report `rsync` exit code `11`
   (`mkdir ... failed: No such file or directory`).
 
 ---
