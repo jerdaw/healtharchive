@@ -71,6 +71,7 @@ def _write_atomic(out_dir: Path, out_file: str, lines: Iterable[str]) -> None:
         with os.fdopen(fd, "w", encoding="utf-8") as f:
             for line in lines:
                 f.write(f"{line}\n")
+        os.chmod(tmp_name, 0o644)
         os.replace(tmp_name, out_dir / out_file)
     finally:
         try:

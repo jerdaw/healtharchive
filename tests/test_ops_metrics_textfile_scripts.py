@@ -176,6 +176,7 @@ def test_vps_docker_runtime_metrics_reports_container_size_and_cache_paths(
     assert rc == 0
 
     prom = (out_dir / "docker.prom").read_text(encoding="utf-8")
+    assert (out_dir / "docker.prom").stat().st_mode & 0o777 == 0o644
     assert "healtharchive_docker_runtime_metrics_ok 1" in prom
     assert (
         'healtharchive_docker_container_size_rw_bytes{container="healtharchive-frontend",'
@@ -228,6 +229,7 @@ def test_vps_frontend_cache_maintenance_clears_and_restarts_when_over_limit(
     assert calls == ["clear", "restart"]
 
     prom = (out_dir / "frontend-cache.prom").read_text(encoding="utf-8")
+    assert (out_dir / "frontend-cache.prom").stat().st_mode & 0o777 == 0o644
     assert "healtharchive_frontend_cache_maintenance_ok 1" in prom
     assert "healtharchive_frontend_cache_over_limit" in prom
     assert "healtharchive_frontend_cache_clear_success" in prom
