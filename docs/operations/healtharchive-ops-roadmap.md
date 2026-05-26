@@ -115,16 +115,25 @@ production access.
     `22G`;
   - final root usage was `46%`, API health was `db: ok`, and `ha-check`
     completed successfully.
+- Frontend cache recurrence prevention is repo-managed:
+  - frontend redeploys mount `/app/.next/cache` as
+    `healtharchive-frontend-next-cache`;
+  - `healtharchive-docker-runtime-metrics.timer` exports container
+    writable-layer and cache path metrics;
+  - `healtharchive-frontend-cache-maintenance.timer` is available behind the
+    `/etc/healtharchive/frontend-cache-maintenance-enabled` sentinel.
 
 ## Current priority order
 
 Treat the following as the current ops execution order:
 
-1. Watch the next scheduled DB backup and NASD pull for one normal cycle to
-   confirm metrics refresh and local retention remains one dump.
-2. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
+1. Deploy the frontend cache externalization/runtime-metrics ref, then redeploy
+   the frontend once so the live container picks up the named cache volume.
+2. Enable and verify Docker runtime metrics and sentinel-gated frontend cache
+   maintenance.
+3. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
    repeated warm-cache samples stay above the desired response target.
-3. Routine quarterly ops and evidence collection.
+4. Routine quarterly ops and evidence collection.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 

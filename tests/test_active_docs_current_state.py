@@ -66,9 +66,30 @@ def test_ops_docs_record_disk_cleanup_followups() -> None:
 
     assert "su root syslog" in disk_cleanup
     assert "/app/.next/cache/fetch-cache" in disk_cleanup
+    assert "healtharchive-docker-runtime-metrics.timer" in disk_cleanup
+    assert "healtharchive-frontend-cache-maintenance.timer" in disk_cleanup
     assert "final root usage was `46%`" in ops_roadmap
-    assert "Bound or externalize the frontend Next.js runtime fetch cache" in future_roadmap
-    assert "Docker writable-layer growth monitoring" in future_roadmap
+    assert "frontend redeploys mount `/app/.next/cache`" in ops_roadmap
+    assert "Bound or externalize the frontend Next.js runtime fetch cache" not in future_roadmap
+    assert "Docker writable-layer growth monitoring" not in future_roadmap
+
+
+def test_frontend_cache_externalization_docs_are_current() -> None:
+    frontend_readme = _read("frontend/README.md")
+    frontend_verification = _read("frontend/docs/deployment/verification.md")
+    production_runbook = _read("docs/deployment/production-single-vps.md")
+    systemd_readme = _read("docs/deployment/systemd/README.md")
+    decision = _read(
+        "docs/decisions/2026-05-26-frontend-cache-externalization-and-docker-runtime-metrics.md"
+    )
+
+    for text in (frontend_readme, frontend_verification, production_runbook, decision):
+        assert "healtharchive-frontend-next-cache" in text
+        assert "/app/.next/cache" in text
+
+    assert "healtharchive-docker-runtime-metrics.timer" in systemd_readme
+    assert "frontend-cache-maintenance-enabled" in systemd_readme
+    assert "NEXT_CACHE_MOUNT=none" in decision
 
 
 def test_active_entrypoints_point_shared_vps_facts_to_platform_ops() -> None:

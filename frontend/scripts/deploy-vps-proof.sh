@@ -6,6 +6,8 @@ PORT="${PORT:-3200}"
 HOST_BIND="${HOST_BIND:-127.0.0.1}"
 CONTAINER_NAME="${CONTAINER_NAME:-healtharchive-frontend}"
 TAG="${TAG:-healtharchive-frontend:$(date -u +%Y%m%d%H%M%S)}"
+NEXT_CACHE_MOUNT="${NEXT_CACHE_MOUNT:-volume}"
+NEXT_CACHE_VOLUME="${NEXT_CACHE_VOLUME:-${CONTAINER_NAME}-next-cache}"
 
 if [[ -z "${ENV_FILE}" ]]; then
   echo "usage: $(basename "$0") <env-file>" >&2
@@ -20,15 +22,37 @@ fi
 docker build -t "${TAG}" .
 docker rm -f "${CONTAINER_NAME}" >/dev/null 2>&1 || true
 
+cache_mount_args=()
+case "${NEXT_CACHE_MOUNT}" in
+  volume)
+    docker volume create "${NEXT_CACHE_VOLUME}" >/dev/null
+    cache_mount_args=(
+      --mount "type=volume,source=${NEXT_CACHE_VOLUME},target=/app/.next/cache"
+    )
+    ;;
+  none)
+    ;;
+  *)
+    echo "unsupported NEXT_CACHE_MOUNT=${NEXT_CACHE_MOUNT}; expected volume or none" >&2
+    exit 2
+    ;;
+esac
+
 docker run -d \
   --name "${CONTAINER_NAME}" \
   --restart unless-stopped \
+  --label ca.healtharchive.service=frontend \
+  --label ca.healtharchive.next-cache-mount="${NEXT_CACHE_MOUNT}" \
   --env-file "${ENV_FILE}" \
+  "${cache_mount_args[@]}" \
   -p "${HOST_BIND}:${PORT}:3000" \
   "${TAG}"
 
 echo "container=${CONTAINER_NAME}"
 echo "image=${TAG}"
+if [[ "${NEXT_CACHE_MOUNT}" == "volume" ]]; then
+  echo "next_cache_volume=${NEXT_CACHE_VOLUME}"
+fi
 echo "health_url=http://${HOST_BIND}:${PORT}/archive"
 
 echo "Waiting for container to become healthy..."

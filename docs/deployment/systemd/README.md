@@ -19,6 +19,8 @@ They implement:
 - Public surface verification timer (public API + frontend; deeper than uptime checks)
 - Optional "timer ran" pings (Healthchecks-style)
 - Annual search verification capture (optional, safe)
+- Docker runtime metrics (container writable-layer + cache path probes)
+- Frontend Next.js fetch-cache maintenance (sentinel-gated)
 
 Assumptions (adjust paths/user if your VPS differs):
 
@@ -83,6 +85,18 @@ or stage the cutover manually (no restarts required until your maintenance windo
     successful dumps to `/srv/healtharchive/storagebox/backups/db`, and writes
     `healtharchive_db_backup_*` textfile metrics.
   - Pings `HC_DB_BACKUP_URL` from `/etc/healtharchive/healthchecks.env` when set.
+- `healtharchive-docker-runtime-metrics.service` + `.timer`
+  - Writes Docker runtime metrics to node_exporter textfile output:
+    container running state, writable-layer bytes, rootfs bytes, and selected
+    cache path sizes.
+  - Used to alert when `healtharchive-frontend` starts growing in the Docker
+    writable layer again or when the Next.js fetch cache exceeds its threshold.
+- `healtharchive-frontend-cache-maintenance.service` + `.timer`
+  - Sentinel-gated by `/etc/healtharchive/frontend-cache-maintenance-enabled`.
+  - Clears `/app/.next/cache/fetch-cache` inside the live frontend container
+    only when the cache exceeds `HEALTHARCHIVE_FRONTEND_CACHE_MAX_BYTES`
+    (default `4GiB`), then restarts the container after a real clear.
+  - Writes `healtharchive_frontend_cache_*` metrics to node_exporter textfile output.
 - `healtharchive-replay.service`
   - Repo-managed pywb replay service template for `replay.healtharchive.ca`.
   - Binds to loopback (`127.0.0.1:8090`) for Caddy to proxy.
@@ -237,6 +251,13 @@ matches your operational readiness.
 - **Drift auto-reconcile watchdog** (`healtharchive-drift-auto-reconcile.timer`)
   - Recommended for self-healing missing pip dependencies that cause API 502s.
   - Runs every 5 minutes and invokes `vps-deploy.sh` if the baseline report catches virtual environment drift.
+- **Docker runtime metrics** (`healtharchive-docker-runtime-metrics.timer`)
+  - Recommended on the shared VPS. It is read-only and surfaces container
+    writable-layer growth that root filesystem alerts cannot attribute.
+- **Frontend cache maintenance** (`healtharchive-frontend-cache-maintenance.timer`)
+  - Recommended after validating a dry-run and redeploying the frontend with
+    the named cache volume. The unit is sentinel-gated because it may restart
+    `healtharchive-frontend` when it clears the cache.
 
 If a timer is enabled, also ensure its sentinel file exists under
 `/etc/healtharchive/` (see the enablement sections below).
@@ -250,6 +271,39 @@ Preferred (one command; installs the managed API/replay/worker templates, timer 
 ```bash
 cd /opt/healtharchive
 sudo ./scripts/vps-install-systemd-units.sh --apply --restart-worker
+```
+
+### Docker runtime metrics and frontend cache maintenance
+
+After deploying a repo ref that contains these units, install the templates and
+enable the read-only Docker runtime metrics timer:
+
+```bash
+cd /opt/healtharchive
+sudo ./scripts/vps-install-systemd-units.sh --apply
+sudo systemctl enable --now healtharchive-docker-runtime-metrics.timer
+sudo systemctl start healtharchive-docker-runtime-metrics.service
+curl -s http://127.0.0.1:9100/metrics | grep '^healtharchive_docker_'
+```
+
+The frontend cache maintenance timer is state-changing because it can restart
+`healtharchive-frontend` after clearing an oversized fetch cache. Validate it
+first, then enable the sentinel and timer:
+
+```bash
+cd /opt/healtharchive
+/usr/bin/python3 scripts/vps-frontend-cache-maintenance.py
+sudo touch /etc/healtharchive/frontend-cache-maintenance-enabled
+sudo systemctl enable --now healtharchive-frontend-cache-maintenance.timer
+sudo systemctl start healtharchive-frontend-cache-maintenance.service
+curl -s http://127.0.0.1:9100/metrics | grep '^healtharchive_frontend_cache_'
+```
+
+Tune with `/etc/healtharchive/backend.env` when needed:
+
+```bash
+HEALTHARCHIVE_FRONTEND_CACHE_MAX_BYTES=4294967296
+HEALTHARCHIVE_FRONTEND_CACHE_RESTART_AFTER_CLEAR=1
 ```
 
 ## Run a crawl job detached (optional)

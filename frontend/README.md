@@ -297,6 +297,12 @@ Private VPS proof helper:
 ./scripts/deploy-vps-proof.sh /etc/projects-merge/env/healtharchive-frontend.env
 ```
 
+By default, the helper mounts `/app/.next/cache` as a named Docker volume
+derived from the container name, for example
+`healtharchive-frontend-next-cache`. This keeps Next.js runtime cache files out
+of the container writable layer. For one-off diagnostics only, the mount can be
+disabled with `NEXT_CACHE_MOUNT=none`.
+
 Expected frontend env file:
 
 ```env

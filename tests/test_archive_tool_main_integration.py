@@ -24,7 +24,7 @@ from unittest.mock import MagicMock
 
 import httpx
 import pytest
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 import archive_tool.docker_runner as docker_runner_mod
 import archive_tool.main as archive_main

@@ -121,6 +121,9 @@ Post-incident hardening completed:
 - Fixed rsyslog logrotate handling for `/var/log` group-writable by `syslog`.
 - Removed the large Next.js fetch cache from the live frontend container,
   reducing root usage to `46%`.
+- Added repo-managed frontend cache externalization in the Docker deploy
+  helper, Docker writable-layer/cache textfile metrics, Prometheus alerts, and
+  a sentinel-gated frontend cache maintenance timer.
 - Verified public frontend routes and API health still returned `200`.
 
 ## Action items
@@ -136,3 +139,5 @@ Post-incident hardening completed:
 - [x] Update NASD backup automation and verify a real NAS pull.
 - [x] Restore root headroom below warning thresholds after post-incident log
   and frontend-cache cleanup.
+- [x] Add recurrence prevention for frontend Docker writable-layer and
+  Next.js fetch-cache growth.

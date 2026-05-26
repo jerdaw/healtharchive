@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import importlib.util
+import json
 import os
+import subprocess
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -136,6 +138,100 @@ def test_vps_tiering_metrics_textfile_reports_errno_for_hot_path(tmp_path, monke
     assert "healtharchive_tiering_manifest_ok 1" in prom
     assert f'healtharchive_tiering_hot_path_ok{{hot="{hot_path}"}} 0' in prom
     assert f'healtharchive_tiering_hot_path_errno{{hot="{hot_path}"}} 107' in prom
+
+
+def test_vps_docker_runtime_metrics_reports_container_size_and_cache_paths(
+    tmp_path: Path, monkeypatch
+) -> None:
+    mod = _load_script_module(
+        "vps-docker-runtime-metrics-textfile.py",
+        module_name="ha_test_vps_docker_runtime_metrics_textfile",
+    )
+
+    def fake_run(args: list[str], *, timeout: int = 30) -> subprocess.CompletedProcess[str]:
+        if args[:3] == ["docker", "ps", "--format"]:
+            return subprocess.CompletedProcess(
+                args, 0, stdout="healtharchive-frontend\n", stderr=""
+            )
+        if args[:3] == ["docker", "inspect", "--size"]:
+            payload = [
+                {
+                    "Config": {"Image": "healtharchive-frontend:test"},
+                    "State": {"Status": "running", "Running": True},
+                    "SizeRw": 123456,
+                    "SizeRootFs": 654321,
+                }
+            ]
+            return subprocess.CompletedProcess(args, 0, stdout=json.dumps(payload), stderr="")
+        if args[:2] == ["docker", "exec"]:
+            script = args[-1]
+            stdout = "4096\n" if "/fetch-cache" in script else "8192\n"
+            return subprocess.CompletedProcess(args, 0, stdout=stdout, stderr="")
+        raise AssertionError(args)
+
+    monkeypatch.setattr(mod, "_run", fake_run)
+
+    out_dir = tmp_path / "out"
+    rc = mod.main(["--out-dir", str(out_dir), "--out-file", "docker.prom"])
+    assert rc == 0
+
+    prom = (out_dir / "docker.prom").read_text(encoding="utf-8")
+    assert "healtharchive_docker_runtime_metrics_ok 1" in prom
+    assert (
+        'healtharchive_docker_container_size_rw_bytes{container="healtharchive-frontend",'
+        'image="healtharchive-frontend:test",state="running"} 123456'
+    ) in prom
+    assert (
+        'healtharchive_docker_path_bytes{container="healtharchive-frontend",'
+        'path="/app/.next/cache/fetch-cache"} 4096'
+    ) in prom
+
+
+def test_vps_frontend_cache_maintenance_clears_and_restarts_when_over_limit(
+    tmp_path: Path, monkeypatch
+) -> None:
+    mod = _load_script_module(
+        "vps-frontend-cache-maintenance.py",
+        module_name="ha_test_vps_frontend_cache_maintenance",
+    )
+    calls: list[str] = []
+    byte_values = iter([(20, 1), (0, 1)])
+
+    def fake_path_bytes(_container: str, _path: str) -> tuple[int, int]:
+        return next(byte_values)
+
+    def fake_clear(_container: str, _path: str) -> int:
+        calls.append("clear")
+        return 1
+
+    def fake_restart(_container: str) -> int:
+        calls.append("restart")
+        return 1
+
+    monkeypatch.setattr(mod, "_path_bytes", fake_path_bytes)
+    monkeypatch.setattr(mod, "_clear_path", fake_clear)
+    monkeypatch.setattr(mod, "_restart_container", fake_restart)
+
+    out_dir = tmp_path / "out"
+    rc = mod.main(
+        [
+            "--apply",
+            "--out-dir",
+            str(out_dir),
+            "--out-file",
+            "frontend-cache.prom",
+            "--max-bytes",
+            "10",
+        ]
+    )
+    assert rc == 0
+    assert calls == ["clear", "restart"]
+
+    prom = (out_dir / "frontend-cache.prom").read_text(encoding="utf-8")
+    assert "healtharchive_frontend_cache_maintenance_ok 1" in prom
+    assert "healtharchive_frontend_cache_over_limit" in prom
+    assert "healtharchive_frontend_cache_clear_success" in prom
+    assert "healtharchive_frontend_cache_restart_success" in prom
 
 
 def test_vps_crawl_metrics_textfile_reports_pending_annual_output_dir_not_writable(

@@ -86,6 +86,50 @@ groups:
           description: "The repo-managed DB backup textfile metric reports the latest run failed. Check healtharchive-db-backup.service logs, Storage Box mount health, and root disk headroom."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/deployment/production-single-vps.md"
 
+      - alert: HealthArchiveDockerRuntimeMetricsStale
+        expr: (time() - healtharchive_docker_runtime_metrics_timestamp_seconds) > 900
+        for: 10m
+        labels:
+          severity: warning
+          service: healtharchive
+        annotations:
+          summary: "Docker runtime metrics are stale"
+          description: "The Docker runtime textfile metrics have not updated in over 15 minutes. Check healtharchive-docker-runtime-metrics.service and node_exporter textfile collection."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/disk-baseline-and-cleanup.md"
+
+      - alert: HealthArchiveDockerWritableLayerHigh
+        expr: healtharchive_docker_container_size_rw_bytes{container="healtharchive-frontend"} > 1073741824
+        for: 30m
+        labels:
+          severity: warning
+          service: healtharchive
+        annotations:
+          summary: "Frontend Docker writable layer > 1 GiB"
+          description: "The healtharchive-frontend container writable layer is larger than expected. The deploy helper should mount /app/.next/cache as a Docker volume; inspect the container and recent deploy path before root disk pressure returns."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/disk-baseline-and-cleanup.md"
+
+      - alert: HealthArchiveFrontendFetchCacheHigh
+        expr: healtharchive_docker_path_bytes{container="healtharchive-frontend",path="/app/.next/cache/fetch-cache"} > 4294967296
+        for: 30m
+        labels:
+          severity: warning
+          service: healtharchive
+        annotations:
+          summary: "Frontend Next.js fetch cache > 4 GiB"
+          description: "The frontend runtime fetch cache is above the maintenance threshold. Confirm healtharchive-frontend-cache-maintenance.timer is enabled or run the cache maintenance script during a safe window."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/disk-baseline-and-cleanup.md"
+
+      - alert: HealthArchiveFrontendCacheMaintenanceFailed
+        expr: healtharchive_frontend_cache_maintenance_ok == 0
+        for: 10m
+        labels:
+          severity: warning
+          service: healtharchive
+        annotations:
+          summary: "Frontend cache maintenance failed"
+          description: "The frontend cache maintenance textfile metric reports a failed probe, clear, or restart. Check healtharchive-frontend-cache-maintenance.service logs and the healtharchive-frontend container."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/disk-baseline-and-cleanup.md"
+
       - alert: HealthArchiveSearchErrorsSustained
         expr: |
           increase(healtharchive_search_errors_total[15m]) >= 3

@@ -13,6 +13,8 @@
 - Generic filesystem warning: >85% for 30m
 - Generic filesystem critical: >92% for 10m
 - Local DB backup cache warning: >8GiB for 30m
+- Frontend Docker writable-layer warning: >1GiB for 30m
+- Frontend Next.js fetch-cache warning: >4GiB for 30m
 
 ## Why the baseline changed
 
@@ -97,8 +99,32 @@ belong on the Storage Box mirror and any external NAS/offsite pull target.
 
 ### 5. Frontend Next.js Fetch Cache
 
+The frontend deploy helper mounts `/app/.next/cache` as a named Docker volume
+by default. This keeps Next.js runtime cache files out of the Docker writable
+layer. The cache still consumes root disk space, so the VPS also has:
+
+- `healtharchive-docker-runtime-metrics.timer` for writable-layer and cache-path
+  metrics;
+- `healtharchive-frontend-cache-maintenance.timer` for sentinel-gated cleanup
+  when `/app/.next/cache/fetch-cache` exceeds the configured threshold.
+
+Verify the live container is using the named cache volume:
+
+```bash
+sudo docker inspect healtharchive-frontend \
+  --format '{{range .Mounts}}{{println .Type .Name .Destination}}{{end}}' \
+  | grep '/app/.next/cache'
+```
+
+Inspect metrics:
+
+```bash
+curl -s http://127.0.0.1:9100/metrics | grep '^healtharchive_docker_'
+curl -s http://127.0.0.1:9100/metrics | grep '^healtharchive_frontend_cache_'
+```
+
 If Docker reports a large writable layer for `healtharchive-frontend`, inspect
-the Next.js cache before removing anything:
+the Next.js cache and writable-layer metrics before removing anything:
 
 ```bash
 sudo docker ps --format 'table {{.Names}}\t{{.Status}}\t{{.Size}}' | grep healtharchive-frontend
@@ -115,8 +141,13 @@ curl -I https://healtharchive.ca/
 curl -i https://api.healtharchive.ca/api/health
 ```
 
-This is an operational cleanup path. The durable prevention work is tracked in
-the future roadmap.
+Prefer the repo-managed maintenance helper when it is present:
+
+```bash
+cd /opt/healtharchive
+/usr/bin/python3 scripts/vps-frontend-cache-maintenance.py
+sudo /usr/bin/python3 scripts/vps-frontend-cache-maintenance.py --apply
+```
 
 ## Worker Pre-Crawl Disk Check
 
@@ -138,8 +169,10 @@ This prevents starting crawls that would fail mid-flight due to disk pressure.
 1. Check Docker images: `docker system df`
 2. Check logs: `sudo du -sh /var/log`
 3. Check local backup cache: `sudo du -sh /srv/healtharchive/backups`
-4. Check temp crawl dirs: `du -xsh /srv/healtharchive/jobs/*/`
-5. Run manual cleanup (see above)
+4. Check frontend Docker runtime/cache metrics:
+   `curl -s http://127.0.0.1:9100/metrics | grep '^healtharchive_docker_'`
+5. Check temp crawl dirs: `du -xsh /srv/healtharchive/jobs/*/`
+6. Run manual cleanup (see above)
 
 ### Disk >92% (Critical)
 
@@ -170,3 +203,6 @@ Or just use `df -h /` for filesystem truth.
 - **2026-05-24**: Confirmed scheduled backup and NASD pull, set local DB dump
   retention to one successful dump, fixed rsyslog logrotate `su root syslog`,
   and cleared a 22GB frontend Next.js fetch cache. Root recovered to 46%.
+- **2026-05-26**: Added frontend cache externalization in the Docker deploy
+  helper, Docker runtime/cache textfile metrics, alerts, and a sentinel-gated
+  frontend cache maintenance timer.

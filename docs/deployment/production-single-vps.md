@@ -299,6 +299,12 @@ Notes:
 - If you update Prometheus alert rules, you can apply them during deploy:
   - `./scripts/vps-deploy.sh --apply --apply-alerting`
   - Requires alerting to be configured (webhook secret present at `/etc/healtharchive/observability/alertmanager_webhook_url`).
+- If you update Docker runtime/cache monitoring units, apply the systemd
+  templates and enable the read-only metrics timer:
+  - `sudo ./scripts/vps-install-systemd-units.sh --apply`
+  - `sudo systemctl enable --now healtharchive-docker-runtime-metrics.timer`
+  - `sudo systemctl start healtharchive-docker-runtime-metrics.service`
+  - `curl -s http://127.0.0.1:9100/metrics | grep '^healtharchive_docker_'`
 - The baseline policy (desired state) is versioned in git at:
   `docs/operations/production-baseline-policy.toml`
 - The deploy script runs a **public-surface smoke verify** by default (public API + frontend + replay + usage):
@@ -663,6 +669,9 @@ enforcement), see:
 ## 12) Current known defaults/assumptions (2026-03)
 
 - CORS allowlist: `https://healtharchive.ca`, `https://www.healtharchive.ca` (redirect alias compatibility), `https://replay.healtharchive.ca`
-- Frontend runtime: direct Docker container on the VPS behind host Caddy
+- Frontend runtime: direct Docker container on the VPS behind host Caddy.
+  The frontend deploy helper mounts `/app/.next/cache` as the named Docker
+  volume `healtharchive-frontend-next-cache` by default so Next.js runtime
+  cache growth does not accumulate in the container writable layer.
 - No staging backend; Preview and Production frontends point to the same API
 - Public SSH closed; Tailscale required for admin/backup access

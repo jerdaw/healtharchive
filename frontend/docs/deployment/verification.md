@@ -20,6 +20,8 @@ Shared-VPS ownership note:
 - **Frontend alias:** `https://www.healtharchive.ca` (redirects to apex)
 - **Replay domain:** `https://replay.healtharchive.ca`
 - **Target frontend runtime:** VPS-hosted Next.js container behind host Caddy
+- **Runtime cache:** `/app/.next/cache` should be mounted as the named Docker
+  volume `healtharchive-frontend-next-cache` in production.
 - **Strict backend CORS allowlist (current choice):**
   - `https://healtharchive.ca`
   - `https://www.healtharchive.ca`
@@ -42,6 +44,14 @@ Optional diagnostics envs should normally remain disabled in production:
 NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=true
 NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true
 NEXT_PUBLIC_SHOW_API_BASE_HINT=true
+```
+
+Confirm the runtime cache is externalized from the Docker writable layer:
+
+```bash
+sudo docker inspect healtharchive-frontend \
+  --format '{{range .Mounts}}{{println .Type .Name .Destination}}{{end}}' \
+  | grep '/app/.next/cache'
 ```
 
 ---

@@ -95,6 +95,28 @@ def test_root_disk_and_backup_cache_alerts_exist() -> None:
     assert "healtharchive_db_backup_last_success == 0" in backup_failed
 
 
+def test_docker_runtime_and_frontend_cache_alerts_exist() -> None:
+    text = _rules_text()
+    stale = _extract_alert_block(text, "HealthArchiveDockerRuntimeMetricsStale")
+    writable = _extract_alert_block(text, "HealthArchiveDockerWritableLayerHigh")
+    cache = _extract_alert_block(text, "HealthArchiveFrontendFetchCacheHigh")
+    maintenance = _extract_alert_block(text, "HealthArchiveFrontendCacheMaintenanceFailed")
+
+    assert "healtharchive_docker_runtime_metrics_timestamp_seconds" in stale
+    assert re.search(r"^\s*for:\s*10m\s*$", stale, re.MULTILINE)
+    assert (
+        'healtharchive_docker_container_size_rw_bytes{container="healtharchive-frontend"}'
+        in writable
+    )
+    assert "> 1073741824" in writable
+    assert (
+        'healtharchive_docker_path_bytes{container="healtharchive-frontend",path="/app/.next/cache/fetch-cache"}'
+        in cache
+    )
+    assert "> 4294967296" in cache
+    assert "healtharchive_frontend_cache_maintenance_ok == 0" in maintenance
+
+
 def test_annual_output_dir_not_writable_alert_semantics() -> None:
     text = _rules_text()
     body = _extract_alert_block(text, "HealthArchiveAnnualOutputDirNotWritable")

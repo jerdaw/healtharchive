@@ -14,7 +14,7 @@ from typing import (
     Optional,
 )
 
-import yaml  # type: ignore[import-untyped]
+import yaml
 
 # Use absolute imports
 from . import constants  # Import constants module

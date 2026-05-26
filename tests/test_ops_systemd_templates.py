@@ -100,6 +100,57 @@ def test_db_backup_systemd_template_uses_repo_managed_short_cache_script() -> No
     assert "healtharchive_db_backup_local_bytes" in script
 
 
+def test_docker_runtime_metrics_and_frontend_cache_maintenance_units_exist() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    metrics_service = (
+        repo_root
+        / "docs"
+        / "deployment"
+        / "systemd"
+        / "healtharchive-docker-runtime-metrics.service"
+    ).read_text(encoding="utf-8")
+    metrics_timer = (
+        repo_root / "docs" / "deployment" / "systemd" / "healtharchive-docker-runtime-metrics.timer"
+    ).read_text(encoding="utf-8")
+    cache_service = (
+        repo_root
+        / "docs"
+        / "deployment"
+        / "systemd"
+        / "healtharchive-frontend-cache-maintenance.service"
+    ).read_text(encoding="utf-8")
+    cache_timer = (
+        repo_root
+        / "docs"
+        / "deployment"
+        / "systemd"
+        / "healtharchive-frontend-cache-maintenance.timer"
+    ).read_text(encoding="utf-8")
+
+    assert "vps-docker-runtime-metrics-textfile.py" in metrics_service
+    assert "OnUnitActiveSec=5m" in metrics_timer
+    assert (
+        "ConditionPathExists=/etc/healtharchive/frontend-cache-maintenance-enabled" in cache_service
+    )
+    assert "vps-frontend-cache-maintenance.py --apply" in cache_service
+    assert "OnCalendar=*-*-* 05:15:00 UTC" in cache_timer
+
+
+def test_frontend_deploy_helper_externalizes_next_cache_by_default() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    deploy = (repo_root / "frontend" / "scripts" / "deploy-vps-proof.sh").read_text(
+        encoding="utf-8"
+    )
+    dockerfile = (repo_root / "frontend" / "Dockerfile").read_text(encoding="utf-8")
+
+    assert 'NEXT_CACHE_MOUNT="${NEXT_CACHE_MOUNT:-volume}"' in deploy
+    assert 'NEXT_CACHE_VOLUME="${NEXT_CACHE_VOLUME:-${CONTAINER_NAME}-next-cache}"' in deploy
+    assert "type=volume,source=${NEXT_CACHE_VOLUME},target=/app/.next/cache" in deploy
+    assert '--label ca.healtharchive.next-cache-mount="${NEXT_CACHE_MOUNT}"' in deploy
+    assert "mkdir -p /app/.next/cache" in dockerfile
+    assert "chown -R nextjs:nodejs /app/.next" in dockerfile
+
+
 def test_storage_hotpath_auto_recover_script_has_no_top_level_backend_imports() -> None:
     repo_root = Path(__file__).resolve().parents[1]
     script_path = repo_root / "scripts" / "vps-storage-hotpath-auto-recover.py"

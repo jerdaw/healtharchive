@@ -1,0 +1,13 @@
+[Unit]
+Description=Run HealthArchive Docker runtime metrics
+Documentation=https://github.com/jerdaw/healtharchive
+
+[Timer]
+OnBootSec=3m
+OnUnitActiveSec=5m
+AccuracySec=30s
+Persistent=true
+Unit=healtharchive-docker-runtime-metrics.service
+
+[Install]
+WantedBy=timers.target
