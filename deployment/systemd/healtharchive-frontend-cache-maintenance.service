@@ -1,0 +1,11 @@
+[Unit]
+Description=HealthArchive frontend Next.js cache maintenance
+Documentation=https://github.com/jerdaw/healtharchive
+ConditionPathExists=/etc/healtharchive/frontend-cache-maintenance-enabled
+ConditionPathExists=/opt/healtharchive/scripts/vps-frontend-cache-maintenance.py
+ConditionPathExists=/usr/bin/docker
+
+[Service]
+Type=oneshot
+EnvironmentFile=-/etc/healtharchive/backend.env
+ExecStart=/usr/bin/python3 /opt/healtharchive/scripts/vps-frontend-cache-maintenance.py --apply

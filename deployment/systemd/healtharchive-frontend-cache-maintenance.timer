@@ -1,0 +1,12 @@
+[Unit]
+Description=Run HealthArchive frontend Next.js cache maintenance
+Documentation=https://github.com/jerdaw/healtharchive
+
+[Timer]
+OnCalendar=*-*-* 05:15:00 UTC
+RandomizedDelaySec=10m
+Persistent=true
+Unit=healtharchive-frontend-cache-maintenance.service
+
+[Install]
+WantedBy=timers.target
