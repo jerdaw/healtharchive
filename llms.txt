@@ -2798,6 +2798,7 @@ This project separates **backlog** vs **implementation plans** vs **canonical do
 - `docs/planning/roadmap.md` is the single backlog of not-yet-implemented items.
 - When you start work, create a focused implementation plan under `docs/planning/`.
 - When the work is done, update canonical docs (deployment/ops/dev) so the result is maintainable.
+- For production-impacting work, run `docs/operations/playbooks/validation/production-closeout.md` before declaring the work closed.
 - Then move the implementation plan into `docs/planning/implemented/` with a dated filename.
 
 Rule of thumb: documentation should describe **what exists and how to use/operate it**, not the order it was implemented.
@@ -2814,6 +2815,7 @@ Update with progress notes as needed. Keep the focus on outcomes and decisions.
 
 ### 3. After completion
 - Update all canonical docs (deployment/operations/development) with outcomes
+- Run the production closeout checklist for production-impacting work
 - Compress the plan to summary format (see below)
 - Move to `docs/planning/implemented/`
 
