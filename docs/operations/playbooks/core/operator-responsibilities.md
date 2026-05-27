@@ -49,6 +49,14 @@ This file is intentionally brief; it points to canonical docs when you need deta
 - Do a quick docs drift skim (production runbook + incident response) and fix anything stale.
   - Canonical: `../../ops-cadence-checklist.md`
 
+## Annual campaign lifecycle
+
+- Before Jan 01 UTC, review campaign scope and run crawl preflight.
+  - Playbook: `../crawl/annual-campaign.md`
+- After the campaign is indexed and accepted, run full annual campaign
+  closeout, write the report, and clean up roadmap state.
+  - Playbook: `../crawl/annual-campaign-closeout.md`
+
 ## Security posture (always)
 
 - Keep secrets (admin token, DB URL, ping URLs) out of git forever.

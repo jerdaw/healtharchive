@@ -99,9 +99,19 @@ See: `../deployment/systemd/README.md`
     - `sudo systemctl start healtharchive-schedule-annual-dry-run.service`
     - `sudo journalctl -u healtharchive-schedule-annual-dry-run.service -n 200 --no-pager`
 
+## Annual (after campaign completion)
+
+- **Annual campaign closeout**
+  - Run `playbooks/crawl/annual-campaign-closeout.md`.
+  - Write the closeout report under `reports/`.
+  - Move closed annual follow-ups out of active roadmaps and archive completed
+    implementation plans.
+
 ## Where to record outcomes
 
 - **Changelog**: public-facing changes and policy updates.
 - **Impact report**: monthly coverage + reliability + usage snapshot.
+- **Annual campaign closeout report**: yearly crawl/search/replay/backup
+  validation and public-safe summary.
 - **Incident notes**: for outages/degradations/manual interventions: `incidents/README.md`.
 - **Internal ops log**: optional private notes (date + key checks + issues).

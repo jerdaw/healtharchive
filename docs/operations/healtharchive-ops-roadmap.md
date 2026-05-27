@@ -30,6 +30,8 @@ Live facts below come from operator-provided VPS output, not direct assistant
 production access.
 
 - 2026 annual campaign status:
+  - Closeout report:
+    `reports/2026-annual-campaign-closeout.md`.
   - Latest `ha-check` evidence from 2026-05-27T17:34:50Z reports
     `Ready for search: YES`, `total=3`, `indexed=3`, `in_progress=0`,
     `failed=0`, `missing=0`, and `errors=0`.

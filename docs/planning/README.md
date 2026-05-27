@@ -41,6 +41,11 @@ Current known items: none.
 
 Recently closed items:
 
+- 2026 annual campaign closeout:
+  - Current state: completed. The campaign is search-ready for HC, PHAC, and
+    CIHR with a durable closeout report and campaign-level closeout SOP.
+  - Report: `../operations/reports/2026-annual-campaign-closeout.md`
+  - Playbook: `../operations/playbooks/crawl/annual-campaign-closeout.md`
 - CIHR scope/content-cost follow-through:
   - Current state: completed. Job `8` was manually accepted after a ZIM
     finalization failure, indexed successfully with `557972` pages, and
