@@ -7,6 +7,10 @@ This is a short, read-only checklist. It does not replace the deploy runbook,
 incident playbook, or automation playbooks; it ties their final verification
 steps together so "done" has one clear meaning.
 
+For a full annual crawl/capture campaign, use
+`../crawl/annual-campaign-closeout.md`. This production checklist is one gate
+inside that broader campaign wrap-up.
+
 ## When to use
 
 - After any production change that affects service behavior, runtime topology,

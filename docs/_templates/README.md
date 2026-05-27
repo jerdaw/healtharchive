@@ -10,6 +10,7 @@ This directory contains templates for creating consistent documentation across t
 | `playbook-template.md` | Task-oriented checklists | `docs/operations/playbooks/` or `docs/development/playbooks/` |
 | `incident-template.md` | Incident postmortems | `docs/operations/incidents/` |
 | `decision-template.md` | Architectural/policy decisions | `docs/decisions/` |
+| `annual-campaign-closeout-report-template.md` | Annual campaign closeout report | `docs/operations/reports/` |
 | `restore-test-log-template.md` | Quarterly restore test logs | `/srv/healtharchive/ops/restore-tests/` (VPS) |
 | `adoption-signals-log-template.md` | Quarterly adoption signals | `/srv/healtharchive/ops/adoption/` (VPS) |
 | `mentions-log-template.md` | Public mentions log entries | `docs/operations/mentions-log.md` |
@@ -39,6 +40,11 @@ This directory contains templates for creating consistent documentation across t
 - Purpose: Lightweight postmortems for operational learning
 - Audience: Internal operators
 - Structure: Metadata, Timeline, Impact, Root Cause, Resolution, Follow-ups, References
+
+### Annual Campaign Closeout Reports
+- Purpose: Summarize a completed annual crawl/capture campaign
+- Audience: Operators, maintainers, and public/partner summary writers
+- Structure: Executive summary, source results, validation gates, incidents/deviations, backups, follow-ups, public-safe copy, references
 
 ### Decision Records
 - Purpose: Document high-stakes architectural/policy choices

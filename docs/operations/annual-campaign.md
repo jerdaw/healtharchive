@@ -20,6 +20,11 @@ Implementation details (scheduler, timers, reconciler, monitoring) live in:
 
 -   `automation-implementation-plan.md`
 
+Campaign closeout (validation, report, summary text, and roadmap cleanup) lives
+in:
+
+-   `playbooks/crawl/annual-campaign-closeout.md`
+
 ---
 
 ## 1) Goals and non-goals
@@ -256,3 +261,7 @@ This produces:
 - per-edition `target-ledger.jsonl`, `capture-manifest.jsonl`,
   `coverage-report.json`, and `coverage-report.md`
 - captured `/api/search` JSON for the golden query set (for later diffing)
+
+After these source-level checks pass, run the full annual campaign closeout:
+
+- `playbooks/crawl/annual-campaign-closeout.md`

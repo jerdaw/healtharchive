@@ -5,6 +5,7 @@ Goal: keep the annual capture cycle predictable and operationally boring.
 Canonical references:
 
 - Annual scope/seeds (source of truth): `../../annual-campaign.md`
+- Annual campaign closeout: `annual-campaign-closeout.md`
 - Automation implementation plan: `../../automation-implementation-plan.md`
 - systemd units + enablement: `../../../deployment/systemd/README.md`
 
@@ -52,3 +53,5 @@ sudo journalctl -u healtharchive-annual-campaign-sentinel.service -n 200 --no-pa
 
 - Annual scope is current in `../../annual-campaign.md`.
 - If automation is enabled, the scheduler and follow-up tasks run as intended and are verifiable in logs/artifacts.
+- The campaign closeout playbook has been completed:
+  `annual-campaign-closeout.md`.

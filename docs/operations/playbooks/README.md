@@ -53,6 +53,7 @@ Managing crawls and archive lifecycle:
 - **Crawl stalls**: [crawl/crawl-stalls.md](crawl/crawl-stalls.md) — Stalled progress + status snapshot
 - **Crawl auto-recover drills**: [crawl/crawl-auto-recover-drills.md](crawl/crawl-auto-recover-drills.md) — Safe dry-run drills (production)
 - **Annual campaign**: [crawl/annual-campaign.md](crawl/annual-campaign.md) — Seasonal campaign operations
+- **Annual campaign closeout**: [crawl/annual-campaign-closeout.md](crawl/annual-campaign-closeout.md) — Full campaign wrap-up, validation, report, and roadmap closure
 - **Controlled restart**: [crawl/2026-01-annual-campaign-controlled-restart.md](crawl/2026-01-annual-campaign-controlled-restart.md) — 2026 annual crawl restart procedure
 - **Cleanup automation**: [crawl/cleanup-automation.md](crawl/cleanup-automation.md) — Safe temp cleanup
 
@@ -93,7 +94,7 @@ External-facing operations:
 | **Weekly** | Monitoring review, automation posture | ops-cadence-checklist.md, validation/automation-maintenance.md |
 | **Monthly** | Reliability review, docs drift | ops-cadence-checklist.md |
 | **Quarterly** | Restore test, dataset release, adoption signals | validation/restore-test.md, validation/dataset-release.md, external/adoption-signals.md |
-| **Annual** | Campaign readiness, coverage guardrails | crawl/annual-campaign.md, validation/coverage-guardrails.md |
+| **Annual** | Campaign readiness, coverage guardrails, campaign closeout | crawl/annual-campaign.md, validation/coverage-guardrails.md, crawl/annual-campaign-closeout.md |
 | **After production changes** | Completion validation, roadmap/docs closure | validation/production-closeout.md |
 
 For the complete operations cadence: `../ops-cadence-checklist.md`

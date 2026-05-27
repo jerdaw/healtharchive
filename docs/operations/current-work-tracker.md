@@ -29,6 +29,8 @@ Last production evidence was operator-provided on 2026-05-27 via `ha-check`.
 Current campaign conclusion:
 
 - The 2026 annual campaign is indexed and usable for public search/replay.
+- The durable campaign wrap-up is
+  `docs/operations/reports/2026-annual-campaign-closeout.md`.
 - `ha-check` reports `Ready for search: YES`.
 - No crawl jobs are running; this is expected because the annual campaign is
   fully indexed.

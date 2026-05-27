@@ -35,6 +35,7 @@ Operational default:
 - Incident notes / postmortems (internal): `incidents/README.md`
 - Observability + private stats contract (public vs private boundaries): `observability-and-private-stats.md`
 - Annual capture campaign (scope + seeds): `annual-campaign.md`
+- Annual campaign closeout playbook (wrap-up + report): `playbooks/crawl/annual-campaign-closeout.md`
 - Automation index (overview): `automation.md`
 - Automation implementation plan (phased, production-only): `automation-implementation-plan.md`
 - Monitoring + uptime + CI checklist: `monitoring-and-ci-checklist.md`
@@ -70,5 +71,6 @@ Operational default:
 
 ## Mission Reports & Logs
 
+- **2026-05-27**: [2026 Annual Campaign Closeout](reports/2026-annual-campaign-closeout.md)
 - **2026-01-19**: [Annual Crawl Hardening Shipment](reports/2026-01-19-deployment-log.md)
 - **2026-01-19**: [Investigation: Indexing Delay / Zero Indexed Pages](reports/2026-01-19-indexing-investigation.md)

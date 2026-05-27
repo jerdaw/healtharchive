@@ -106,6 +106,7 @@ nav:
               - Crawl Auto-Recover Drills: operations/playbooks/crawl/crawl-auto-recover-drills.md
               - Cleanup Automation: operations/playbooks/crawl/cleanup-automation.md
               - Annual Campaign: operations/playbooks/crawl/annual-campaign.md
+              - Annual Campaign Closeout: operations/playbooks/crawl/annual-campaign-closeout.md
               - Controlled Restart (2026): operations/playbooks/crawl/2026-01-annual-campaign-controlled-restart.md
           - Storage:
               - WARC Storage Tiering: operations/playbooks/storage/warc-storage-tiering.md
@@ -174,6 +175,10 @@ nav:
       - Baseline Drift: operations/baseline-drift.md
       - Data Handling: operations/data-handling-retention.md
       - Automation: operations/automation.md
+      - Mission Reports:
+          - 2026 Annual Campaign Closeout: operations/reports/2026-annual-campaign-closeout.md
+          - Annual Crawl Hardening Shipment (2026-01-19): operations/reports/2026-01-19-deployment-log.md
+          - Indexing Delay Investigation (2026-01-19): operations/reports/2026-01-19-indexing-investigation.md
       - Incident Management:
           - Overview: operations/incidents/README.md
           - Severity Guide: operations/incidents/severity.md
