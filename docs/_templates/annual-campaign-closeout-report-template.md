@@ -9,10 +9,15 @@
 
 ## Executive Summary
 
+_Review required._
+
 Briefly state whether the campaign is search-ready and research-ready, what was
 captured, and any accepted limitations.
 
 ## Campaign Results
+
+_Generated from closeout evidence by `scripts/render_annual_closeout_report.py`;
+review the Notes column and Source Notes before closure._
 
 | Source | Job/shards | Status | Indexed pages | Backend/provenance | Readiness | Notes |
 | --- | ---: | --- | ---: | --- | --- | --- |
@@ -21,6 +26,9 @@ captured, and any accepted limitations.
 Total indexed annual pages: `<count>`
 
 ## Validation Summary
+
+_Generated from closeout evidence by `scripts/render_annual_closeout_report.py`;
+rows that mention review still require operator judgment._
 
 | Gate | Result | Evidence |
 | --- | --- | --- |
@@ -36,6 +44,8 @@ Total indexed annual pages: `<count>`
 
 ## Source Notes
 
+_Review required._
+
 ### `<source code>`
 
 - What completed:
@@ -46,11 +56,17 @@ Total indexed annual pages: `<count>`
 
 ## Incidents, Deviations, and Accepted Gaps
 
+_Review required._
+
 | Item | Classification | Outcome | Follow-up surface |
 | --- | --- | --- | --- |
 | `<incident/deviation>` | Closed / Accepted / Ops follow-up / Backlog | `<summary>` | `<doc/link>` |
 
 ## Backup, Retention, and Recovery Posture
+
+_Partly generated from closeout evidence by
+`scripts/render_annual_closeout_report.py`; NASD, restore-test, and retention
+decisions require review._
 
 - Latest local dump:
 - Latest Storage Box mirror:
@@ -60,17 +76,23 @@ Total indexed annual pages: `<count>`
 
 ## Remaining Follow-Ups
 
+_Review required._
+
 | Priority | Item | Owner/surface | Notes |
 | --- | --- | --- | --- |
 | `<P0/P1/P2>` | `<item>` | `<roadmap/doc>` | `<notes>` |
 
 ## Public-Safe Summary Text
 
+_Review required._
+
 Use this for public, partner, or verifier-facing communication.
 
 > `<short factual summary>`
 
 ## Operator Handoff Text
+
+_Review required._
 
 Use this for internal handoff.
 
