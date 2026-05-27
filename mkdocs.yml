@@ -113,6 +113,7 @@ nav:
               - Stale Mount Recovery: operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md
               - Stale Mount Drills: operations/playbooks/storage/storagebox-sshfs-stale-mount-drills.md
           - Validation:
+              - Production Closeout: operations/playbooks/validation/production-closeout.md
               - Restore Test: operations/playbooks/validation/restore-test.md
               - Dataset Release: operations/playbooks/validation/dataset-release.md
               - Coverage Guardrails: operations/playbooks/validation/coverage-guardrails.md

@@ -69,6 +69,7 @@ WARC storage and integrity:
 
 Quality assurance and verification:
 
+- **Production closeout**: [validation/production-closeout.md](validation/production-closeout.md) — Final validation before closing production work
 - **Restore test**: [validation/restore-test.md](validation/restore-test.md) — Quarterly restore test
 - **Dataset release**: [validation/dataset-release.md](validation/dataset-release.md) — Dataset release integrity (quarterly)
 - **Coverage guardrails**: [validation/coverage-guardrails.md](validation/coverage-guardrails.md) — Annual regression checks
@@ -93,5 +94,6 @@ External-facing operations:
 | **Monthly** | Reliability review, docs drift | ops-cadence-checklist.md |
 | **Quarterly** | Restore test, dataset release, adoption signals | validation/restore-test.md, validation/dataset-release.md, external/adoption-signals.md |
 | **Annual** | Campaign readiness, coverage guardrails | crawl/annual-campaign.md, validation/coverage-guardrails.md |
+| **After production changes** | Completion validation, roadmap/docs closure | validation/production-closeout.md |
 
 For the complete operations cadence: `../ops-cadence-checklist.md`
