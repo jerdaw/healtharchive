@@ -24,12 +24,18 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-05-24)
+## Current status (as of 2026-05-27)
 
 Live facts below come from operator-provided VPS output, not direct assistant
 production access.
 
 - 2026 annual campaign status:
+  - Latest `ha-check` evidence from 2026-05-27T17:34:50Z reports
+    `Ready for search: YES`, `total=3`, `indexed=3`, `in_progress=0`,
+    `failed=0`, `missing=0`, and `errors=0`.
+  - No crawl jobs are running. This is the expected idle state because all
+    annual jobs are indexed and search-ready.
+  - Total indexed pages across HC, PHAC, and CIHR: `942479`.
   - `hc` job `6` is indexed, search-ready, and research-ready.
     - Indexed pages: `262567`.
     - Backend: `playwright_warc` fallback, labeled through annual-edition
@@ -53,9 +59,9 @@ production access.
       `/srv/healtharchive/jobs/editions/cihr/2026/coverage-report.json`
       reported `Status=research_ready`, `Search ready=True`, and
       `Research ready=True`.
-- Annual search readiness is restored: `annual-status --year 2026` reports
-  `Ready for search: YES`, and production deploy/public-surface verification
-  after the search follow-through passed on 2026-05-06.
+- Annual search readiness is restored: `annual-status --year 2026` and
+  `ha-check` report `Ready for search: YES`, and production deploy/public-surface
+  verification after the search follow-through passed on 2026-05-06.
 - Job lock-dir cutover remains complete:
   - `/etc/healtharchive/backend.env` points at
     `/srv/healtharchive/ops/locks/jobs`.
@@ -66,11 +72,14 @@ production access.
   - jobs `6`, `7`, and `8` were converted during a maintenance window;
   - annual status remained `indexed=3`;
   - replay smoke returned `200` for HC, PHAC, and CIHR.
-- Worker/watchdog posture was restored after CIHR indexing:
+- Worker/watchdog posture is healthy and idle after annual completion:
   - `healtharchive-worker.service` active
   - `healtharchive-crawl-auto-recover.timer` active
   - `/etc/healtharchive/crawl-auto-recover-enabled` present
   - `healtharchive-storage-hotpath-auto-recover.timer` active
+  - crawl metrics report `healtharchive_crawl_running_jobs 0`,
+    `degraded_jobs 0`, `stalled_jobs 0`, and
+    `last_result{reason="no_start_candidates",result="skip"} 1`
 - Public-surface verification is no longer blocked by search latency:
   - Deploys through `e9129c4eda31ce8a2b6072454e2ae48f484ecbad` passed the
     production deploy helper, baseline drift check, and public-surface
@@ -120,20 +129,25 @@ production access.
     `healtharchive-frontend-next-cache`;
   - `healtharchive-docker-runtime-metrics.timer` exports container
     writable-layer and cache path metrics;
-  - `healtharchive-frontend-cache-maintenance.timer` is available behind the
+  - `healtharchive-frontend-cache-maintenance.timer` is enabled behind the
     `/etc/healtharchive/frontend-cache-maintenance-enabled` sentinel.
+- Public search alert noise from multi-worker process-local counters is fixed:
+  - search runtime metrics include a `pid` label;
+  - dashboards and `HealthArchiveSearchErrorsSustained` aggregate process-local
+    series before evaluating error rate;
+  - production verification on 2026-05-27 showed the search alert did not refire
+    after the wait window.
 
 ## Current priority order
 
 Treat the following as the current ops execution order:
 
-1. Deploy the frontend cache externalization/runtime-metrics ref, then redeploy
-   the frontend once so the live container picks up the named cache volume.
-2. Enable and verify Docker runtime metrics and sentinel-gated frontend cache
-   maintenance.
-3. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
+1. Routine quarterly ops and evidence collection.
+2. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
    repeated warm-cache samples stay above the desired response target.
-4. Routine quarterly ops and evidence collection.
+3. Continue the hot-path staleness root-cause investigation if storage
+   Errno 107 symptoms recur despite the current bind-mount topology and
+   auto-recover posture.
 
 ## Current ops tasks (implementation already exists; enable/verify)
 

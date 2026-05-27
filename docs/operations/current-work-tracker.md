@@ -1,6 +1,6 @@
 # Current Work Tracker
 
-**Last updated:** 2026-05-07
+**Last updated:** 2026-05-27
 **Purpose:** durable handoff for current fixes, crawl progress, and next checks.
 **Audience:** maintainers and operators picking up after local chat history or
 terminal scrollback is gone.
@@ -17,23 +17,31 @@ Canonical follow-up surfaces:
 
 ## Current Crawl Progress
 
-Last production evidence was operator-provided on 2026-05-06.
+Last production evidence was operator-provided on 2026-05-27 via `ha-check`.
 
 | Source | Job | Status | Indexed pages | Research/search readiness | Notes |
 | --- | ---: | --- | ---: | --- | --- |
 | HC | `6` | `indexed` | `262567` | search-ready, research-ready | `playwright_warc` fallback provenance |
 | PHAC | `7` | `indexed` | `121940` | search-ready, research-ready | `playwright_warc` fallback provenance; no targeted recrawl needed |
 | CIHR | `8` | `indexed` | `557972` | search-ready, research-ready | Browsertrix WARC capture accepted after ZIM finalization failure |
+| **Total** | | | **`942479`** | **search-ready** | `total=3 indexed=3 in_progress=0 failed=0 missing=0 errors=0` |
 
 Current campaign conclusion:
 
 - The 2026 annual campaign is indexed and usable for public search/replay.
+- `ha-check` reports `Ready for search: YES`.
+- No crawl jobs are running; this is expected because the annual campaign is
+  fully indexed.
+- Worker, crawl auto-recover, and storage hot-path auto-recover services/timers
+  are healthy. Auto-recover is skipping with `no_start_candidates`.
 - CIHR final failed URL review is closed: 25 final retry-failed page/route URLs
   already had exact job `8` snapshot coverage; the lone uncovered URL was a
   render-asset image and accepted as a non-page gap.
 - Annual output directories for jobs `6`, `7`, and `8` were converted during a
   maintenance window on 2026-05-06. Replay smoke returned `200` for HC, PHAC,
   and CIHR after the conversion.
+- Root disk and Storage Box headroom are healthy as of the 2026-05-27 check:
+  root `49%` used, Storage Box `76%` used.
 
 ## Fixes And Changes Landed
 
@@ -60,6 +68,23 @@ Recent shipped work, in dependency order:
   - jobs `6`, `7`, and `8` were moved away from direct per-job annual `sshfs`
     mounts during the 2026-05-06 maintenance window;
   - future checks should use the annual tiering script as the dry-run detector.
+- DB backup and root-disk recovery:
+  - repo-managed DB backup timer now keeps one successful local dump and mirrors
+    successful dumps to Storage Box;
+  - NASD pulls the Storage Box mirror into the protected automated ingest path;
+  - the root-disk rescue backup duplicate was removed after canonical backups
+    were verified.
+- Frontend cache containment:
+  - the live frontend was redeployed with `/app/.next/cache` mounted on the
+    `healtharchive-frontend-next-cache` Docker volume;
+  - Docker runtime metrics and frontend cache maintenance timers are enabled.
+- Search alert hygiene:
+  - `/api/search` runtime metrics now include `pid` labels for multi-worker API
+    processes;
+  - `HealthArchiveSearchErrorsSustained` and dashboards aggregate those
+    process-local series;
+  - the warning did not refire after deployment and a wait window on
+    2026-05-27.
 - Repo hygiene:
   - completed plans were archived/compressed;
   - stale PRs and branches were closed/deleted;
@@ -68,6 +93,10 @@ Recent shipped work, in dependency order:
 
 Relevant recent commits:
 
+- `9a2cbedb` - make search metrics multi-worker safe
+- `1206f4b2` - make docker textfile metrics readable
+- `c26d2963` - bound frontend cache growth
+- `e13d7689` - align backup pull with NAS ingest path
 - `cc8c81d1` - roadmap follow-through optimization
 - `4d0f0104` - frontend audit follow-up tracking
 - `cad5c1df` - maintenance follow-through and jsdom update
@@ -102,7 +131,7 @@ gh pr list --state open
 git ls-remote --heads origin
 ```
 
-Expected after the 2026-05-06 cleanup:
+Expected after the 2026-05-27 cleanup:
 
 - working tree clean except ignored local environment artifacts;
 - active branch is `main`;
