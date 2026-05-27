@@ -132,15 +132,24 @@ groups:
 
       - alert: HealthArchiveSearchErrorsSustained
         expr: |
-          increase(healtharchive_search_errors_total[15m]) >= 3
-          and increase(healtharchive_search_requests_total[15m]) >= 50
+          (
+            sum by (job, instance) (
+              increase(healtharchive_search_errors_by_type{type=~"server|timeout|unknown"}[15m])
+            ) >= 3
+          )
+          and
+          (
+            sum by (job, instance) (
+              increase(healtharchive_search_requests_total[15m])
+            ) >= 50
+          )
         for: 10m
         labels:
           severity: warning
           service: healtharchive
         annotations:
           summary: "Sustained /api/search errors"
-          description: "At least 3 search errors over 15m with meaningful traffic (>=50 requests). Investigate recent deploys, DB health, and logs."
+          description: "At least 3 server/timeout/unknown search errors over 15m with meaningful traffic (>=50 requests). Investigate recent deploys, DB health, and logs."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/core/incident-response.md"
 
       - alert: HealthArchiveJobFailuresIncreased

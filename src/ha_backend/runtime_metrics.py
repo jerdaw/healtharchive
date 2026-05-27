@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import os
 from dataclasses import dataclass, field
 from threading import Lock
 
@@ -39,6 +40,15 @@ class _SearchMetrics:
 
 
 SEARCH_METRICS = _SearchMetrics()
+
+
+def _labels(**values: str) -> str:
+    joined = ",".join(f'{key}="{value}"' for key, value in values.items())
+    return f"{{{joined}}}"
+
+
+def _sample(name: str, value: int | float, **labels: str) -> str:
+    return f"{name}{_labels(**labels)} {value}"
 
 
 def observe_search_request(
@@ -114,60 +124,157 @@ def render_search_metrics_prometheus() -> list[str]:
     m = SEARCH_METRICS
     with m.lock:
         lines = []
+        pid = str(os.getpid())
 
         lines.append("# HELP healtharchive_search_requests_total Total /api/search requests")
         lines.append("# TYPE healtharchive_search_requests_total counter")
-        lines.append(f"healtharchive_search_requests_total {m.count}")
+        lines.append(_sample("healtharchive_search_requests_total", m.count, pid=pid))
 
         lines.append(
             "# HELP healtharchive_search_errors_total Total /api/search requests that raised an error"
         )
         lines.append("# TYPE healtharchive_search_errors_total counter")
-        lines.append(f"healtharchive_search_errors_total {m.error_count}")
+        lines.append(_sample("healtharchive_search_errors_total", m.error_count, pid=pid))
 
         lines.append(
             "# HELP healtharchive_search_errors_by_type Error breakdown by type (per-process)"
         )
         lines.append("# TYPE healtharchive_search_errors_by_type counter")
-        lines.append(f'healtharchive_search_errors_by_type{{type="server"}} {m.error_server}')
-        lines.append(f'healtharchive_search_errors_by_type{{type="client"}} {m.error_client}')
-        lines.append(f'healtharchive_search_errors_by_type{{type="timeout"}} {m.error_timeout}')
-        lines.append(f'healtharchive_search_errors_by_type{{type="unknown"}} {m.error_unknown}')
+        lines.append(
+            _sample("healtharchive_search_errors_by_type", m.error_server, type="server", pid=pid)
+        )
+        lines.append(
+            _sample("healtharchive_search_errors_by_type", m.error_client, type="client", pid=pid)
+        )
+        lines.append(
+            _sample(
+                "healtharchive_search_errors_by_type",
+                m.error_timeout,
+                type="timeout",
+                pid=pid,
+            )
+        )
+        lines.append(
+            _sample(
+                "healtharchive_search_errors_by_type",
+                m.error_unknown,
+                type="unknown",
+                pid=pid,
+            )
+        )
 
         lines.append(
             "# HELP healtharchive_search_duration_seconds /api/search latency histogram (per-process)"
         )
         lines.append("# TYPE healtharchive_search_duration_seconds histogram")
-        lines.append(f'healtharchive_search_duration_seconds_bucket{{le="0.05"}} {m.bucket_le_005}')
-        lines.append(f'healtharchive_search_duration_seconds_bucket{{le="0.1"}} {m.bucket_le_01}')
-        lines.append(f'healtharchive_search_duration_seconds_bucket{{le="0.3"}} {m.bucket_le_03}')
-        lines.append(f'healtharchive_search_duration_seconds_bucket{{le="1"}} {m.bucket_le_1}')
-        lines.append(f'healtharchive_search_duration_seconds_bucket{{le="3"}} {m.bucket_le_3}')
-        lines.append(f'healtharchive_search_duration_seconds_bucket{{le="+Inf"}} {m.bucket_le_inf}')
-        lines.append(f"healtharchive_search_duration_seconds_sum {m.duration_seconds_sum}")
-        lines.append(f"healtharchive_search_duration_seconds_count {m.count}")
+        lines.append(
+            _sample(
+                "healtharchive_search_duration_seconds_bucket",
+                m.bucket_le_005,
+                le="0.05",
+                pid=pid,
+            )
+        )
+        lines.append(
+            _sample(
+                "healtharchive_search_duration_seconds_bucket",
+                m.bucket_le_01,
+                le="0.1",
+                pid=pid,
+            )
+        )
+        lines.append(
+            _sample(
+                "healtharchive_search_duration_seconds_bucket",
+                m.bucket_le_03,
+                le="0.3",
+                pid=pid,
+            )
+        )
+        lines.append(
+            _sample(
+                "healtharchive_search_duration_seconds_bucket",
+                m.bucket_le_1,
+                le="1",
+                pid=pid,
+            )
+        )
+        lines.append(
+            _sample(
+                "healtharchive_search_duration_seconds_bucket",
+                m.bucket_le_3,
+                le="3",
+                pid=pid,
+            )
+        )
+        lines.append(
+            _sample(
+                "healtharchive_search_duration_seconds_bucket",
+                m.bucket_le_inf,
+                le="+Inf",
+                pid=pid,
+            )
+        )
+        lines.append(
+            _sample(
+                "healtharchive_search_duration_seconds_sum",
+                m.duration_seconds_sum,
+                pid=pid,
+            )
+        )
+        lines.append(_sample("healtharchive_search_duration_seconds_count", m.count, pid=pid))
 
         lines.append(
             "# HELP healtharchive_search_mode_total /api/search mode breakdown (per-process)"
         )
         lines.append("# TYPE healtharchive_search_mode_total counter")
-        lines.append(f'healtharchive_search_mode_total{{mode="relevance_fts"}} {m.relevance_fts}')
         lines.append(
-            f'healtharchive_search_mode_total{{mode="relevance_fallback"}} {m.relevance_fallback}'
+            _sample(
+                "healtharchive_search_mode_total",
+                m.relevance_fts,
+                mode="relevance_fts",
+                pid=pid,
+            )
         )
         lines.append(
-            f'healtharchive_search_mode_total{{mode="relevance_fuzzy"}} {m.relevance_fuzzy}'
+            _sample(
+                "healtharchive_search_mode_total",
+                m.relevance_fallback,
+                mode="relevance_fallback",
+                pid=pid,
+            )
         )
-        lines.append(f'healtharchive_search_mode_total{{mode="boolean"}} {m.boolean}')
-        lines.append(f'healtharchive_search_mode_total{{mode="url"}} {m.url}')
-        lines.append(f'healtharchive_search_mode_total{{mode="pages_fastpath"}} {m.pages_fastpath}')
-        lines.append(f'healtharchive_search_mode_total{{mode="newest"}} {m.newest}')
+        lines.append(
+            _sample(
+                "healtharchive_search_mode_total",
+                m.relevance_fuzzy,
+                mode="relevance_fuzzy",
+                pid=pid,
+            )
+        )
+        lines.append(_sample("healtharchive_search_mode_total", m.boolean, mode="boolean", pid=pid))
+        lines.append(_sample("healtharchive_search_mode_total", m.url, mode="url", pid=pid))
+        lines.append(
+            _sample(
+                "healtharchive_search_mode_total",
+                m.pages_fastpath,
+                mode="pages_fastpath",
+                pid=pid,
+            )
+        )
+        lines.append(_sample("healtharchive_search_mode_total", m.newest, mode="newest", pid=pid))
 
         lines.append(
             "# HELP healtharchive_search_duration_seconds_max Max observed /api/search latency (seconds)"
         )
         lines.append("# TYPE healtharchive_search_duration_seconds_max gauge")
-        lines.append(f"healtharchive_search_duration_seconds_max {m.duration_seconds_max}")
+        lines.append(
+            _sample(
+                "healtharchive_search_duration_seconds_max",
+                m.duration_seconds_max,
+                pid=pid,
+            )
+        )
 
         return lines
 

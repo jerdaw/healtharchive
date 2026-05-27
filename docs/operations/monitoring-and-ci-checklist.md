@@ -474,15 +474,15 @@ The metrics endpoint exposes, among others:
 - Search metrics (per-process; reset on restart):
 
   ```text
-  healtharchive_search_requests_total 123
-  healtharchive_search_errors_total 0
-  healtharchive_search_duration_seconds_bucket{le="0.3"} 100
-  healtharchive_search_mode_total{mode="relevance_fts"} 80
-  healtharchive_search_mode_total{mode="relevance_fallback"} 25
-  healtharchive_search_mode_total{mode="relevance_fuzzy"} 5
-  healtharchive_search_mode_total{mode="boolean"} 2
-  healtharchive_search_mode_total{mode="url"} 3
-  healtharchive_search_mode_total{mode="newest"} 8
+  healtharchive_search_requests_total{pid="12345"} 123
+  healtharchive_search_errors_total{pid="12345"} 0
+  healtharchive_search_duration_seconds_bucket{le="0.3",pid="12345"} 100
+  healtharchive_search_mode_total{mode="relevance_fts",pid="12345"} 80
+  healtharchive_search_mode_total{mode="relevance_fallback",pid="12345"} 25
+  healtharchive_search_mode_total{mode="relevance_fuzzy",pid="12345"} 5
+  healtharchive_search_mode_total{mode="boolean",pid="12345"} 2
+  healtharchive_search_mode_total{mode="url",pid="12345"} 3
+  healtharchive_search_mode_total{mode="newest",pid="12345"} 8
   ```
 
 ### 2.3 Example alert ideas (Prometheus‑style)

@@ -117,6 +117,18 @@ def test_docker_runtime_and_frontend_cache_alerts_exist() -> None:
     assert "healtharchive_frontend_cache_maintenance_ok == 0" in maintenance
 
 
+def test_search_error_alert_aggregates_process_local_metrics() -> None:
+    text = _rules_text()
+    body = _extract_alert_block(text, "HealthArchiveSearchErrorsSustained")
+
+    assert "sum by (job, instance)" in body
+    assert 'healtharchive_search_errors_by_type{type=~"server|timeout|unknown"}[15m]' in body
+    assert "increase(healtharchive_search_requests_total[15m])" in body
+    assert "increase(healtharchive_search_errors_total[15m])" not in body
+    assert re.search(r"^\s*for:\s*10m\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
+
+
 def test_annual_output_dir_not_writable_alert_semantics() -> None:
     text = _rules_text()
     body = _extract_alert_block(text, "HealthArchiveAnnualOutputDirNotWritable")

@@ -401,7 +401,7 @@
     },
     {
       "datasource": "prometheus",
-      "description": "PromQL: rate(healtharchive_search_requests_total[5m])",
+      "description": "PromQL: sum(rate(healtharchive_search_requests_total[5m]))",
       "fieldConfig": {
         "defaults": {
           "unit": "reqps"
@@ -423,7 +423,7 @@
       },
       "targets": [
         {
-          "expr": "rate(healtharchive_search_requests_total[5m])",
+          "expr": "sum(rate(healtharchive_search_requests_total[5m]))",
           "refId": "A"
         }
       ],
@@ -432,7 +432,7 @@
     },
     {
       "datasource": "prometheus",
-      "description": "PromQL: rate(errors)/rate(requests) over 5m",
+      "description": "PromQL: sum(rate(server/timeout/unknown errors))/sum(rate(requests)) over 5m",
       "fieldConfig": {
         "defaults": {
           "max": 1,
@@ -456,7 +456,7 @@
       },
       "targets": [
         {
-          "expr": "rate(healtharchive_search_errors_total[5m]) / clamp_min(rate(healtharchive_search_requests_total[5m]), 1e-9)",
+          "expr": "sum(rate(healtharchive_search_errors_by_type{type=~\"server|timeout|unknown\"}[5m])) / clamp_min(sum(rate(healtharchive_search_requests_total[5m])), 1e-9)",
           "refId": "A"
         }
       ],

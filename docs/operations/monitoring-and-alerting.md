@@ -1,6 +1,6 @@
 # Monitoring & Alerting Strategy - Annual Crawl Campaign
 
-**Last Updated:** 2026-03-23
+**Last Updated:** 2026-05-27
 
 ## Overview
 
@@ -58,6 +58,8 @@ Primary files (single-VPS annual campaign):
 | `healtharchive_db_backup_last_success` | Gauge | 1 = the latest repo-managed DB backup run succeeded. |
 | `healtharchive_db_backup_local_bytes` | Gauge | Bytes used by the short local DB backup cache under `/srv/healtharchive/backups`. |
 | `healtharchive_db_backup_mirror_bytes` | Gauge | Bytes used by the Storage Box DB backup mirror. |
+| `healtharchive_search_requests_total{pid="..."}` | Counter | Per-process public `/api/search` request count. Aggregate over `pid` for service-level views. |
+| `healtharchive_search_errors_by_type{type="...",pid="..."}` | Counter | Per-process public `/api/search` error count by class. Operational alerts use `server`, `timeout`, and `unknown` error types. |
 
 ## Alerting Thresholds
 
@@ -91,6 +93,21 @@ Alerts are defined in:
   mirror.
 - **Action:** Check `healtharchive-db-backup.service`, the Storage Box mount,
   and `/srv/healtharchive/backups`.
+
+### Public API Search Errors
+
+**Alert:** `HealthArchiveSearchErrorsSustained`
+
+- **Threshold:** At least 3 `server`, `timeout`, or `unknown` `/api/search`
+  errors over 15m, with at least 50 `/api/search` requests over the same
+  interval, for 10m.
+- **Meaning:** Public search is failing for non-client reasons under meaningful
+  traffic. Search runtime counters are process-local and include a `pid` label
+  because the production API may run multiple workers; alert rules and dashboards
+  must aggregate over `pid`.
+- **Action:** Check the backend scrape, recent `healtharchive-api.service` logs,
+  error type breakdowns, and PostgreSQL pool/activity state. Pool exhaustion
+  usually appears as `sqlalchemy.exc.TimeoutError: QueuePool limit ... reached`.
 
 ## Alerting Policy (automation-first)
 
