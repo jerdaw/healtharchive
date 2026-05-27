@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import os
+import re
 import subprocess
 from pathlib import Path
 
@@ -62,3 +63,24 @@ def test_verify_ops_automation_accepts_optional_require_flags_in_json_mode() -> 
     payload = json.loads(result.stdout)
     assert payload["schema_version"] == 1
     assert payload["skipped"] is True
+
+
+def test_verify_ops_automation_knows_repo_managed_timer_templates() -> None:
+    repo_root = Path(__file__).resolve().parents[1]
+    script_text = (repo_root / "scripts" / "verify_ops_automation.sh").read_text()
+    unit_dir = repo_root / "docs" / "deployment" / "systemd"
+
+    expected_timer_specs_match = re.search(
+        r"expected_timer_specs=\(\n(?P<body>.*?)\n\)",
+        script_text,
+        flags=re.DOTALL,
+    )
+    assert expected_timer_specs_match is not None
+
+    known_timers = {
+        line.split("|", 1)[0]
+        for line in re.findall(r'"([^"]+\.timer\|[^"]*)"', expected_timer_specs_match.group("body"))
+    }
+    repo_timer_templates = {path.name for path in unit_dir.glob("healtharchive-*.timer")}
+
+    assert repo_timer_templates <= known_timers
