@@ -1,6 +1,6 @@
 # Disk Baseline and Automated Cleanup
 
-**Last Updated**: 2026-05-24
+**Last Updated**: 2026-05-31
 **VPS**: Hetzner 75GB single-VPS production
 
 ## Current Baseline
@@ -26,6 +26,23 @@ The earlier 74-82% baseline was caused by accumulated local DB dumps, oversized
 rotated syslogs, and a large Next.js runtime fetch cache in the live frontend
 container. After cleanup, expected root usage is closer to the mid-40% range
 with a single local DB dump retained.
+
+## Storage Box capacity
+
+The 1 TiB Storage Box is now the annual-campaign constraint, not root disk.
+Operator-provided 2026-05-31 evidence showed:
+
+- Storage Box: `776G` used of `1.0T`, `249G` available (`76%`).
+- CIHR 2026 stable WARC set: about `710G`.
+- CIHR stale `.tmp*` cleanup reduced the apparent CIHR tree from about `1.4T`
+  to about `713G`, but did not materially change Storage Box `df` usage,
+  indicating that the deleted temp tree was mostly duplicate/accounting noise
+  rather than enough real quota to make the next campaign viable.
+
+Do not start another CIHR-scale annual campaign on the current 1 TiB Storage
+Box while retaining 2026 replay WARCs hot. First choose and document a capacity
+path: larger Storage Box, cold offload with replay impact, or explicit
+source/year hot-retention limits.
 
 ## Automated Cleanup
 
@@ -206,3 +223,7 @@ Or just use `df -h /` for filesystem truth.
 - **2026-05-26**: Added frontend cache externalization in the Docker deploy
   helper, Docker runtime/cache textfile metrics, alerts, and a sentinel-gated
   frontend cache maintenance timer.
+- **2026-05-31**: CIHR 2026 temp-dir cleanup removed stale `.tmp*` trees and
+  reduced the apparent CIHR tree to about `713G`; Storage Box remained about
+  `76%` used, confirming that capacity/retention must be decided before the
+  next annual campaign.

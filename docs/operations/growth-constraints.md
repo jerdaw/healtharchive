@@ -9,6 +9,17 @@ These constraints are intentionally conservative defaults. Adjust only after a c
 - **Target:** keep total disk usage under **70%** of available space.
 - **Review threshold:** **80%** usage triggers a pause on new sources until cleanup or capacity planning is complete.
 - **Replay retention:** if replay is enabled, WARCs must remain available. Use **safe cleanup only** (`cleanup-job --mode temp-nonwarc`).
+- **Current 2026 capacity finding:** the 2026 CIHR job's stable WARC set is
+  about `710 GiB` on its own, and the 1 TiB Storage Box had about `249 GiB`
+  free after CIHR temp-dir cleanup on 2026-05-31. The current Storage Box
+  cannot hold another CIHR-scale annual campaign while keeping the 2026 replay
+  WARCs hot.
+- **Before starting the next annual campaign:** choose one of:
+  - upgrade the Storage Box capacity;
+  - offload older annual WARC sets to protected cold storage and document the
+    replay impact;
+  - reduce hot replay retention by source/year with an explicit retention
+    decision.
 
 ## Source cap per annual edition
 

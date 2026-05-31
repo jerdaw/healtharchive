@@ -148,6 +148,14 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 
 - Storage/retention upgrades (only with a designed replay retention policy).
   - See: `../operations/growth-constraints.md`, `../deployment/replay-service-pywb.md`
+- Annual WARC capacity decision before the next campaign.
+  - Context: after 2026 CIHR temp-dir cleanup, the 1 TiB Storage Box still had
+    only about `249G` free while the CIHR stable WARC set alone occupied about
+    `710G`.
+  - Done when: the operator has chosen and documented one capacity path
+    (larger Storage Box, cold offload with replay impact documented, or
+    source/year hot-retention limits), and the production runbook reflects the
+    chosen path before any new annual jobs are queued.
 
 ### Crawling & indexing reliability (backend)
 
@@ -329,6 +337,19 @@ Completed items were removed from this backlog and archived in:
      - Next action: wait for compatible `eslint-plugin-react`/Next ESLint
        support, then re-test the ESLint 10 upgrade through a human-authored
        dependency commit.
+25c. **Make GitHub Actions usage resilient on the free tier** (M: 1 day)
+     - Context: the project should continue operating on the GitHub Actions
+       free tier, so local validation needs to stay strong while paid-minute
+       quota is constrained.
+     - Scope: review workflow triggers, concurrency, artifact retention,
+       frontend install/build cost, and manual-dispatch lanes so routine docs
+       or backend-only changes do not burn unnecessary CI minutes.
+     - Guardrail: do not move browser automation into the default local gate;
+       keep browser/Playwright-style checks in GitHub CI or explicit debugging
+       sessions.
+     - Done when: `docs/development/testing-guidelines.md`, PR guidance, and
+       workflow triggers describe the free-tier posture, and the required
+       branch checks still protect deployable code.
 
 ### Documentation and operations maturity
 

@@ -23,6 +23,21 @@ Notes:
 - `make test-all` runs the full test suite.
 - Browser automation suites (for example Playwright in related repos) should run in CI by default; only run them locally when you explicitly need interactive debugging.
 
+### GitHub Actions quota-constrained periods
+
+When the GitHub Actions free-tier quota is constrained, keep local validation
+high-signal and avoid burning CI minutes on nonessential pushes:
+
+- use `make prepush` locally as the default readiness gate before pushing;
+- use focused `pytest ...`, `ruff check ...`, and docs builds while iterating;
+- defer full frontend/browser automation to GitHub CI or explicit debugging
+  sessions, not routine local runs;
+- batch docs-only and maintenance-only updates where practical so CI runs less
+  often without weakening the required branch checks.
+
+The backlog item for longer-term workflow optimization is tracked in
+`../planning/roadmap.md` under GitHub Actions free-tier resilience.
+
 ## End-to-end smoke (public surface)
 
 CI also runs a fast end-to-end smoke check that starts the backend + frontend

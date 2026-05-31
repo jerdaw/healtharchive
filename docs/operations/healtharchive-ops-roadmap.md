@@ -24,7 +24,7 @@ Keep the two synced copies of this file aligned:
 - **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
-## Current status (as of 2026-05-27)
+## Current status (as of 2026-05-31)
 
 Live facts below come from operator-provided VPS output, not direct assistant
 production access.
@@ -139,15 +139,39 @@ production access.
     series before evaluating error rate;
   - production verification on 2026-05-27 showed the search alert did not refire
     after the wait window.
+- API DB connection-pool recurrence prevention is deployed after the
+  2026-05-29 idle-transaction incident:
+  - production deploy through `b4975c4f4986eca7da382618076f1f609e10fbef`
+    closed API request-scoped database sessions promptly and materialized
+    export rows before streaming;
+  - the production `healtharchive` database role has
+    `idle_in_transaction_session_timeout = 60s`;
+  - `HealthArchiveDbIdleTransactionsHigh` is loaded and was inactive after the
+    deploy verification window;
+  - delayed `pg_stat_activity` checks showed only idle sessions and no
+    persistent `idle in transaction` buildup;
+  - incident note:
+    `incidents/2026-05-29-api-db-pool-exhaustion.md`.
+- Storage capacity is the current limiting factor for the next annual campaign:
+  - root disk was about `60%` used on 2026-05-31, with the largest reclaimable
+    local item being an oversized rotated `/var/log/syslog.1` from the API
+    traceback storm;
+  - Storage Box was about `76%` used (`776G` of `1.0T`, `249G` free) after
+    CIHR temp-dir cleanup;
+  - CIHR job `8` still requires about `710G` of stable WARC storage, so another
+    CIHR-scale annual campaign will not fit beside the 2026 hot replay set on
+    the current 1 TiB Storage Box.
 
 ## Current priority order
 
 Treat the following as the current ops execution order:
 
-1. Routine quarterly ops and evidence collection.
-2. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
+1. Decide Storage Box capacity/retention before starting the next annual
+   campaign.
+2. Routine quarterly ops and evidence collection.
+3. Optional: investigate broad `q=...&view=pages` DB/index-plan tuning if
    repeated warm-cache samples stay above the desired response target.
-3. Continue the hot-path staleness root-cause investigation if storage
+4. Continue the hot-path staleness root-cause investigation if storage
    Errno 107 symptoms recur despite the current bind-mount topology and
    auto-recover posture.
 

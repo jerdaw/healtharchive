@@ -132,6 +132,10 @@ def test_agent_docs_keep_symlink_and_authorship_guardrails_current() -> None:
     assert "assistant-guided-production-session.md" in root_agents
     assert "Do not add AI-assistant attribution" in root_agents
     assert "Do not add AI-assistant attribution" in frontend_agents
+    assert "dependabot[bot]" in root_agents
+    assert "github-actions[bot]" in root_agents
+    assert "dependabot[bot]" in frontend_agents
+    assert "github-actions[bot]" in frontend_agents
 
 
 if __name__ == "__main__":

@@ -206,9 +206,9 @@ Guidelines:
 
 ## Attribution and authorship policy
 
-- Commits, docs, code comments, and release notes must list only human contributors as authors.
-- Do not rely on bot-managed auto-merge paths that stamp bot authorship or co-author trailers into repository history.
-- If a bot proposes a change (for example Dependabot), land any accepted update in a new human-authored commit instead of merging the bot-authored commit history directly.
+- Commits, docs, code comments, and release notes must list only human contributors as authors, except that `dependabot[bot]` and `github-actions[bot]` authorship is permitted for their own automation commits.
+- Do not rely on bot-managed auto-merge paths that stamp broad bot authorship or unnecessary co-author trailers into repository history.
+- If a bot proposes a change (for example Dependabot), prefer landing any accepted update in a new human-authored commit; direct bot-authored dependency commits are acceptable only for the permitted bot identities above.
 - Do not add AI-assistant attribution (for example: Codex/Claude/Gemini/ChatGPT) in authored-by/co-authored-by notes, prose, or metadata.
 - If tooling is used, describe technical changes directly without attributing authorship to tools.
 

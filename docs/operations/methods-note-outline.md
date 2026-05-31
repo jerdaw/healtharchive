@@ -111,6 +111,32 @@ Goal: make changes visible without interpreting meaning.
 - **Temporal resolution:** annual editions mean “between-edition changes” are not real-time updates.
 - **Non-authoritative:** content is archival and may be outdated or superseded.
 
+## Quantitative use and trend framing
+
+Keyword-frequency, URL-frequency, and page-count analyses should name the
+measured universe. By default, HealthArchive supports claims about pages
+captured and indexed in a specific edition, source, and query/export workflow.
+It does not automatically support claims about the complete live source
+websites.
+
+For year-to-year comparisons, report:
+
+- source code and campaign year;
+- number of indexed pages searched;
+- number of matching pages or snapshots;
+- whether counts are raw or normalized, such as matches per 1,000 indexed pages;
+- whether the analysis used all indexed pages or a matched panel of page groups
+  present in multiple years;
+- known gaps or accepted exclusions from the annual closeout report.
+
+Recommended wording:
+
+> Among pages captured and indexed by HealthArchive in the annual editions,
+> keyword X appeared in Y pages per 1,000 indexed pages.
+
+Avoid wording that implies complete live-site measurement unless separate
+coverage validation supports that stronger claim.
+
 ## Ethics, governance, and corrections
 
 - Governance pages define:

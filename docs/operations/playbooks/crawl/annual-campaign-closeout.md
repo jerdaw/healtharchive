@@ -47,8 +47,8 @@ is one validation gate inside this larger process.
 
 The closeout has two lanes:
 
-- **Scripted capture lane**: deterministic VPS evidence capture and draft report
-  rendering.
+- **Scripted capture lane**: deterministic VPS evidence capture and report
+  fact-scaffold rendering.
 - **Review/closure lane**: operator judgment, final report wording, roadmap
   cleanup, and commit/push.
 
@@ -97,7 +97,7 @@ store the output with the evidence package:
 cat /srv/healtharchive/ops/annual-closeout/<YEAR>/<RUN_ID>/nasd-followup-command.txt
 ```
 
-### 3. Render the draft closeout report
+### 3. Render the report fact scaffold
 
 From the repo checkout that will receive the documentation update:
 
@@ -109,9 +109,10 @@ python3 scripts/render_annual_closeout_report.py \
   --out docs/operations/reports/<YEAR>-annual-campaign-closeout.md
 ```
 
-The renderer fills mechanical sections and leaves explicit review-required
-placeholders for judgment-heavy sections. It refuses to overwrite an existing
-report unless `--overwrite` is passed.
+The renderer fills mechanical facts and leaves explicit review-required
+placeholders for judgment-heavy sections. Treat this output as a drafting aid,
+not the final report. It refuses to overwrite an existing report unless
+`--overwrite` is passed.
 
 ### 4. Review each source
 
@@ -191,10 +192,12 @@ For every incident or deviation during the campaign, classify it as:
 
 Do not leave closeout-only TODOs in chat history or terminal scrollback.
 
-### 9. Finalize the closeout report
+### 9. Write and finalize the closeout report
 
-The report renderer creates the draft. Finalize every review-required section
-before closure. The report must include:
+The report renderer creates a fact scaffold. Use it as evidence and structure,
+then write the closeout report as a standalone narrative for readers who do not
+already know the project. Finalize every review-required section before closure.
+The report must include:
 
 - executive summary;
 - campaign result table;
@@ -206,6 +209,11 @@ before closure. The report must include:
 - public-safe summary text;
 - operator handoff text;
 - evidence and references.
+
+The finished report should explain project terms, source boundaries, capture
+methods, completeness expectations, known incompleteness, and recommended use
+in plain language. Do not publish raw generated output as the final campaign
+report.
 
 ### 10. Update canonical docs and roadmap state
 

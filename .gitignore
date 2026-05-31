@@ -50,6 +50,7 @@ tmp-*.warc.gz
 .pytest_cache/
 .coverage
 .coverage.*
+coverage.xml
 htmlcov/
 htmlcov-critical/
 .mypy_cache/

@@ -41,6 +41,14 @@ Current known items: none.
 
 Recently closed items:
 
+- API DB pool exhaustion recurrence prevention:
+  - Current state: completed. API request-scoped database sessions are closed
+    promptly, export responses no longer stream from live DB iterators, the
+    production database role has a 60-second idle transaction timeout, and
+    Prometheus alerts on excessive idle transactions.
+  - Incident:
+    `../operations/incidents/2026-05-29-api-db-pool-exhaustion.md`
+  - Deployed ref: `b4975c4f4986eca7da382618076f1f609e10fbef`
 - 2026 annual campaign closeout:
   - Current state: completed. The campaign is search-ready for HC, PHAC, and
     CIHR with a durable closeout report and campaign-level closeout SOP.

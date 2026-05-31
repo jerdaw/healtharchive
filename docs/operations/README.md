@@ -65,6 +65,9 @@ Operational default:
 - Exports data dictionary (pointer to public asset): `exports-data-dictionary.md`
 - Methods note outline (poster/preprint scaffold): `methods-note-outline.md`
 - Search relevance evaluation (process + commands): `search-quality.md`
+- Keyword and year-to-year trend interpretation: see `methods-note-outline.md`,
+  `search-quality.md`, and the relevant annual closeout report under
+  `reports/`.
 - Golden queries + expected results (living checklist): `search-golden-queries.md`
 - Replay + preview automation plan (design + guardrails; includes `replay-reconcile`): `replay-and-preview-automation-plan.md`
 - Production baseline drift checks (policy + snapshot + compare): `baseline-drift.md`

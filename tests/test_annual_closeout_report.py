@@ -200,9 +200,11 @@ def test_render_annual_closeout_report_from_fixture(tmp_path: Path) -> None:
     for heading in [
         "## Executive Summary",
         "## Campaign Results",
+        "## Data Completeness and Known Limits",
         "## Validation Summary",
         "## Source Notes",
         "## Incidents, Deviations, and Accepted Gaps",
+        "## Using This Dataset",
         "## Backup, Retention, and Recovery Posture",
         "## Remaining Follow-Ups",
         "## Public-Safe Summary Text",

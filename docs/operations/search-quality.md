@@ -17,6 +17,33 @@ For broad, common queries (e.g. `covid`):
 - Snippets look human-readable (not “Skip to main content … Search … Menu …”).
 - API response time stays reasonable as the dataset grows.
 
+## 1.1 Keyword-frequency and trend analyses
+
+Search results can be used for keyword-frequency and year-to-year trend work,
+but the analysis should be framed around the indexed HealthArchive corpus, not
+the complete live websites unless separate coverage validation has been done.
+
+Safe default framing:
+
+> Among pages captured and indexed by HealthArchive for source X in annual
+> edition Y, keyword Z appeared in N pages.
+
+Recommended practice:
+
+- report the source, campaign year, query, filters, and search view used;
+- report the denominator, such as indexed pages searched for that source/year;
+- normalize raw counts when comparing years, for example matches per 1,000
+  indexed pages;
+- separate sources before aggregating across Health Canada, PHAC, and CIHR;
+- document accepted gaps from the annual closeout report;
+- consider a matched-panel analysis of URLs or normalized page groups when the
+  question is language change over time rather than annual collection size.
+
+Avoid interpreting a missing URL or missing keyword match as proof that the live
+page did not exist or did not contain the term. It may have been outside scope,
+excluded, represented by another URL variant, not discovered, not HTML, or not
+indexed for search.
+
 ## 2) Golden queries (starter list)
 
 Start with ~10–30 queries and expand over time:

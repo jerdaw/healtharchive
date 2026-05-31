@@ -190,18 +190,19 @@ nav:
               - PHAC Fallback Recovery (2026-04-20): operations/incidents/2026-04-20-phac-post-reboot-tiering-loss-and-fallback-recovery.md
               - CIHR WARC/ZIM Resume Loop (2026-05-03): operations/incidents/2026-05-03-cihr-warc-complete-zim-build-resume-loop.md
               - Root Disk Full Backup Cache (2026-05-23): operations/incidents/2026-05-23-root-disk-full-db-backup-cache.md
+              - API DB Pool Exhaustion (2026-05-29): operations/incidents/2026-05-29-api-db-pool-exhaustion.md
   - Planning & Roadmaps:
       - Active Work: planning/README.md
       - Active Plans:
           - Admissions Strengthening (OMSAS): planning/2026-02-admissions-strengthening-plan.md
-          - Crawl Operability (Locks and Retry Controls): planning/implemented/2026-02-06-crawl-operability-locks-and-retry-controls.md
           - Hot-Path Staleness Root-Cause Investigation: planning/2026-02-06-hotpath-staleness-root-cause-investigation.md
-          - Annual Crawl Content-Cost and Scope Diagnosis: planning/implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md
       - Future Roadmap: planning/roadmap.md
       - Roadmap Process: roadmap-process.md
       - Implemented Plans:
           - Overview: planning/implemented/README.md
           - Public Search and CIHR Follow-Through (2026-05-06): planning/implemented/2026-05-05-public-search-and-cihr-followthrough.md
+          - Annual Crawl Content-Cost and Scope Diagnosis (2026-03-23): planning/implemented/2026-03-23-annual-crawl-content-cost-and-scope-diagnosis.md
+          - Crawl Operability (Locks and Retry Controls) (2026-02-06): planning/implemented/2026-02-06-crawl-operability-locks-and-retry-controls.md
           - Crawl Health Remediation (2026-02-25): planning/implemented/2026-02-25-crawl-health-remediation.md
           - Operational Resilience (2026-02-01): planning/implemented/2026-02-01-operational-resilience-improvements.md
           - Disk Usage Investigation (2026-02-01): planning/implemented/2026-02-01-disk-usage-investigation.md

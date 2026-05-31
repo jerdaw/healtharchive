@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Render a draft annual campaign closeout report from captured evidence."""
+"""Render an annual campaign closeout report fact scaffold from evidence."""
 
 from __future__ import annotations
 
@@ -383,6 +383,29 @@ def render_report(
                 "| review required | review required | review required | review required |",
             ]
         ),
+        "Data Completeness and Known Limits": "\n".join(
+            [
+                "## Data Completeness and Known Limits",
+                "",
+                "_Review required._ Explain what is expected to be well covered and where incompleteness is expected.",
+                "",
+                "- Expected strong coverage: review required",
+                "- Expected incompleteness: review required",
+                "- Source-boundary notes: review required",
+                "- Replay and non-HTML caveats: review required",
+            ]
+        ),
+        "Using This Dataset": "\n".join(
+            [
+                "## Using This Dataset",
+                "",
+                "_Review required._ Explain recommended uses, caution areas, and citation/reproducibility guidance.",
+                "",
+                "- Recommended uses: review required",
+                "- Use caution for: review required",
+                "- Citation fields: review required",
+            ]
+        ),
         "Remaining Follow-Ups": "\n".join(
             [
                 "## Remaining Follow-Ups",
@@ -489,7 +512,10 @@ def main(argv: list[str] | None = None) -> int:
         status=args.status,
         closeout_date=closeout_date,
     )
-    print(f"Rendered annual closeout report: {args.out}")
+    print(
+        "Rendered annual closeout report fact scaffold: "
+        f"{args.out}\nReview and rewrite before publishing."
+    )
     return 0
 
 
