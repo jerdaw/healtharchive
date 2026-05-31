@@ -1,12 +1,11 @@
 from __future__ import annotations
 
-from typing import Any, Iterator, List, Optional
+from typing import Any, List, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy import Float, Integer, and_, case, cast, func, inspect, literal, or_
 from sqlalchemy.orm import Session, load_only
 
-from ha_backend.db import get_session
 from ha_backend.models import AnnualEdition, ArchiveJob, IssueReport, PageSignal, Snapshot, Source
 from ha_backend.search import TS_CONFIG, build_search_vector
 from ha_backend.search_ranking import (
@@ -18,7 +17,7 @@ from ha_backend.search_ranking import (
     tokenize_query,
 )
 
-from .deps import require_admin
+from .deps import get_request_db_session, require_admin
 from .routes_public import SearchSort, SearchView
 from .schemas_admin import (
     AnnualEditionAdminSchema,
@@ -43,12 +42,11 @@ router = APIRouter(
 )
 
 
-def get_db() -> Iterator[Session]:
+def get_db(request: Request) -> Session:
     """
     FastAPI dependency that yields a DB session for admin routes.
     """
-    with get_session() as session:
-        yield session
+    return get_request_db_session(request)
 
 
 def _capture_backend_for_job(job: ArchiveJob) -> str:

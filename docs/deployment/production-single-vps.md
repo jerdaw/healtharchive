@@ -142,7 +142,14 @@ Postgres:
 ```bash
 sudo -u postgres psql -c "CREATE USER healtharchive WITH PASSWORD '<DB_PASSWORD>';"
 sudo -u postgres psql -c "CREATE DATABASE healtharchive OWNER healtharchive;"
+sudo -u postgres psql -d healtharchive -c \
+  "ALTER ROLE healtharchive IN DATABASE healtharchive SET idle_in_transaction_session_timeout = '60s';"
 ```
+
+The `idle_in_transaction_session_timeout` setting is a production guardrail for
+API connection-pool health. If a request path accidentally leaves a transaction
+open, Postgres closes the idle transaction before it can accumulate enough
+connections to starve `/api/health` or `/metrics`.
 
 ---
 

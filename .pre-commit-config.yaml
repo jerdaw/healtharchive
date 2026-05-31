@@ -30,5 +30,6 @@ repos:
         additional_dependencies:
           - types-requests
           - types-python-dateutil
+          - types-PyYAML
         args: [--config-file=pyproject.toml]
         exclude: ^(tests/|scripts/|alembic/|src/archive_tool/)

@@ -129,6 +129,16 @@ def test_search_error_alert_aggregates_process_local_metrics() -> None:
     assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
 
 
+def test_idle_transaction_alert_catches_pool_exhaustion_precursor() -> None:
+    text = _rules_text()
+    body = _extract_alert_block(text, "HealthArchiveDbIdleTransactionsHigh")
+
+    assert 'pg_stat_activity_count{datname="healtharchive",state="idle in transaction"}' in body
+    assert "> 20" in body
+    assert re.search(r"^\s*for:\s*10m\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*critical\s*$", body, re.MULTILINE)
+
+
 def test_annual_output_dir_not_writable_alert_semantics() -> None:
     text = _rules_text()
     body = _extract_alert_block(text, "HealthArchiveAnnualOutputDirNotWritable")

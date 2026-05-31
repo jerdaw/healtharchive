@@ -41,7 +41,6 @@ from ha_backend.config import (
     get_usage_metrics_enabled,
     get_usage_metrics_window_days,
 )
-from ha_backend.db import get_session
 from ha_backend.indexing.viewer import find_record_for_snapshot
 from ha_backend.live_compare import (
     LiveCompareError,
@@ -126,6 +125,7 @@ from ha_backend.usage_metrics import (
     record_usage_event,
 )
 
+from .deps import get_request_db_session
 from .schemas import (
     AnnualEditionCoverageSchema,
     ArchiveStatsSchema,
@@ -2191,12 +2191,11 @@ def _search_snapshots_inner(
     )
 
 
-def get_db() -> Iterator[Session]:
+def get_db(request: Request) -> Session:
     """
     FastAPI dependency that yields a DB session.
     """
-    with get_session() as session:
-        yield session
+    return get_request_db_session(request)
 
 
 def _build_usage_counts(raw: dict[str, int]) -> UsageMetricsCountsSchema:
@@ -2416,17 +2415,23 @@ def export_snapshots(
     source_id = _resolve_source_id(db, source)
     public_base = get_public_site_base_url()
 
-    rows = _iter_snapshot_export_rows(
-        db=db,
-        source_id=source_id,
-        after_id=afterId,
-        limit=effective_limit,
-        range_start=range_start,
-        range_end_exclusive=range_end_exclusive,
-        public_base=public_base,
+    # Keep the database work bounded to the request handler. Streaming directly
+    # from a SQLAlchemy iterator leaves a transaction open for slow clients.
+    rows = list(
+        _iter_snapshot_export_rows(
+            db=db,
+            source_id=source_id,
+            after_id=afterId,
+            limit=effective_limit,
+            range_start=range_start,
+            range_end_exclusive=range_end_exclusive,
+            public_base=public_base,
+        )
     )
 
     record_usage_event(db, EVENT_EXPORTS_DOWNLOAD_SNAPSHOTS)
+    # End the read transaction before returning a StreamingResponse.
+    db.commit()
 
     return _build_export_response(
         rows=rows,
@@ -2507,17 +2512,23 @@ def export_changes(
     source_id = _resolve_source_id(db, source)
     public_base = get_public_site_base_url()
 
-    rows = _iter_change_export_rows(
-        db=db,
-        source_id=source_id,
-        after_id=afterId,
-        limit=effective_limit,
-        range_start=range_start,
-        range_end_exclusive=range_end_exclusive,
-        public_base=public_base,
+    # Keep the database work bounded to the request handler. Streaming directly
+    # from a SQLAlchemy iterator leaves a transaction open for slow clients.
+    rows = list(
+        _iter_change_export_rows(
+            db=db,
+            source_id=source_id,
+            after_id=afterId,
+            limit=effective_limit,
+            range_start=range_start,
+            range_end_exclusive=range_end_exclusive,
+            public_base=public_base,
+        )
     )
 
     record_usage_event(db, EVENT_EXPORTS_DOWNLOAD_CHANGES)
+    # End the read transaction before returning a StreamingResponse.
+    db.commit()
 
     return _build_export_response(
         rows=rows,

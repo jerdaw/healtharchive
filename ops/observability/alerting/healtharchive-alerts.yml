@@ -12,6 +12,17 @@ groups:
           description: "Prometheus cannot scrape /metrics from the backend for 5m. Check healtharchive-api.service and admin token config."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/core/incident-response.md"
 
+      - alert: HealthArchiveDbIdleTransactionsHigh
+        expr: sum(pg_stat_activity_count{datname="healtharchive",state="idle in transaction"}) > 20
+        for: 10m
+        labels:
+          severity: critical
+          service: healtharchive
+        annotations:
+          summary: "HealthArchive has too many idle DB transactions"
+          description: "More than 20 HealthArchive PostgreSQL sessions have been idle in transaction for 10m. This can exhaust the API SQLAlchemy pool and make /api/health and /metrics time out. Check public export/search traffic, recent API logs, and pg_stat_activity."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/monitoring-and-alerting.md"
+
       - alert: HealthArchiveDiskUsageHigh
         expr: |
           (100 - (node_filesystem_avail_bytes{mountpoint="__MOUNTPOINT__",fstype!~"tmpfs|overlay"} /

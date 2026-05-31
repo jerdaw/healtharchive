@@ -5,6 +5,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
+from fastapi import Response
 from fastapi.testclient import TestClient
 
 from ha_backend import db as db_module
@@ -195,6 +196,54 @@ def test_change_exports_jsonl(tmp_path, monkeypatch) -> None:
     assert "change_id" in row
     assert "compare_url" in row
     assert row["compare_url"].startswith("https://healtharchive.ca/compare?")
+
+
+def test_snapshot_export_materializes_rows_before_streaming(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_export_data()
+
+    from ha_backend.api import routes_public
+
+    captured: dict[str, object] = {}
+
+    def capture_export_response(**kwargs) -> Response:
+        captured["rows"] = kwargs["rows"]
+        return Response(content=b"ok", media_type="text/plain")
+
+    monkeypatch.setattr(routes_public, "_build_export_response", capture_export_response)
+
+    resp = client.get(
+        "/api/exports/snapshots",
+        params={"format": "jsonl", "compressed": "false", "limit": 5},
+    )
+
+    assert resp.status_code == 200
+    assert isinstance(captured["rows"], list)
+    assert captured["rows"]
+
+
+def test_change_export_materializes_rows_before_streaming(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_export_data()
+
+    from ha_backend.api import routes_public
+
+    captured: dict[str, object] = {}
+
+    def capture_export_response(**kwargs) -> Response:
+        captured["rows"] = kwargs["rows"]
+        return Response(content=b"ok", media_type="text/plain")
+
+    monkeypatch.setattr(routes_public, "_build_export_response", capture_export_response)
+
+    resp = client.get(
+        "/api/exports/changes",
+        params={"format": "jsonl", "compressed": "false", "limit": 5},
+    )
+
+    assert resp.status_code == 200
+    assert isinstance(captured["rows"], list)
+    assert captured["rows"]
 
 
 def test_exports_invalid_format(tmp_path, monkeypatch) -> None:

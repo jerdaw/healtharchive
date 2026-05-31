@@ -1,6 +1,6 @@
 # Monitoring & Alerting Strategy - Annual Crawl Campaign
 
-**Last Updated:** 2026-05-27
+**Last Updated:** 2026-05-31
 
 ## Overview
 
@@ -66,6 +66,31 @@ Primary files (single-VPS annual campaign):
 Alerts are defined in:
 
 - `ops/observability/alerting/healtharchive-alerts.yml`
+
+### Backend Availability And DB Pool Pressure
+
+**Alert:** `HealthArchiveBackendScrapeDown`
+
+- **Threshold:** Prometheus cannot scrape backend `/metrics` for 5m.
+- **Meaning:** The API process is down, hung, unreachable, or Prometheus cannot
+  authenticate to `/metrics`.
+- **Action:** Check `healtharchive-api.service`, the backend admin token used by
+  Prometheus, and `http://127.0.0.1:8001/api/health`.
+
+**Alert:** `HealthArchiveDbIdleTransactionsHigh`
+
+- **Threshold:** More than 20 `healtharchive` PostgreSQL sessions are
+  `idle in transaction` for 10m.
+- **Meaning:** API requests are holding database transactions open after their
+  query finished. If this keeps growing, SQLAlchemy can exhaust the connection
+  pool and health/metrics endpoints can time out.
+- **Action:** Check recent public export/search traffic, API logs for
+  `QueuePool limit`, and `pg_stat_activity` rows ordered by `query_start`.
+
+Production should also keep the `healtharchive` database role configured with
+`idle_in_transaction_session_timeout = '60s'` as a DB-level guardrail. The
+alert is still useful because it catches recurrence before the API connection
+pool is fully exhausted.
 
 ### Root Disk And Backup Cache
 

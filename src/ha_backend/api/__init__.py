@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from datetime import timezone
-from typing import Iterator
 
 from fastapi import Depends, FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,14 +18,13 @@ from ha_backend.config import (
     get_max_request_body_size,
     get_pages_fastpath_enabled,
 )
-from ha_backend.db import get_session
 from ha_backend.logging_config import configure_logging
 from ha_backend.models import AnnualEdition, ArchiveJob, Page, Snapshot, Source
 from ha_backend.rate_limiting import limiter
 from ha_backend.request_context import generate_request_id, set_request_id
 from ha_backend.runtime_metrics import render_search_metrics_prometheus
 
-from .deps import require_admin
+from .deps import close_request_db_session, get_request_db_session, require_admin
 from .routes_admin import router as admin_router
 from .routes_public import router as public_router
 
@@ -205,6 +203,25 @@ async def security_headers_middleware(request: Request, call_next):
     return response
 
 
+@app.middleware("http")
+async def db_session_lifecycle_middleware(request: Request, call_next):
+    """
+    Close the request-scoped SQLAlchemy session after route execution.
+
+    Starlette response bodies may be streamed after call_next returns. Closing
+    here prevents slow clients from leaving Postgres transactions idle until
+    the response body is fully consumed.
+    """
+    try:
+        response = await call_next(request)
+    except Exception:
+        close_request_db_session(request, commit=False)
+        raise
+
+    close_request_db_session(request, commit=200 <= response.status_code < 400)
+    return response
+
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=get_cors_origins(),
@@ -214,9 +231,8 @@ app.add_middleware(
 )
 
 
-def _metrics_get_db() -> Iterator[Session]:
-    with get_session() as session:
-        yield session
+def _metrics_get_db(request: Request) -> Session:
+    return get_request_db_session(request)
 
 
 @app.get("/metrics", response_class=PlainTextResponse)
