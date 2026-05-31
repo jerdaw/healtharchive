@@ -3567,6 +3567,7 @@ def cmd_cleanup_job(args: argparse.Namespace) -> None:
             )
             sys.exit(1)
 
+        job_id = job.id
         output_dir = Path(job.output_dir).resolve()
         if not output_dir.is_dir():
             print(
@@ -3575,109 +3576,119 @@ def cmd_cleanup_job(args: argparse.Namespace) -> None:
             )
             sys.exit(1)
 
-        # Discover temp dirs via CrawlState and a glob fallback.
-        state = CrawlState(output_dir, initial_workers=1)
-        temp_dirs = state.get_temp_dir_paths()
-        temp_dir_candidates = sorted([p for p in output_dir.glob(".tmp*") if p.is_dir()])
-        # Merge candidates while preserving order.
-        seen_dirs: set[Path] = set()
-        merged_temp_dirs: list[Path] = []
-        for p in list(temp_dirs) + list(temp_dir_candidates):
-            p = p.resolve()
-            if p in seen_dirs:
-                continue
-            seen_dirs.add(p)
-            merged_temp_dirs.append(p)
-        temp_dirs = merged_temp_dirs
+    # Discover and delete temp filesystem artifacts outside any open database
+    # transaction. On production SSHFS mounts this can take minutes; keeping the
+    # DB session open would trip idle_in_transaction_session_timeout.
+    state = CrawlState(output_dir, initial_workers=1)
+    temp_dirs = state.get_temp_dir_paths()
+    temp_dir_candidates = sorted([p for p in output_dir.glob(".tmp*") if p.is_dir()])
+    # Merge candidates while preserving order.
+    seen_dirs: set[Path] = set()
+    merged_temp_dirs: list[Path] = []
+    for p in list(temp_dirs) + list(temp_dir_candidates):
+        p = p.resolve()
+        if p in seen_dirs:
+            continue
+        seen_dirs.add(p)
+        merged_temp_dirs.append(p)
+    temp_dirs = merged_temp_dirs
 
-        had_state_file = state.state_file_path.exists()
+    had_state_file = state.state_file_path.exists()
 
-        if mode == "temp":
-            if not temp_dirs and not had_state_file:
-                print(
-                    f"No temp dirs or state file discovered for job {job.id}; nothing to cleanup.",
-                    file=sys.stderr,
-                )
-                return
-
-            if dry_run:
-                print("Dry run: would delete temp dirs and state file:")
-                for d in temp_dirs:
-                    print(f"  - {d}")
-                if had_state_file:
-                    print(f"  - {state.state_file_path}")
-                return
-
-            from archive_tool.utils import cleanup_temp_dirs
-
-            cleanup_temp_dirs(temp_dirs, state.state_file_path)
-            job.cleanup_status = "temp_cleaned"
-            job.cleaned_at = datetime.now(timezone.utc)
-            job.state_file_path = None
-            return
-
-        # mode == "temp-nonwarc": consolidate WARCs to a stable dir, preserve provenance,
-        # then delete `.tmp*` directories.
+    if mode == "temp":
         if not temp_dirs and not had_state_file:
             print(
-                f"No temp dirs or state file discovered for job {job.id}; nothing to cleanup.",
+                f"No temp dirs or state file discovered for job {job_id}; nothing to cleanup.",
                 file=sys.stderr,
             )
             return
 
-        stable_warcs_dir = get_job_warcs_dir(output_dir)
-        stable_present = stable_warcs_dir.is_dir() and (
-            any(stable_warcs_dir.rglob("*.warc.gz")) or any(stable_warcs_dir.rglob("*.warc"))
-        )
+        if dry_run:
+            print("Dry run: would delete temp dirs and state file:")
+            for d in temp_dirs:
+                print(f"  - {d}")
+            if had_state_file:
+                print(f"  - {state.state_file_path}")
+            return
 
-        # Determine whether this job's snapshots still reference `.tmp*` WARC paths.
-        tmp_warc_prefix = f"{output_dir.as_posix()}/.tmp"
+        from archive_tool.utils import cleanup_temp_dirs
+
+        cleanup_temp_dirs(temp_dirs, state.state_file_path)
+
+        with get_session() as session:
+            job = session.get(ORMArchiveJob, job_id)
+            if job is None:
+                print(f"ERROR: Job {job_id} not found after cleanup.", file=sys.stderr)
+                sys.exit(1)
+            job.cleanup_status = "temp_cleaned"
+            job.cleaned_at = datetime.now(timezone.utc)
+            job.state_file_path = None
+        return
+
+    # mode == "temp-nonwarc": consolidate WARCs to a stable dir, preserve provenance,
+    # then delete `.tmp*` directories.
+    if not temp_dirs and not had_state_file:
+        print(
+            f"No temp dirs or state file discovered for job {job_id}; nothing to cleanup.",
+            file=sys.stderr,
+        )
+        return
+
+    stable_warcs_dir = get_job_warcs_dir(output_dir)
+    stable_present = stable_warcs_dir.is_dir() and (
+        any(stable_warcs_dir.rglob("*.warc.gz")) or any(stable_warcs_dir.rglob("*.warc"))
+    )
+
+    # Determine whether this job's snapshots still reference `.tmp*` WARC paths.
+    tmp_warc_prefix = f"{output_dir.as_posix()}/.tmp"
+    with get_session() as session:
         tmp_ref_count = (
             session.query(Snapshot.id)
-            .filter(Snapshot.job_id == job.id)
+            .filter(Snapshot.job_id == job_id)
             .filter(Snapshot.warc_path.like(f"{tmp_warc_prefix}%"))
             .count()
         )
 
-        # If stable WARCs are missing, consolidate them from `.tmp*` first.
-        source_warcs: list[Path] = []
-        if not stable_present:
-            source_warcs = find_all_warc_files(temp_dirs) if temp_dirs else []
-            if not source_warcs:
-                print(
-                    "ERROR: No WARCs discovered under .tmp* directories, and no stable warcs/ directory exists. "
-                    "Refusing temp-nonwarc cleanup because it would likely break replay.",
-                    file=sys.stderr,
-                )
-                sys.exit(1)
-
-        if dry_run:
-            print("Dry run: temp-nonwarc cleanup plan")
-            print(f"Job ID:            {job.id}")
-            print(f"Output dir:        {output_dir}")
-            print(f"Stable WARCs dir:  {stable_warcs_dir} (present={int(stable_present)})")
-            if not stable_present:
-                print(f"Would consolidate: {len(source_warcs)} WARC(s)")
-            print(f"Snapshots w/ .tmp WARCs: {tmp_ref_count}")
-            print(f"Would rewrite Snapshot.warc_path: {int(tmp_ref_count > 0)}")
-            print(f"Would preserve provenance under: {get_job_provenance_dir(output_dir)}")
-            print("Would delete temp dirs:")
-            for d in temp_dirs:
-                print(f"  - {d}")
-            if had_state_file:
-                print(f"  - {state.state_file_path} (would copy to provenance then delete)")
-            return
-
-        if not stable_present:
-            consolidate_warcs(
-                output_dir=output_dir,
-                source_warc_paths=source_warcs,
-                allow_copy_fallback=True,
-                dry_run=False,
+    # If stable WARCs are missing, consolidate them from `.tmp*` first.
+    source_warcs: list[Path] = []
+    if not stable_present:
+        source_warcs = find_all_warc_files(temp_dirs) if temp_dirs else []
+        if not source_warcs:
+            print(
+                "ERROR: No WARCs discovered under .tmp* directories, and no stable warcs/ directory exists. "
+                "Refusing temp-nonwarc cleanup because it would likely break replay.",
+                file=sys.stderr,
             )
+            sys.exit(1)
 
-        # Rewrite Snapshot.warc_path values to point at stable WARCs before deleting temp dirs.
-        if tmp_ref_count > 0:
+    if dry_run:
+        print("Dry run: temp-nonwarc cleanup plan")
+        print(f"Job ID:            {job_id}")
+        print(f"Output dir:        {output_dir}")
+        print(f"Stable WARCs dir:  {stable_warcs_dir} (present={int(stable_present)})")
+        if not stable_present:
+            print(f"Would consolidate: {len(source_warcs)} WARC(s)")
+        print(f"Snapshots w/ .tmp WARCs: {tmp_ref_count}")
+        print(f"Would rewrite Snapshot.warc_path: {int(tmp_ref_count > 0)}")
+        print(f"Would preserve provenance under: {get_job_provenance_dir(output_dir)}")
+        print("Would delete temp dirs:")
+        for d in temp_dirs:
+            print(f"  - {d}")
+        if had_state_file:
+            print(f"  - {state.state_file_path} (would copy to provenance then delete)")
+        return
+
+    if not stable_present:
+        consolidate_warcs(
+            output_dir=output_dir,
+            source_warc_paths=source_warcs,
+            allow_copy_fallback=True,
+            dry_run=False,
+        )
+
+    # Rewrite Snapshot.warc_path values to point at stable WARCs before deleting temp dirs.
+    if tmp_ref_count > 0:
+        with get_session() as session:
             mapping = build_warc_path_mapping(output_dir)
             if not mapping:
                 print(
@@ -3688,7 +3699,7 @@ def cmd_cleanup_job(args: argparse.Namespace) -> None:
                 sys.exit(1)
 
             distinct_paths = (
-                session.query(Snapshot.warc_path).filter(Snapshot.job_id == job.id).distinct().all()
+                session.query(Snapshot.warc_path).filter(Snapshot.job_id == job_id).distinct().all()
             )
             warc_paths_in_db = sorted({p for (p,) in distinct_paths if p})
             updated = 0
@@ -3698,7 +3709,7 @@ def cmd_cleanup_job(args: argparse.Namespace) -> None:
                     continue
                 updated += (
                     session.query(Snapshot)
-                    .filter(Snapshot.job_id == job.id, Snapshot.warc_path == old_path)
+                    .filter(Snapshot.job_id == job_id, Snapshot.warc_path == old_path)
                     .update({Snapshot.warc_path: new_path}, synchronize_session=False)
                 )
 
@@ -3708,7 +3719,7 @@ def cmd_cleanup_job(args: argparse.Namespace) -> None:
             # Refuse to delete temp dirs if any snapshot still references a `.tmp*` WARC path.
             remaining_tmp_refs = (
                 session.query(Snapshot.id)
-                .filter(Snapshot.job_id == job.id)
+                .filter(Snapshot.job_id == job_id)
                 .filter(Snapshot.warc_path.like(f"{tmp_warc_prefix}%"))
                 .limit(1)
                 .all()
@@ -3721,27 +3732,32 @@ def cmd_cleanup_job(args: argparse.Namespace) -> None:
                 )
                 sys.exit(1)
 
-        provenance_dir = get_job_provenance_dir(output_dir)
-        snapshot_state_file(output_dir, dest_dir=provenance_dir, dry_run=False)
-        snapshot_crawl_configs(
-            temp_dirs,
-            output_dir=output_dir,
-            dest_dir=provenance_dir,
-            dry_run=False,
-        )
+    provenance_dir = get_job_provenance_dir(output_dir)
+    snapshot_state_file(output_dir, dest_dir=provenance_dir, dry_run=False)
+    snapshot_crawl_configs(
+        temp_dirs,
+        output_dir=output_dir,
+        dest_dir=provenance_dir,
+        dry_run=False,
+    )
 
-        # Delete the original state file to avoid stale references to removed temp dirs;
-        # we preserved a copy under provenance/.
-        if state.state_file_path.exists():
-            try:
-                state.state_file_path.unlink()
-            except OSError:
-                pass
+    # Delete the original state file to avoid stale references to removed temp dirs;
+    # we preserved a copy under provenance/.
+    if state.state_file_path.exists():
+        try:
+            state.state_file_path.unlink()
+        except OSError:
+            pass
 
-        for d in temp_dirs:
-            if d.is_dir() and d.name.startswith(".tmp"):
-                shutil.rmtree(d)
+    for d in temp_dirs:
+        if d.is_dir() and d.name.startswith(".tmp"):
+            shutil.rmtree(d)
 
+    with get_session() as session:
+        job = session.get(ORMArchiveJob, job_id)
+        if job is None:
+            print(f"ERROR: Job {job_id} not found after cleanup.", file=sys.stderr)
+            sys.exit(1)
         job.cleanup_status = "temp_nonwarc_cleaned"
         job.cleaned_at = datetime.now(timezone.utc)
 

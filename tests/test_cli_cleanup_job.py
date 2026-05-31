@@ -1,11 +1,16 @@
 from __future__ import annotations
 
 import sys
+from contextlib import contextmanager
 from datetime import datetime, timezone
 from io import StringIO
 from pathlib import Path
+from typing import Iterator
+
+from sqlalchemy.orm import Session
 
 from archive_tool.state import CrawlState
+from archive_tool.utils import cleanup_temp_dirs as real_cleanup_temp_dirs
 from ha_backend import cli as cli_module
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
@@ -95,6 +100,35 @@ def test_cleanup_job_temp_mode_removes_temp_and_state(tmp_path, monkeypatch) -> 
     # Paths should be gone.
     assert not temp_dir.exists()
     assert not state_path.exists()
+
+
+def test_cleanup_job_filesystem_cleanup_runs_outside_db_session(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    job_id = _seed_indexed_job(tmp_path)
+    active_sessions = 0
+
+    @contextmanager
+    def tracked_session() -> Iterator[Session]:
+        nonlocal active_sessions
+        with get_session() as session:
+            active_sessions += 1
+            try:
+                yield session
+            finally:
+                active_sessions -= 1
+
+    def cleanup_spy(temp_dirs: list[Path], state_file_path: Path) -> None:
+        assert active_sessions == 0
+        real_cleanup_temp_dirs(temp_dirs, state_file_path)
+
+    monkeypatch.setattr(cli_module, "get_session", tracked_session)
+    monkeypatch.setattr("archive_tool.utils.cleanup_temp_dirs", cleanup_spy)
+
+    parser = cli_module.build_parser()
+    args = parser.parse_args(["cleanup-job", "--id", str(job_id)])
+    args.func(args)
+
+    assert active_sessions == 0
 
 
 def test_cleanup_job_rejects_non_indexed_status(tmp_path, monkeypatch) -> None:
