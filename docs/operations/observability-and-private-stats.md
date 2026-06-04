@@ -55,7 +55,7 @@ imply anything is public.
 
 ### Ops directories (public-safe by policy)
 
-- `/srv/healtharchive/ops/observability/`
+- `<service-data-root>/ops/observability/`
   - `dashboards/` — exported dashboard JSON, provisioning files (no secrets)
   - `alerting/` — public-safe alert rule templates/notes (no secrets)
   - `notes/` — public-safe operational notes
@@ -65,7 +65,7 @@ Low-maintenance default:
 - Keep Prometheus/Grafana data in distro defaults (typically `/var/lib/prometheus` and
   `/var/lib/grafana`) unless you have a strong reason to relocate.
 
-### Secrets (root-owned; never under `/srv/healtharchive/ops/`)
+### Secrets (root-owned; never under `<service-data-root>/ops/`)
 
 - `/etc/healtharchive/observability/prometheus_backend_admin_token`
 - `/etc/healtharchive/observability/grafana_admin_password`
@@ -138,7 +138,7 @@ Use this if you want a tailnet-only HTTPS URL instead of an SSH tunnel.
 On the VPS:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-enable-tailscale-serve-grafana.sh          # Dry-run
 sudo ./scripts/vps-enable-tailscale-serve-grafana.sh --apply
 tailscale serve status
@@ -226,7 +226,7 @@ Sensitive tables:
 ## 5) Operational invariants (must remain true)
 
 - In production/staging, admin token must be configured and admin/metrics endpoints must not be public.
-- Secrets must not be written under `/srv/healtharchive/ops/` (ops artifacts are public-safe by policy).
+- Secrets must not be written under `<service-data-root>/ops/` (ops artifacts are public-safe by policy).
 - Anything that changes public vs private boundaries must be documented as a deliberate decision.
 
 ---

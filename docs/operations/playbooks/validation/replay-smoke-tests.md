@@ -72,7 +72,7 @@ curl -s http://127.0.0.1:9100/metrics | rg '^healtharchive_replay_smoke_'
    sudo systemctl status healtharchive-warc-tiering.service --no-pager -l | sed -n '1,120p'
    ```
 
-   2) Restart replay to refresh its view of `/srv/healtharchive/jobs`:
+   2) Restart replay to refresh its view of `<service-data-root>/jobs`:
    ```bash
    sudo systemctl restart healtharchive-replay.service
    ```

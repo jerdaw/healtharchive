@@ -70,5 +70,5 @@ pull requests, and manual runs from the same checkout.
 
 ## Scope (what belongs in tests vs scripts)
 
-- Application behavior belongs in `tests/`.
+- App behavior belongs in `tests/`.
 - VPS automation scripts under `scripts/` should stay simple and safe; when logic grows (parsing, policy evaluation), prefer moving that logic into a small Python module that can be tested.

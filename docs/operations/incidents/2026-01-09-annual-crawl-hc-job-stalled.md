@@ -71,7 +71,7 @@ Performed on 2026-01-16 (VPS):
 - Followed `docs/operations/playbooks/crawl/crawl-stalls.md`:
   - `sudo systemctl stop healtharchive-worker.service`
   - `set -a; source /etc/healtharchive/backend.env; set +a`
-  - `/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --source hc --limit 1`
+  - `<deploy-root>/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --source hc --limit 1`
   - `sudo systemctl start healtharchive-worker.service`
 - Verified the job restarted (`Started at` updated) and a new combined log was created.
 
@@ -104,8 +104,8 @@ Performed on 2026-01-16 (VPS):
 ## References / Artifacts
 
 - Operator snapshot script: `scripts/vps-crawl-status.sh`
-- Latest combined log (as of 2026-01-09 12:57Z snapshot): `/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101/archive_new_crawl_phase_-_attempt_1_20260109_060517.combined.log`
-- Latest combined log after 2026-01-16 recovery: `/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101/archive_new_crawl_phase_-_attempt_1_20260116_025617.combined.log`
+- Latest combined log (as of 2026-01-09 12:57Z snapshot): `<service-data-root>/jobs/hc/20260101T000502Z__hc-20260101/archive_new_crawl_phase_-_attempt_1_20260109_060517.combined.log`
+- Latest combined log after 2026-01-16 recovery: `<service-data-root>/jobs/hc/20260101T000502Z__hc-20260101/archive_new_crawl_phase_-_attempt_1_20260116_025617.combined.log`
 - Playbook: `../playbooks/crawl/crawl-stalls.md`
 - Playbook: `../playbooks/core/incident-response.md`
 - Related: `2026-01-09-annual-crawl-phac-output-dir-permission-denied.md`

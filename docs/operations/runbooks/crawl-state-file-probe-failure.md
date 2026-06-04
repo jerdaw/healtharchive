@@ -20,7 +20,7 @@ The monitoring script on the VPS cannot read the `.archive_state.json` file for 
    ssh to VPS and run:
 
    ```bash
-   findmnt -T /srv/healtharchive/jobs
+   findmnt -T <service-data-root>/jobs
    ```
 
    If it returns nothing or shows "unreachable", the mount is gone.
@@ -35,7 +35,7 @@ The monitoring script on the VPS cannot read the `.archive_state.json` file for 
    If mount is up, check if the file exists and is readable:
 
    ```bash
-   ls -la /srv/healtharchive/jobs/<source>/<job_timestamp>/.archive_state.json
+   ls -la <service-data-root>/jobs/<source>/<job_timestamp>/.archive_state.json
    ```
 
 ## Mitigation

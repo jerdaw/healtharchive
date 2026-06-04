@@ -17,7 +17,7 @@ Rationale (given current project goals/resources):
 
 ## 1) Recommended production rollout steps (single VPS)
 
-On the VPS (as `haadmin`) in the backend repo checkout (e.g. `/opt/healtharchive`):
+On the VPS (as `haadmin`) in the backend repo checkout (e.g. `<deploy-root>`):
 
 1) Pull the new backend revision.
 2) Apply migrations:

@@ -28,22 +28,22 @@ This validates the Phase 2 watchdog logic without breaking mounts.
 
 Good candidates:
 
-- an annual job output dir: `/srv/healtharchive/jobs/<source>/<job_dir>`
-- an imports hot path from tiering: `/srv/healtharchive/jobs/imports/...`
+- an annual job output dir: `<service-data-root>/jobs/<source>/<job_dir>`
+- an imports hot path from tiering: `<service-data-root>/jobs/imports/...`
 
 2) Run the watchdog in dry-run simulation mode (do not use `--apply`):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; \
-  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-storage-hotpath-auto-recover.py \
+  <deploy-root>/.venv/bin/python3 <deploy-root>/scripts/vps-storage-hotpath-auto-recover.py \
     --confirm-runs 1 \
     --min-failure-age-seconds 0 \
     --state-file /tmp/healtharchive-storage-hotpath-drill.state.json \
     --lock-file /tmp/healtharchive-storage-hotpath-drill.lock \
     --textfile-out-dir /tmp \
     --textfile-out-file healtharchive_storage_hotpath_auto_recover.drill.prom \
-    --simulate-broken-path /srv/healtharchive/jobs/hc/<JOB_DIR>'
+    --simulate-broken-path <service-data-root>/jobs/hc/<JOB_DIR>'
 ```
 
 3) Confirm output includes:
@@ -62,19 +62,19 @@ It captures a **pre** and **post** evidence bundle and diffs them. It also appen
 single TSV line you can use later for correlation across multiple drills/incidents.
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-hotpath-staleness-drill.sh \
-  --simulate-broken-path /srv/healtharchive/jobs/hc/<JOB_DIR> \
+  --simulate-broken-path <service-data-root>/jobs/hc/<JOB_DIR> \
   --note "phase2 drill (dry-run)"
 ```
 
 Artifacts:
 
 - Evidence bundles:
-  - `/srv/healtharchive/ops/observability/hotpath-staleness/hotpath-staleness-<ts>-drill-pre/`
-  - `/srv/healtharchive/ops/observability/hotpath-staleness/hotpath-staleness-<ts>-drill-post/`
+  - `<service-data-root>/ops/observability/hotpath-staleness/hotpath-staleness-<ts>-drill-pre/`
+  - `<service-data-root>/ops/observability/hotpath-staleness/hotpath-staleness-<ts>-drill-post/`
 - Correlation log:
-  - `/srv/healtharchive/ops/observability/hotpath-staleness/investigation-log.tsv`
+  - `<service-data-root>/ops/observability/hotpath-staleness/investigation-log.tsv`
 
 ## 2) Drill: persistent failed-apply alert condition (safe, no paging)
 
@@ -129,7 +129,7 @@ rm -f /tmp/healtharchive_storage_hotpath_auto_recover.alertcheck.prom
 Optional syntax check (safe):
 
 ```bash
-promtool check rules /opt/healtharchive/ops/observability/alerting/healtharchive-alerts.yml
+promtool check rules <deploy-root>/ops/observability/alerting/healtharchive-alerts.yml
 ```
 
 ## 3) Drill: alert pipeline (no paging)
@@ -144,7 +144,7 @@ Precondition:
 ### 3.1 Trigger the drill alert metric (auto-cleanup)
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo ./scripts/vps-alert-pipeline-drill.sh --apply --duration-seconds 600
 ```
 
@@ -194,7 +194,7 @@ Use this during the first week after shipping watchdog/alert updates.
 ### 5.1 Daily snapshot (safe)
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 python3 scripts/vps-storage-watchdog-burnin-report.py --json > /tmp/storage-watchdog-burnin-$(date -u +%Y%m%d).json
 cat /tmp/storage-watchdog-burnin-$(date -u +%Y%m%d).json
 ```
@@ -203,7 +203,7 @@ Optional (recommended): enable the daily snapshot timer so you don’t rely on a
 human remembering.
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo ./scripts/vps-bootstrap-ops-dirs.sh
 sudo install -m 0644 -o root -g root /dev/null /etc/healtharchive/storage-watchdog-burnin-enabled
 sudo systemctl enable --now healtharchive-storage-watchdog-burnin-snapshot.timer
@@ -211,8 +211,8 @@ sudo systemctl enable --now healtharchive-storage-watchdog-burnin-snapshot.timer
 
 Artifacts are written under:
 
-- `/srv/healtharchive/ops/burnin/storage-watchdog/latest.json`
-- `/srv/healtharchive/ops/burnin/storage-watchdog/storage-watchdog-burnin-YYYYMMDD.json`
+- `<service-data-root>/ops/burnin/storage-watchdog/latest.json`
+- `<service-data-root>/ops/burnin/storage-watchdog/storage-watchdog-burnin-YYYYMMDD.json`
 
 Expected:
 
@@ -223,7 +223,7 @@ Expected:
 ### 5.2 End-of-week clean check gate
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 python3 scripts/vps-storage-watchdog-burnin-report.py --window-hours 168 --require-clean
 ```
 

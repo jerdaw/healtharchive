@@ -24,7 +24,7 @@ Security notes:
 
 1) Pull the latest repo:
 
-- `cd /opt/healtharchive`
+- `cd <deploy-root>`
 - `git pull`
 
 2) Dry-run:

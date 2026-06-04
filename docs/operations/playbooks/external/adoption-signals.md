@@ -11,7 +11,7 @@ Canonical references:
 
 1. Create a new dated entry using `../../../_templates/adoption-signals-log-template.md`.
 2. Store it on the VPS under:
-   - `/srv/healtharchive/ops/adoption/`
+   - `<service-data-root>/ops/adoption/`
 
 Rules:
 
@@ -20,4 +20,4 @@ Rules:
 
 ## What “done” means
 
-- A dated adoption signals entry exists under `/srv/healtharchive/ops/adoption/`.
+- A dated adoption signals entry exists under `<service-data-root>/ops/adoption/`.

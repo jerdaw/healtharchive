@@ -12,9 +12,9 @@ Canonical reference:
 2. Record results using the template:
    - `../../../_templates/restore-test-log-template.md`
 3. Store the public-safe log on the VPS:
-   - `/srv/healtharchive/ops/restore-tests/`
+   - `<service-data-root>/ops/restore-tests/`
 
 ## What “done” means
 
-- A dated restore-test log exists under `/srv/healtharchive/ops/restore-tests/`.
+- A dated restore-test log exists under `<service-data-root>/ops/restore-tests/`.
 - Core API checks against the restored DB succeed (health, stats, sources).

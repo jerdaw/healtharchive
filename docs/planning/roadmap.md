@@ -16,26 +16,17 @@ It is intentionally **not** an implementation plan.
 
 These items are intentionally “external” and require ongoing human follow-through.
 
-A consolidated, phased plan covering external outreach, scholarly outputs,
-and application preparation is in:
-
-- **`2026-02-admissions-strengthening-plan.md`** (active implementation plan)
-
-That plan addresses Gates 1-4 below, the methods paper, dataset DOI, and
-application-specific preparation on a ~12-week timeline.
-
-Use that active plan, not this backlog file, as the canonical near-term
-sequence for:
+Use this backlog as the public tracker for:
 
 - reconciling real source/snapshot coverage counts across public materials
-- updating the portfolio/about narrative page
+- updating the project summary/about page
 - adding public uptime history and status-page evidence
 - publishing the governance/ethics + data-retention summary
 - verifier/partner/advisor outreach
 - the methods paper + architecture diagram
 - the first formal dataset release with a DOI
 
-Individual items (for reference; see the plan above for execution order):
+Individual items:
 
 - External outreach + verification execution (operator-only):
   - Playbook: `../operations/playbooks/external/outreach-and-verification.md`
@@ -43,10 +34,8 @@ Individual items (for reference; see the plan above for execution order):
 - Secure at least 1 verifier (permission to name them publicly).
 - Write and publish a methods paper (preprint + JOSS submission).
   - Outline: `../operations/methods-note-outline.md`
-  - Plan: `2026-02-admissions-strengthening-plan.md` (Phase 2, item 2)
 - Publish first formal dataset release with Zenodo DOI.
   - Runbook: `../operations/dataset-release-runbook.md`
-  - Plan: `2026-02-admissions-strengthening-plan.md` (Phase 2, item 3)
 - Maintain a public-safe mentions/citations log with real entries:
   - `../operations/mentions-log.md` (links only; no private contact data)
 - Healthchecks.io alignment: keep systemd timers, `/etc/healtharchive/healthchecks.env`, and the Healthchecks UI in sync.
@@ -57,7 +46,7 @@ Track the current status and next actions in:
 
 - `../operations/healtharchive-ops-roadmap.md` for the current ops posture,
   optional search tuning, and routine quarterly evidence collection
-- `2026-02-admissions-strengthening-plan.md` for the external-validation and scholarly-output sequence
+- this roadmap for external-validation and scholarly-output follow-through
 
 Supporting materials:
 
@@ -313,14 +302,14 @@ Completed items were removed from this backlog and archived in:
 
 <!-- Items #1 (CITATION.cff) and #2 (SECURITY.md) removed 2026-03-25: confirmed present in all three repos (backend, frontend, datasets). Completed as part of implemented/2026-02-12-governance-seo-and-security-foundations.md. -->
 
-3. **Add a code of conduct to all repos** (S: 1h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 3, item 6
+3. **Add a code of conduct to all repos** (S: 1h)
 4. **Add LICENSE to datasets repo** (S: 30m) — confirmed still missing as of 2026-03-25
-5. **Add GitHub issue and PR templates across repos** (S: 2-3h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 3, item 6; confirmed not yet present
-7. **Add changelog/release tags to backend and frontend** (M: 1 day) — covered by `2026-02-admissions-strengthening-plan.md` Phase 3, item 6
+5. **Add GitHub issue and PR templates across repos** (S: 2-3h) — confirmed not yet present
+7. **Add changelog/release tags to backend and frontend** (M: 1 day)
 
 ### Reliability, security, and CI
 
-23. **Create formal accessibility audit document** (M: 1-2 days) — covered by `2026-02-admissions-strengthening-plan.md` Phase 3, item 4
+23. **Create formal accessibility audit document** (M: 1-2 days)
 24. **Add frontend error boundary components** (M: 1 day)
 25. **Track the frontend Next/PostCSS production dependency advisory until an upstream-safe fix exists** (S: 1-2h)
     - Current evidence: `npm audit --omit=dev --json` on 2026-05-06 reports
@@ -353,25 +342,25 @@ Completed items were removed from this backlog and archived in:
 
 ### Documentation and operations maturity
 
-26. **Create explicit data retention schedule table** (S: 2h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 1, item 1d
+26. **Create explicit data retention schedule table** (S: 2h)
 27. **Add disaster recovery SLOs (RTO/RPO)** (S: 1-2h)
 28. **Write first-responder / on-call runbook** (S: 2-3h)
 29. **Create change-management runbook** (S: 2-3h)
-30. **Formalize ethics/research exemption statement** (S: 1-2h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 1, item 1d
+30. **Formalize ethics/research exemption statement** (S: 1-2h)
 31. **Add error tracking integration (Sentry)** (M: 1 day)
-32. **Add automated uptime monitoring badge** (S: 1-2h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 1, item 1c; external monitor (UptimeRobot) is described in the monitoring checklist but public badge and history page are not yet confirmed live as of 2026-03-25
-33. **Add public status page content with uptime history** (M: 1 day) — covered by `2026-02-admissions-strengthening-plan.md` Phase 1, item 1c; `../operations/service-levels.md` notes no dedicated status page yet
+32. **Add automated uptime monitoring badge** (S: 1-2h) — external monitor (UptimeRobot) is described in the monitoring checklist but public badge and history page are not yet confirmed live as of 2026-03-25
+33. **Add public status page content with uptime history** (M: 1 day) — `../operations/service-levels.md` notes no dedicated status page yet
 34b. **Measure and record API/operational performance baselines** (S: 1-2h) — all baseline fields in `../operations/service-levels.md` remain TBD since 2026-01-18; collect real p50/p95 measurements from production under normal load and fill in the table
 
-### Frontend quality and portfolio communication
+### Frontend quality and public communication
 
 35. **Consolidate bilingual strings (remove inline ternaries)** (L: 1-2 weeks)
 36. **Add automated performance/Lighthouse testing** (M: 1 day)
 37. **Add automated link checking to frontend CI** (S: 1-2h)
-38. **Add coverage badges to READMEs** (S: 1-2h) — covered by `2026-02-admissions-strengthening-plan.md` Phase 3, item 6
-39. **Create portfolio-ready project summary page** (M: 1 day) — covered by `2026-02-admissions-strengthening-plan.md` Phase 1, item 1b
-40. **Generate architecture diagrams (Mermaid/D2)** (M: 1 day) — covered by `2026-02-admissions-strengthening-plan.md` Phase 2, item 2 (sub-task of methods paper)
-41. **Create public changelog page on frontend** (M: 1 day) — covered by `2026-02-admissions-strengthening-plan.md` Phase 3, item 6
+38. **Add coverage badges to READMEs** (S: 1-2h)
+39. **Create public project summary page** (M: 1 day)
+40. **Generate architecture diagrams (Mermaid/D2)** (M: 1 day)
+41. **Create public changelog page on frontend** (M: 1 day)
 42. **Create automated WARC/data integrity report** (M: 1 day)
 
 ## Adjacent / optional (in this monorepo, not core HA)

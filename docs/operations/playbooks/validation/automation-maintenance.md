@@ -11,12 +11,12 @@ Canonical references:
 
 On the VPS:
 
-- `cd /opt/healtharchive`
+- `cd <deploy-root>`
 - `sudo ./scripts/vps-install-systemd-units.sh --apply --restart-worker`
 
 ## Bootstrap ops directories (one-time)
 
-If `/srv/healtharchive/ops/` is not prepared:
+If `<service-data-root>/ops/` is not prepared:
 
 - `sudo ./scripts/vps-bootstrap-ops-dirs.sh`
 
@@ -41,7 +41,7 @@ For stale-mount watchdog reliability, include this in the periodic automation re
 2. Re-run the safe persistent failed-apply alert-condition drill:
    - `../storage/storagebox-sshfs-stale-mount-drills.md` (Section 2)
 3. Review watchdog state + key metrics:
-   - `/srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json`
+   - `<service-data-root>/ops/watchdog/storage-hotpath-auto-recover.json`
    - `healtharchive_storage_hotpath_auto_recover_last_apply_ok`
    - `healtharchive_storage_hotpath_auto_recover_apply_total`
 4. If `HealthArchiveStorageHotpathApplyFailedPersistent` fired recently, follow:

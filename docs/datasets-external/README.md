@@ -8,7 +8,6 @@ The HealthArchive datasets live in a separate repository:
 This backend docs portal links out to the canonical datasets docs; it does not
 mirror them.
 
-Related backend docs:
-
-- Dataset release runbook (ops): `../operations/dataset-release-runbook.md`
-- Export integrity contract: `../operations/export-integrity-contract.md`
+Operational dataset-release procedures are environment-specific and are kept
+outside the public docs portal. Public release artifacts should be published in
+the datasets repository.

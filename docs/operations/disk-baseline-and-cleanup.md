@@ -99,15 +99,15 @@ sudo du -xsh /* 2>/dev/null | sort -hr | head -10
 
 The repo-managed `healtharchive-db-backup.timer` uses
 `scripts/vps-db-backup.sh`. It writes each `pg_dump -Fc` to
-`/srv/healtharchive/backups` as a short local cache, mirrors successful dumps
-to `/srv/healtharchive/storagebox/backups/db`, then prunes local dumps down to
+`<service-data-root>/backups` as a short local cache, mirrors successful dumps
+to `<service-data-root>/storagebox/backups/db`, then prunes local dumps down to
 the newest successful dump on the current 75G VPS.
 
-If `/srv/healtharchive/backups` grows unexpectedly:
+If `<service-data-root>/backups` grows unexpectedly:
 
 ```bash
-sudo du -sh /srv/healtharchive/backups /srv/healtharchive/storagebox/backups/db
-sudo find /srv/healtharchive/backups -maxdepth 1 -type f -printf '%TY-%Tm-%Td %10s %p\n' | sort | tail -40
+sudo du -sh <service-data-root>/backups <service-data-root>/storagebox/backups/db
+sudo find <service-data-root>/backups -maxdepth 1 -type f -printf '%TY-%Tm-%Td %10s %p\n' | sort | tail -40
 sudo systemctl status healtharchive-db-backup.service --no-pager
 ```
 
@@ -161,7 +161,7 @@ curl -i https://api.healtharchive.ca/api/health
 Prefer the repo-managed maintenance helper when it is present:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 /usr/bin/python3 scripts/vps-frontend-cache-maintenance.py
 sudo /usr/bin/python3 scripts/vps-frontend-cache-maintenance.py --apply
 ```
@@ -185,10 +185,10 @@ This prevents starting crawls that would fail mid-flight due to disk pressure.
 
 1. Check Docker images: `docker system df`
 2. Check logs: `sudo du -sh /var/log`
-3. Check local backup cache: `sudo du -sh /srv/healtharchive/backups`
+3. Check local backup cache: `sudo du -sh <service-data-root>/backups`
 4. Check frontend Docker runtime/cache metrics:
    `curl -s http://127.0.0.1:9100/metrics | grep '^healtharchive_docker_'`
-5. Check temp crawl dirs: `du -xsh /srv/healtharchive/jobs/*/`
+5. Check temp crawl dirs: `du -xsh <service-data-root>/jobs/*/`
 6. Run manual cleanup (see above)
 
 ### Disk >92% (Critical)
@@ -200,11 +200,11 @@ This prevents starting crawls that would fail mid-flight due to disk pressure.
 
 ### False Alarm: du Reports >100GB
 
-If `du -sh /srv/healtharchive/jobs/*` reports huge sizes (>100GB), it's traversing SSHFS mounts and reporting remote storagebox data.
+If `du -sh <service-data-root>/jobs/*` reports huge sizes (>100GB), it's traversing SSHFS mounts and reporting remote storagebox data.
 
 **Fix**: Use `du -xsh` to stay on local filesystem only:
 ```bash
-sudo du -xsh /srv/healtharchive/jobs/*
+sudo du -xsh <service-data-root>/jobs/*
 ```
 
 Or just use `df -h /` for filesystem truth.
@@ -215,7 +215,7 @@ Or just use `df -h /` for filesystem truth.
 - **2026-01-31**: Disk pressure incident (89% → cleanup → 82%)
 - **2026-01-24**: Automated tiering for annual jobs deployed
 - **2026-05-23**: Root reached 100% after local DB dumps accumulated under
-  `/srv/healtharchive/backups`; moved retained dumps to Storage Box and added
+  `<service-data-root>/backups`; moved retained dumps to Storage Box and added
   repo-managed short-cache backup flow plus root/backup-cache alerts.
 - **2026-05-24**: Confirmed scheduled backup and NASD pull, set local DB dump
   retention to one successful dump, fixed rsyslog logrotate `su root syslog`,

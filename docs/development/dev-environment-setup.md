@@ -110,32 +110,13 @@ Both app surfaces include a `.pre-commit-config.yaml`.
 
 ---
 
-## VPS usage (production)
+## Hosted deployment boundary
 
-### What runs on the VPS
+Deployment is environment-specific and handled outside this public repository.
+This guide intentionally focuses on local development, test parity, and
+reproducible verification from a checkout.
 
-Run these on the production VPS (typically from `/opt/healtharchive`):
-
-- Deploy + restart services:
-  - `./scripts/vps-deploy.sh --apply`
-- Production verification gates:
-  - `./scripts/check_baseline_drift.py --mode live`
-  - `./scripts/verify_public_surface.py`
-- Ops bootstrap / automation helpers (recommended):
-  - one-time: `sudo ./scripts/vps-bootstrap-ops-dirs.sh`
-  - install/update systemd templates: `sudo ./scripts/vps-install-systemd-units.sh --apply --restart-worker`
-  - verify timers/sentinels: `./scripts/verify_ops_automation.sh`
-
-Recommended deploy flow (single command):
-
-```bash
-./scripts/vps-deploy.sh --apply --baseline-mode live
-```
-
-Note: systemd timer enablement is explicit and gated by sentinel files under `/etc/healtharchive/`.
-For enable/rollback steps, see `../deployment/systemd/README.md`.
-
-### What should *not* run on the VPS
+### What should stay local
 
 These are local-developer guardrails and should run on your dev machine:
 

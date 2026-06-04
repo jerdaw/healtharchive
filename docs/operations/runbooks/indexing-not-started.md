@@ -19,9 +19,9 @@ state.
 1. Confirm the pending-index job and overall annual state.
 
    ```bash
-   cd /opt/healtharchive
+   cd <deploy-root>
    set -a; source /etc/healtharchive/backend.env; set +a
-   HA=/opt/healtharchive/.venv/bin/healtharchive
+   HA=<deploy-root>/.venv/bin/healtharchive
 
    "$HA" annual-status --year <YEAR>
    "$HA" show-job --id <JOB_ID>
@@ -44,7 +44,7 @@ state.
    looks wrong.
 
    ```bash
-   OUT=/srv/healtharchive/jobs/<source>/<job-dir>
+   OUT=<service-data-root>/jobs/<source>/<job-dir>
 
    findmnt -T "$OUT" -o TARGET,SOURCE,FSTYPE,OPTIONS
    sudo ls -ld "$OUT" "$OUT/warcs" "$OUT/provenance" 2>/dev/null
@@ -64,21 +64,21 @@ state.
    repo-local SQLite default:
 
    ```bash
-   cd /opt/healtharchive
+   cd <deploy-root>
    set -a; source /etc/healtharchive/backend.env; set +a
-   /opt/healtharchive/.venv/bin/healtharchive reconcile-completed-indexing --limit 5
+   <deploy-root>/.venv/bin/healtharchive reconcile-completed-indexing --limit 5
    ```
 
    For a large single source/job, prefer a detached run with a captured log:
 
    ```bash
-   cd /opt/healtharchive
+   cd <deploy-root>
    set -a; source /etc/healtharchive/backend.env; set +a
-   mkdir -p /srv/healtharchive/ops/manual-runs
+   mkdir -p <service-data-root>/ops/manual-runs
    ts="$(date -u +%Y%m%dT%H%M%SZ)"
    nohup ./.venv/bin/healtharchive reconcile-completed-indexing --source <source> --limit 1 \
-     > "/srv/healtharchive/ops/manual-runs/<source>-reindex-${ts}.log" 2>&1 &
-   echo "pid=$! log=/srv/healtharchive/ops/manual-runs/<source>-reindex-${ts}.log"
+     > "<service-data-root>/ops/manual-runs/<source>-reindex-${ts}.log" 2>&1 &
+   echo "pid=$! log=<service-data-root>/ops/manual-runs/<source>-reindex-${ts}.log"
    renice +10 -p "$!"
    ```
 
@@ -97,10 +97,10 @@ state.
    healthy, move it back to `completed` and retry indexing:
 
    ```bash
-   cd /opt/healtharchive
+   cd <deploy-root>
    set -a; source /etc/healtharchive/backend.env; set +a
-   /opt/healtharchive/.venv/bin/healtharchive retry-job --id <JOB_ID>
-   /opt/healtharchive/.venv/bin/healtharchive index-job --id <JOB_ID>
+   <deploy-root>/.venv/bin/healtharchive retry-job --id <JOB_ID>
+   <deploy-root>/.venv/bin/healtharchive index-job --id <JOB_ID>
    ```
 
 3. Re-check the result:

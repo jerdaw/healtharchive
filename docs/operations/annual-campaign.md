@@ -249,10 +249,10 @@ reports before declaring research readiness:
 ```bash
 YEAR=2026
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive/.venv/bin/healtharchive reconcile-completed-indexing
-/opt/healtharchive/.venv/bin/healtharchive salvage-annual-edition --year "$YEAR" --report
-/opt/healtharchive/.venv/bin/healtharchive annual-status --year "$YEAR"
-./scripts/annual-search-verify.sh --year "$YEAR" --out-root /srv/healtharchive/ops/search-eval --base-url http://127.0.0.1:8001
+<deploy-root>/.venv/bin/healtharchive reconcile-completed-indexing
+<deploy-root>/.venv/bin/healtharchive salvage-annual-edition --year "$YEAR" --report
+<deploy-root>/.venv/bin/healtharchive annual-status --year "$YEAR"
+./scripts/annual-search-verify.sh --year "$YEAR" --out-root <service-data-root>/ops/search-eval --base-url http://127.0.0.1:8001
 ```
 
 This produces:

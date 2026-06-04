@@ -56,7 +56,7 @@ Primary files (single-VPS annual campaign):
 | `healtharchive_crawl_metrics_timestamp_seconds` | Gauge | Unix timestamp when metrics were last written. |
 | `healtharchive_jobs_infra_error_recent_total{window="10m"}` | Gauge | Count of jobs with infra errors in rolling window. |
 | `healtharchive_db_backup_last_success` | Gauge | 1 = the latest repo-managed DB backup run succeeded. |
-| `healtharchive_db_backup_local_bytes` | Gauge | Bytes used by the short local DB backup cache under `/srv/healtharchive/backups`. |
+| `healtharchive_db_backup_local_bytes` | Gauge | Bytes used by the short local DB backup cache under `<service-data-root>/backups`. |
 | `healtharchive_db_backup_mirror_bytes` | Gauge | Bytes used by the Storage Box DB backup mirror. |
 | `healtharchive_search_requests_total{pid="..."}` | Counter | Per-process public `/api/search` request count. Aggregate over `pid` for service-level views. |
 | `healtharchive_search_errors_by_type{type="...",pid="..."}` | Counter | Per-process public `/api/search` error count by class. Operational alerts use `server`, `timeout`, and `unknown` error types. |
@@ -99,7 +99,7 @@ pool is fully exhausted.
 - **Threshold:** root filesystem usage >80% for 30m.
 - **Meaning:** The single VPS root disk is approaching the worker crawl-start
   guardrail and PostgreSQL temp-file risk zone.
-- **Action:** Check `/srv/healtharchive/backups`, PostgreSQL temp-file churn,
+- **Action:** Check `<service-data-root>/backups`, PostgreSQL temp-file churn,
   Docker images/logs, and `/var/log` before usage crosses 85%.
 
 **Alert:** `HealthArchiveRootDiskUsageCritical`
@@ -117,7 +117,7 @@ pool is fully exhausted.
   expected short cache. Retained backups should live under the Storage Box
   mirror.
 - **Action:** Check `healtharchive-db-backup.service`, the Storage Box mount,
-  and `/srv/healtharchive/backups`.
+  and `<service-data-root>/backups`.
 
 ### Public API Search Errors
 
@@ -180,13 +180,13 @@ In practice this means:
 
 - **Threshold:** `healtharchive_storage_hotpath_auto_recover_detected_targets > 0` for 10m (when the automation is enabled).
 - **Meaning:** Hot-path auto-recover still sees stale/unreadable paths after 10 minutes.
-- **Action:** Inspect `/srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json` and consider manual unmount + tiering re-apply.
+- **Action:** Inspect `<service-data-root>/ops/watchdog/storage-hotpath-auto-recover.json` and consider manual unmount + tiering re-apply.
 
 **Alert:** `HealthArchiveStorageHotpathApplyFailedPersistent`
 
 - **Threshold:** watchdog enabled, at least one apply attempt, `last_apply_ok == 0`, and last apply timestamp older than 24h (for 30m).
 - **Meaning:** Hot-path auto-recover apply mode has remained in a failed terminal state for over a day.
-- **Action:** Inspect `/srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json` (`last_apply_errors`, `last_apply_warnings`), then follow stale mount recovery playbook steps and re-run a controlled dry-run/apply verification.
+- **Action:** Inspect `<service-data-root>/ops/watchdog/storage-hotpath-auto-recover.json` (`last_apply_errors`, `last_apply_warnings`), then follow stale mount recovery playbook steps and re-run a controlled dry-run/apply verification.
 
 ### 3) Restart stability
 

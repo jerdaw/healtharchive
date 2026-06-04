@@ -6,7 +6,7 @@ Use these checks before claiming automation is “on”.
 
 - One-command posture check (recommended): `./scripts/verify_ops_automation.sh`
 - Diff-friendly JSON summary (optional): `./scripts/verify_ops_automation.sh --json | python3 -m json.tool`
-- JSON-only artifact (optional): `./scripts/verify_ops_automation.sh --json-only > /srv/healtharchive/ops/automation/posture.json`
+- JSON-only artifact (optional): `./scripts/verify_ops_automation.sh --json-only > <service-data-root>/ops/automation/posture.json`
 - Strict checks (optional):
   - all timers present: `./scripts/verify_ops_automation.sh --require-all-present`
   - all timers enabled: `./scripts/verify_ops_automation.sh --require-all-enabled`
@@ -17,7 +17,7 @@ Use these checks before claiming automation is “on”.
 
 ## Posture snapshots (optional)
 
-- Keep dated JSON under `/srv/healtharchive/ops/automation/` so you can diff over time.
+- Keep dated JSON under `<service-data-root>/ops/automation/` so you can diff over time.
 - If the directory is missing, run: `sudo ./scripts/vps-bootstrap-ops-dirs.sh` (idempotent).
 - Diff examples:
   - `diff -u <(python3 -m json.tool < old.json) <(python3 -m json.tool < new.json)`
@@ -30,5 +30,5 @@ Use these checks before claiming automation is “on”.
 
 ## Restore tests
 
-- Confirm a dated log file exists in `/srv/healtharchive/ops/restore-tests/`
+- Confirm a dated log file exists in `<service-data-root>/ops/restore-tests/`
 - Ensure it includes: backup source, schema check, API checks, pass/fail, follow-ups

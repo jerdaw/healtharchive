@@ -23,12 +23,12 @@ Canonical references:
 
 2. Run the deploy gate (recommended one command):
 
-   - `cd /opt/healtharchive && ./scripts/vps-deploy.sh --apply --baseline-mode live`
-   - Or pinned: `cd /opt/healtharchive && ./scripts/vps-deploy.sh --apply --baseline-mode live --ref <GIT_SHA>`
+   - `cd <deploy-root> && ./scripts/vps-deploy.sh --apply --baseline-mode live`
+   - Or pinned: `cd <deploy-root> && ./scripts/vps-deploy.sh --apply --baseline-mode live --ref <GIT_SHA>`
 
    Recommended wrapper (routine use):
 
-   - `cd /opt/healtharchive && ./scripts/vps-hetzdeploy.sh`
+   - `cd <deploy-root> && ./scripts/vps-hetzdeploy.sh`
 
    This includes:
 
@@ -46,7 +46,7 @@ Canonical references:
 
    - `./scripts/vps-hetzdeploy.sh --mode backend-only`
 
-   Optional: install the wrapper outside the repo so it never dirties `/opt/healtharchive`:
+   Optional: install the wrapper outside the repo so it never dirties `<deploy-root>`:
 
    - `sudo ./scripts/vps-install-hetzdeploy.sh --apply`
    - Then run: `hetzdeploy` or `hetzdeploy --mode backend-only`
@@ -78,7 +78,7 @@ Canonical references:
 
    - Do **not** retry blindly.
    - Read the failure output:
-     - drift report artifacts under `/srv/healtharchive/ops/baseline/`
+     - drift report artifacts under `<service-data-root>/ops/baseline/`
      - verifier output from `verify_public_surface.py`
    - Fix the underlying mismatch (production state vs policy) or intentionally update policy.
 

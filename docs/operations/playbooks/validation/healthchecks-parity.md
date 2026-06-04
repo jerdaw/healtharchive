@@ -153,7 +153,7 @@ Enabling cleanup changes production behavior (even if intended to be safe). Defe
 
 1) Review the cleanup behavior and config:
    - Playbook: `../crawl/cleanup-automation.md`
-   - Config: `/opt/healtharchive/ops/automation/cleanup-automation.toml`
+   - Config: `<deploy-root>/ops/automation/cleanup-automation.toml`
 
 2) Decide Healthchecks schedule (from the timer):
 
@@ -196,7 +196,7 @@ sudo systemctl enable --now healtharchive-cleanup-automation.timer
 6) Verify the ping wiring (safe; does not run cleanup):
 
 ```bash
-sudo bash -lc 'set -a; source /etc/healtharchive/healthchecks.env; set +a; /opt/healtharchive/scripts/systemd-healthchecks-wrapper.sh --ping-var HEALTHARCHIVE_HC_PING_CLEANUP_AUTOMATION -- echo ok'
+sudo bash -lc 'set -a; source /etc/healtharchive/healthchecks.env; set +a; <deploy-root>/scripts/systemd-healthchecks-wrapper.sh --ping-var HEALTHARCHIVE_HC_PING_CLEANUP_AUTOMATION -- echo ok'
 ```
 
 7) Verify real runs on the next scheduled window:

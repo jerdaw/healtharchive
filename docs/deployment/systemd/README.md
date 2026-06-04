@@ -24,8 +24,8 @@ They implement:
 
 Assumptions (adjust paths/user if your VPS differs):
 
-- Repo is deployed at: `/opt/healtharchive`
-- Venv exists at: `/opt/healtharchive/.venv`
+- Repo is deployed at: `<deploy-root>`
+- Venv exists at: `<deploy-root>/.venv`
 - Backend env file: `/etc/healtharchive/backend.env`
 - Backend system user: `haadmin`
 
@@ -39,16 +39,16 @@ fragile on hardened systems and during cross-user incident response.
 
 Recommended production lock directory:
 
-- `/srv/healtharchive/ops/locks/jobs`
+- `<service-data-root>/ops/locks/jobs`
 
 Enablement (on the VPS):
 
 1. Ensure ops dirs exist:
 
-   - `cd /opt/healtharchive && sudo ./scripts/vps-bootstrap-ops-dirs.sh`
+   - `cd <deploy-root> && sudo ./scripts/vps-bootstrap-ops-dirs.sh`
 2. Set the env var in `/etc/healtharchive/backend.env`:
 
-   - `export HEALTHARCHIVE_JOB_LOCK_DIR=/srv/healtharchive/ops/locks/jobs`
+   - `export HEALTHARCHIVE_JOB_LOCK_DIR=<service-data-root>/ops/locks/jobs`
 3. Restart the worker and any watchdog timers/services that read `backend.env`
    during a safe window.
 
@@ -56,16 +56,16 @@ Hard requirement: do not restart the worker while crawls are running unless you 
 
 Recommended (safe, copy/paste checklist):
 
-- `cd /opt/healtharchive && ./scripts/vps-job-lock-dir-cutover.sh`
+- `cd <deploy-root> && ./scripts/vps-job-lock-dir-cutover.sh`
 
-If the script is missing on the VPS, your `/opt/healtharchive` checkout is behind the repo. You can either deploy/pull first,
+If the script is missing on the VPS, your `<deploy-root>` checkout is behind the repo. You can either deploy/pull first,
 or stage the cutover manually (no restarts required until your maintenance window):
 
 - `sudo cp -av /etc/healtharchive/backend.env /etc/healtharchive/backend.env.bak.$(date -u +%Y%m%dT%H%M%SZ)`
 - Add/update:
-  - `export HEALTHARCHIVE_JOB_LOCK_DIR=/srv/healtharchive/ops/locks/jobs`
+  - `export HEALTHARCHIVE_JOB_LOCK_DIR=<service-data-root>/ops/locks/jobs`
 - Ensure the lock dir exists (some older `vps-bootstrap-ops-dirs.sh` versions did not create it):
-  - `sudo install -d -m 2770 -o root -g healtharchive /srv/healtharchive/ops/locks/jobs`
+  - `sudo install -d -m 2770 -o root -g healtharchive <service-data-root>/ops/locks/jobs`
 
 ---
 
@@ -78,11 +78,11 @@ or stage the cutover manually (no restarts required until your maintenance windo
 - `healtharchive-worker.service`
   - Repo-managed worker service template for the long-running crawl worker loop.
   - Uses the canonical CLI entrypoint:
-    - `ExecStart=/opt/healtharchive/.venv/bin/healtharchive start-worker --poll-interval 30`
+    - `ExecStart=<deploy-root>/.venv/bin/healtharchive start-worker --poll-interval 30`
 - `healtharchive-db-backup.service` + `.timer`
   - Runs `scripts/vps-db-backup.sh` nightly.
-  - Uses `/srv/healtharchive/backups` only as a short local cache, mirrors
-    successful dumps to `/srv/healtharchive/storagebox/backups/db`, and writes
+  - Uses `<service-data-root>/backups` only as a short local cache, mirrors
+    successful dumps to `<service-data-root>/storagebox/backups/db`, and writes
     `healtharchive_db_backup_*` textfile metrics.
   - Pings `HC_DB_BACKUP_URL` from `/etc/healtharchive/healthchecks.env` when set.
 - `healtharchive-docker-runtime-metrics.service` + `.timer`
@@ -102,7 +102,7 @@ or stage the cutover manually (no restarts required until your maintenance windo
   - Binds to loopback (`127.0.0.1:8090`) for Caddy to proxy.
   - Resolves the host `hareplay` UID and `healtharchive` GID at startup, then
     runs docker with `-e PYTHONPATH=/webarchive` so the managed
-    `/srv/healtharchive/replay/sitecustomize.py` hook can drop malformed
+    `<service-data-root>/replay/sitecustomize.py` hook can drop malformed
     replayed header names before Caddy parses them.
 - `healtharchive-schedule-annual.service`
   - **Apply mode**: enqueues annual jobs (`--apply`) for the current UTC year.
@@ -119,7 +119,7 @@ or stage the cutover manually (no restarts required until your maintenance windo
 - `healtharchive-replay-reconcile.service`
   - **Apply mode**: runs `healtharchive replay-reconcile --apply --max-jobs 1`.
   - Gated by `ConditionPathExists=/etc/healtharchive/replay-automation-enabled`.
-  - Uses a lock file under `/srv/healtharchive/replay/.locks/` to prevent concurrent runs.
+  - Uses a lock file under `<service-data-root>/replay/.locks/` to prevent concurrent runs.
   - Runs as root because it has to bridge host-side replay collection writes
     with `docker exec` into the hardened pywb container; running it as
     `haadmin` leaves new `hareplay`-owned collections stuck in
@@ -156,7 +156,7 @@ or stage the cutover manually (no restarts required until your maintenance windo
   - Runs safe `temp-nonwarc` cleanup in threshold mode (no-op when disk is below threshold).
   - Gated by `ConditionPathExists=/etc/healtharchive/cleanup-automation-enabled`.
 - `healtharchive-baseline-drift-check.service`
-  - Runs `scripts/check_baseline_drift.py` (policy vs observed; writes artifacts under `/srv/healtharchive/ops/baseline/`).
+  - Runs `scripts/check_baseline_drift.py` (policy vs observed; writes artifacts under `<service-data-root>/ops/baseline/`).
   - Gated by `ConditionPathExists=/etc/healtharchive/baseline-drift-enabled`.
 - `healtharchive-baseline-drift-check.timer`
   - Weekly timer for `healtharchive-baseline-drift-check.service`.
@@ -197,14 +197,14 @@ or stage the cutover manually (no restarts required until your maintenance windo
 - `healtharchive-storage-watchdog-burnin-snapshot.service` + `.timer`
   - Optional read-only daily snapshot of the storage hot-path watchdog burn-in summary.
   - Gated by `ConditionPathExists=/etc/healtharchive/storage-watchdog-burnin-enabled`.
-  - Writes dated JSON artifacts under `/srv/healtharchive/ops/burnin/storage-watchdog/` (and `latest.json`).
+  - Writes dated JSON artifacts under `<service-data-root>/ops/burnin/storage-watchdog/` (and `latest.json`).
 - `healtharchive-storagebox-sshfs.service`
-  - Mounts a Hetzner Storage Box at `/srv/healtharchive/storagebox` via `sshfs`.
+  - Mounts a Hetzner Storage Box at `<service-data-root>/storagebox` via `sshfs`.
   - Reads configuration from `/etc/healtharchive/storagebox.env`.
   - Intended for tiered WARC storage on small SSD hosts.
 - `healtharchive-warc-tiering.service`
   - Applies bind mounts from `/etc/healtharchive/warc-tiering.binds` so canonical
-    archive paths under `/srv/healtharchive/jobs/**` resolve to Storage Box data.
+    archive paths under `<service-data-root>/jobs/**` resolve to Storage Box data.
   - Runs before the API/worker/replay services start.
 - `healtharchive-annual-output-tiering.service`
   - After annual jobs are enqueued, bind-mounts each annual job output_dir onto the Storage Box tier.
@@ -269,7 +269,7 @@ If a timer is enabled, also ensure its sentinel file exists under
 Preferred (one command; installs the managed API/replay/worker templates, timer templates, and the worker priority drop-in):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo ./scripts/vps-install-systemd-units.sh --apply --restart-worker
 ```
 
@@ -279,7 +279,7 @@ After deploying a repo ref that contains these units, install the templates and
 enable the read-only Docker runtime metrics timer:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo ./scripts/vps-install-systemd-units.sh --apply
 sudo systemctl enable --now healtharchive-docker-runtime-metrics.timer
 sudo systemctl start healtharchive-docker-runtime-metrics.service
@@ -291,7 +291,7 @@ The frontend cache maintenance timer is state-changing because it can restart
 first, then enable the sentinel and timer:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 /usr/bin/python3 scripts/vps-frontend-cache-maintenance.py
 sudo touch /etc/healtharchive/frontend-cache-maintenance-enabled
 sudo systemctl enable --now healtharchive-frontend-cache-maintenance.timer
@@ -313,7 +313,7 @@ recovery), prefer launching it as a transient systemd unit so your SSH session
 doesn’t need to stay open:
 
 ```bash
-sudo /opt/healtharchive/scripts/vps-run-db-job-detached.py --id 7 --retry-first
+sudo <deploy-root>/scripts/vps-run-db-job-detached.py --id 7 --retry-first
 ```
 
 Follow the printed `journalctl -u <unit>.service -f` command to tail logs.
@@ -327,11 +327,11 @@ If you are using WARC tiering with a Storage Box, also create these files on the
 
 See: `docs/operations/playbooks/storage/warc-storage-tiering.md`.
 
-Before enabling timers that write artifacts under `/srv/healtharchive/ops/`, ensure
+Before enabling timers that write artifacts under `<service-data-root>/ops/`, ensure
 the ops directories exist with the expected permissions:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo ./scripts/vps-bootstrap-ops-dirs.sh
 ```
 
@@ -341,71 +341,71 @@ Copy unit files:
 
 ```bash
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-schedule-annual.service \
+  <deploy-root>/docs/deployment/systemd/healtharchive-schedule-annual.service \
   /etc/systemd/system/healtharchive-schedule-annual.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-schedule-annual.timer \
+  <deploy-root>/docs/deployment/systemd/healtharchive-schedule-annual.timer \
   /etc/systemd/system/healtharchive-schedule-annual.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-schedule-annual-dry-run.service \
+  <deploy-root>/docs/deployment/systemd/healtharchive-schedule-annual-dry-run.service \
   /etc/systemd/system/healtharchive-schedule-annual-dry-run.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-replay-reconcile.service \
+  <deploy-root>/docs/deployment/systemd/healtharchive-replay-reconcile.service \
   /etc/systemd/system/healtharchive-replay-reconcile.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-replay-reconcile.timer \
+  <deploy-root>/docs/deployment/systemd/healtharchive-replay-reconcile.timer \
   /etc/systemd/system/healtharchive-replay-reconcile.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-replay-reconcile-dry-run.service \
+  <deploy-root>/docs/deployment/systemd/healtharchive-replay-reconcile-dry-run.service \
   /etc/systemd/system/healtharchive-replay-reconcile-dry-run.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-change-tracking.service \
+  <deploy-root>/docs/deployment/systemd/healtharchive-change-tracking.service \
   /etc/systemd/system/healtharchive-change-tracking.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-change-tracking.timer \
+  <deploy-root>/docs/deployment/systemd/healtharchive-change-tracking.timer \
   /etc/systemd/system/healtharchive-change-tracking.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-change-tracking-dry-run.service \
+  <deploy-root>/docs/deployment/systemd/healtharchive-change-tracking-dry-run.service \
   /etc/systemd/system/healtharchive-change-tracking-dry-run.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-annual-search-verify.service \
+  <deploy-root>/docs/deployment/systemd/healtharchive-annual-search-verify.service \
   /etc/systemd/system/healtharchive-annual-search-verify.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-annual-search-verify.timer \
+  <deploy-root>/docs/deployment/systemd/healtharchive-annual-search-verify.timer \
   /etc/systemd/system/healtharchive-annual-search-verify.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-baseline-drift-check.service \
+  <deploy-root>/docs/deployment/systemd/healtharchive-baseline-drift-check.service \
   /etc/systemd/system/healtharchive-baseline-drift-check.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-baseline-drift-check.timer \
+  <deploy-root>/docs/deployment/systemd/healtharchive-baseline-drift-check.timer \
   /etc/systemd/system/healtharchive-baseline-drift-check.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-public-surface-verify.service \
+  <deploy-root>/docs/deployment/systemd/healtharchive-public-surface-verify.service \
   /etc/systemd/system/healtharchive-public-surface-verify.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-public-surface-verify.timer \
+  <deploy-root>/docs/deployment/systemd/healtharchive-public-surface-verify.timer \
   /etc/systemd/system/healtharchive-public-surface-verify.timer
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-drift-auto-reconcile.service \
+  <deploy-root>/docs/deployment/systemd/healtharchive-drift-auto-reconcile.service \
   /etc/systemd/system/healtharchive-drift-auto-reconcile.service
 
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-drift-auto-reconcile.timer \
+  <deploy-root>/docs/deployment/systemd/healtharchive-drift-auto-reconcile.timer \
   /etc/systemd/system/healtharchive-drift-auto-reconcile.timer
 ```
 
@@ -414,7 +414,7 @@ Install the worker priority drop-in:
 ```bash
 sudo install -d -m 0755 -o root -g root /etc/systemd/system/healtharchive-worker.service.d
 sudo install -m 0644 -o root -g root \
-  /opt/healtharchive/docs/deployment/systemd/healtharchive-worker.service.override.conf \
+  <deploy-root>/docs/deployment/systemd/healtharchive-worker.service.override.conf \
   /etc/systemd/system/healtharchive-worker.service.d/override.conf
 ```
 
@@ -498,7 +498,7 @@ This script compares:
 Run on the VPS:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo python3 ./scripts/verify_healthchecks_alignment.py
 ```
 
@@ -553,8 +553,8 @@ If you see an error like `relation "snapshot_changes" does not exist`, apply
 migrations first (idempotent):
 
 ```bash
-cd /opt/healtharchive
-sudo -u haadmin /opt/healtharchive/.venv/bin/alembic upgrade head
+cd <deploy-root>
+sudo -u haadmin <deploy-root>/.venv/bin/alembic upgrade head
 ```
 
 ---
@@ -636,7 +636,7 @@ systemctl list-timers | rg healtharchive-annual-search-verify || systemctl list-
 
 Artifacts default to:
 
-- `/srv/healtharchive/ops/search-eval/<year>/final/`
+- `<service-data-root>/ops/search-eval/<year>/final/`
 
 To force a re-run for the current year, delete that directory and run the
 service once.
@@ -755,7 +755,7 @@ Storage Box mount is readable. This helps clear persistent `HealthArchiveWarcTie
 alerts caused by stale historical unit state.
 
 After successful mount recovery it restarts replay (best-effort) so replay sees
-a clean view of `/srv/healtharchive/jobs`.
+a clean view of `<service-data-root>/jobs`.
 
 Keep it **disabled by default** and enable only after:
 
@@ -785,7 +785,7 @@ sudo rm -f /etc/healtharchive/storage-hotpath-auto-recover-enabled
 
 The watchdog writes state under:
 
-- `/srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json`
+- `<service-data-root>/ops/watchdog/storage-hotpath-auto-recover.json`
 
 and emits node_exporter textfile metrics via:
 
@@ -802,7 +802,7 @@ the command manually.
 Precondition: ops directories exist (idempotent):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo ./scripts/vps-bootstrap-ops-dirs.sh
 ```
 
@@ -821,8 +821,8 @@ systemctl list-timers | rg healtharchive-storage-watchdog-burnin-snapshot || sys
 
 Artifacts:
 
-- `/srv/healtharchive/ops/burnin/storage-watchdog/latest.json`
-- `/srv/healtharchive/ops/burnin/storage-watchdog/storage-watchdog-burnin-YYYYMMDD.json`
+- `<service-data-root>/ops/burnin/storage-watchdog/latest.json`
+- `<service-data-root>/ops/burnin/storage-watchdog/storage-watchdog-burnin-YYYYMMDD.json`
 
 Rollback:
 
@@ -872,7 +872,7 @@ sudo rm -f /etc/healtharchive/worker-auto-start-enabled
 
 The watchdog writes state under:
 
-- `/srv/healtharchive/ops/watchdog/worker-auto-start.json`
+- `<service-data-root>/ops/watchdog/worker-auto-start.json`
 
 and emits node_exporter textfile metrics via:
 
@@ -908,7 +908,7 @@ sudo rm -f /etc/healtharchive/drift-auto-reconcile-enabled
 
 The watchdog writes state under:
 
-- `/srv/healtharchive/ops/watchdog/drift-auto-reconcile.json`
+- `<service-data-root>/ops/watchdog/drift-auto-reconcile.json`
 
 and emits node_exporter textfile metrics via:
 
@@ -936,11 +936,11 @@ systemctl list-timers | rg healtharchive-baseline-drift-check || systemctl list-
 
 Artifacts are written under:
 
-- `/srv/healtharchive/ops/baseline/`
+- `<service-data-root>/ops/baseline/`
 
 If the drift check fails, inspect:
 
-- `/srv/healtharchive/ops/baseline/drift-report-latest.txt`
+- `<service-data-root>/ops/baseline/drift-report-latest.txt`
   - `journalctl -u healtharchive-baseline-drift-check.service --no-pager -l`
 
 If required drift is fixed and you want to confirm recovery immediately:

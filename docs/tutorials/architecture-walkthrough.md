@@ -4,7 +4,7 @@ Learn how HealthArchive works by following a web page from crawl to search resul
 
 **Time**: 20-30 minutes
 **Skill Level**: Beginner to intermediate
-**Prerequisites**: Basic understanding of web applications and databases
+**Prerequisites**: Basic understanding of web apps and databases
 
 ---
 
@@ -41,7 +41,7 @@ healtharchive create-job --source hc
 
 2. **Job Creation** (`ha_backend/job_registry.py:400-420`):
    - Generates job name: `hc-20260118` (using today's date)
-   - Creates output directory: `/mnt/nasd/nobak/healtharchive/jobs/hc/20260118T210911Z__hc-20260118`
+   - Creates output directory: `<archive-root>/hc/20260118T210911Z__hc-20260118`
    - Inserts `ArchiveJob` row with `status="queued"`
 
 **Database state after creation:**
@@ -50,7 +50,7 @@ healtharchive create-job --source hc
 ┌────┬────────────┬──────────┬─────────────────────────────────┐
 │ id │ name       │ status   │ output_dir                      │
 ├────┼────────────┼──────────┼─────────────────────────────────┤
-│ 42 │ hc-20260118│ queued   │ /mnt/.../20260118T...hc-20260118│
+│ 42 │ hc-20260118│ queued   │ <archive-root>/.../20260118T...hc-20260118│
 └────┴────────────┴──────────┴─────────────────────────────────┘
 ```
 
@@ -113,7 +113,7 @@ sequenceDiagram
    ```bash
    archive-tool \
      --name hc-20260118 \
-     --output-dir /mnt/.../20260118T...hc-20260118 \
+     --output-dir <archive-root>/.../20260118T...hc-20260118 \
      --initial-workers 2 \
      https://www.canada.ca/en/health-canada.html
    ```
@@ -168,7 +168,7 @@ WARC/1.0
 WARC-Type: response
 WARC-Date: 2026-01-18T21:15:42Z
 WARC-Record-ID: <urn:uuid:12345...>
-Content-Type: application/http; msgtype=response
+Content-Type: <warc-response-content-type>
 
 HTTP/1.1 200 OK
 Content-Type: text/html; charset=utf-8
@@ -235,8 +235,8 @@ graph TD
 ```python
 warc_paths = discover_warcs_for_job(job)
 # Returns: [
-#   Path("/mnt/.../rec-00000-20260118.warc.gz"),
-#   Path("/mnt/.../rec-00001-20260118.warc.gz"),
+#   Path("<archive-root>/.../rec-00000-20260118.warc.gz"),
+#   Path("<archive-root>/.../rec-00001-20260118.warc.gz"),
 # ]
 ```
 
@@ -539,4 +539,5 @@ Now that you understand the architecture:
 - **How do I improve search ranking?** Review search logic in `routes_public.py:885-946`
 - **Where are WARCs stored long-term?** In the job's output directory under `archive_root`
 
-Still have questions? Check the [How-To Guides](../operations/README.md) or ask in GitHub Discussions.
+Still have questions? Open a GitHub Discussion or issue with the source,
+command, and local environment details needed to reproduce the problem.

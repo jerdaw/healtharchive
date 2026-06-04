@@ -29,7 +29,7 @@ Warning: starting `healtharchive-cleanup-automation.service` will **apply** clea
 Use the script directly for a dry-run preview.
 
 ```bash
-sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-cleanup-automation.py --config /opt/healtharchive/ops/automation/cleanup-automation.toml --out-dir /tmp --out-file healtharchive_cleanup_dryrun.prom'
+sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; <deploy-root>/.venv/bin/python3 <deploy-root>/scripts/vps-cleanup-automation.py --config <deploy-root>/ops/automation/cleanup-automation.toml --out-dir /tmp --out-file healtharchive_cleanup_dryrun.prom'
 cat /tmp/healtharchive_cleanup_dryrun.prom
 ```
 
@@ -37,11 +37,11 @@ cat /tmp/healtharchive_cleanup_dryrun.prom
 
 1. Check the job output directory exists and is readable:
    ```bash
-   /opt/healtharchive/.venv/bin/healtharchive show-job --id <JOB_ID>
+   <deploy-root>/.venv/bin/healtharchive show-job --id <JOB_ID>
    ```
 2. Run the cleanup command manually:
    ```bash
-   /opt/healtharchive/.venv/bin/healtharchive cleanup-job --id <JOB_ID> --mode temp-nonwarc --dry-run
+   <deploy-root>/.venv/bin/healtharchive cleanup-job --id <JOB_ID> --mode temp-nonwarc --dry-run
    ```
 
 ## Config

@@ -16,7 +16,7 @@ Status: closed
 
 ## Summary
 
-The daily replay smoke tests began returning `503` for the legacy imported jobs (HC + CIHR), even though `https://replay.healtharchive.ca/` itself was up (`200`). The underlying issue was that the replay container could not reliably read WARCs under `/srv/healtharchive/jobs/imports/**` due to stale mountpoints (`Transport endpoint is not connected`) and the replay container’s mount namespace not reflecting repaired/updated mounts. Separately, `healtharchive-warc-tiering.service` had been left in a `failed` state since 2026-01-08, preventing tiered imports from being reliably mounted.
+The daily replay smoke tests began returning `503` for the legacy imported jobs (HC + CIHR), even though `https://replay.healtharchive.ca/` itself was up (`200`). The underlying issue was that the replay container could not reliably read WARCs under `<service-data-root>/jobs/imports/**` due to stale mountpoints (`Transport endpoint is not connected`) and the replay container’s mount namespace not reflecting repaired/updated mounts. Separately, `healtharchive-warc-tiering.service` had been left in a `failed` state since 2026-01-08, preventing tiered imports from being reliably mounted.
 
 Recovery: re-apply WARC tiering, clear the failed systemd state, and restart the replay service to refresh its mounts; then re-run replay smoke tests.
 
@@ -42,12 +42,12 @@ Recovery: re-apply WARC tiering, clear the failed systemd state, and restart the
 
 ## Decision log (recommended for sev1)
 
-- 2026-01-16T02:51:00Z — Decision: restart replay after fixing tiering mounts (why: quickest way to ensure the pywb container sees a clean view of `/srv/healtharchive/jobs` and can read WARCs; risks: brief replay downtime, but no data mutation).
-- 2026-01-16T16:00:00Z — Decision (post-incident hardening): run pywb with `rshared` bind propagation for `/srv/healtharchive/jobs` (why: allow the container to observe repaired nested mounts without requiring an additional restart; risks: broader mount propagation surface, but still read-only inside the container).
+- 2026-01-16T02:51:00Z — Decision: restart replay after fixing tiering mounts (why: quickest way to ensure the pywb container sees a clean view of `<service-data-root>/jobs` and can read WARCs; risks: brief replay downtime, but no data mutation).
+- 2026-01-16T16:00:00Z — Decision (post-incident hardening): run pywb with `rshared` bind propagation for `<service-data-root>/jobs` (why: allow the container to observe repaired nested mounts without requiring an additional restart; risks: broader mount propagation surface, but still read-only inside the container).
 
 ## Timeline (UTC)
 
-- 2026-01-08T06:25:23Z — `healtharchive-warc-tiering.service` failed while attempting to operate on `/srv/healtharchive/jobs/imports/...` (stale mount: `Transport endpoint is not connected`).
+- 2026-01-08T06:25:23Z — `healtharchive-warc-tiering.service` failed while attempting to operate on `<service-data-root>/jobs/imports/...` (stale mount: `Transport endpoint is not connected`).
 - 2026-01-15T04:20:00Z — Replay smoke test metrics show `503` for legacy jobs (first observed failing `healtharchive_replay_smoke_*` timestamp).
 - 2026-01-16T02:25Z — Verified replay root is up (`curl -I https://replay.healtharchive.ca/` returns `200`), but snapshot requests return `503`.
 - 2026-01-16T02:30Z — Confirmed the replay container cannot read tiered import directories (`docker exec healtharchive-replay ...` shows `Transport endpoint is not connected`).
@@ -59,14 +59,14 @@ Recovery: re-apply WARC tiering, clear the failed systemd state, and restart the
 - 2026-01-16T02:51:56Z — Replay smoke metrics return to `200`:
   - `healtharchive_replay_smoke_ok{job_id="1",source="hc"} 1`
   - `healtharchive_replay_smoke_ok{job_id="2",source="cihr"} 1`
-- 2026-01-16T16:00Z — Post-incident hardening: updated replay systemd unit to mount `/srv/healtharchive/jobs` with `rshared` bind propagation so pywb can observe nested mount repairs without a restart (see: `../../deployment/replay-service-pywb.md`).
+- 2026-01-16T16:00Z — Post-incident hardening: updated replay systemd unit to mount `<service-data-root>/jobs` with `rshared` bind propagation so pywb can observe nested mount repairs without a restart (see: `../../deployment/replay-service-pywb.md`).
 
 ## Root cause
 
-- Immediate trigger: one or more tiered paths under `/srv/healtharchive/jobs/imports/**` were stale/unreadable (`Errno 107: Transport endpoint is not connected`), causing WARC reads inside pywb to fail.
+- Immediate trigger: one or more tiered paths under `<service-data-root>/jobs/imports/**` were stale/unreadable (`Errno 107: Transport endpoint is not connected`), causing WARC reads inside pywb to fail.
 - Underlying cause(s):
   - `healtharchive-warc-tiering.service` remained `failed` after a prior storage incident, so tiered import mountpoints were not being applied/validated by systemd.
-  - The replay service is a long-running Docker container bind-mounting `/srv/healtharchive/jobs` into `/warcs`. Mount changes/repairs on the host can require a container restart for the container to observe a clean view of the mountpoints.
+  - The replay service is a long-running Docker container bind-mounting `<service-data-root>/jobs` into `/warcs`. Mount changes/repairs on the host can require a container restart for the container to observe a clean view of the mountpoints.
 
 ## Contributing factors
 
@@ -85,7 +85,7 @@ sudo systemctl start healtharchive-warc-tiering.service
 sudo systemctl status healtharchive-warc-tiering.service --no-pager -l
 ```
 
-2) Restart replay so the container sees a clean view of `/srv/healtharchive/jobs`:
+2) Restart replay so the container sees a clean view of `<service-data-root>/jobs`:
 
 ```bash
 sudo systemctl restart healtharchive-replay.service
@@ -102,7 +102,7 @@ curl -s http://127.0.0.1:9100/metrics | rg '^healtharchive_replay_smoke_'
 ## Post-incident hardening (durable fixes)
 
 - Replay service mount propagation:
-  - Updated `/etc/systemd/system/healtharchive-replay.service` to mount `/srv/healtharchive/jobs` as `ro,rshared` so nested bind-mount repairs (tiering/hot-path recovery) are visible inside the container.
+  - Updated `/etc/systemd/system/healtharchive-replay.service` to mount `<service-data-root>/jobs` as `ro,rshared` so nested bind-mount repairs (tiering/hot-path recovery) are visible inside the container.
   - Canonical doc: `../../deployment/replay-service-pywb.md`
 - Tiering service resilience:
   - Updated the tiering systemd unit template to run `vps-warc-tiering-bind-mounts.sh --apply --repair-stale-mounts` so it can automatically unmount stale `Errno 107` mountpoints and re-apply binds on start.

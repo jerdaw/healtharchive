@@ -36,7 +36,7 @@ inside that broader campaign wrap-up.
 - Default to read-only validation. Do not run cleanup, restarts, or destructive
   storage commands as part of closeout unless a separate playbook calls for
   them.
-- Do not edit `/opt/healtharchive` directly. Fix production behavior through a
+- Do not edit `<deploy-root>` directly. Fix production behavior through a
   committed repo change and the deploy helper.
 - Do not print secrets. When inspecting env files, print variable names or
   sanitized summaries only.
@@ -57,7 +57,7 @@ git log -1 --oneline
 On the VPS, verify the active checkout is the intended deployed ref:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 git rev-parse --short=12 HEAD
 git status --short --branch
 ```
@@ -74,7 +74,7 @@ continuing. Prefer the pinned-ref deploy helper for incident follow-through:
 On the VPS:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 
 ha-check
 curl -fsS http://127.0.0.1:8001/api/health
@@ -129,14 +129,14 @@ Box, NASD replication, or root-disk cleanup.
 On the VPS:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 
 systemctl list-timers --all | grep healtharchive-db-backup
 sudo systemctl status healtharchive-db-backup.service --no-pager
 
-sudo find /srv/healtharchive/backups -maxdepth 1 -type f \
+sudo find <service-data-root>/backups -maxdepth 1 -type f \
   -printf '%TY-%Tm-%Td %10s %p\n' | sort
-sudo find /srv/healtharchive/storagebox/backups/db -maxdepth 1 -type f \
+sudo find <service-data-root>/storagebox/backups/db -maxdepth 1 -type f \
   -printf '%TY-%Tm-%Td %10s %p\n' | sort | tail -20
 
 curl -s http://127.0.0.1:9100/metrics | grep '^healtharchive_db_backup_'

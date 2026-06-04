@@ -44,7 +44,7 @@ The 2026 annual campaign (3 jobs: hc, phac, cihr) has been running since Jan 1 w
 ### 1.1 Full Status Snapshot
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 
 # Save full status to file
 ./scripts/vps-crawl-status.sh --year 2026 > /tmp/crawl-status-$(date -u +%Y%m%dT%H%M%SZ).txt 2>&1
@@ -65,7 +65,7 @@ docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}' | tee /t
 
 ```bash
 # For each job, document WARCs found
-for job_dir in /srv/healtharchive/jobs/*/20260101*; do
+for job_dir in <service-data-root>/jobs/*/20260101*; do
   echo "=== $job_dir ===" >> /tmp/warc-inventory.txt
   find "$job_dir" -name "*.warc.gz" -o -name "*.warc" 2>/dev/null | \
     while read f; do
@@ -75,7 +75,7 @@ done
 
 # Count totals
 echo "=== WARC Counts ===" >> /tmp/warc-inventory.txt
-for job_dir in /srv/healtharchive/jobs/*/20260101*; do
+for job_dir in <service-data-root>/jobs/*/20260101*; do
   count=$(find "$job_dir" -name "*.warc.gz" -o -name "*.warc" 2>/dev/null | wc -l)
   echo "$job_dir: $count WARCs" >> /tmp/warc-inventory.txt
 done
@@ -88,7 +88,7 @@ cat /tmp/warc-inventory.txt
 ```bash
 # Copy state files for reference
 mkdir -p /tmp/state-backup-$(date -u +%Y%m%d)
-for job_dir in /srv/healtharchive/jobs/*/20260101*; do
+for job_dir in <service-data-root>/jobs/*/20260101*; do
   job_name=$(basename "$job_dir")
   cp -v "$job_dir/.archive_state.json" "/tmp/state-backup-$(date -u +%Y%m%d)/${job_name}.state.json" 2>/dev/null || echo "No state file: $job_dir"
 done
@@ -143,22 +143,22 @@ Follow `docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.
 
 ```bash
 # Check Storage Box base mount
-ls -la /srv/healtharchive/storagebox >/dev/null && echo "OK: storagebox readable" || echo "BAD: storagebox unreadable"
+ls -la <service-data-root>/storagebox >/dev/null && echo "OK: storagebox readable" || echo "BAD: storagebox unreadable"
 
 # Identify stale job mounts
-for job_dir in /srv/healtharchive/jobs/*/20260101*; do
+for job_dir in <service-data-root>/jobs/*/20260101*; do
   ls "$job_dir" >/dev/null 2>&1 && echo "OK: $job_dir" || echo "STALE: $job_dir"
 done
 
 # Unmount stale hot paths (adjust paths based on actual findings)
-sudo umount -l /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101 2>/dev/null || true
-sudo umount -l /srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101 2>/dev/null || true
+sudo umount -l <service-data-root>/jobs/phac/20260101T000502Z__phac-20260101 2>/dev/null || true
+sudo umount -l <service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101 2>/dev/null || true
 
 # Re-apply tiering with repair
 sudo ./scripts/vps-warc-tiering-bind-mounts.sh --apply --repair-stale-mounts
 
 # Verify mounts are healthy
-for job_dir in /srv/healtharchive/jobs/*/20260101*; do
+for job_dir in <service-data-root>/jobs/*/20260101*; do
   ls "$job_dir" >/dev/null 2>&1 && echo "OK: $job_dir" || echo "STILL_BROKEN: $job_dir"
 done
 ```
@@ -167,7 +167,7 @@ done
 
 ```bash
 # For Job 8 (cihr) with permission denied on .tmp_zcuywum
-job_dir="/srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101"
+job_dir="<service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101"
 
 # Use Docker alpine container to fix perms (avoids needing host sudo on files)
 docker run --rm -v "$job_dir:/output" alpine chmod -R a+rX /output/.tmp* 2>/dev/null || {
@@ -182,10 +182,10 @@ ls -la "$job_dir"/.tmp*/collections/ 2>/dev/null | head -5
 ### 3.3 Verify Disk Space
 
 ```bash
-df -h /srv/healtharchive/jobs
+df -h <service-data-root>/jobs
 
 # If above 70%, identify large temp dirs for later cleanup
-du -sh /srv/healtharchive/jobs/*/20260101*/.tmp* 2>/dev/null | sort -h | tail -20
+du -sh <service-data-root>/jobs/*/20260101*/.tmp* 2>/dev/null | sort -h | tail -20
 ```
 
 ---
@@ -198,7 +198,7 @@ du -sh /srv/healtharchive/jobs/*/20260101*/.tmp* 2>/dev/null | sort -h | tail -2
 
 ```bash
 source /etc/healtharchive/backend.env
-cd /opt/healtharchive
+cd <deploy-root>
 source .venv/bin/activate
 
 # Job 6 (HC)
@@ -449,7 +449,7 @@ done
 ```bash
 # Reset jobs to queued status with fresh retry count
 source /etc/healtharchive/backend.env
-cd /opt/healtharchive
+cd <deploy-root>
 source .venv/bin/activate
 
 python3 -c "
@@ -510,7 +510,7 @@ sudo systemctl start healtharchive-worker.service
 
 ```bash
 source /etc/healtharchive/backend.env
-cd /opt/healtharchive
+cd <deploy-root>
 source .venv/bin/activate
 
 python3 -c "
@@ -567,14 +567,14 @@ watch -n 1800 './scripts/vps-crawl-status.sh --year 2026 | head -60'
 
 ```bash
 # Monitor disk usage
-watch -n 300 'df -h /srv/healtharchive/jobs && echo "---" && du -sh /srv/healtharchive/jobs/*/20260101*/.tmp* 2>/dev/null | sort -h | tail -10'
+watch -n 300 'df -h <service-data-root>/jobs && echo "---" && du -sh <service-data-root>/jobs/*/20260101*/.tmp* 2>/dev/null | sort -h | tail -10'
 ```
 
 ### 7.3 Check for Recurring Issues
 
 ```bash
 # Check auto-recovery frequency
-cat /srv/healtharchive/ops/watchdog/crawl-auto-recover.json | python3 -m json.tool | tail -30
+cat <service-data-root>/ops/watchdog/crawl-auto-recover.json | python3 -m json.tool | tail -30
 
 # Check for new Errno 107 errors
 journalctl -u healtharchive-worker --since "1 hour ago" | grep -i "errno 107" || echo "No Errno 107 errors"
@@ -635,7 +635,7 @@ healtharchive recover-stale-jobs --older-than-minutes 5 --apply
 
 ```bash
 # Check if stable WARCs exist
-ls -la /srv/healtharchive/jobs/*/20260101*/warcs/
+ls -la <service-data-root>/jobs/*/20260101*/warcs/
 
 # If no stable WARCs and .tmp* deleted, recovery options:
 # 1. Restore from Storage Box cold tier (if tiered)
@@ -654,7 +654,7 @@ After indexing completes, verify:
 ```bash
 # Compare indexed pages to previous annual campaigns
 source /etc/healtharchive/backend.env
-cd /opt/healtharchive
+cd <deploy-root>
 source .venv/bin/activate
 
 python3 -c "

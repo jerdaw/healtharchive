@@ -6,5 +6,5 @@ The canonical contribution guide for this repo lives at the repository root:
 
 Related docs in this site:
 
-- [Quickstart](quickstart.md)
-- [Documentation Guidelines](documentation-guidelines.md)
+- [Local Development](development/dev-environment-setup.md)
+- [Live Testing](development/live-testing.md)

@@ -18,8 +18,8 @@ deployment runbook.
 Documentation boundary note:
 
 1. This checklist is canonical for the active HealthArchive production verification flow.
-2. Shared VPS facts that are not specific to HealthArchive alone are canonical in `/home/jer/repos/vps/platform-ops`.
-3. The explicit ownership split is documented in `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`.
+2. Shared VPS facts that are not specific to HealthArchive alone are canonical in `private shared-ops workspace`.
+3. The explicit ownership split is documented in `private shared-ops documentation boundary`.
 
 ## 1. Preconditions
 
@@ -54,11 +54,11 @@ If the ranking or pages pipeline changed, also run:
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive/.venv/bin/healtharchive recompute-page-signals
+  <deploy-root>/.venv/bin/healtharchive recompute-page-signals
 
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive/.venv/bin/healtharchive rebuild-pages --truncate
+  <deploy-root>/.venv/bin/healtharchive rebuild-pages --truncate
 ```
 
 ## 3. Public API verification

@@ -252,7 +252,7 @@ complete. Steps completed:
 
    ```bash
    nohup nice -n 10 ./.venv/bin/healtharchive reconcile-completed-indexing --source cihr --limit 1 \
-     > "/srv/healtharchive/ops/manual-runs/cihr-reindex-20260503T013952Z.log" 2>&1 &
+     > "<service-data-root>/ops/manual-runs/cihr-reindex-20260503T013952Z.log" 2>&1 &
    ```
 
 7. Verified indexing discovered WARC inputs:
@@ -367,7 +367,7 @@ Indexing completion and service restoration have been verified.
 - Worker/job health checks:
   - done: indexing process `3491506` is gone
   - done: indexing log path
-    `/srv/healtharchive/ops/manual-runs/cihr-reindex-20260503T013952Z.log`
+    `<service-data-root>/ops/manual-runs/cihr-reindex-20260503T013952Z.log`
     contains successful completion summary
   - done: `healtharchive annual-status --year 2026`
   - done: `healtharchive show-job --id 8 --warc-details` reported job
@@ -386,10 +386,10 @@ Indexing completion and service restoration have been verified.
   - done: CIHR indexed page count is `557972`
   - done: CIHR annual edition report generated with `Status=research_ready`,
     `Search ready=True`, `Research ready=True`, and report JSON
-    `/srv/healtharchive/jobs/editions/cihr/2026/coverage-report.json`
+    `<service-data-root>/jobs/editions/cihr/2026/coverage-report.json`
   - done: DB sample found CIHR snapshots from job `8` with `200` status codes
     and stable WARC paths under
-    `/srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101/warcs/`
+    `<service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101/warcs/`
   - done: public verifier confirmed a CIHR snapshot detail response, raw HTML
     response, and replay URL response after the search follow-through deploys
 
@@ -547,9 +547,9 @@ future work.
 ## References / Artifacts
 
 - Relevant log path(s):
-  - `/srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101/archive_resume_crawl_-_attempt_1_20260502_065415.combined.log`
-  - `/srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101/archive_resume_crawl_-_attempt_2_20260503_011450.combined.log`
-  - `/srv/healtharchive/ops/manual-runs/cihr-reindex-20260503T013952Z.log`
+  - `<service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101/archive_resume_crawl_-_attempt_1_20260502_065415.combined.log`
+  - `<service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101/archive_resume_crawl_-_attempt_2_20260503_011450.combined.log`
+  - `<service-data-root>/ops/manual-runs/cihr-reindex-20260503T013952Z.log`
 - Relevant job:
   - CIHR annual job `8`, source `cihr`, name `cihr-20260101`
 - Relevant metrics/signals:

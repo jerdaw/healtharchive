@@ -16,7 +16,7 @@ Status: closed
 
 ## Summary
 
-The annual 2026 crawl campaign hit sustained root-disk pressure on the VPS (`/dev/sda1` reached ~84–86% used), which triggered the worker’s disk safety guardrail (≥85% usage) and prevented new crawl progress. Investigation showed that annual crawl output directories for CIHR (~50GB) and PHAC (~1.2GB) were on the **local root filesystem** under `/srv/healtharchive/jobs/**` instead of being tiered to the Storage Box. We paused crawls to avoid a disk-full failure, migrated the output directories to the Storage Box, re-established the expected mounts under `/srv/healtharchive/jobs/**`, and resumed automation.
+The annual 2026 crawl campaign hit sustained root-disk pressure on the VPS (`/dev/sda1` reached ~84–86% used), which triggered the worker’s disk safety guardrail (≥85% usage) and prevented new crawl progress. Investigation showed that annual crawl output directories for CIHR (~50GB) and PHAC (~1.2GB) were on the **local root filesystem** under `<service-data-root>/jobs/**` instead of being tiered to the Storage Box. We paused crawls to avoid a disk-full failure, migrated the output directories to the Storage Box, re-established the expected mounts under `<service-data-root>/jobs/**`, and resumed automation.
 
 ## Impact
 
@@ -38,13 +38,13 @@ The annual 2026 crawl campaign hit sustained root-disk pressure on the VPS (`/de
 - Operator ran `./scripts/vps-crawl-status.sh --year 2026` and saw:
   - Root disk at ~84–86% used.
   - Worker log warnings indicating the disk guardrail was active (“Disk usage at 85% exceeds threshold…”).
-- `sudo du -xhd3 /srv/healtharchive/jobs | sort -h | tail` showed ~47–50GB under CIHR annual output on the local disk.
+- `sudo du -xhd3 <service-data-root>/jobs | sort -h | tail` showed ~47–50GB under CIHR annual output on the local disk.
 
 Most useful signals:
 
 - `df -h /` (root usage)
-- `sudo du -xhd3 /srv/healtharchive/jobs | sort -h | tail -40` (who is using local disk)
-- `findmnt -T /srv/healtharchive/jobs/<source>/<job_dir> -o SOURCE,FSTYPE,OPTIONS` (is this actually on the Storage Box?)
+- `sudo du -xhd3 <service-data-root>/jobs | sort -h | tail -40` (who is using local disk)
+- `findmnt -T <service-data-root>/jobs/<source>/<job_dir> -o SOURCE,FSTYPE,OPTIONS` (is this actually on the Storage Box?)
 
 ## Decision log
 
@@ -60,14 +60,14 @@ Most useful signals:
 - 2026-02-04T14:52:45Z — Fresh Postgres DB backup taken and copied to the Storage Box (with rsync flags adjusted to avoid sshfs `chown` failures).
 - 2026-02-04T15:32:26Z — Storage Box `sshfs` mount confirmed active.
 - 2026-02-04T15:3xZ → 16:0xZ — CIHR (~50GB) and PHAC (~1.2GB) annual output directories copied to the Storage Box via `rsync`.
-- 2026-02-04T16:0xZ — Annual output tiering applied; output dirs mounted back under `/srv/healtharchive/jobs/**`; local copies deleted; root disk returned to ~19% used.
+- 2026-02-04T16:0xZ — Annual output tiering applied; output dirs mounted back under `<service-data-root>/jobs/**`; local copies deleted; root disk returned to ~19% used.
 - 2026-02-04T16:15:33Z — Services restarted; worker resumed.
 - 2026-02-04T16:47:12Z — `vps-crawl-status` snapshot shows 3 running annual jobs and root disk healthy.
 
 ## Root cause
 
 - Immediate trigger:
-  - Annual crawl output for at least CIHR and PHAC was written to the VPS root filesystem under `/srv/healtharchive/jobs/**`, consuming ~50GB locally and pushing root above the worker’s safety threshold.
+  - Annual crawl output for at least CIHR and PHAC was written to the VPS root filesystem under `<service-data-root>/jobs/**`, consuming ~50GB locally and pushing root above the worker’s safety threshold.
 - Underlying cause(s):
   - Annual output tiering/mounts were not in place for those job output dirs at the time the crawls ran (post-reboot / maintenance window).
   - Manual ops workflows are easy to run in an “unsafe order” (worker running while mounts not validated).
@@ -104,22 +104,22 @@ Mark stopped jobs restartable:
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 1 --apply --source <source>
+<deploy-root>/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 1 --apply --source <source>
 ```
 
 ### 1) Ensure backups exist
 
 ```bash
 sudo systemctl start healtharchive-db-backup.service
-ls -lt /srv/healtharchive/backups/healtharchive_*.dump | head -n 3
+ls -lt <service-data-root>/backups/healtharchive_*.dump | head -n 3
 ```
 
 ### 2) Restore/verify Storage Box mount
 
 ```bash
 sudo systemctl start healtharchive-storagebox-sshfs.service
-df -h /srv/healtharchive/storagebox
-findmnt -T /srv/healtharchive/storagebox -o SOURCE,FSTYPE,OPTIONS
+df -h <service-data-root>/storagebox
+findmnt -T <service-data-root>/storagebox -o SOURCE,FSTYPE,OPTIONS
 ```
 
 ### 3) Migrate large local output dirs to Storage Box
@@ -129,8 +129,8 @@ Use `rsync` flags that don’t try to preserve ownership/perms on sshfs:
 ```bash
 sudo rsync -rtv --info=progress2 --partial --inplace \
   --no-owner --no-group --no-perms \
-  /srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101/ \
-  /srv/healtharchive/storagebox/jobs/cihr/20260101T000502Z__cihr-20260101/
+  <service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101/ \
+  <service-data-root>/storagebox/jobs/cihr/20260101T000502Z__cihr-20260101/
 ```
 
 Optional “sanity dry-run” to see drift (but do not delete without thinking):
@@ -138,34 +138,34 @@ Optional “sanity dry-run” to see drift (but do not delete without thinking):
 ```bash
 sudo rsync -rtvn --delete \
   --no-owner --no-group --no-perms \
-  /srv/healtharchive/jobs/<source>/<job_dir>/ \
-  /srv/healtharchive/storagebox/jobs/<source>/<job_dir>/
+  <service-data-root>/jobs/<source>/<job_dir>/ \
+  <service-data-root>/storagebox/jobs/<source>/<job_dir>/
 ```
 
-### 4) Re-establish the expected mounts under `/srv/healtharchive/jobs/**`
+### 4) Re-establish the expected mounts under `<service-data-root>/jobs/**`
 
 Key gotcha: the tiering script must target Postgres. Make sure env vars are exported and Postgres is running, otherwise you may see SQLite errors like `no such table: sources`.
 
 ```bash
 sudo systemctl start postgresql.service
 sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; \
-  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --apply --year 2026'
+  <deploy-root>/.venv/bin/python3 <deploy-root>/scripts/vps-annual-output-tiering.py --apply --year 2026'
 ```
 
 Validate mountpoints:
 
 ```bash
-findmnt -T /srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101 -o SOURCE,FSTYPE
-findmnt -T /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101 -o SOURCE,FSTYPE
-findmnt -T /srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101 -o SOURCE,FSTYPE
+findmnt -T <service-data-root>/jobs/hc/20260101T000502Z__hc-20260101 -o SOURCE,FSTYPE
+findmnt -T <service-data-root>/jobs/phac/20260101T000502Z__phac-20260101 -o SOURCE,FSTYPE
+findmnt -T <service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101 -o SOURCE,FSTYPE
 ```
 
 ### 5) Delete local copies and verify disk health
 
 ```bash
-sudo rm -rf /srv/healtharchive/jobs/*/*__*.local-*
+sudo rm -rf <service-data-root>/jobs/*/*__*.local-*
 df -h /
-sudo du -xhd3 /srv/healtharchive/jobs | sort -h | tail -40
+sudo du -xhd3 <service-data-root>/jobs | sort -h | tail -40
 ```
 
 ### 6) Resume services and automation
@@ -186,13 +186,13 @@ sudo systemctl start healtharchive-worker.service
 
 - Public surface checks:
   - `curl -s http://127.0.0.1:8001/api/health && echo`
-  - `cd /opt/healtharchive && ./scripts/verify_public_surface.py` (when appropriate)
+  - `cd <deploy-root> && ./scripts/verify_public_surface.py` (when appropriate)
 - Worker/job health checks:
-  - `cd /opt/healtharchive && ./scripts/vps-crawl-status.sh --year 2026`
+  - `cd <deploy-root> && ./scripts/vps-crawl-status.sh --year 2026`
   - `systemctl list-units --all 'healtharchive-job*' --no-pager`
 - Storage/mount checks:
-  - `df -h / /srv/healtharchive/storagebox`
-  - `findmnt -T /srv/healtharchive/jobs/<source>/<job_dir> -o SOURCE,FSTYPE,OPTIONS`
+  - `df -h / <service-data-root>/storagebox`
+  - `findmnt -T <service-data-root>/jobs/<source>/<job_dir> -o SOURCE,FSTYPE,OPTIONS`
 
 ## Public communication
 
@@ -216,7 +216,7 @@ None. (No observed user-facing downtime; annual campaign internal pipeline issue
 
 - Safe automation:
   - On boot (or before starting the worker), run an idempotent annual tiering “ensure” pass for the current campaign year.
-  - Alert when `/srv/healtharchive/jobs/**` output dirs are on the root filesystem while a campaign is active.
+  - Alert when `<service-data-root>/jobs/**` output dirs are on the root filesystem while a campaign is active.
 - What should stay manual:
   - Any automated deletion of local `.local-*` directories should remain manual unless preceded by a strong integrity check (to avoid data loss).
 

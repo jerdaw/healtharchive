@@ -21,7 +21,7 @@ Pick the guide that matches your role:
 **Quick Deploy**:
 ```bash
 # On the VPS
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-deploy.sh --apply --baseline-mode live
 ```
 

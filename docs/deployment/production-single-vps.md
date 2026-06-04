@@ -9,8 +9,8 @@ Use this as the canonical runbook for rebuilding the stack, auditing it, or
 explaining it to new operators.
 
 Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
-operations state live in `/home/jer/repos/vps/platform-ops`. Use
-`/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+operations state live in `private shared-ops workspace`. Use
+`private shared-ops documentation boundary`
 as the default rule for what belongs in this repo versus shared ops
 documentation.
 
@@ -19,9 +19,9 @@ For recovery from total failure, see the [Disaster Recovery Runbook](disaster-re
 Documentation boundary note:
 
 1. This runbook is canonical for HealthArchive backend behavior on the VPS.
-2. Shared VPS facts that are not specific to HealthArchive alone are canonical in `/home/jer/repos/vps/platform-ops`.
+2. Shared VPS facts that are not specific to HealthArchive alone are canonical in `private shared-ops workspace`.
 3. That includes shared ingress ownership, cross-project host inventory, shared path conventions, and host-wide hardening posture.
-4. The explicit ownership split is documented in `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`.
+4. The explicit ownership split is documented in `private shared-ops documentation boundary`.
 
 ---
 
@@ -33,8 +33,8 @@ Documentation boundary note:
 - **Replay (optional):** `replay.healtharchive.ca` via Caddy → pywb (see `deployment/replay-service-pywb.md`)
 - **Private-only:** SSH on Tailscale (`tailscale0`), no public port 22
 - **Storage:**
-  - `/srv/healtharchive/jobs` – archive root (WARCs / job outputs)
-  - `/srv/healtharchive/backups` – DB dumps
+  - `<service-data-root>/jobs` – archive root (WARCs / job outputs)
+  - `<service-data-root>/backups` – DB dumps
   - (Optional) StorageBox mount (cold storage / tiering; **not** a crawl hot-path)
 - **Database:** Local Postgres on the VPS
 - **Monitoring/alerts:**
@@ -42,8 +42,8 @@ Documentation boundary note:
   - Healthchecks.io pings for disk-usage threshold
   - (External uptime checks recommended: `/api/health` and `/archive`)
 - **Backups:** Nightly `pg_dump -Fc` stages briefly under
-  `/srv/healtharchive/backups`, mirrors successful dumps to
-  `/srv/healtharchive/storagebox/backups/db`, and keeps only a short local
+  `<service-data-root>/backups`, mirrors successful dumps to
+  `<service-data-root>/storagebox/backups/db`, and keeps only a short local
   cache on root.
 - **Offsite copy:** Synology NAS pulls retained mirrored backups over Tailscale
   via rsync/SSH
@@ -110,12 +110,12 @@ Directories:
 
 ```bash
 sudo groupadd --system healtharchive 2>/dev/null || true
-sudo mkdir -p /srv/healtharchive/jobs /srv/healtharchive/backups /srv/healtharchive/ops
-sudo chown -R haadmin:haadmin /srv/healtharchive/jobs
-sudo chown root:healtharchive /srv/healtharchive/backups
-sudo chmod 2770 /srv/healtharchive/backups
-sudo chown root:healtharchive /srv/healtharchive/ops
-sudo chmod 2770 /srv/healtharchive/ops
+sudo mkdir -p <service-data-root>/jobs <service-data-root>/backups <service-data-root>/ops
+sudo chown -R haadmin:haadmin <service-data-root>/jobs
+sudo chown root:healtharchive <service-data-root>/backups
+sudo chmod 2770 <service-data-root>/backups
+sudo chown root:healtharchive <service-data-root>/ops
+sudo chmod 2770 <service-data-root>/ops
 ```
 
 Ops directories (public-safe logs + artifacts):
@@ -129,12 +129,12 @@ Create the standard subdirectories:
 
 ```bash
 sudo mkdir -p \
-  /srv/healtharchive/ops/baseline \
-  /srv/healtharchive/ops/restore-tests \
-  /srv/healtharchive/ops/adoption \
-  /srv/healtharchive/ops/search-eval
-sudo chown -R root:healtharchive /srv/healtharchive/ops
-sudo chmod 2770 /srv/healtharchive/ops /srv/healtharchive/ops/*
+  <service-data-root>/ops/baseline \
+  <service-data-root>/ops/restore-tests \
+  <service-data-root>/ops/adoption \
+  <service-data-root>/ops/search-eval
+sudo chown -R root:healtharchive <service-data-root>/ops
+sudo chmod 2770 <service-data-root>/ops <service-data-root>/ops/*
 ```
 
 Postgres:
@@ -159,8 +159,8 @@ Clone + venv:
 
 ```bash
 sudo mkdir -p /opt && sudo chown haadmin:haadmin /opt
-git clone https://github.com/jerdaw/healtharchive.git /opt/healtharchive
-cd /opt/healtharchive
+git clone https://github.com/jerdaw/healtharchive.git <deploy-root>
+cd <deploy-root>
 python3 -m venv .venv
 ./.venv/bin/pip install --upgrade pip
 ./.venv/bin/pip install -e ".[dev]" "psycopg[binary]"
@@ -176,7 +176,7 @@ sudo tee /etc/healtharchive/backend.env >/dev/null <<'EOF'
 HEALTHARCHIVE_ENV=production
 HEALTHARCHIVE_DATABASE_URL=postgresql+psycopg://healtharchive:<DB_PASSWORD>@127.0.0.1:5432/healtharchive
 # Keep the crawl hot-path on the local SSD for throughput; use the StorageBox only for cold storage/tiering.
-HEALTHARCHIVE_ARCHIVE_ROOT=/srv/healtharchive/jobs
+HEALTHARCHIVE_ARCHIVE_ROOT=<service-data-root>/jobs
 HEALTHARCHIVE_ADMIN_TOKEN=<LONG_RANDOM_TOKEN>
 HEALTHARCHIVE_CORS_ORIGINS=https://healtharchive.ca,https://www.healtharchive.ca,https://replay.healtharchive.ca
 HEALTHARCHIVE_LOG_LEVEL=INFO
@@ -215,7 +215,7 @@ HEALTHARCHIVE_PUBLIC_SITE_URL=https://healtharchive.ca
 # HEALTHARCHIVE_REPLAY_BASE_URL=https://replay.healtharchive.ca
 
 # Optional: cached replay preview images (homepage thumbnails for /archive cards).
-# HEALTHARCHIVE_REPLAY_PREVIEW_DIR=/srv/healtharchive/replay/previews
+# HEALTHARCHIVE_REPLAY_PREVIEW_DIR=<service-data-root>/replay/previews
 EOF
 sudo chown root:healtharchive /etc/healtharchive/backend.env
 sudo chmod 640 /etc/healtharchive/backend.env
@@ -238,7 +238,7 @@ Systemd services:
   - Default `ExecStart` runs uvicorn on `127.0.0.1:8001` with `HEALTHARCHIVE_API_WORKERS=2`
   - `EnvironmentFile=/etc/healtharchive/backend.env`
 - Worker: `/etc/systemd/system/healtharchive-worker.service`
-  - `ExecStart=/opt/healtharchive/.venv/bin/healtharchive start-worker --poll-interval 30`
+  - `ExecStart=<deploy-root>/.venv/bin/healtharchive start-worker --poll-interval 30`
 
 Optional systemd automation (recommended):
 
@@ -267,7 +267,7 @@ curl -i http://127.0.0.1:8001/api/health
 Routine deploys (after initial install):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 
 # Dry-run (prints actions):
 ./scripts/vps-deploy.sh
@@ -298,7 +298,7 @@ Notes:
 
 - The deploy script runs a **baseline drift check** by default to catch
   misconfiguration (filesystem perms, systemd enablement, env allowlists, etc.).
-  - Artifacts are written to: `/srv/healtharchive/ops/baseline/`
+  - Artifacts are written to: `<service-data-root>/ops/baseline/`
   - You can skip in emergencies: `./scripts/vps-deploy.sh --apply --skip-baseline-drift`
   - To include live HTTPS checks (HSTS, CORS headers, admin/metrics auth): `./scripts/vps-deploy.sh --apply --baseline-mode live`
 - If you update systemd unit templates in the repo, you can apply them during deploy:
@@ -355,7 +355,7 @@ Where things live (VPS):
 - Prometheus config: `/etc/prometheus/prometheus.yml` and `/etc/prometheus/rules/`
 - Alertmanager config: `/etc/prometheus/alertmanager.yml`
 - Grafana dashboards provisioning: `/etc/grafana/provisioning/dashboards/healtharchive.yaml`
-- Public-safe dashboard JSON + ops artifacts: `/srv/healtharchive/ops/observability/`
+- Public-safe dashboard JSON + ops artifacts: `<service-data-root>/ops/observability/`
 
 Access from your laptop (via tailnet-only SSH):
 
@@ -402,7 +402,7 @@ Important failure mode:
 This can break:
 
 - crawl progress metrics,
-- archive job output dirs under `/srv/healtharchive/jobs/**`,
+- archive job output dirs under `<service-data-root>/jobs/**`,
 - and the worker/job lifecycle.
 
 ## Updating
@@ -410,7 +410,7 @@ This can break:
 Standard fast-forward to latest `main`:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-deploy.sh --apply
 ```
 
@@ -428,10 +428,10 @@ This does:
 Fast triage:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-crawl-status.sh --year "$(date -u +%Y)"
-ls -la /srv/healtharchive/storagebox >/dev/null && echo "OK: storagebox readable" || echo "BAD: storagebox unreadable"
-mount | rg '/srv/healtharchive/jobs/|/srv/healtharchive/storagebox'
+ls -la <service-data-root>/storagebox >/dev/null && echo "OK: storagebox readable" || echo "BAD: storagebox unreadable"
+mount | rg '<service-data-root>/jobs/|<service-data-root>/storagebox'
 ```
 
 Recovery playbook:
@@ -518,11 +518,11 @@ Public SSH:
 VPS backup user:
 - `habackup` user with NAS public key in `/home/habackup/.ssh/authorized_keys`
 
-Backup script: `/opt/healtharchive/scripts/vps-db-backup.sh`
-- `pg_dump -Fc` to `/srv/healtharchive/backups/healtharchive_<ts>.dump`
+Backup script: `<deploy-root>/scripts/vps-db-backup.sh`
+- `pg_dump -Fc` to `<service-data-root>/backups/healtharchive_<ts>.dump`
   as a short local cache on root.
 - Successful dumps are mirrored to
-  `/srv/healtharchive/storagebox/backups/db/healtharchive_<ts>.dump`.
+  `<service-data-root>/storagebox/backups/db/healtharchive_<ts>.dump`.
 - Local cache default: keep the newest 1 successful dump and delete zero-byte
   failed dumps.
 - Mirror retention default: keep 30 days on Storage Box.
@@ -532,8 +532,8 @@ Backup script: `/opt/healtharchive/scripts/vps-db-backup.sh`
 - One-off maintenance dumps such as `healtharchive_pre_<change>_<ts>.dump`
   are rollback artifacts, not part of the nightly retention set. After the
   maintenance window is closed and at least one newer nightly dump plus restore
-  evidence exist, remove them from `/srv/healtharchive/backups` or archive them
-  under `/srv/healtharchive/ops/maintenance/...` instead of leaving them in the
+  evidence exist, remove them from `<service-data-root>/backups` or archive them
+  under `<service-data-root>/ops/maintenance/...` instead of leaving them in the
   mirrored NAS backup set indefinitely.
 - Healthchecks `/start`/`/fail`/success pings (see §8)
 
@@ -545,7 +545,7 @@ Systemd:
 - Install/update with:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo ./scripts/vps-install-systemd-units.sh --apply
 sudo systemctl enable --now healtharchive-db-backup.timer
 ```
@@ -553,9 +553,9 @@ sudo systemctl enable --now healtharchive-db-backup.timer
 Optional environment overrides in `/etc/healtharchive/backend.env`:
 
 ```bash
-HEALTHARCHIVE_BACKUP_LOCAL_DIR=/srv/healtharchive/backups
-HEALTHARCHIVE_BACKUP_MIRROR_ROOT=/srv/healtharchive/storagebox
-HEALTHARCHIVE_BACKUP_MIRROR_DIR=/srv/healtharchive/storagebox/backups/db
+HEALTHARCHIVE_BACKUP_LOCAL_DIR=<service-data-root>/backups
+HEALTHARCHIVE_BACKUP_MIRROR_ROOT=<service-data-root>/storagebox
+HEALTHARCHIVE_BACKUP_MIRROR_DIR=<service-data-root>/storagebox/backups/db
 HEALTHARCHIVE_BACKUP_REQUIRE_MIRROR=1
 HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL=1
 HEALTHARCHIVE_BACKUP_MIRROR_RETENTION_DAYS=30
@@ -581,7 +581,7 @@ Host ha-vps
 
 ```bash
 mkdir -p /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps
-rsync -rt --delete ha-vps:/srv/healtharchive/storagebox/backups/db/ /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/
+rsync -rt --delete ha-vps:<service-data-root>/storagebox/backups/db/ /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/
 ```
 
 - Make the DSM scheduled task run both lines, not just `rsync`, so the NAS pull
@@ -589,7 +589,7 @@ rsync -rt --delete ha-vps:/srv/healtharchive/storagebox/backups/db/ /volume1/aut
   cleanup.
 - The homelab-managed DSM task should use
   `/volume1/data/repos/homelab/nasd/tasks/dsm_healtharchive_db_backup.sh`,
-  with its source set to `ha-vps:/srv/healtharchive/storagebox/backups/db/`
+  with its source set to `ha-vps:<service-data-root>/storagebox/backups/db/`
   and its destination set to the `logical-dumps` path above.
 - If the destination is missing and the task runs only `rsync`, Synology Task
   Scheduler will report `rsync` exit code `11`
@@ -618,7 +618,7 @@ HC_DISK_THRESHOLD=80
 Disk check:
 - Script: `/usr/local/bin/healtharchive-disk-check`
 - Service/Timer: `healtharchive-disk-check.service` / `healtharchive-disk-check.timer` (hourly)
-- Pings success; sends `/fail` if `/` or `/srv/healtharchive` exceeds 80%.
+- Pings success; sends `/fail` if `/` or `<service-data-root>` exceeds 80%.
 
 Prometheus also alerts on:
 
@@ -631,7 +631,7 @@ Prometheus also alerts on:
 ## 9) Synthetic snapshot for smoke testing
 
 Created a minimal WARC + Snapshot for smoke checks:
-- WARC: `/srv/healtharchive/jobs/manual-warcs/viewer-test.warc.gz`
+- WARC: `<service-data-root>/jobs/manual-warcs/viewer-test.warc.gz`
 - Snapshot ID: `1`
 - Raw: `https://api.healtharchive.ca/api/snapshots/raw/1`
 - Viewer: `https://healtharchive.ca/snapshot/1`
@@ -645,7 +645,7 @@ Use this to verify end-to-end viewer behavior after deploys.
 Procedure:
 
 ```bash
-latest="$(ls -t /srv/healtharchive/storagebox/backups/db/healtharchive_*.dump /srv/healtharchive/backups/healtharchive_*.dump 2>/dev/null | head -n 1)"
+latest="$(ls -t <service-data-root>/storagebox/backups/db/healtharchive_*.dump <service-data-root>/backups/healtharchive_*.dump 2>/dev/null | head -n 1)"
 sudo -u postgres dropdb --if-exists healtharchive_restore_test
 sudo -u postgres createdb healtharchive_restore_test
 sudo -u postgres pg_restore --no-owner --no-acl -d healtharchive_restore_test < "$latest"

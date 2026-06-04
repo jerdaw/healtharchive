@@ -264,7 +264,7 @@ Implementation approach (VPS):
 3. Ensure the installed systemd units source that env file:
    - `EnvironmentFile=-/etc/healtharchive/healthchecks.env`
 4. Ensure the unit uses the wrapper so ping URLs never appear in unit files:
-   - `/opt/healtharchive/scripts/systemd-healthchecks-wrapper.sh`
+   - `<deploy-root>/scripts/systemd-healthchecks-wrapper.sh`
 
 Safety posture:
 
@@ -309,7 +309,7 @@ Install and enable:
 
 Artifacts:
 
-- Default location: `/srv/healtharchive/ops/search-eval/<year>/final/`
+- Default location: `<service-data-root>/ops/search-eval/<year>/final/`
 - To force re-run for a year: delete that directory and re-run the service.
 
 Verification (VPS):
@@ -318,7 +318,7 @@ Verification (VPS):
   - `sudo systemctl start healtharchive-annual-search-verify.service`
 - Confirm it either:
   - exits 0 quickly (not ready), or
-  - creates artifacts under `/srv/healtharchive/ops/search-eval/<year>/final/`.
+  - creates artifacts under `<service-data-root>/ops/search-eval/<year>/final/`.
 
 ---
 
@@ -341,8 +341,8 @@ Rationale:
 
 Verification (VPS):
 
-- Dry-run: `cd /opt/healtharchive && ./scripts/vps-deploy.sh`
-- Apply: `cd /opt/healtharchive && ./scripts/vps-deploy.sh --apply`
+- Dry-run: `cd <deploy-root> && ./scripts/vps-deploy.sh`
+- Apply: `cd <deploy-root> && ./scripts/vps-deploy.sh --apply`
 
 ## 1. Uptime and health checks
 

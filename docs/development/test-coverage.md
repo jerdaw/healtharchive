@@ -141,5 +141,4 @@ A: No. 80% remains an improvement goal, not a blocking threshold.
 
 **Related docs**:
 - [Testing Guidelines](testing-guidelines.md)
-- [Monitoring and CI Checklist](../operations/monitoring-and-ci-checklist.md)
 - [Contributing](https://github.com/jerdaw/healtharchive/blob/main/CONTRIBUTING.md)

@@ -16,7 +16,7 @@ Verification evidence:
 - `scripts/vps-annual-output-tiering.py --apply --year 2026` mounted jobs `6`,
   `7`, and `8`.
 - `/proc/self/mountinfo` showed one base Storage Box `sshfs` mount at
-  `/srv/healtharchive/storagebox` and hot annual mount roots under `/jobs/...`.
+  `<service-data-root>/storagebox` and hot annual mount roots under `/jobs/...`.
 - Hot and cold annual paths had matching device/inode identity.
 - Annual status remained `indexed=3` and `readyForSearch=true`.
 - Replay smoke returned `200` for HC, PHAC, and CIHR after replay restart.
@@ -183,7 +183,7 @@ Evidence closure criteria:
 When you see Errno 107 alerts or symptoms (before unmounting/repairing):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-capture-hotpath-staleness-evidence.sh --tag pre-repair
 ```
 
@@ -222,18 +222,18 @@ Then proceed with state-changing recovery steps in:
 Use this to capture pre/post bundles and optionally run the watchdog in **dry-run simulation mode** (no service changes, no unmounts).
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-hotpath-staleness-drill.sh \
-  --simulate-broken-path /srv/healtharchive/jobs/hc/<JOB_DIR> \
+  --simulate-broken-path <service-data-root>/jobs/hc/<JOB_DIR> \
   --note "phase2 drill (dry-run)"
 ```
 
 Outputs:
 
 - `drill-pre` and `drill-post` evidence bundles under:
-  - `/srv/healtharchive/ops/observability/hotpath-staleness/`
+  - `<service-data-root>/ops/observability/hotpath-staleness/`
 - A small correlation log line appended to:
-  - `/srv/healtharchive/ops/observability/hotpath-staleness/investigation-log.tsv`
+  - `<service-data-root>/ops/observability/hotpath-staleness/investigation-log.tsv`
 
 ### Phase 3: Mitigation Candidate Definition and Risk Assessment
 

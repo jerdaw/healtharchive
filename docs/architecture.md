@@ -13,10 +13,8 @@ This document is an in‑depth walkthrough of the **HealthArchive.ca backend**
 For `archive_tool` internals (log parsing, Docker orchestration, run modes),
 see `src/archive_tool/docs/documentation.md`. For a shorter, task‑oriented
 overview of common commands and local testing flows, see
-`development/live-testing.md`. For deployment‑oriented configuration
-(staging/prod env vars, DNS, and the historical preview path), see
-`deployment/hosting-and-live-server-to-dos.md`. For the implemented VPS
-deployment runbook, see `deployment/production-single-vps.md`.
+`development/live-testing.md`. Deployment details are environment-specific and
+kept outside the public docs portal.
 
 ---
 
@@ -152,7 +150,7 @@ class ArchiveToolConfig:
 
 Defaults:
 
-- `DEFAULT_ARCHIVE_ROOT` = `/mnt/nasd/nobak/healtharchive/jobs`
+- `DEFAULT_ARCHIVE_ROOT` = `<archive-root>`
 - `DEFAULT_ARCHIVE_TOOL_CMD` = `"archive-tool"`
 
 Env overrides:
@@ -441,7 +439,7 @@ Examples:
   Example:
 
   ```text
-  /mnt/nasd/nobak/healtharchive/jobs/hc/20251209T210911Z__hc-20251209
+  <archive-root>/hc/20251209T210911Z__hc-20251209
   ```
 
 ### 4.3 Job config JSON
@@ -1019,7 +1017,7 @@ Public Pydantic models:
   - Ordering:
     - Default sort:
       - When `q` is present: `sort="relevance"`.
-      - When `q` is absent: `sort="newest"`.
+      - When `q` is not supplied: `sort="newest"`.
 	    - `sort="relevance"` (when `q` present):
 	      - On Postgres: uses FTS (`websearch_to_tsquery` + `ts_rank_cd`) against
 	        `snapshots.search_vector`, with small heuristics (phrase-in-title boost,

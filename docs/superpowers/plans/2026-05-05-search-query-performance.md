@@ -156,7 +156,7 @@ stored PostgreSQL FTS vector is populated. The public API expects
 `snapshots.search_vector` to be the searchable index for PostgreSQL.
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 set -a; source /etc/healtharchive/backend.env; set +a
 
 ./.venv/bin/python - <<'PY'
@@ -174,7 +174,7 @@ PY
 If `search_vector_missing` is non-zero, run:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 set -a; source /etc/healtharchive/backend.env; set +a
 ./.venv/bin/healtharchive backfill-search-vector
 ```
@@ -243,7 +243,7 @@ Expected: docs build succeeds and `git diff --check` exits 0.
 Use these commands after merge/deploy:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 git rev-parse HEAD
 
 set -a; source /etc/healtharchive/backend.env; set +a
@@ -276,7 +276,7 @@ done
 If `search_vector_missing` is non-zero, run:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 set -a; source /etc/healtharchive/backend.env; set +a
 ./.venv/bin/healtharchive backfill-search-vector
 ```

@@ -35,7 +35,7 @@ ssh haadmin@vps-tailscale-alias
 Navigate to the repo root and run the safe-by-default deploy helper:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 
 # Dry-run (recommended first)
 ./scripts/vps-deploy.sh

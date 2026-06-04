@@ -37,7 +37,7 @@ Recommended posture on a single VPS:
 Run a report-only verification:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo bash -lc 'set -a; source /etc/healtharchive/backend.env; set +a; healtharchive verify-warcs --job-id <JOB_ID> --level 1'
 ```
 

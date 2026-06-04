@@ -24,7 +24,7 @@ the backend’s serving path.
 - **Legacy crawl**: a crawl run before this project’s integrated backend existed.
 - **WARC**: compressed web capture files (`*.warc.gz`).
 - **Import directory**: a directory on the VPS under
-  `/srv/healtharchive/jobs/imports/<import-name>` that holds the legacy WARCs in
+  `<service-data-root>/jobs/imports/<import-name>` that holds the legacy WARCs in
   a layout the backend’s WARC discovery can find.
 - **Register**: create an `ArchiveJob` row pointing at an existing directory
   (`healtharchive register-job-dir`).
@@ -41,7 +41,7 @@ the backend’s serving path.
 - The backend env file exists on the VPS:
   - `/etc/healtharchive/backend.env` (mode `0600`, owned by `root:root`).
 - The backend archive root exists:
-  - `/srv/healtharchive/jobs`
+  - `<service-data-root>/jobs`
 
 ## Source of truth locations (NAS vs dev VM mount)
 
@@ -51,10 +51,11 @@ Your Synology NAS stores the legacy crawl data at:
 
 Your Linux dev VM mounts that NAS path at:
 
-- `/mnt/nasd/nobak/gov-health-archives/...`
+- `<archive-storage-root>/gov-health-archives/...`
 
-When writing instructions for “run on NAS”, use the `/volume1/...` path.
-When running on the dev VM, use the `/mnt/nasd/...` path.
+When writing instructions for a storage appliance, use its native storage
+path. When running in a development VM, use the environment-specific mounted
+archive path.
 
 ## Step-by-step: importing a legacy dataset
 
@@ -66,7 +67,7 @@ Example (Health Canada legacy crawl):
 - NAS:
   - `/volume1/nobak/gov-health-archives/canada_ca_health_backup_2025-04-21/crawler_data/collections/canada_ca_health_crawl_2025-04/archive/`
 - Dev VM (same content, mounted):
-  - `/mnt/nasd/nobak/gov-health-archives/canada_ca_health_backup_2025-04-21/crawler_data/collections/canada_ca_health_crawl_2025-04/archive/`
+  - `<archive-storage-root>/gov-health-archives/canada_ca_health_backup_2025-04-21/crawler_data/collections/canada_ca_health_crawl_2025-04/archive/`
 
 What you’re looking for:
 
@@ -80,11 +81,11 @@ job directory by looking for temp dirs like `.tmp-*` and `collections/*/archive`
 
 Example destination (Health Canada legacy import):
 
-- `/srv/healtharchive/jobs/imports/legacy-hc-2025-04-21/.tmp-legacy/collections/crawl-legacy-hc-2025-04-21/archive/`
+- `<service-data-root>/jobs/imports/legacy-hc-2025-04-21/.tmp-legacy/collections/crawl-legacy-hc-2025-04-21/archive/`
 
 Example destination (CIHR legacy import):
 
-- `/srv/healtharchive/jobs/imports/legacy-cihr-2025-04/.tmp-legacy/collections/crawl-legacy-cihr-2025-04/archive/`
+- `<service-data-root>/jobs/imports/legacy-cihr-2025-04/.tmp-legacy/collections/crawl-legacy-cihr-2025-04/archive/`
 
 Notes:
 
@@ -104,7 +105,7 @@ We ran `rsync` from the NAS, using SSH over Tailscale:
 rsync -av --info=progress2 --partial --append-verify --bwlimit=5000 \
   -e "ssh -i ~/.ssh/<NAS_SSH_KEY>" \
   "/volume1/nobak/gov-health-archives/<LEGACY_PATH>/archive/" \
-  "habackup@<VPS_TAILSCALE_IP>:/srv/healtharchive/jobs/imports/<IMPORT_NAME>/.tmp-legacy/collections/<COLLECTION_NAME>/archive/"
+  "habackup@<VPS_TAILSCALE_IP>:<service-data-root>/jobs/imports/<IMPORT_NAME>/.tmp-legacy/collections/<COLLECTION_NAME>/archive/"
 ```
 
 Why these flags:
@@ -115,8 +116,8 @@ Why these flags:
 After transfer, verify on VPS:
 
 ```bash
-sudo find "/srv/healtharchive/jobs/imports/<IMPORT_NAME>" -name '*.warc.gz' | wc -l
-sudo du -sh "/srv/healtharchive/jobs/imports/<IMPORT_NAME>"
+sudo find "<service-data-root>/jobs/imports/<IMPORT_NAME>" -name '*.warc.gz' | wc -l
+sudo du -sh "<service-data-root>/jobs/imports/<IMPORT_NAME>"
 ```
 
 Real example result (Health Canada legacy import):
@@ -132,7 +133,7 @@ not what we want on the VPS.
 We normalized permissions on the VPS:
 
 ```bash
-IMPORT_DIR="/srv/healtharchive/jobs/imports/<IMPORT_NAME>"
+IMPORT_DIR="<service-data-root>/jobs/imports/<IMPORT_NAME>"
 
 sudo chown -R habackup:healtharchive "$IMPORT_DIR"
 
@@ -159,14 +160,14 @@ This repo includes a helper script that wraps the “VPS-side” steps:
 It is **dry-run by default**:
 
 ```bash
-cd /opt/healtharchive
-./scripts/import-legacy-crawl.sh --import-dir "/srv/healtharchive/jobs/imports/<IMPORT_NAME>" --source <SOURCE_CODE>
+cd <deploy-root>
+./scripts/import-legacy-crawl.sh --import-dir "<service-data-root>/jobs/imports/<IMPORT_NAME>" --source <SOURCE_CODE>
 ```
 
 To apply (real run):
 
 ```bash
-./scripts/import-legacy-crawl.sh --apply --import-dir "/srv/healtharchive/jobs/imports/<IMPORT_NAME>" --source <SOURCE_CODE> --job-name "<JOB_NAME>"
+./scripts/import-legacy-crawl.sh --apply --import-dir "<service-data-root>/jobs/imports/<IMPORT_NAME>" --source <SOURCE_CODE> --job-name "<JOB_NAME>"
 ```
 
 ### Step 5 — Register the directory as an ArchiveJob
@@ -178,16 +179,16 @@ normal users, we used `systemd-run` to run the CLI with
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive/.venv/bin/healtharchive register-job-dir \
+  <deploy-root>/.venv/bin/healtharchive register-job-dir \
   --source <SOURCE_CODE> \
-  --output-dir "/srv/healtharchive/jobs/imports/<IMPORT_NAME>" \
+  --output-dir "<service-data-root>/jobs/imports/<IMPORT_NAME>" \
   --name "<JOB_NAME>"
 ```
 
 Example (Health Canada legacy import):
 
 - `--source hc`
-- `--output-dir /srv/healtharchive/jobs/imports/legacy-hc-2025-04-21`
+- `--output-dir <service-data-root>/jobs/imports/legacy-hc-2025-04-21`
 - `--name legacy-hc-2025-04-21`
 - Created `ArchiveJob` ID `1`
 
@@ -199,7 +200,7 @@ per captured HTML page.
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive/.venv/bin/healtharchive index-job \
+  <deploy-root>/.venv/bin/healtharchive index-job \
   --id <JOB_ID>
 ```
 
@@ -223,7 +224,7 @@ On VPS (DB/job view):
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive/.venv/bin/healtharchive show-job --id <JOB_ID>
+  <deploy-root>/.venv/bin/healtharchive show-job --id <JOB_ID>
 ```
 
 On your laptop (public API):
@@ -242,7 +243,7 @@ In the browser (frontend):
 Optional single command (VPS; requires CIHR to be imported/indexed if you ask for it):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/verify_public_surface.py --require-source cihr
 ```
 
@@ -260,7 +261,7 @@ the stored capture timestamps.
 
 - Source: legacy Health Canada crawl output (April 2025).
 - Imported to VPS under:
-  - `/srv/healtharchive/jobs/imports/legacy-hc-2025-04-21`
+  - `<service-data-root>/jobs/imports/legacy-hc-2025-04-21`
 - Result:
   - `ArchiveJob` ID `1`
   - `959` WARCs
@@ -271,7 +272,7 @@ the stored capture timestamps.
 
 - Source: legacy CIHR crawl output (April 2025).
 - WARCs transferred to:
-  - `/srv/healtharchive/jobs/imports/legacy-cihr-2025-04/.../archive/`
+  - `<service-data-root>/jobs/imports/legacy-cihr-2025-04/.../archive/`
 - Next steps:
   - normalize permissions
   - register-job-dir with `--source cihr`

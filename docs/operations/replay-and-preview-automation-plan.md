@@ -79,8 +79,8 @@ On the VPS (per `docs/deployment/replay-service-pywb.md`):
 
 - pywb runs in Docker as container `healtharchive-replay`
 - exposed locally at `127.0.0.1:8090`
-- WARCs are mounted read-only at `/warcs` (host `/srv/healtharchive/jobs`)
-- replay state is mounted read-write at `/webarchive` (host `/srv/healtharchive/replay`)
+- WARCs are mounted read-only at `/warcs` (host `<service-data-root>/jobs`)
+- replay state is mounted read-write at `/webarchive` (host `<service-data-root>/replay`)
 - container runs without Linux capabilities (`--cap-drop=ALL`) → file permissions must be correct; “root in container” can’t bypass them.
 
 ### Preview files are served by the backend API
@@ -141,7 +141,7 @@ Automation must produce:
 
 For each job `id` where `ArchiveJob.status == indexed`:
 
-- A pywb collection exists: `/srv/healtharchive/replay/collections/job-<id>/...`
+- A pywb collection exists: `<service-data-root>/replay/collections/job-<id>/...`
 - The collection contains symlinks in `archive/` pointing to `/warcs/...` WARC paths (container-visible).
 - `indexes/index.cdxj` exists and corresponds to the current WARC set.
 - A basic replay check succeeds for the job’s entry URL:
@@ -180,7 +180,7 @@ Risk:
 
 Implementation decision (when we code):
 
-- Prefer `flock`-based lock files under `/srv/healtharchive/replay/.locks/`.
+- Prefer `flock`-based lock files under `<service-data-root>/replay/.locks/`.
   - simple, visible, and resilient across process crashes.
 
 **Eligibility rules (must be true to proceed)**
@@ -189,7 +189,7 @@ Implementation decision (when we code):
 - WARC discovery finds >= 1 `.warc.gz` file.
 - pywb container is running (or is startable).
 - The process has:
-  - write access to `/srv/healtharchive/replay/collections/…`
+  - write access to `<service-data-root>/replay/collections/…`
   - permission to run `docker exec` for `wb-manager`.
 
 **Refusal rules (stop early, report why)**
@@ -336,7 +336,7 @@ This is the safest automation pattern: a background process that continuously cl
 
 - DB jobs and snapshots (`ArchiveJob`, `Snapshot`, `Source`)
 - filesystem state:
-  - pywb collections under `/srv/healtharchive/replay/collections`
+  - pywb collections under `<service-data-root>/replay/collections`
   - preview files under `HEALTHARCHIVE_REPLAY_PREVIEW_DIR`
 
 **Outputs**

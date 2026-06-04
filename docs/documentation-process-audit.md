@@ -5,7 +5,7 @@ Scope: HealthArchive project documentation processes and subprocesses across:
 - `healtharchive` (ops, runbooks, incident notes, canonical internal docs)
 - the frontend app in `healtharchive/frontend/` (public policy/reporting surfaces, UX copy, changelog)
 - `healtharchive-datasets` (dataset release documentation and integrity posture)
-- the older “workspace of sibling repos” convention used in `/home/jer/LocalSync/healtharchive/`
+- the older “workspace of sibling repos” convention used in a local sync directory
 
 Goal: assess whether the documentation system is well-designed, maintainable, and aligned with modern best practices (docs-as-code + operational excellence), and identify concrete upgrades.
 

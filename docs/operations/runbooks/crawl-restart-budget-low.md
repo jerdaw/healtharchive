@@ -32,7 +32,7 @@ making progress, prefer dashboard observation over repeated paging.
 Start with a read-only snapshot on the VPS:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 
 ./scripts/vps-crawl-status.sh --year 2026 --job-id <JOB_ID> --recent-lines 20000
 ./scripts/vps-crawl-content-report.py --job-id <JOB_ID>
@@ -40,7 +40,7 @@ cd /opt/healtharchive
 curl -s http://127.0.0.1:9100/metrics | rg 'healtharchive_crawl_running_job_(container_restarts_done|last_progress_age_seconds|stalled|crawl_rate_ppm|output_dir_ok|output_dir_errno|log_probe_ok|log_probe_errno|state_file_ok|state_parse_ok|temp_dirs_count|errors_timeout|errors_http|errors_other)\{job_id="<JOB_ID>"'
 
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive/.venv/bin/healtharchive show-job --id <JOB_ID>
+<deploy-root>/.venv/bin/healtharchive show-job --id <JOB_ID>
 sudo journalctl -u healtharchive-worker.service -n 400 --no-pager
 docker ps --format 'table {{.ID}}\t{{.Image}}\t{{.Names}}\t{{.Status}}'
 ```
@@ -67,7 +67,7 @@ Classify the incident:
 Use the newest combined log and recent WARCs for the job:
 
 ```bash
-JOBDIR="/srv/healtharchive/jobs/<source>/<JOB_DIR>"
+JOBDIR="<service-data-root>/jobs/<source>/<JOB_DIR>"
 LOG="$(ls -t "${JOBDIR}"/archive_*.combined.log | head -n 1)"
 
 rg -n '"context":"crawlStatus"' "${LOG}" | tail -n 10
@@ -101,7 +101,7 @@ output/log/state paths), follow the canonical storage repair flow:
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --source <source> --limit 1
+<deploy-root>/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --source <source> --limit 1
 sudo systemctl start healtharchive-worker.service
 ```
 
@@ -116,7 +116,7 @@ progress:
 sudo systemctl stop healtharchive-worker.service
 
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs \
+<deploy-root>/.venv/bin/healtharchive recover-stale-jobs \
   --older-than-minutes 5 \
   --require-no-progress-seconds 3600 \
   --apply \
@@ -138,7 +138,7 @@ reconcile it before assuming the crawl is still active:
 sudo systemctl stop healtharchive-worker.service
 
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --source <source> --limit 1
+<deploy-root>/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --source <source> --limit 1
 
 sudo systemctl start healtharchive-worker.service
 ```

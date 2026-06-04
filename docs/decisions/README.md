@@ -29,7 +29,7 @@ Related:
 
 - Backlog items and implementation steps (use `../planning/`).
 - Incident timelines and recovery notes (use `../operations/incidents/`).
-- Routine ops logs (restore tests, adoption signals; use `/srv/healtharchive/ops/...`).
+- Routine ops logs (restore tests, adoption signals; use `<service-data-root>/ops/...`).
 
 ---
 

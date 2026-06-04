@@ -38,6 +38,6 @@ Policy:
 
 ## Ops logs (public-safe)
 
-- Restore tests: `/srv/healtharchive/ops/restore-tests/` (public-safe Markdown entries only).
-- Adoption signals: `/srv/healtharchive/ops/adoption/` (public-safe; quarterly; links + aggregates only).
+- Restore tests: `<service-data-root>/ops/restore-tests/` (public-safe Markdown entries only).
+- Adoption signals: `<service-data-root>/ops/adoption/` (public-safe; quarterly; links + aggregates only).
 - Mentions log: `mentions-log.md` (public-safe, link-only; no private contact details).

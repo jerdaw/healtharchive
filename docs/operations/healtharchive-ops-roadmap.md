@@ -18,10 +18,10 @@ Keep the two synced copies of this file aligned:
 
 ## Recurring ops (non-IRL, ongoing)
 
-- **Quarterly:** run a restore test and record a public-safe log entry in `/srv/healtharchive/ops/restore-tests/`.
-- **Quarterly:** add an adoption signals entry in `/srv/healtharchive/ops/adoption/` (links + aggregates only).
+- **Quarterly:** run a restore test and record a public-safe log entry in `<service-data-root>/ops/restore-tests/`.
+- **Quarterly:** add an adoption signals entry in `<service-data-root>/ops/adoption/` (links + aggregates only).
 - **Quarterly:** confirm dataset release exists and passes checksum verification (`sha256sum -c SHA256SUMS`).
-- **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd /opt/healtharchive && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
+- **Quarterly:** confirm core timers are enabled and succeeding (recommended: on the VPS run `cd <deploy-root> && ./scripts/verify_ops_automation.sh`; then spot-check `journalctl -u <service>`).
 - **Quarterly:** docs drift skim: re-read the production runbook + incident response and fix any drift you notice (keep docs matching reality).
 
 ## Current status (as of 2026-05-31)
@@ -47,7 +47,7 @@ production access.
     - Backend: `playwright_warc` fallback, labeled through annual-edition
       provenance.
     - Manual reindex evidence:
-      `/srv/healtharchive/ops/manual-runs/phac-reindex-20260429T051607Z.log`
+      `<service-data-root>/ops/manual-runs/phac-reindex-20260429T051607Z.log`
       shows `Indexing for job 7 completed successfully with 121940
       snapshot(s).`, followed by `Indexed: 1`, `Failed: 0`, `Jobs: 7`.
       Completion timestamp in the log: `2026-04-29 14:45:29 UTC`.
@@ -58,7 +58,7 @@ production access.
     - Final WARC details: `689` stable WARC files, `689` discovered WARC files,
       stable WARC source, manifest valid, total WARC size `709.83 GB`.
     - Annual edition report:
-      `/srv/healtharchive/jobs/editions/cihr/2026/coverage-report.json`
+      `<service-data-root>/jobs/editions/cihr/2026/coverage-report.json`
       reported `Status=research_ready`, `Search ready=True`, and
       `Research ready=True`.
 - Annual search readiness is restored: `annual-status --year 2026` and
@@ -66,7 +66,7 @@ production access.
   verification after the search follow-through passed on 2026-05-06.
 - Job lock-dir cutover remains complete:
   - `/etc/healtharchive/backend.env` points at
-    `/srv/healtharchive/ops/locks/jobs`.
+    `<service-data-root>/ops/locks/jobs`.
   - API and worker were both restarted during the 2026-04-14 maintenance
     window, so the env change is live in production.
 - Annual output-dir mount topology was corrected for 2026 annual output dirs
@@ -117,7 +117,7 @@ production access.
 - Root disk recovery from the 2026-05-23 DB backup cache incident is complete:
   - repo-managed DB backup timer is deployed and successful;
   - local VPS DB backup retention is one successful dump;
-  - Storage Box mirror path is `/srv/healtharchive/storagebox/backups/db/`;
+  - Storage Box mirror path is `<service-data-root>/storagebox/backups/db/`;
   - NASD protected ingest path is
     `/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/`;
   - NASD dry-run and real wrapped sync succeeded;
@@ -179,9 +179,9 @@ Treat the following as the current ops execution order:
 
 - Large indexing hygiene for manual production runs:
   - Always load production env first:
-    `cd /opt/healtharchive && set -a; source /etc/healtharchive/backend.env; set +a`.
+    `cd <deploy-root> && set -a; source /etc/healtharchive/backend.env; set +a`.
   - Use `nohup` or `tmux` for multi-hour indexing, capture logs under
-    `/srv/healtharchive/ops/manual-runs/`, and consider `renice +10 -p <pid>`.
+    `<service-data-root>/ops/manual-runs/`, and consider `renice +10 -p <pid>`.
   - Monitor `ps` plus `/proc/<pid>/io`; an increasing `rchar` with high CPU
     means indexing is still making progress even if DB status has not committed.
   - Do not start duplicate `reconcile-completed-indexing` commands for the same
@@ -191,7 +191,7 @@ Treat the following as the current ops execution order:
     before terminating only the stale backend.
 - Annual output-dir drift checks:
   - Future maintenance should keep using
-    `python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --year <YEAR>`
+    `python3 <deploy-root>/scripts/vps-annual-output-tiering.py --year <YEAR>`
     as the dry-run detector and the same script with `--apply` during an
     approved maintenance window.
 - After any reboot/rescue/maintenance where mounts may drift:
@@ -220,14 +220,17 @@ can proceed independently on any day.
 
 The active plan is:
 
-- **`../planning/2026-02-admissions-strengthening-plan.md`** — phases, effort, and sequence for all external/IRL work.
+- **`../planning/roadmap.md`** — public backlog for external validation,
+  research-output, and dataset-release follow-through.
 
 Current status as of 2026-05-06:
 
-- Phase 1 items (outreach, uptime monitoring, portfolio page, ethics/governance update) are **not yet started**.
+- External validation items (outreach, uptime evidence, project summary page,
+  ethics/governance update) are **not yet started**.
 - The plan was created 2026-02-25; about 10 weeks have elapsed, placing the
   timeline in Phase 3 territory.
 - The mentions log remains empty (zero confirmed partners, verifiers, or citations).
 - **The single highest-leverage unblocking action is: send the first outreach batch** (5–10 contacts, using existing templates at `../operations/outreach-templates.md` and the playbook at `playbooks/external/outreach-and-verification.md`).
 
-Treat external outreach as a parallel track to daily ops — not something to start "once ops settles." Ops will not fully settle before application deadlines.
+Treat external outreach as a parallel track to daily ops, not something to
+start only after every operational improvement is complete.

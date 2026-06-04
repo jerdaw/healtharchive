@@ -17,7 +17,7 @@ Status: resolved
 ## Summary
 
 The production VPS root filesystem reached 100% usage after nightly PostgreSQL
-dumps accumulated under `/srv/healtharchive/backups`. PostgreSQL then failed
+dumps accumulated under `<service-data-root>/backups`. PostgreSQL then failed
 temp-file writes and later could not accept application connections while
 startup/recovery was blocked by the full filesystem.
 
@@ -50,14 +50,14 @@ confirmed the 2026 annual campaign was still search-ready.
 
 Follow-up inspection showed:
 
-- `/srv/healtharchive/backups` used about `20G` on root.
+- `<service-data-root>/backups` used about `20G` on root.
 - PostgreSQL logs contained repeated `No space left on device` errors for
   `base/pgsql_tmp/...`.
 
 ## Root cause
 
 The production backup posture retained too many nightly `pg_dump -Fc` artifacts
-under `/srv/healtharchive/backups`, which lives on the root filesystem. This
+under `<service-data-root>/backups`, which lives on the root filesystem. This
 consumed all remaining root headroom. PostgreSQL temp-file writes then failed,
 and the database could not recover cleanly until root space was freed.
 
@@ -66,10 +66,10 @@ and the database could not recover cleanly until root space was freed.
 Recovery steps completed:
 
 1. Stopped `healtharchive-worker.service`.
-2. Copied `/srv/healtharchive/backups/` to
-   `/srv/healtharchive/storagebox/root-disk-rescue/backups-20260523/`.
+2. Copied `<service-data-root>/backups/` to
+   `<service-data-root>/storagebox/root-disk-rescue/backups-20260523/`.
 3. Verified local and Storage Box backup file names and sizes matched.
-4. Deleted local files under `/srv/healtharchive/backups`.
+4. Deleted local files under `<service-data-root>/backups`.
 5. Confirmed root filesystem recovered to `74%` usage with about `20G` free.
 6. Restarted `postgresql@16-main`; `pg_lsclusters` reported `online`.
 7. Restarted the HealthArchive worker.
@@ -86,9 +86,9 @@ Repo-side follow-up implemented:
 - Added repo-managed `scripts/vps-db-backup.sh`.
 - Added `healtharchive-db-backup.service` and
   `healtharchive-db-backup.timer` templates.
-- Changed the documented backup posture so `/srv/healtharchive/backups` is only
+- Changed the documented backup posture so `<service-data-root>/backups` is only
   a short local cache; retained dumps live under
-  `/srv/healtharchive/storagebox/backups/db`.
+  `<service-data-root>/storagebox/backups/db`.
 - Added Prometheus alerts for:
   - root filesystem >80% warning
   - root filesystem >88% critical
@@ -103,7 +103,7 @@ Production follow-up completed:
 - Ran `healtharchive-db-backup.service` successfully at
   `2026-05-23T14:05:05Z`.
 - Verified the successful dump was mirrored to
-  `/srv/healtharchive/storagebox/backups/db/`.
+  `<service-data-root>/storagebox/backups/db/`.
 - Verified backup metrics were exported with
   `healtharchive_db_backup_last_success 1`.
 - Confirmed root usage was stable at `77%` after the backup run.
@@ -115,7 +115,7 @@ Post-incident hardening completed:
 - Set live local backup retention to one successful dump and changed the repo
   default to match.
 - Updated NASD replication to pull from
-  `/srv/healtharchive/storagebox/backups/db/` into
+  `<service-data-root>/storagebox/backups/db/` into
   `/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/`.
 - Verified the NASD dry-run and wrapped DSM helper run succeeded.
 - Fixed rsyslog logrotate handling for `/var/log` group-writable by `syslog`.
@@ -135,7 +135,7 @@ Post-incident hardening completed:
 - [x] Deploy the repo change to production.
 - [x] Install/update systemd units and enable the repo-managed backup timer.
 - [x] Confirm the next backup writes metrics and keeps
-  `/srv/healtharchive/backups` small.
+  `<service-data-root>/backups` small.
 - [x] Update NASD backup automation and verify a real NAS pull.
 - [x] Restore root headroom below warning thresholds after post-incident log
   and frontend-cache cleanup.

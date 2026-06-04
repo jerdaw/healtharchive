@@ -6,26 +6,26 @@ to replay pages from cold storage.
 
 This playbook assumes:
 
-- Production-like host paths (`/srv/healtharchive/**`)
+- Production-like host paths (`<service-data-root>/**`)
 - Existing snapshots may already reference absolute paths under
-  `/srv/healtharchive/jobs/**`
+  `<service-data-root>/jobs/**`
 - You want to keep **paths stable** (so replay keeps working) while relocating
   bytes to cheaper storage.
 
 ## Architecture (what runs where)
 
 - **VPS (hot / canonical paths)**
-  - Canonical archive root: `/srv/healtharchive/jobs`
+  - Canonical archive root: `<service-data-root>/jobs`
   - Backend services read WARCs from paths recorded in the DB (often absolute
-    paths under `/srv/healtharchive/jobs/**`).
+    paths under `<service-data-root>/jobs/**`).
   - For tiering, we keep these canonical paths intact and *mount/bind* cold data
     into them.
 
 - **Storage Box (cold bytes)**
-  - Mounted on the VPS at: `/srv/healtharchive/storagebox`
-  - Cold mirror root (suggested): `/srv/healtharchive/storagebox/jobs`
+  - Mounted on the VPS at: `<service-data-root>/storagebox`
+  - Cold mirror root (suggested): `<service-data-root>/storagebox/jobs`
   - You store large job directories here and then bind-mount them into the
-    canonical paths under `/srv/healtharchive/jobs/**`.
+    canonical paths under `<service-data-root>/jobs/**`.
 
 ## Create the Storage Box (Hetzner console)
 
@@ -61,7 +61,7 @@ Run these on the VPS:
 sudo apt-get update
 sudo apt-get install -y sshfs
 sudo sed -i 's/^#user_allow_other/user_allow_other/' /etc/fuse.conf
-sudo mkdir -p /srv/healtharchive/storagebox
+sudo mkdir -p <service-data-root>/storagebox
 ```
 
 Mount (SSH runs on port `23` for Storage Boxes):
@@ -74,20 +74,20 @@ sudo sshfs -p 23 \
   -o uid="$(id -u haadmin)",gid="${GID}",umask=0027 \
   -o reconnect,ServerAliveInterval=15,ServerAliveCountMax=3,kernel_cache \
   uNNNNNN@uNNNNNN.your-storagebox.de:/ \
-  /srv/healtharchive/storagebox
+  <service-data-root>/storagebox
 ```
 
 Sanity check:
 
 ```bash
-touch /srv/healtharchive/storagebox/_probe && rm /srv/healtharchive/storagebox/_probe
-df -h /srv/healtharchive/storagebox
+touch <service-data-root>/storagebox/_probe && rm <service-data-root>/storagebox/_probe
+df -h <service-data-root>/storagebox
 ```
 
 Create the cold mirror root:
 
 ```bash
-mkdir -p /srv/healtharchive/storagebox/jobs/imports
+mkdir -p <service-data-root>/storagebox/jobs/imports
 ```
 
 ### Make the mount persistent (recommended)
@@ -112,7 +112,7 @@ STORAGEBOX_GID=999
 # Optional (defaults are fine for most setups):
 # STORAGEBOX_REMOTE_PATH=
 # STORAGEBOX_PORT=23
-# STORAGEBOX_MOUNT=/srv/healtharchive/storagebox
+# STORAGEBOX_MOUNT=<service-data-root>/storagebox
 EOF
 ```
 
@@ -125,11 +125,11 @@ Replace:
 2) Install templates + enable the mount (VPS):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo ./scripts/vps-install-systemd-units.sh --apply
 sudo systemctl enable --now healtharchive-storagebox-sshfs.service
 systemctl status healtharchive-storagebox-sshfs.service --no-pager
-mount | rg /srv/healtharchive/storagebox || true
+mount | rg <service-data-root>/storagebox || true
 ```
 
 If it fails due to host key prompts, prime root’s known_hosts once:
@@ -145,8 +145,8 @@ This procedure keeps the canonical path stable.
 1) Define paths (VPS):
 
 ```bash
-HOT=/srv/healtharchive/jobs/imports/<job_dir_name>
-COLD=/srv/healtharchive/storagebox/jobs/imports/<job_dir_name>
+HOT=<service-data-root>/jobs/imports/<job_dir_name>
+COLD=<service-data-root>/storagebox/jobs/imports/<job_dir_name>
 ```
 
 2) Copy to cold tier (VPS):
@@ -206,19 +206,19 @@ template + manifest so tiered jobs come back automatically.
 ```bash
 sudo tee /etc/healtharchive/warc-tiering.binds >/dev/null <<'EOF'
 # cold_path hot_path
-/srv/healtharchive/storagebox/jobs/imports/legacy-hc-2025-04-21 /srv/healtharchive/jobs/imports/legacy-hc-2025-04-21
-/srv/healtharchive/storagebox/jobs/imports/legacy-cihr-2025-04 /srv/healtharchive/jobs/imports/legacy-cihr-2025-04
+<service-data-root>/storagebox/jobs/imports/legacy-hc-2025-04-21 <service-data-root>/jobs/imports/legacy-hc-2025-04-21
+<service-data-root>/storagebox/jobs/imports/legacy-cihr-2025-04 <service-data-root>/jobs/imports/legacy-cihr-2025-04
 EOF
 ```
 
 2) Enable the service (VPS):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo ./scripts/vps-install-systemd-units.sh --apply
 sudo systemctl enable --now healtharchive-warc-tiering.service
 systemctl status healtharchive-warc-tiering.service --no-pager
-mount | rg /srv/healtharchive/jobs/imports/legacy- || true
+mount | rg <service-data-root>/jobs/imports/legacy- || true
 ```
 
 Note: the template service runs `vps-warc-tiering-bind-mounts.sh --apply --repair-stale-mounts` so it can automatically
@@ -229,7 +229,7 @@ unmount stale Errno 107 mountpoints and re-apply bind mounts.
 First, gather a read-only diagnostic report (safe while crawls are running):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-diagnose-warc-tiering.sh
 ```
 
@@ -253,7 +253,7 @@ systemctl status healtharchive-warc-tiering.service --no-pager -l
 If it fails again, run the tiering script directly (shows the most actionable error output):
 
 ```bash
-sudo /opt/healtharchive/scripts/vps-warc-tiering-bind-mounts.sh --apply --repair-stale-mounts
+sudo <deploy-root>/scripts/vps-warc-tiering-bind-mounts.sh --apply --repair-stale-mounts
 ```
 
 If the unit is in a `failed` state from a prior incident, clear it before retrying:
@@ -266,7 +266,7 @@ sudo systemctl start healtharchive-warc-tiering.service
 Manual validation (safe):
 
 ```bash
-sudo /opt/healtharchive/scripts/vps-warc-tiering-bind-mounts.sh
+sudo <deploy-root>/scripts/vps-warc-tiering-bind-mounts.sh
 ```
 
 If `healtharchive-warc-tiering.service` repeatedly ends up in `failed` (e.g., after an sshfs disconnect),
@@ -279,7 +279,7 @@ curl -s http://127.0.0.1:9100/metrics | rg '^healtharchive_tiering_' || true
 
 ### Replay note (restart after tiering changes)
 
-Replay runs in a long-lived Docker container and bind-mounts `/srv/healtharchive/jobs` into `/warcs`. After fixing stale mounts or changing tiering binds, restart replay so it sees a clean view of the mountpoints:
+Replay runs in a long-lived Docker container and bind-mounts `<service-data-root>/jobs` into `/warcs`. After fixing stale mounts or changing tiering binds, restart replay so it sees a clean view of the mountpoints:
 
 ```bash
 sudo systemctl restart healtharchive-replay.service
@@ -289,8 +289,8 @@ sudo systemctl start healtharchive-replay-smoke.service
 ## Current annual output topology
 
 As of 2026-05-06, the 2026 annual job output directories for HC, PHAC, and
-CIHR are hot paths under `/srv/healtharchive/jobs/**` backed by the single
-Storage Box mount at `/srv/healtharchive/storagebox`. On sshfs-backed bind
+CIHR are hot paths under `<service-data-root>/jobs/**` backed by the single
+Storage Box mount at `<service-data-root>/storagebox`. On sshfs-backed bind
 mounts, `findmnt` may still display `fstype=fuse.sshfs`; validate the topology
 with `vps-annual-output-tiering.py --year 2026` and, when needed, `/proc/self/mountinfo`
 or hot/cold `stat` identity rather than relying only on a visible `bind` option.
@@ -305,7 +305,7 @@ the Storage Box tier and briefly stops the worker to reduce race conditions.
 To apply the updated template on the VPS:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 git pull
 sudo ./scripts/vps-install-systemd-units.sh --apply
 sudo systemctl daemon-reload
@@ -326,7 +326,7 @@ sudo systemctl stop healtharchive-worker.service
 2) Enqueue annual jobs (this affects the production DB; delete them afterwards if you do not want them queued):
 
 ```bash
-/opt/healtharchive/.venv/bin/healtharchive schedule-annual --apply --year 2026 --sources hc phac cihr
+<deploy-root>/.venv/bin/healtharchive schedule-annual --apply --year 2026 --sources hc phac cihr
 ```
 
 3) Apply tiering for the jobs you just created (use a short window around “now”):
@@ -337,7 +337,7 @@ set -a; source /etc/healtharchive/backend.env; set +a
 systemctl is-active postgresql.service
 
 sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
-  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py \
+  <deploy-root>/.venv/bin/python3 <deploy-root>/scripts/vps-annual-output-tiering.py \
   --apply \
   --repair-stale-mounts \
   --allow-repair-running-jobs \
@@ -348,7 +348,7 @@ sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
 4) Validate the expected output dirs are mounted (and that storagebox is still mounted):
 
 ```bash
-mount | rg '/srv/healtharchive/storagebox|/srv/healtharchive/jobs/(hc|phac|cihr)/' || true
+mount | rg '<service-data-root>/storagebox|<service-data-root>/jobs/(hc|phac|cihr)/' || true
 ```
 
 5) Decide what to do with the queued annual jobs:
@@ -367,7 +367,7 @@ sudo systemctl enable --now healtharchive-tiering-metrics.timer
 This requires node_exporter to have the textfile collector enabled (the repo installer does this):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 git pull
 sudo ./scripts/vps-install-observability-exporters.sh --apply
 ```
@@ -387,7 +387,7 @@ This is the inverse of the “safe swap” above.
 
 - If you intend the upcoming annual campaign outputs to land on the Storage Box,
   run preflight with:
-  - `YEAR=2026; ./scripts/vps-preflight-crawl.sh --year "$YEAR" --campaign-archive-root /srv/healtharchive/storagebox/jobs`
+  - `YEAR=2026; ./scripts/vps-preflight-crawl.sh --year "$YEAR" --campaign-archive-root <service-data-root>/storagebox/jobs`
 - Ensure the Storage Box mount is active before preflight and before the annual
   campaign runs.
 
@@ -405,23 +405,23 @@ Sketch:
 ```bash
 # After jobs exist (queued), get the job output dir:
 JOB_ID=123
-/opt/healtharchive/.venv/bin/healtharchive show-job --id "$JOB_ID" | rg output_dir
+<deploy-root>/.venv/bin/healtharchive show-job --id "$JOB_ID" | rg output_dir
 
 # Suppose output_dir is:
-HOT=/srv/healtharchive/jobs/hc/20260101T000000Z__hc-2026
+HOT=<service-data-root>/jobs/hc/20260101T000000Z__hc-2026
 
 # Create a matching cold location and mount it into place:
-COLD=/srv/healtharchive/storagebox/jobs/hc/20260101T000000Z__hc-2026
+COLD=<service-data-root>/storagebox/jobs/hc/20260101T000000Z__hc-2026
 mkdir -p "$COLD"
 sudo mount --bind "$COLD" "$HOT"
 ```
 
-This keeps DB WARC paths under `/srv/healtharchive/jobs/**` (stable), while the
+This keeps DB WARC paths under `<service-data-root>/jobs/**` (stable), while the
 bytes live on Storage Box.
 
 ## Common pitfalls
 
-- `mkdir: Permission denied` under `/srv/healtharchive/storagebox/**`:
+- `mkdir: Permission denied` under `<service-data-root>/storagebox/**`:
   - Your sshfs mount is mapped to the wrong UID/GID; remount with
     `uid=$(id -u haadmin)`, `gid=$(getent group healtharchive | cut -d: -f3)`,
     and a restrictive `umask`.

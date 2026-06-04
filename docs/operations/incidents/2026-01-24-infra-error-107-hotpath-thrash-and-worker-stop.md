@@ -16,7 +16,7 @@ Status: draft
 
 ## Summary
 
-During the annual 2026 campaign, Storage Box “hot path” mountpoints under `/srv/healtharchive/jobs/**` intermittently became stale and returned `OSError: [Errno 107] Transport endpoint is not connected`. The worker then repeatedly picked the PHAC annual job (job 7), immediately failed with an infra error, and re-picked it in a tight loop. Shortly after, the worker service became inactive, leaving the campaign with no running jobs until manual intervention restarted the worker and re-launched the HC crawl (job 6).
+During the annual 2026 campaign, Storage Box “hot path” mountpoints under `<service-data-root>/jobs/**` intermittently became stale and returned `OSError: [Errno 107] Transport endpoint is not connected`. The worker then repeatedly picked the PHAC annual job (job 7), immediately failed with an infra error, and re-picked it in a tight loop. Shortly after, the worker service became inactive, leaving the campaign with no running jobs until manual intervention restarted the worker and re-launched the HC crawl (job 6).
 
 ## Impact
 
@@ -88,9 +88,9 @@ Manual recovery steps performed (state-changing):
 1) Confirm mounts were readable again (spot-check):
 
 ```bash
-timeout 5 ls -la /srv/healtharchive/storagebox >/dev/null
-timeout 5 ls -la /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101 >/dev/null
-timeout 5 ls -la /srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101 >/dev/null
+timeout 5 ls -la <service-data-root>/storagebox >/dev/null
+timeout 5 ls -la <service-data-root>/jobs/phac/20260101T000502Z__phac-20260101 >/dev/null
+timeout 5 ls -la <service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101 >/dev/null
 ```
 
 2) Restart the worker:
@@ -121,8 +121,8 @@ Observed outcome: job 6 (HC) restarted at ~12:31Z and began writing new crawl te
   - `sudo systemctl status healtharchive-worker.service --no-pager -l` (worker active)
   - `./scripts/vps-crawl-status.sh --year 2026` (running job detected; metrics OK; crawlStatus advancing)
 - Storage/mount checks:
-  - `findmnt -T /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101`
-  - `findmnt -T /srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101`
+  - `findmnt -T <service-data-root>/jobs/phac/20260101T000502Z__phac-20260101`
+  - `findmnt -T <service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101`
 - Integrity checks:
   - Not performed as part of this initial incident note; consider WARC sampling on job 6 after stabilization.
 
@@ -164,7 +164,7 @@ Observed outcome: job 6 (HC) restarted at ~12:31Z and began writing new crawl te
 
 ```text
 Jan 24 06:28:01 <vps> healtharchive[...]: 2026-01-24 06:28:01,050 [INFO] healtharchive.worker: Worker picked job 7 for source phac (...) with status retryable and retry_count 0
-Jan 24 06:28:01 <vps> healtharchive[...]: 2026-01-24 06:28:01,056 [WARNING] healtharchive.jobs: Job 7 raised during archive_tool execution: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101'
+Jan 24 06:28:01 <vps> healtharchive[...]: 2026-01-24 06:28:01,056 [WARNING] healtharchive.jobs: Job 7 raised during archive_tool execution: [Errno 107] Transport endpoint is not connected: '<service-data-root>/jobs/phac/20260101T000502Z__phac-20260101'
 Jan 24 06:28:01 <vps> healtharchive[...]: 2026-01-24 06:28:01,063 [WARNING] healtharchive.worker: Crawl for job 7 failed due to infra error (RC=1). Not consuming retry budget (retry_count=0).
 Jan 24 06:28:01 <vps> healtharchive[...]: 2026-01-24 06:28:01,068 [INFO] healtharchive.worker: Worker picked job 7 for source phac (...) with status retryable and retry_count 0
 Jan 24 06:28:02 <vps> systemd[1]: Stopping healtharchive-worker.service - HealthArchive Worker...

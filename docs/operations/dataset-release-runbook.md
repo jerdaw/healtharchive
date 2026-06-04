@@ -7,7 +7,7 @@ This release is normally hands-off (GitHub Actions). Use this checklist for veri
 1) Check `https://github.com/jerdaw/healtharchive-datasets/releases` for the latest tag.
 2) Download all assets to one directory; run `sha256sum -c SHA256SUMS`.
 3) Inspect `manifest.json` for `truncated=false` and plausible row counts.
-4) Record a quarterly entry in `/srv/healtharchive/ops/adoption/` (links + aggregates only).
+4) Record a quarterly entry in `<service-data-root>/ops/adoption/` (links + aggregates only).
 
 Notes:
 

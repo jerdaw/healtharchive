@@ -83,10 +83,10 @@ sudo systemctl enable --now docker postgresql
 #### Step 4: Prepare Directories
 ```bash
 sudo groupadd --system healtharchive
-sudo mkdir -p /srv/healtharchive/{jobs,backups,ops}
-sudo chown -R haadmin:haadmin /srv/healtharchive/jobs
-sudo chown root:healtharchive /srv/healtharchive/backups /srv/healtharchive/ops
-sudo chmod 2770 /srv/healtharchive/backups /srv/healtharchive/ops
+sudo mkdir -p <service-data-root>/{jobs,backups,ops}
+sudo chown -R haadmin:haadmin <service-data-root>/jobs
+sudo chown root:healtharchive <service-data-root>/backups <service-data-root>/ops
+sudo chmod 2770 <service-data-root>/backups <service-data-root>/ops
 ```
 
 #### Step 5: Retrieve Backup from NAS
@@ -94,11 +94,11 @@ If Tailscale is up on both ends:
 1.  SSH to NAS: `ssh user@nas-ip`.
 2.  Rsync backup to new VPS:
     ```bash
-    rsync -av /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/latest.dump haadmin@new-vps-ip:/srv/healtharchive/backups/
+    rsync -av /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/latest.dump haadmin@new-vps-ip:<service-data-root>/backups/
     ```
     *Alternatively, pull from VPS:*
     ```bash
-    scp user@nas-ip:/path/to/backup.dump /srv/healtharchive/backups/latest.dump
+    scp user@nas-ip:/path/to/backup.dump <service-data-root>/backups/latest.dump
     ```
 
 #### Step 6: Restore Database
@@ -109,14 +109,14 @@ If Tailscale is up on both ends:
     ```
 2.  Restore Schema and Data:
     ```bash
-    sudo -u postgres pg_restore -d healtharchive /srv/healtharchive/backups/latest.dump
+    sudo -u postgres pg_restore -d healtharchive <service-data-root>/backups/latest.dump
     ```
 
 #### Step 7: Restore Application
 1.  Clone Repository:
     ```bash
-    git clone https://github.com/jerdaw/healtharchive.git /opt/healtharchive
-    cd /opt/healtharchive
+    git clone https://github.com/jerdaw/healtharchive.git <deploy-root>
+    cd <deploy-root>
     python3 -m venv .venv
     ./.venv/bin/pip install -e ".[dev]" "psycopg[binary]"
     ```
@@ -125,8 +125,8 @@ If Tailscale is up on both ends:
     - If needed, regenerate the `ADMIN_TOKEN`.
 
 #### Step 8: Re-mount Storage / Restore WARCs
-- Mount the Storage Box (tiered storage) to `/srv/healtharchive/storagebox` using `sshfs` (see `production-single-vps.md`).
-- If local WARCs were lost (`/srv/healtharchive/jobs`), you have two options:
+- Mount the Storage Box (tiered storage) to `<service-data-root>/storagebox` using `sshfs` (see `production-single-vps.md`).
+- If local WARCs were lost (`<service-data-root>/jobs`), you have two options:
     1.  **Rescan:** If files exist on Storage Box, re-import headers (slow).
     2.  **Empty Start:** Start with empty local jobs; historical data remains on Storage Box/index.
 
@@ -140,16 +140,16 @@ Use this procedure when the VPS is running but the database is corrupted or drop
 
 #### Step 1: Locate Backup
 - **Format:** `pg_dump -Fc` (custom format, compressed).
-- **Local cache:** `/srv/healtharchive/backups/` (short cache only)
+- **Local cache:** `<service-data-root>/backups/` (short cache only)
     - Naming: `healtharchive_<timestamp>.dump`
-- **Storage Box mirror:** `/srv/healtharchive/storagebox/backups/db/`
+- **Storage Box mirror:** `<service-data-root>/storagebox/backups/db/`
     - Retained nightly dump set.
 - **NAS:** `/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/` (needs retrieval)
-    - Offsite mirror of `/srv/healtharchive/storagebox/backups/db` via NAS
+    - Offsite mirror of `<service-data-root>/storagebox/backups/db` via NAS
       `rsync --delete` pull.
     - Retention follows the Storage Box mirror contents, not the short local
       root-disk cache. Archive one-off maintenance dumps under
-      `/srv/healtharchive/ops/maintenance/...` if they must outlive the normal
+      `<service-data-root>/ops/maintenance/...` if they must outlive the normal
       mirrored set.
     - This NAS path is the protected homelab service-backup ingest location,
       not an independent permanent archive.
@@ -213,7 +213,7 @@ Use this procedure when WARC files or the archive storage structure is compromis
 
 **Archive Root Structure:**
 ```bash
-/srv/healtharchive/jobs/
+<service-data-root>/jobs/
 ├── <source_slug>-<year>-<month>/  # Job Output Directories
 │   ├── warcs/                     # Stable WARC files
 │   │   ├── manifest.json          # Mapping of source -> stable filenames
@@ -228,18 +228,18 @@ Use this procedure when WARC files or the archive storage structure is compromis
 
 **Case 1: Local WARCs lost (e.g., accidental deletion), Tiered storage intact**
 This is the most common recovery case.
-1.  **Check Tiered Storage:** Verify header-only WARCs or full files exist in `/srv/healtharchive/storagebox`.
+1.  **Check Tiered Storage:** Verify header-only WARCs or full files exist in `<service-data-root>/storagebox`.
     2.  **Re-import Headers/WARCs (Slow but safe):**
         If the database is intact, you don't *need* the local WARCs effectively immediately for the site to work, but the Replay service will fail for those snapshots.
         To restore replayability, copy the WARCs back from tiered storage:
         ```bash
         # Example: Restore specific job
-        rsync -av /srv/healtharchive/storagebox/jobs/hc-2026-01/ /srv/healtharchive/jobs/hc-2026-01/
+        rsync -av <service-data-root>/storagebox/jobs/hc-2026-01/ <service-data-root>/jobs/hc-2026-01/
         ```
     3.  **Verify against Manifest:**
         ```bash
         # Check that all files in manifest exist and have correct sizes
-        cat /srv/healtharchive/jobs/hc-2026-01/warcs/manifest.json | jq .records
+        cat <service-data-root>/jobs/hc-2026-01/warcs/manifest.json | jq .records
         ```
 
 **Case 2: Tiered storage unavailable, Local intact**

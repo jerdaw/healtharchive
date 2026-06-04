@@ -19,37 +19,37 @@ For background and the full implementation plan (prevention + automation + integ
 
 ## Quick triage (60 seconds)
 
-On the VPS (`/opt/healtharchive`):
+On the VPS (`<deploy-root>`):
 
 0) Capture an evidence bundle (recommended, read-only):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-capture-hotpath-staleness-evidence.sh --tag pre-repair
 ```
 
 Optional: if the affected crawl campaign year differs from the current UTC year, pass it explicitly:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-capture-hotpath-staleness-evidence.sh --tag pre-repair --year 2026
 ```
 
 This writes a timestamped directory under:
 
-- `/srv/healtharchive/ops/observability/hotpath-staleness/`
+- `<service-data-root>/ops/observability/hotpath-staleness/`
 
 Optional (recommended): after recovery actions complete, capture a second bundle for comparison:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-capture-hotpath-staleness-evidence.sh --tag post-repair
 ```
 
 Optional: diff the latest pre-repair vs post-repair bundles:
 
 ```bash
-root=/srv/healtharchive/ops/observability/hotpath-staleness
+root=<service-data-root>/ops/observability/hotpath-staleness
 before=$(ls -1dt "${root}"/*pre-repair 2>/dev/null | head -n 1)
 after=$(ls -1dt "${root}"/*post-repair 2>/dev/null | head -n 1)
 ./scripts/vps-diff-hotpath-staleness-evidence.sh --before "${before}" --after "${after}"
@@ -67,7 +67,7 @@ attempting recovery (it is disabled-by-default unless the sentinel exists):
 ```bash
 systemctl status healtharchive-storage-hotpath-auto-recover.timer --no-pager -l || true
 ls -la /etc/healtharchive/storage-hotpath-auto-recover-enabled 2>/dev/null || true
-cat /srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json 2>/dev/null || true
+cat <service-data-root>/ops/watchdog/storage-hotpath-auto-recover.json 2>/dev/null || true
 ```
 
 If the worker auto-start watchdog is enabled (optional), check it too:
@@ -75,7 +75,7 @@ If the worker auto-start watchdog is enabled (optional), check it too:
 ```bash
 systemctl status healtharchive-worker-auto-start.timer --no-pager -l || true
 ls -la /etc/healtharchive/worker-auto-start-enabled 2>/dev/null || true
-cat /srv/healtharchive/ops/watchdog/worker-auto-start.json 2>/dev/null || true
+cat <service-data-root>/ops/watchdog/worker-auto-start.json 2>/dev/null || true
 ```
 
 ### Watchdog failure-mode matrix (deterministic triage)
@@ -85,7 +85,7 @@ Use this matrix before manual repair so you can classify the watchdog state quic
 Primary evidence commands:
 
 ```bash
-cat /srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json 2>/dev/null || true
+cat <service-data-root>/ops/watchdog/storage-hotpath-auto-recover.json 2>/dev/null || true
 curl -s http://127.0.0.1:9100/metrics | rg '^healtharchive_storage_hotpath_auto_recover_(metrics_ok|detected_targets|deploy_lock_active|last_apply_ok|last_apply_timestamp_seconds|apply_total)'
 ```
 
@@ -99,15 +99,15 @@ curl -s http://127.0.0.1:9100/metrics | rg '^healtharchive_storage_hotpath_auto_
 2) Confirm Storage Box base mount health:
 
 ```bash
-mount | rg '/srv/healtharchive/storagebox'
-ls -la /srv/healtharchive/storagebox >/dev/null && echo "OK: storagebox readable" || echo "BAD: storagebox unreadable"
+mount | rg '<service-data-root>/storagebox'
+ls -la <service-data-root>/storagebox >/dev/null && echo "OK: storagebox readable" || echo "BAD: storagebox unreadable"
 ```
 
 3) Identify broken “hot paths” (job output dirs):
 
 ```bash
 ./scripts/vps-crawl-status.sh --year "$(date -u +%Y)" | rg '^Output dir:'
-ls -la /srv/healtharchive/jobs/hc/  # replace with source path(s) as needed
+ls -la <service-data-root>/jobs/hc/  # replace with source path(s) as needed
 ```
 
 If you see `Transport endpoint is not connected` or `d?????????` for job output dirs, continue.
@@ -148,8 +148,8 @@ This incident class often affects **specific job output directories** (not neces
 For each affected job output dir (examples shown):
 
 ```bash
-mount | rg '/srv/healtharchive/jobs/(hc|phac|cihr)/'
-sudo findmnt -T /srv/healtharchive/jobs/hc/<JOB_DIR> || true
+mount | rg '<service-data-root>/jobs/(hc|phac|cihr)/'
+sudo findmnt -T <service-data-root>/jobs/hc/<JOB_DIR> || true
 ```
 
 If `ls` against a path returns `Transport endpoint is not connected`, treat it as stale.
@@ -161,13 +161,13 @@ If `ls` against a path returns `Transport endpoint is not connected`, treat it a
 For each stale mountpoint, try:
 
 ```bash
-sudo umount /srv/healtharchive/jobs/<source>/<JOB_DIR>
+sudo umount <service-data-root>/jobs/<source>/<JOB_DIR>
 ```
 
 If it fails and the path is still broken/unstat’able, use lazy unmount:
 
 ```bash
-sudo umount -l /srv/healtharchive/jobs/<source>/<JOB_DIR>
+sudo umount -l <service-data-root>/jobs/<source>/<JOB_DIR>
 ```
 
 Notes:
@@ -192,7 +192,7 @@ repair automatically (still requires the worker to be stopped first):
 sudo ./scripts/vps-warc-tiering-bind-mounts.sh --apply --repair-stale-mounts
 ```
 
-If this fails with Errno 107 under `/srv/healtharchive/jobs/imports/...`, unmount those stale import mountpoints too and re-run.
+If this fails with Errno 107 under `<service-data-root>/jobs/imports/...`, unmount those stale import mountpoints too and re-run.
 
 If the systemd unit is in a `failed` state, clear it and re-run (prevents repeated `WarcTieringFailed` alerts):
 
@@ -211,7 +211,7 @@ set -a; source /etc/healtharchive/backend.env; set +a
 systemctl is-active postgresql.service
 
 sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
-  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --apply --year "$(date -u +%Y)"
+  <deploy-root>/.venv/bin/python3 <deploy-root>/scripts/vps-annual-output-tiering.py --apply --year "$(date -u +%Y)"
 ```
 
 If you want the script to attempt targeted repair for stale mountpoints (Errno 107),
@@ -219,7 +219,7 @@ pass:
 
 ```bash
 sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
-  /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --apply --repair-stale-mounts --allow-repair-running-jobs --year "$(date -u +%Y)"
+  <deploy-root>/.venv/bin/python3 <deploy-root>/scripts/vps-annual-output-tiering.py --apply --repair-stale-mounts --allow-repair-running-jobs --year "$(date -u +%Y)"
 ```
 
 Alternative (uses the systemd unit, which stops/starts the worker internally):
@@ -241,13 +241,13 @@ set -a; source /etc/healtharchive/backend.env; set +a
 Recover stale jobs:
 
 ```bash
-/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --limit 25
+<deploy-root>/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --limit 25
 ```
 
 If a job ended up `failed` due to the mount issue and you want it to run again:
 
 ```bash
-/opt/healtharchive/.venv/bin/healtharchive retry-job --id <JOB_ID>
+<deploy-root>/.venv/bin/healtharchive retry-job --id <JOB_ID>
 ```
 
 ---
@@ -262,7 +262,7 @@ sudo systemctl start healtharchive-worker.service
 
 ## Replay note (after mount repairs)
 
-If replay smoke tests start returning `503` for previously indexed jobs after a mount/tiering incident, restart replay to refresh its view of `/srv/healtharchive/jobs`:
+If replay smoke tests start returning `503` for previously indexed jobs after a mount/tiering incident, restart replay to refresh its view of `<service-data-root>/jobs`:
 
 ```bash
 sudo systemctl restart healtharchive-replay.service
@@ -315,7 +315,7 @@ If hot paths are still unreadable after unmount + tiering reapply:
 1) Verify Storage Box base mount is readable:
 
 ```bash
-ls -la /srv/healtharchive/storagebox >/dev/null && echo OK || echo BAD
+ls -la <service-data-root>/storagebox >/dev/null && echo OK || echo BAD
 sudo systemctl status healtharchive-storagebox-sshfs.service --no-pager -l
 ```
 
@@ -334,7 +334,7 @@ If this becomes a recurring pattern, treat it as an infrastructure incident and 
 If the persistent failed-apply alert is active (`HealthArchiveStorageHotpathApplyFailedPersistent`):
 
 1. Capture `last_apply_errors` / `last_apply_warnings` from:
-   - `/srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json`
+   - `<service-data-root>/ops/watchdog/storage-hotpath-auto-recover.json`
 2. Run this playbook’s ordered recovery sequence (worker quiesce -> targeted unmount -> tiering re-apply -> stale job recover -> worker restart).
 3. Run the dry-run drill from `storagebox-sshfs-stale-mount-drills.md` to confirm planned actions are now sane.
 

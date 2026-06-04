@@ -16,7 +16,7 @@ Status: closed
 
 ## Summary
 
-Several Storage Box “hot path” `sshfs` mountpoints under `/srv/healtharchive/jobs/**` became stale and started returning `OSError: [Errno 107] Transport endpoint is not connected`. This caused the worker to throw exceptions when reading/writing job output dirs, the crawl metrics textfile writer to fail repeatedly, and annual crawl jobs (HC/PHAC/CIHR) to fail/retry without making forward progress.
+Several Storage Box “hot path” `sshfs` mountpoints under `<service-data-root>/jobs/**` became stale and started returning `OSError: [Errno 107] Transport endpoint is not connected`. This caused the worker to throw exceptions when reading/writing job output dirs, the crawl metrics textfile writer to fail repeatedly, and annual crawl jobs (HC/PHAC/CIHR) to fail/retry without making forward progress.
 
 Recovery required stopping the worker, lazily unmounting the stale hot-path mountpoints, re-applying tiering bind mounts, and marking affected jobs as `retryable` so they could safely restart. After recovery, the worker successfully restarted the HC crawl and resumed writing WARCs to the output directory.
 
@@ -38,7 +38,7 @@ Recovery required stopping the worker, lazily unmounting the stale hot-path moun
 - Operator status snapshot:
   - `./scripts/vps-crawl-status.sh --year 2026` showed `WARN job output dir not found/readable` and missing running-job log tails.
 - Direct filesystem symptom:
-  - `ls -la /srv/healtharchive/jobs/hc/` returned `Transport endpoint is not connected` and showed `d?????????` for the affected job dir.
+  - `ls -la <service-data-root>/jobs/hc/` returned `Transport endpoint is not connected` and showed `d?????????` for the affected job dir.
 - Monitoring symptom:
   - `systemctl status healtharchive-crawl-metrics.timer healtharchive-crawl-metrics.service` showed the metrics writer exiting non-zero.
   - `journalctl -u healtharchive-crawl-metrics.service` showed a traceback ending in `OSError: [Errno 107] Transport endpoint is not connected: '<job output dir>'`.
@@ -52,31 +52,31 @@ Worker journal (error propagation into the worker loop):
 ```text
 Jan 08 06:31:43 <vps> healtharchive[302894]: 2026-01-08 06:31:43,663 [WARNING] healtharchive.worker: Crawl for job 6 failed (RC=1). Marking as retryable (retry_count=1).
 Jan 08 06:31:43 <vps> healtharchive[302894]: 2026-01-08 06:31:43,675 [INFO] healtharchive.worker: Worker picked job 6 for source hc (Health Canada) with status retryable and retry_count 1
-Jan 08 06:31:43 <vps> healtharchive[302894]: 2026-01-08 06:31:43,684 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101'
+Jan 08 06:31:43 <vps> healtharchive[302894]: 2026-01-08 06:31:43,684 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '<service-data-root>/jobs/hc/20260101T000502Z__hc-20260101'
 Jan 08 06:32:13 <vps> healtharchive[302894]: 2026-01-08 06:32:13,694 [INFO] healtharchive.worker: Worker picked job 7 for source phac (Public Health Agency of Canada) with status queued and retry_count 0
-Jan 08 06:32:13 <vps> healtharchive[302894]: 2026-01-08 06:32:13,702 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101'
+Jan 08 06:32:13 <vps> healtharchive[302894]: 2026-01-08 06:32:13,702 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '<service-data-root>/jobs/phac/20260101T000502Z__phac-20260101'
 Jan 08 06:32:43 <vps> healtharchive[302894]: 2026-01-08 06:32:43,711 [INFO] healtharchive.worker: Worker picked job 8 for source cihr (Canadian Institutes of Health Research) with status queued and retry_count 0
-Jan 08 06:32:43 <vps> healtharchive[302894]: 2026-01-08 06:32:43,718 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101'
+Jan 08 06:32:43 <vps> healtharchive[302894]: 2026-01-08 06:32:43,718 [ERROR] healtharchive.worker: Unexpected error in worker iteration: [Errno 107] Transport endpoint is not connected: '<service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101'
 ```
 
 Crawl metrics writer failure (systemd service repeatedly failing due to `Errno 107` during output-dir probing):
 
 ```text
 Traceback (most recent call last):
-  File "/opt/healtharchive/scripts/vps-crawl-metrics-textfile.py", line 174, in main
+  File "<deploy-root>/scripts/vps-crawl-metrics-textfile.py", line 174, in main
     log_path = _find_job_log(job)
-  File "/opt/healtharchive/scripts/vps-crawl-metrics-textfile.py", line 33, in _find_latest_combined_log
+  File "<deploy-root>/scripts/vps-crawl-metrics-textfile.py", line 33, in _find_latest_combined_log
     if not output_dir.is_dir():
   File "/usr/lib/python3.12/pathlib.py", line 842, in stat
     return os.stat(self, follow_symlinks=follow_symlinks)
-OSError: [Errno 107] Transport endpoint is not connected: '/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101'
+OSError: [Errno 107] Transport endpoint is not connected: '<service-data-root>/jobs/hc/20260101T000502Z__hc-20260101'
 ```
 
 Filesystem symptom (stale FUSE mountpoint):
 
 ```text
-$ ls -la /srv/healtharchive/jobs/hc/
-ls: cannot access '/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101': Transport endpoint is not connected
+$ ls -la <service-data-root>/jobs/hc/
+ls: cannot access '<service-data-root>/jobs/hc/20260101T000502Z__hc-20260101': Transport endpoint is not connected
 d????????? ? ? ? ? ? 20260101T000502Z__hc-20260101
 ```
 
@@ -94,7 +94,7 @@ d????????? ? ? ? ? ? 20260101T000502Z__hc-20260101
 - 2026-01-08T19:52:58Z — Operator ran `./scripts/vps-crawl-status.sh --year 2026` and observed job output dir unreadable and crawl jobs failing/retrying.
 - 2026-01-08T20:09:02Z — `healtharchive-crawl-metrics.service` repeatedly failed with `Errno 107` while probing output dirs/logs.
 - 2026-01-08T20:17Z (approx) — Operator stopped worker, unmounted stale hot-path mountpoints for job output dirs.
-- 2026-01-08T20:18Z (approx) — First attempt to re-apply tiering bind mounts failed due to additional stale mounts under `/srv/healtharchive/jobs/imports/**`.
+- 2026-01-08T20:18Z (approx) — First attempt to re-apply tiering bind mounts failed due to additional stale mounts under `<service-data-root>/jobs/imports/**`.
 - 2026-01-08T20:21Z (approx) — Operator unmounted stale imports mountpoints and re-applied tiering bind mounts successfully.
 - 2026-01-08T20:22Z (approx) — Operator ran `healtharchive recover-stale-jobs --apply` and restarted the worker; crawl metrics writer started succeeding again.
 - 2026-01-08T20:34:34Z — Status snapshot showed annual jobs in `failed` (no running jobs); operator re-marked jobs `retryable` via `healtharchive retry-job`.
@@ -102,7 +102,7 @@ d????????? ? ? ? ? ? 20260101T000502Z__hc-20260101
 
 ## Root cause
 
-- Immediate trigger: one or more `sshfs` “hot path” mountpoints under `/srv/healtharchive/jobs/**` became stale, causing `stat(2)` and directory reads to fail with `Errno 107` (“Transport endpoint is not connected”).
+- Immediate trigger: one or more `sshfs` “hot path” mountpoints under `<service-data-root>/jobs/**` became stale, causing `stat(2)` and directory reads to fail with `Errno 107` (“Transport endpoint is not connected”).
 - Underlying cause(s): unknown.
   - Hypothesis: transient network disruption between the VPS and Storage Box left multiple nested `sshfs` mounts in a stale-but-mounted state; the base Storage Box mount remained active, but hot-path submounts did not recover automatically.
 
@@ -120,9 +120,9 @@ d????????? ? ? ? ? ? 20260101T000502Z__hc-20260101
 ### 1) Confirm the symptom and scope
 
 - Confirmed filesystem error:
-  - `ls -la /srv/healtharchive/jobs/hc/` → `Transport endpoint is not connected`
+  - `ls -la <service-data-root>/jobs/hc/` → `Transport endpoint is not connected`
 - Confirmed the affected paths were `sshfs` mountpoints:
-  - `mount | rg '/srv/healtharchive/jobs/(hc|phac|cihr)/20260101T000502Z__'`
+  - `mount | rg '<service-data-root>/jobs/(hc|phac|cihr)/20260101T000502Z__'`
 
 ### 2) Stop the worker to prevent concurrent I/O against stale mounts
 
@@ -133,9 +133,9 @@ sudo systemctl stop healtharchive-worker.service
 ### 3) Lazily unmount stale job output-dir hot paths
 
 ```bash
-sudo umount -l /srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101
-sudo umount -l /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101
-sudo umount -l /srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101
+sudo umount -l <service-data-root>/jobs/hc/20260101T000502Z__hc-20260101
+sudo umount -l <service-data-root>/jobs/phac/20260101T000502Z__phac-20260101
+sudo umount -l <service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101
 ```
 
 What this changed:
@@ -147,16 +147,16 @@ What this changed:
 First attempt surfaced additional stale mounts under legacy imports (same symptom):
 
 ```bash
-sudo /opt/healtharchive/scripts/vps-warc-tiering-bind-mounts.sh --apply
+sudo <deploy-root>/scripts/vps-warc-tiering-bind-mounts.sh --apply
 ```
 
 Then unmounted the stale imports mountpoints and re-ran the bind-mount script:
 
 ```bash
-mount | rg '/srv/healtharchive/jobs/imports'
-sudo umount -l /srv/healtharchive/jobs/imports/legacy-hc-2025-04-21
-sudo umount -l /srv/healtharchive/jobs/imports/legacy-cihr-2025-04
-sudo /opt/healtharchive/scripts/vps-warc-tiering-bind-mounts.sh --apply
+mount | rg '<service-data-root>/jobs/imports'
+sudo umount -l <service-data-root>/jobs/imports/legacy-hc-2025-04-21
+sudo umount -l <service-data-root>/jobs/imports/legacy-cihr-2025-04
+sudo <deploy-root>/scripts/vps-warc-tiering-bind-mounts.sh --apply
 ```
 
 What this changed:
@@ -167,7 +167,7 @@ What this changed:
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --limit 10
+<deploy-root>/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --limit 10
 ```
 
 What this changed:
@@ -185,9 +185,9 @@ systemctl status healtharchive-crawl-metrics.service --no-pager -l
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive/.venv/bin/healtharchive retry-job --id 6
-/opt/healtharchive/.venv/bin/healtharchive retry-job --id 7
-/opt/healtharchive/.venv/bin/healtharchive retry-job --id 8
+<deploy-root>/.venv/bin/healtharchive retry-job --id 6
+<deploy-root>/.venv/bin/healtharchive retry-job --id 7
+<deploy-root>/.venv/bin/healtharchive retry-job --id 8
 sudo systemctl restart healtharchive-worker.service
 ```
 
@@ -204,11 +204,11 @@ What this changed:
   - `./scripts/vps-crawl-status.sh --year 2026` (confirm jobs are running/retryable and output dirs readable)
   - `docker ps | rg 'ghcr.io/openzim/zimit'` (confirm active crawl container)
 - Storage/mount checks (if relevant):
-  - `mount | rg '/srv/healtharchive/jobs/(hc|phac|cihr)/20260101T000502Z__'`
-  - `ls -la /srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101 | head`
+  - `mount | rg '<service-data-root>/jobs/(hc|phac|cihr)/20260101T000502Z__'`
+  - `ls -la <service-data-root>/jobs/hc/20260101T000502Z__hc-20260101 | head`
 - Integrity checks (if relevant):
   - After recovery, ran WARC verification (sampling) to reduce integrity uncertainty:
-    - `/opt/healtharchive/.venv/bin/healtharchive verify-warcs --job-id 6 --level 0 --limit-warcs 20`
+    - `<deploy-root>/.venv/bin/healtharchive verify-warcs --job-id 6 --level 0 --limit-warcs 20`
 
 ## Open questions (still unknown)
 
@@ -242,9 +242,9 @@ What this changed:
   - `sudo journalctl -u healtharchive-worker.service --since '2026-01-08 06:20' --until '2026-01-08 06:45' --no-pager -l`
   - `sudo journalctl -u healtharchive-crawl-metrics.service --since '2026-01-08 20:00' --no-pager -l`
 - Job output dirs impacted:
-  - `/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101`
-  - `/srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101`
-  - `/srv/healtharchive/jobs/cihr/20260101T000502Z__cihr-20260101`
+  - `<service-data-root>/jobs/hc/20260101T000502Z__hc-20260101`
+  - `<service-data-root>/jobs/phac/20260101T000502Z__phac-20260101`
+  - `<service-data-root>/jobs/cihr/20260101T000502Z__cihr-20260101`
 - Tiering / mounts:
   - `scripts/vps-warc-tiering-bind-mounts.sh`
   - `scripts/vps-annual-output-tiering.py`

@@ -17,7 +17,7 @@ Follow `../../../deployment/replay-service-pywb.md`.
 1. Check the base URL is up:
    - `curl -I https://replay.healtharchive.ca/ | head`
 2. Verify the public surface script can resolve a replay `browseUrl` for a known snapshot:
-   - `cd /opt/healtharchive && ./scripts/verify_public_surface.py`
+   - `cd <deploy-root> && ./scripts/verify_public_surface.py`
 3. Verify the replay banner works on a direct replay page:
    - Open a known `browseUrl` on `https://replay.healtharchive.ca/` and confirm the banner loads quickly, shows the page title + meta line (capture date + original URL) + disclaimer, and that the action links (View diff, Details, All snapshots, Raw HTML, Metadata JSON, Cite, Report issue, Hide) behave as expected.
    - From HealthArchive search results, click `View` and confirm “← HealthArchive.ca” returns to the same search results page.
@@ -34,7 +34,7 @@ probe against pywb returns `200`.
 3. If Caddy reports a malformed header line (for example an archived bare
    `AWSALBCORS=...` cookie continuation), treat it as replay-header
    sanitization, not replay indexing.
-4. Confirm the replay service is loading `/srv/healtharchive/replay/sitecustomize.py`
+4. Confirm the replay service is loading `<service-data-root>/replay/sitecustomize.py`
    via `PYTHONPATH=/webarchive` in `healtharchive-replay.service`.
 
 ## Retention warning

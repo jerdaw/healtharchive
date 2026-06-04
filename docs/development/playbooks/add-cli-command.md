@@ -12,7 +12,7 @@ Purpose: add a backend CLI command that is testable, documented, and safe to ope
 - You can run the CLI locally (see: `../dev-environment-setup.md` and `../live-testing.md`).
 - You understand whether the command is:
   - **developer-only**, or
-  - an **operator command** (needs docs under `docs/operations/**` / `docs/deployment/**` and careful safety rails).
+  - an **operator command** (needs private operator docs and careful safety rails).
 
 ## Safety / guardrails
 
@@ -31,7 +31,7 @@ Purpose: add a backend CLI command that is testable, documented, and safe to ope
    - Prefer `tests/test_cli_*.py` style coverage for parsing and side-effects.
 3) Document the command:
    - Developer-only: add to `../live-testing.md` or an appropriate dev doc.
-   - Operator-facing: add to a playbook/runbook under `docs/operations/**` or `docs/deployment/**`.
+   - Operator-facing: add to the private operator runbook for the environment.
 4) Run the local checks:
    - `make ci`
 

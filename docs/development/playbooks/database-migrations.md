@@ -17,8 +17,8 @@ Purpose: safely introduce schema changes and keep Alembic, tests, and docs align
 
 - **Never** generate or apply migrations against a database you didn’t intend to modify.
 - Prefer testing migrations against a fresh local DB and a “realistic” DB with existing data.
-- For production rollout considerations, follow the production runbook:
-  - `../../deployment/production-single-vps.md`
+- Hosted rollout details are environment-specific and belong in the private
+  operator runbook for that environment.
 
 ## Steps
 
@@ -57,15 +57,16 @@ Never use this to bypass a real schema migration requirement.
 - `make ci` passes.
 - `tests/test_ci_schema_parity.py` passes for schema-sensitive API/model changes.
 - `make migration-guard MIGRATION_GUARD_BASE=origin/main MIGRATION_GUARD_HEAD=HEAD` passes.
-- Any new/changed behavior is documented in the appropriate canonical doc (dev/deploy/ops).
+- Any new/changed behavior is documented in the appropriate canonical public or
+  private doc.
 
 ## Rollback / recovery (if needed)
 
 - In dev: revert via `alembic downgrade -1` (only when safe for your current DB state).
-- In prod: follow the rollback guidance in the deploy/runbook docs; avoid ad-hoc downgrades.
+- In hosted environments: follow the rollback guidance in the private
+  operator runbook; avoid ad-hoc downgrades.
 
 ## References
 
 - Local dev flows: `../live-testing.md`
-- Production runbook: `../../deployment/production-single-vps.md`
 - Alembic config: `../../../alembic.ini`, `../../../alembic/`

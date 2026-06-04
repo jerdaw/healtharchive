@@ -16,7 +16,7 @@ It is intentionally **very detailed** so future operators can use it as:
 
 ## Executive summary
 
-**What happened:** Several job output directories under `/srv/healtharchive/jobs/**` became unreadable with:
+**What happened:** Several job output directories under `<service-data-root>/jobs/**` became unreadable with:
 
 - `OSError: [Errno 107] Transport endpoint is not connected`
 
@@ -51,7 +51,7 @@ Key components in play:
 
 The job output directory pattern affected:
 
-- `/srv/healtharchive/jobs/<source>/<job_id_timestamp>__<job_name>`
+- `<service-data-root>/jobs/<source>/<job_id_timestamp>__<job_name>`
 
 ### Observable symptoms (what we saw)
 
@@ -82,7 +82,7 @@ This timeline focuses on the causal chain; it is deliberately explicit about eac
    - Earlier snapshots showed job 6 (hc) `running` with steadily increasing `crawled` counts and new `warc.gz` files appearing over time.
 
 2) **Mountpoints became stale/unreadable**
-   - `ls -la` under `/srv/healtharchive/jobs/hc/...` failed with `Transport endpoint is not connected`.
+   - `ls -la` under `<service-data-root>/jobs/hc/...` failed with `Transport endpoint is not connected`.
    - The failing directories showed “unknown” metadata (`d?????????`) indicating `stat()` failed.
 
 3) **Metrics writer began failing repeatedly**
@@ -98,7 +98,7 @@ This timeline focuses on the causal chain; it is deliberately explicit about eac
 
 ### Proximate cause
 
-One or more `sshfs`-backed mountpoints under `/srv/healtharchive/jobs/**` entered a stale/disconnected state where `stat()` calls failed with:
+One or more `sshfs`-backed mountpoints under `<service-data-root>/jobs/**` entered a stale/disconnected state where `stat()` calls failed with:
 
 - `OSError: [Errno 107] Transport endpoint is not connected`
 
@@ -108,7 +108,7 @@ One or more `sshfs`-backed mountpoints under `/srv/healtharchive/jobs/**` entere
 
 - The Storage Box mount service could remain “active” while specific mounted subpaths used by the crawler were broken.
 - Monitoring primarily checked:
-  - `/srv/healtharchive/storagebox` reachability, and
+  - `<service-data-root>/storagebox` reachability, and
   - certain systemd unit health,
   but did not validate *every hot path we depend on*.
 
@@ -186,7 +186,7 @@ As of 2026-01-16, this plan is considered implemented; the operational “surfac
   - `scripts/vps-crawl-auto-recover.py` (safe-by-default; caps recoveries)
   - `healtharchive recover-stale-jobs` supports `--require-no-progress-seconds`
 - Replay resilience:
-  - replay systemd/runbook recommends `-v /srv/healtharchive/jobs:/warcs:ro,rshared`
+  - replay systemd/runbook recommends `-v <service-data-root>/jobs:/warcs:ro,rshared`
   - replay smoke tests: `healtharchive-replay-smoke.timer`
 
 Remaining follow-up (not in this plan) is alerting/visibility on the new metrics.

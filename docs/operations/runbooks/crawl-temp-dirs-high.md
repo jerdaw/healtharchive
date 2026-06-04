@@ -37,7 +37,7 @@ job.
 Start with a read-only snapshot on the VPS:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 
 ./scripts/vps-crawl-status.sh --year 2026 --job-id <JOB_ID> --recent-lines 20000
 ./scripts/vps-crawl-content-report.py --job-id <JOB_ID>
@@ -45,7 +45,7 @@ cd /opt/healtharchive
 curl -s http://127.0.0.1:9100/metrics | rg 'healtharchive_crawl_running_job_(temp_dirs_count|container_restarts_done|last_progress_age_seconds|stalled|crawl_rate_ppm|output_dir_ok|output_dir_errno|log_probe_ok|log_probe_errno|state_file_ok|state_parse_ok|new_crawl_phase_count|resume_crawl_count)\{job_id="<JOB_ID>"'
 
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive/.venv/bin/healtharchive show-job --id <JOB_ID>
+<deploy-root>/.venv/bin/healtharchive show-job --id <JOB_ID>
 sudo journalctl -u healtharchive-worker.service -n 400 --no-pager
 ```
 
@@ -62,7 +62,7 @@ timeout 120 ./scripts/vps-crawl-content-report.py \
 Then inspect the job directory directly:
 
 ```bash
-JOBDIR="/srv/healtharchive/jobs/<source>/<JOB_DIR>"
+JOBDIR="<service-data-root>/jobs/<source>/<JOB_DIR>"
 find "${JOBDIR}" -maxdepth 1 -type d -name '.tmp*' | wc -l
 LOG="$(ls -t "${JOBDIR}"/archive_*.combined.log | head -n 1)"
 
@@ -117,8 +117,8 @@ If the job is `indexed` or `index_failed`, reclaim space safely with
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
 
-/opt/healtharchive/.venv/bin/healtharchive cleanup-job --id <JOB_ID> --mode temp-nonwarc --dry-run
-/opt/healtharchive/.venv/bin/healtharchive cleanup-job --id <JOB_ID> --mode temp-nonwarc
+<deploy-root>/.venv/bin/healtharchive cleanup-job --id <JOB_ID> --mode temp-nonwarc --dry-run
+<deploy-root>/.venv/bin/healtharchive cleanup-job --id <JOB_ID> --mode temp-nonwarc
 ```
 
 If you intentionally do not need replay retention and want destructive cleanup,

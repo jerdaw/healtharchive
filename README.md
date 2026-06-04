@@ -5,11 +5,10 @@ Next.js frontend for [HealthArchive.ca](https://healtharchive.ca). The
 versioned metadata release repo, `healtharchive-datasets`, intentionally
 remains separate.
 
-Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
-operations state live in `/home/jer/repos/vps/platform-ops`. Use
-`/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
-as the default rule for what belongs in this repo versus shared ops
-documentation.
+Public documentation focuses on project purpose, methodology, limitations, and
+reproducible local development. Deployment is environment-specific and handled
+outside this public repository; exact host paths, private inventories, and
+operator-only runbooks are intentionally not documented here.
 
 The backend has three main responsibilities:
 
@@ -22,8 +21,7 @@ The backend has three main responsibilities:
 
 For a deep architecture and implementation walkthrough, see
 `docs/architecture.md`. For a step‑by‑step local live‑testing guide, see
-`docs/development/live-testing.md`. For the current backend production runbook,
-see `docs/deployment/production-single-vps.md`.
+`docs/development/live-testing.md`.
 This README is intentionally shorter and focused on practical usage.
 
 Repository boundaries:
@@ -31,11 +29,11 @@ Repository boundaries:
 - Frontend UI: lives in `frontend/` in this repo
 - Datasets: https://github.com/jerdaw/healtharchive-datasets
 - **Documentation Site**: Run `make docs-serve` in this repo for a searchable web UI.
-- **Shared VPS ops workspace**: `/home/jer/repos/vps/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`) contains the shared inventory, roadmap, handoff, and cross-project runbooks.
 
 Shared documentation boundary:
 
-- `platform-ops/` is the default home for shared VPS facts that are not specific to HealthArchive alone:
+- Private operations documentation is the default home for shared host facts
+  that are not specific to HealthArchive alone:
   - host access posture
   - shared ingress ownership
   - cross-project service inventory
@@ -43,28 +41,14 @@ Shared documentation boundary:
   - shared maintenance and hardening state
 - this repo owns the app-specific subset:
   - API/worker/replay behavior
-  - backend deploy and rollback steps
   - backend env vars and automation
   - frontend route behavior, build/runtime wiring, and UI verification
-  - backend recovery playbooks
-
-For the explicit boundary, see:
-
-- `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+  - safe local development and verification
 
 Historical identity note:
 
 - Preserved older records may still mention the former repo slug, checkout
   path, or CLI name from before the 2026-04 repo/runtime identity rename.
-
-Production entrypoints (VPS):
-
-- Deploy gate (includes baseline drift + public surface checks):
-  - `./scripts/vps-deploy.sh --apply --baseline-mode live`
-- Baseline drift policy (desired state in git):
-  - `docs/operations/production-baseline-policy.toml`
-- Systemd automation templates (timers + enablement steps):
-  - `docs/deployment/systemd/README.md`
 
 ---
 
@@ -77,8 +61,8 @@ Production entrypoints (VPS):
 ├── docs/                     # Documentation source for the current docs portal
 │   ├── architecture.md       # Detailed architecture and implementation guide
 │   ├── development/          # Local dev + live-testing flows
-│   ├── deployment/           # Deployment/runbooks/checklists
-│   ├── operations/           # Monitoring/uptime/CI/Ops guidance
+│   ├── deployment/           # Public deployment notes and generic checklists
+│   ├── operations/           # Public-safe operations policy and summaries
 │   ├── frontend/             # Docs portal bridge to in-tree frontend docs
 │   └── datasets-external/    # Link-out pointers to datasets repo/docs
 ├── mkdocs.yml                # Current documentation navigation source of truth
@@ -198,7 +182,14 @@ alembic upgrade head
 The backend writes job output under an archive root directory:
 
 - `HEALTHARCHIVE_ARCHIVE_ROOT` (env) **or**
-- `/mnt/nasd/nobak/healtharchive/jobs` by default.
+- a project-local default from `ha_backend.config`.
+
+For local development, point the archive root at an isolated directory under
+your checkout:
+
+```bash
+export HEALTHARCHIVE_ARCHIVE_ROOT=$(pwd)/.dev-archive-root
+```
 
 To verify the archive root and `archive_tool`:
 
@@ -252,7 +243,7 @@ Key public endpoints (all prefixed with `/api`):
   When `HEALTHARCHIVE_REPLAY_BASE_URL` is set, each result may include:
 
   - `jobId` + `captureTimestamp` – used to lock replay to a specific capture
-  - `browseUrl` – a timestamp-locked replay URL for browsing within the backup
+  - `browseUrl` – a timestamp-locked replay URL for browsing within the archive
 
   Ranking controls:
 
@@ -295,23 +286,10 @@ Key public endpoints (all prefixed with `/api`):
 - `GET /api/snapshots/{id}/timeline`
   Timeline of captures for the same normalized URL group.
 
-Admin + observability endpoints (protected by a simple admin token):
-
-- `GET /api/admin/jobs` – list jobs (filters: `source`, `status`)
-- `GET /api/admin/jobs/{id}` – detailed job info
-- `GET /api/admin/jobs/status-counts` – job counts by status
-- `GET /api/admin/jobs/{id}/snapshots` – list snapshots for a job
-- `GET /api/admin/search-debug` – admin-only search scoring breakdown
-- `GET /api/admin/reports` – list issue reports (admin)
-- `GET /api/admin/reports/{id}` – issue report detail (admin)
-- `GET /metrics` – Prometheus-style metrics (jobs, cleanup_status, snapshots)
-
-Admin endpoints require a token when `HEALTHARCHIVE_ADMIN_TOKEN` is set (see
-“Admin auth” below).
-
-These endpoints are intended for internal operators and monitoring systems
-only. The public Next.js frontend does **not** call `/api/admin/*` or
-`/metrics` directly.
+Operator-only endpoints exist for job administration and service telemetry.
+They are not part of the public API contract, require admin-token protection
+outside local development, and are intentionally summarized here rather than
+listed as public documentation.
 
 ### Dev .env helper
 
@@ -524,7 +502,9 @@ defaults:
 
 - `HEALTHARCHIVE_ARCHIVE_ROOT`
   Base directory for job output dirs (passed as `--output-dir` to `archive_tool`).
-  Defaults to `/mnt/nasd/nobak/healtharchive/jobs`.
+  Defaults to the value configured in `ha_backend.config`. For local
+  development, set it explicitly to a git-ignored directory under your
+  checkout, such as `$(pwd)/.dev-archive-root`.
 
 - `HEALTHARCHIVE_TOOL_CMD`
   Command used to invoke the archiver. Defaults to `archive-tool`.
@@ -561,14 +541,14 @@ defaults:
   - `https://healtharchive.ca`
   - `https://www.healtharchive.ca`
 
-  In production and staging you should set this explicitly so that only
-  expected frontend hosts can call the API from a browser. Examples:
+  In hosted environments, set this explicitly so that only expected frontend
+  hosts can call the API from a browser. Example:
 
-  - **Production (frontend at healtharchive.ca):**
+- **Canonical public frontend:**
 
-    ```bash
-    export HEALTHARCHIVE_CORS_ORIGINS="https://healtharchive.ca,https://www.healtharchive.ca"
-    ```
+  ```bash
+  export HEALTHARCHIVE_CORS_ORIGINS="https://healtharchive.ca,https://www.healtharchive.ca"
+  ```
 
 - **Optional preview/historical frontend origin:**
 
@@ -582,17 +562,9 @@ defaults:
   You can also include `http://localhost:3000` if you want local development
   to talk directly to a remote API instance.
 
-For the current direct-VPS production model, see:
-
-- `docs/deployment/production-single-vps.md`
-- `docs/deployment/environments-and-configuration.md`
-- `docs/operations/monitoring-and-ci-checklist.md`
-
-Historical rollout docs retained for reference:
-
-- `docs/deployment/hosting-and-live-server-to-dos.md`
-- `docs/deployment/staging-rollout-checklist.md`
-- `docs/deployment/production-rollout-checklist.md`
+Deployment details are environment-specific and intentionally kept outside the
+public README. Public documentation in this repo covers local setup,
+architecture, data methodology, and the externally consumable API behavior.
 
 ---
 

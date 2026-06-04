@@ -106,15 +106,15 @@ ssh -i ~/.ssh/healtharchive_hetzner haadmin@<VPS_TAILSCALE_IP>
 On the VPS:
 
 - WARCs/job outputs already live under:
-  - `/srv/healtharchive/jobs`
+  - `<service-data-root>/jobs`
 - Replay service state (config, collections, indexes) will live under:
-  - `/srv/healtharchive/replay`
+  - `<service-data-root>/replay`
 
 Create directories:
 
 ```bash
-sudo mkdir -p /srv/healtharchive/replay
-sudo mkdir -p /srv/healtharchive/replay/collections
+sudo mkdir -p <service-data-root>/replay
+sudo mkdir -p <service-data-root>/replay/collections
 ```
 
 Create a dedicated system user for the replay volume:
@@ -126,8 +126,8 @@ sudo adduser --system --no-create-home --ingroup healtharchive hareplay
 Recommended perms (important):
 
 ```bash
-sudo chown -R hareplay:healtharchive /srv/healtharchive/replay
-sudo chmod 2770 /srv/healtharchive/replay /srv/healtharchive/replay/collections
+sudo chown -R hareplay:healtharchive <service-data-root>/replay
+sudo chmod 2770 <service-data-root>/replay <service-data-root>/replay/collections
 ```
 
 Why the `hareplay` ownership matters:
@@ -146,7 +146,7 @@ We run pywb **only on localhost** (Caddy is the public edge).
 
 ### 4.1 Create pywb config + rules
 
-Create `/srv/healtharchive/replay/config.yaml`:
+Create `<service-data-root>/replay/config.yaml`:
 
 ```yaml
 debug: false
@@ -168,7 +168,7 @@ rules_file: /webarchive/rules.yaml
 #   all: $all
 ```
 
-Create `/srv/healtharchive/replay/rules.yaml`:
+Create `<service-data-root>/replay/rules.yaml`:
 
 ```yaml
 default_filters:
@@ -215,20 +215,20 @@ rules:
 
 Repo-managed template:
 
-- `/opt/healtharchive/docs/deployment/pywb/config.yaml`
-- `/opt/healtharchive/docs/deployment/pywb/rules.yaml`
-- `/opt/healtharchive/docs/deployment/pywb/sitecustomize.py`
-- `/opt/healtharchive/docs/deployment/systemd/healtharchive-replay.service`
+- `<deploy-root>/docs/deployment/pywb/config.yaml`
+- `<deploy-root>/docs/deployment/pywb/rules.yaml`
+- `<deploy-root>/docs/deployment/pywb/sitecustomize.py`
+- `<deploy-root>/docs/deployment/systemd/healtharchive-replay.service`
 
 On single-VPS deployments, prefer installing that tracked template instead of
-editing `/srv/healtharchive/replay/config.yaml` or `/srv/healtharchive/replay/rules.yaml` by hand.
+editing `<service-data-root>/replay/config.yaml` or `<service-data-root>/replay/rules.yaml` by hand.
 
 ### 4.2 Create systemd service
 
 Preferred (single VPS): install the repo-managed template:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo ./scripts/vps-install-systemd-units.sh --apply
 ```
 
@@ -240,9 +240,9 @@ Description=HealthArchive replay (pywb)
 Wants=network-online.target
 After=network-online.target docker.service healtharchive-warc-tiering.service
 Requires=docker.service
-ConditionPathExists=/srv/healtharchive/replay
-ConditionPathExists=/srv/healtharchive/replay/config.yaml
-ConditionPathExists=/srv/healtharchive/jobs
+ConditionPathExists=<service-data-root>/replay
+ConditionPathExists=<service-data-root>/replay/config.yaml
+ConditionPathExists=<service-data-root>/jobs
 
 [Service]
 Type=simple
@@ -250,7 +250,7 @@ ExecStartPre=/usr/bin/getent passwd hareplay
 ExecStartPre=/usr/bin/getent group healtharchive
 ExecStartPre=-/usr/bin/docker rm -f healtharchive-replay
 ExecStartPre=/usr/bin/docker pull webrecorder/pywb:2.9.1
-ExecStart=/usr/bin/bash -lc 'exec /usr/bin/docker run --rm --name healtharchive-replay -p 127.0.0.1:8090:8080 -e PYTHONPATH=/webarchive --user "$$(/usr/bin/id -u hareplay):$$(/usr/bin/getent group healtharchive | /usr/bin/cut -d: -f3)" --cap-drop=ALL --security-opt no-new-privileges:true -v /srv/healtharchive/replay:/webarchive:rw -v /srv/healtharchive/jobs:/warcs:ro,rshared webrecorder/pywb:2.9.1'
+ExecStart=/usr/bin/bash -lc 'exec /usr/bin/docker run --rm --name healtharchive-replay -p 127.0.0.1:8090:8080 -e PYTHONPATH=/webarchive --user "$$(/usr/bin/id -u hareplay):$$(/usr/bin/getent group healtharchive | /usr/bin/cut -d: -f3)" --cap-drop=ALL --security-opt no-new-privileges:true -v <service-data-root>/replay:/webarchive:rw -v <service-data-root>/jobs:/warcs:ro,rshared webrecorder/pywb:2.9.1'
 Restart=always
 RestartSec=3
 TimeoutStopSec=30
@@ -264,7 +264,7 @@ Notes:
 - We run as `hareplay:healtharchive` to avoid the container needing to
   `useradd`/`su` internally (which fails when `--cap-drop=ALL` removes
   `CAP_SETUID`/`CAP_SETGID`).
-- The `rshared` bind propagation on `/srv/healtharchive/jobs` helps pywb see
+- The `rshared` bind propagation on `<service-data-root>/jobs` helps pywb see
   nested mounts under that tree (e.g., Storage Box tiering bind mounts) without
   requiring a container restart after mount repairs.
 
@@ -285,13 +285,13 @@ curl -I http://127.0.0.1:8090/ | head
 If `wb-manager reindex` fails with `Permission denied`:
 
 - Double-check:
-  - `/srv/healtharchive/replay` is owned by `hareplay:healtharchive` (not `root:healtharchive`)
+  - `<service-data-root>/replay` is owned by `hareplay:healtharchive` (not `root:healtharchive`)
   - the systemd unit runs with `--user <hareplay_uid>:<healtharchive_gid>`
 
 Then restart:
 
 ```bash
-sudo chown -R hareplay:healtharchive /srv/healtharchive/replay
+sudo chown -R hareplay:healtharchive <service-data-root>/replay
 sudo systemctl restart healtharchive-replay.service
 ```
 
@@ -352,21 +352,21 @@ Deploy on the VPS:
 
 ```bash
 sudo install -o hareplay -g healtharchive -m 0640 \
-  /opt/healtharchive/docs/deployment/pywb/config.yaml \
-  /srv/healtharchive/replay/config.yaml
+  <deploy-root>/docs/deployment/pywb/config.yaml \
+  <service-data-root>/replay/config.yaml
 
 sudo install -o hareplay -g healtharchive -m 0640 \
-  /opt/healtharchive/docs/deployment/pywb/rules.yaml \
-  /srv/healtharchive/replay/rules.yaml
+  <deploy-root>/docs/deployment/pywb/rules.yaml \
+  <service-data-root>/replay/rules.yaml
 
 sudo install -o hareplay -g healtharchive -m 0640 \
-  /opt/healtharchive/docs/deployment/pywb/sitecustomize.py \
-  /srv/healtharchive/replay/sitecustomize.py
+  <deploy-root>/docs/deployment/pywb/sitecustomize.py \
+  <service-data-root>/replay/sitecustomize.py
 
-sudo mkdir -p /srv/healtharchive/replay/templates
+sudo mkdir -p <service-data-root>/replay/templates
 sudo install -o hareplay -g healtharchive -m 0640 \
-  /opt/healtharchive/docs/deployment/pywb/custom_banner.html \
-  /srv/healtharchive/replay/templates/custom_banner.html
+  <deploy-root>/docs/deployment/pywb/custom_banner.html \
+  <service-data-root>/replay/templates/custom_banner.html
 
 sudo systemctl restart healtharchive-replay.service
 ```
@@ -420,7 +420,7 @@ If the backend and pywb run on the same VPS, you can make a job replayable via:
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive/.venv/bin/healtharchive replay-index-job --id 1
+  <deploy-root>/.venv/bin/healtharchive replay-index-job --id 1
 ```
 
 Dry-run (prints actions without changes):
@@ -428,7 +428,7 @@ Dry-run (prints actions without changes):
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive/.venv/bin/healtharchive replay-index-job --id 1 --dry-run
+  <deploy-root>/.venv/bin/healtharchive replay-index-job --id 1 --dry-run
 ```
 
 ### 6.1 Initialize collection for job 1
@@ -444,27 +444,27 @@ sudo docker exec healtharchive-replay wb-manager init job-1
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive/.venv/bin/healtharchive show-job --id 1
+  <deploy-root>/.venv/bin/healtharchive show-job --id 1
 ```
 
 2) Find WARCs under that output directory:
 
 ```bash
-OUTPUT_DIR="/srv/healtharchive/jobs/imports/legacy-hc-2025-04-21"  # example; replace
+OUTPUT_DIR="<service-data-root>/jobs/imports/legacy-hc-2025-04-21"  # example; replace
 find "$OUTPUT_DIR" -type f -name '*.warc.gz' | sort > /tmp/job-1-warcs.txt
 wc -l /tmp/job-1-warcs.txt
 ```
 
-3) Convert host paths → container paths (because we mount `/srv/healtharchive/jobs` as `/warcs`):
+3) Convert host paths → container paths (because we mount `<service-data-root>/jobs` as `/warcs`):
 
 ```bash
-sed 's#^/srv/healtharchive/jobs#\/warcs#' /tmp/job-1-warcs.txt > /tmp/job-1-warcs.container.txt
+sed 's#^<service-data-root>/jobs#\/warcs#' /tmp/job-1-warcs.txt > /tmp/job-1-warcs.container.txt
 ```
 
 4) Create symlinks in the collection archive directory (prefixing with a stable counter to avoid name collisions):
 
 ```bash
-COLL_ARCHIVE_DIR="/srv/healtharchive/replay/collections/job-1/archive"
+COLL_ARCHIVE_DIR="<service-data-root>/replay/collections/job-1/archive"
 sudo mkdir -p "$COLL_ARCHIVE_DIR"
 
 nl -ba /tmp/job-1-warcs.container.txt | while read -r n p; do
@@ -475,7 +475,7 @@ done
 
 Note: the symlink targets are container paths under `/warcs/...`, so they may
 appear “broken” when inspected on the host. They will resolve correctly inside
-the container because `/srv/healtharchive/jobs` is mounted as `/warcs`.
+the container because `<service-data-root>/jobs` is mounted as `/warcs`.
 
 5) Index:
 
@@ -505,7 +505,7 @@ ID:
 - Recommended:
   - `healtharchive replay-index-job --id <id>`
 - `wb-manager init job-<id>`
-- Symlink that job’s WARCs into `/srv/healtharchive/replay/collections/job-<id>/archive/`
+- Symlink that job’s WARCs into `<service-data-root>/replay/collections/job-<id>/archive/`
 - `wb-manager reindex job-<id>`
 - Verify: `https://replay.healtharchive.ca/job-<id>/<some captured url>/`
 
@@ -516,11 +516,11 @@ ID:
 - **Replay 502 for a specific page but localhost replay is 200:** check for malformed
   replayed cookie headers. A bare archived cookie line such as `AWSALBCORS=...`
   can make Caddy/Go reject the upstream response before it reaches the client.
-  Ensure `/srv/healtharchive/replay/config.yaml` points `rules_file` at
-  `/webarchive/rules.yaml`, ensure `/srv/healtharchive/replay/rules.yaml`
+  Ensure `<service-data-root>/replay/config.yaml` points `rules_file` at
+  `/webarchive/rules.yaml`, ensure `<service-data-root>/replay/rules.yaml`
   contains `cookie_scope: removeall` under a rewrite rule,
   ensure the replay container starts with `PYTHONPATH=/webarchive` so
-  `/srv/healtharchive/replay/sitecustomize.py` can drop invalid header names,
+  `<service-data-root>/replay/sitecustomize.py` can drop invalid header names,
   and restart `healtharchive-replay.service`.
 - **Replay UI shows “All-time (0 captures)”:** that exact URL (including scheme + host, eg `www.` vs non-`www`) likely isn’t present in the WARC set. Confirm via `/<collection>/cdx?url=...` and try host/scheme variants.
 - **Iframe blocked:** check `frame-ancestors` header on `replay.healtharchive.ca` and ensure you removed `X-Frame-Options`.
@@ -583,20 +583,20 @@ cached static images generated out-of-band.
 
 Choose a directory on the VPS:
 
-- Recommended: `/srv/healtharchive/replay/previews`
+- Recommended: `<service-data-root>/replay/previews`
 
 Create it with the same ownership model as the replay volume:
 
 ```bash
-sudo mkdir -p /srv/healtharchive/replay/previews
-sudo chown -R hareplay:healtharchive /srv/healtharchive/replay/previews
-sudo chmod 2770 /srv/healtharchive/replay/previews
+sudo mkdir -p <service-data-root>/replay/previews
+sudo chown -R hareplay:healtharchive <service-data-root>/replay/previews
+sudo chmod 2770 <service-data-root>/replay/previews
 ```
 
 In `/etc/healtharchive/backend.env`, set:
 
 ```bash
-HEALTHARCHIVE_REPLAY_PREVIEW_DIR=/srv/healtharchive/replay/previews
+HEALTHARCHIVE_REPLAY_PREVIEW_DIR=<service-data-root>/replay/previews
 ```
 
 Then restart the API:
@@ -612,7 +612,7 @@ Generate (or refresh) previews for all sources with:
 ```bash
 sudo systemd-run --wait --pipe \
   --property=EnvironmentFile=/etc/healtharchive/backend.env \
-  /opt/healtharchive/.venv/bin/healtharchive replay-generate-previews
+  <deploy-root>/.venv/bin/healtharchive replay-generate-previews
 ```
 
 This uses a Playwright container to screenshot each source’s `entryBrowseUrl`

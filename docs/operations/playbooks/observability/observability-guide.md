@@ -29,17 +29,17 @@ This guide covers the full observability stack installation in order:
 ### Preconditions
 
 - On the production VPS with `sudo` access
-- `/srv/healtharchive/` exists
+- `<service-data-root>/` exists
 - Ops group exists (usually `healtharchive`)
 
 ### Procedure
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 sudo ./scripts/vps-bootstrap-observability-scaffold.sh
 ```
 
-Populate secret files (do NOT store under `/srv/healtharchive/ops/`):
+Populate secret files (do NOT store under `<service-data-root>/ops/`):
 
 ```bash
 sudoedit /etc/healtharchive/observability/prometheus_backend_admin_token
@@ -50,14 +50,14 @@ sudoedit /etc/healtharchive/observability/postgres_grafana_password
 ### Verify
 
 ```bash
-stat -c '%U:%G %a %n' /srv/healtharchive/ops/observability /srv/healtharchive/ops/observability/*
+stat -c '%U:%G %a %n' <service-data-root>/ops/observability <service-data-root>/ops/observability/*
 stat -c '%U:%G %a %n' /etc/healtharchive/observability/*
 ```
 
 ### Rollback
 
 ```bash
-sudo rm -rf /srv/healtharchive/ops/observability
+sudo rm -rf <service-data-root>/ops/observability
 sudo rm -rf /etc/healtharchive/observability
 ```
 
@@ -75,7 +75,7 @@ sudo rm -rf /etc/healtharchive/observability
 ### Procedure
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-install-observability-exporters.sh          # Dry-run
 sudo ./scripts/vps-install-observability-exporters.sh --apply
 ```
@@ -118,7 +118,7 @@ sudo rm -f /etc/healtharchive/observability/postgres_exporter.env \
 ### Procedure
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-install-observability-prometheus.sh          # Dry-run
 sudo ./scripts/vps-install-observability-prometheus.sh --apply
 ```
@@ -158,7 +158,7 @@ sudo apt-get remove -y prometheus  # Optional
 ### Procedure
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-install-observability-grafana.sh          # Dry-run
 sudo ./scripts/vps-install-observability-grafana.sh --apply
 ```
@@ -219,7 +219,7 @@ sudo systemctl daemon-reload
 ### Procedure
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 git pull
 ./scripts/vps-install-observability-dashboards.sh          # Dry-run
 sudo ./scripts/vps-install-observability-dashboards.sh --apply
@@ -246,7 +246,7 @@ In Grafana, find the `HealthArchive` folder with these dashboards:
 
 ```bash
 sudo rm -f /etc/grafana/provisioning/dashboards/healtharchive.yaml
-sudo rm -rf /srv/healtharchive/ops/observability/dashboards/healtharchive
+sudo rm -rf <service-data-root>/ops/observability/dashboards/healtharchive
 sudo systemctl restart grafana-server
 ```
 
@@ -282,7 +282,7 @@ sudo ./scripts/vps-install-observability-pushover-relay.sh --apply
 ### Procedure
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 git pull
 ./scripts/vps-install-observability-alerting.sh          # Dry-run
 sudo ./scripts/vps-install-observability-alerting.sh --apply
@@ -343,7 +343,7 @@ sudo systemctl restart prometheus.service
 On VPS:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/vps-verify-observability.sh
 ```
 
@@ -376,7 +376,7 @@ sudo systemctl restart prometheus prometheus-alertmanager \
 ### Dashboard Updates
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 git pull
 sudo ./scripts/vps-install-observability-dashboards.sh --apply
 ```

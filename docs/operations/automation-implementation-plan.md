@@ -351,7 +351,7 @@ Implementation (v1):
 
 Recommended artifact layout on the VPS:
 
-- `/srv/healtharchive/ops/search-eval/<year>/<run_id>/`
+- `<service-data-root>/ops/search-eval/<year>/<run_id>/`
   - `annual-status.json`
   - `annual-status.txt`
   - `annual-search-verify.meta.txt`
@@ -362,8 +362,8 @@ Operator command (production example):
 
 ```bash
 set -a; source /etc/healtharchive/backend.env; set +a
-cd /opt/healtharchive
-./scripts/annual-search-verify.sh --year 2026 --out-root /srv/healtharchive/ops/search-eval --base-url http://127.0.0.1:8001
+cd <deploy-root>
+./scripts/annual-search-verify.sh --year 2026 --out-root <service-data-root>/ops/search-eval --base-url http://127.0.0.1:8001
 ```
 
 Optional (Postgres, manual): consider running a one-time `VACUUM (ANALYZE)`
@@ -390,7 +390,7 @@ Implementation (v1) (aligns with `replay-and-preview-automation-plan.md`):
   - default mode is **dry-run** (safe): prints what it would do.
   - `--apply` performs the actions.
   - global lock file prevents concurrent runs (default:
-    `/srv/healtharchive/replay/.locks/replay-reconcile.lock`).
+    `<service-data-root>/replay/.locks/replay-reconcile.lock`).
   - caps:
     - `--max-jobs N` (default 1) limits replay indexing repairs per run.
     - optional `--previews --max-previews N` (default 1) generates missing
@@ -409,7 +409,7 @@ Implementation (v1) (aligns with `replay-and-preview-automation-plan.md`):
 Staged rollout:
 
 1. Dry-run:
-   - `healtharchive replay-reconcile --collections-dir /srv/healtharchive/replay/collections`
+   - `healtharchive replay-reconcile --collections-dir <service-data-root>/replay/collections`
 2. Apply for one job (manual allowlist):
    - `healtharchive replay-reconcile --apply --job-id <JOB_ID> --max-jobs 1`
 3. Timer with caps (templates under `docs/deployment/systemd/`; disabled by default).
@@ -440,7 +440,7 @@ Implementation (v1)
 Operator usage (production):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 
 # Dry-run:
 ./scripts/vps-deploy.sh

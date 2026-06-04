@@ -11,8 +11,8 @@ This directory contains templates for creating consistent documentation across t
 | `incident-template.md` | Incident postmortems | `docs/operations/incidents/` |
 | `decision-template.md` | Architectural/policy decisions | `docs/decisions/` |
 | `annual-campaign-closeout-report-template.md` | Annual campaign closeout report | `docs/operations/reports/` |
-| `restore-test-log-template.md` | Quarterly restore test logs | `/srv/healtharchive/ops/restore-tests/` (VPS) |
-| `adoption-signals-log-template.md` | Quarterly adoption signals | `/srv/healtharchive/ops/adoption/` (VPS) |
+| `restore-test-log-template.md` | Quarterly restore test logs | `<service-data-root>/ops/restore-tests/` (VPS) |
+| `adoption-signals-log-template.md` | Quarterly adoption signals | `<service-data-root>/ops/adoption/` (VPS) |
 | `mentions-log-template.md` | Public mentions log entries | `docs/operations/mentions-log.md` |
 | `ops-ui-friction-log-template.md` | Internal friction tracking | Local ops notes (not git) |
 

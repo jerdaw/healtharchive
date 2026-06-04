@@ -12,7 +12,8 @@ Canonical follow-up surfaces:
 
 - Current ops posture and routine tasks: [HealthArchive ops roadmap](healtharchive-ops-roadmap.md)
 - Not-yet-implemented technical backlog: [future roadmap](../planning/roadmap.md)
-- Active external-validation work: [admissions strengthening plan](../planning/2026-02-admissions-strengthening-plan.md)
+- Active external-validation work: track public-safe outreach, research-output,
+  and dataset-release follow-through in the roadmap/current work tracker.
 - Historical implementation record: [implemented plans](../planning/implemented/README.md)
 
 ## Current Crawl Progress
@@ -118,7 +119,7 @@ Keep these in the roadmap until implemented or explicitly retired:
 | Annual edition/shard convergence | [future roadmap](../planning/roadmap.md#crawling-indexing-reliability-backend) | Add richer target ledgers, shard UI, and post-run coverage tooling. |
 | Frontend Next/PostCSS advisory | [future roadmap](../planning/roadmap.md#reliability-security-and-ci) | Wait for an upstream-safe Next/PostCSS release; avoid npm's downgrade suggestion. |
 | Frontend ESLint 10 | [future roadmap](../planning/roadmap.md#reliability-security-and-ci) | Retry only after the React/Next ESLint plugin stack supports ESLint 10. |
-| External validation/admissions evidence | [admissions strengthening plan](../planning/2026-02-admissions-strengthening-plan.md) | Send the first outreach batch and record public-safe outcomes in the mentions log. |
+| External validation evidence | [future roadmap](../planning/roadmap.md#external--irl-work-not-implementable-in-git) | Send the first outreach batch and record public-safe outcomes in the mentions log. |
 | Quarterly evidence | [ops roadmap](healtharchive-ops-roadmap.md) | Run restore test, dataset release check, automation posture check, and adoption signal entry each quarter. |
 
 ## Re-Establish State In A New Chat
@@ -126,7 +127,7 @@ Keep these in the roadmap until implemented or explicitly retired:
 From the local repo:
 
 ```bash
-cd /home/jer/repos/vps/healtharchive/healtharchive
+cd <repo-root>
 git status --short --branch
 git log -8 --oneline
 gh pr list --state open
@@ -144,7 +145,7 @@ For an operator-guided production check on the VPS, start with read-only
 commands:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 set -a; source /etc/healtharchive/backend.env; set +a
 
 ./.venv/bin/healtharchive annual-status --year 2026 --json --sources hc phac cihr

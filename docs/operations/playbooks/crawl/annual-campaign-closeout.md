@@ -57,19 +57,19 @@ The closeout has two lanes:
 On the VPS:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 YEAR=2026
 
 ./scripts/vps-annual-campaign-closeout.sh \
   --year "$YEAR" \
   --sources hc,phac,cihr \
-  --out-root /srv/healtharchive/ops/annual-closeout
+  --out-root <service-data-root>/ops/annual-closeout
 ```
 
 The helper creates:
 
 ```text
-/srv/healtharchive/ops/annual-closeout/<YEAR>/<RUN_ID>/
+<service-data-root>/ops/annual-closeout/<YEAR>/<RUN_ID>/
 ```
 
 It writes raw logs plus machine-readable summaries:
@@ -94,7 +94,7 @@ command written to `nasd-followup-command.txt`, run it on NASD, and paste or
 store the output with the evidence package:
 
 ```bash
-cat /srv/healtharchive/ops/annual-closeout/<YEAR>/<RUN_ID>/nasd-followup-command.txt
+cat <service-data-root>/ops/annual-closeout/<YEAR>/<RUN_ID>/nasd-followup-command.txt
 ```
 
 ### 3. Render the report fact scaffold
@@ -104,7 +104,7 @@ From the repo checkout that will receive the documentation update:
 ```bash
 python3 scripts/render_annual_closeout_report.py \
   --year "$YEAR" \
-  --evidence-dir /srv/healtharchive/ops/annual-closeout/<YEAR>/<RUN_ID> \
+  --evidence-dir <service-data-root>/ops/annual-closeout/<YEAR>/<RUN_ID> \
   --template docs/_templates/annual-campaign-closeout-report-template.md \
   --out docs/operations/reports/<YEAR>-annual-campaign-closeout.md
 ```
@@ -135,8 +135,8 @@ If reports are stale or missing, regenerate them before closure:
 ```bash
 YEAR=2026
 set -a; source /etc/healtharchive/backend.env; set +a
-/opt/healtharchive/.venv/bin/healtharchive salvage-annual-edition --year "$YEAR" --report
-/opt/healtharchive/.venv/bin/healtharchive annual-status --year "$YEAR"
+<deploy-root>/.venv/bin/healtharchive salvage-annual-edition --year "$YEAR" --report
+<deploy-root>/.venv/bin/healtharchive annual-status --year "$YEAR"
 ```
 
 Keep the generated per-edition artifacts in place:
@@ -154,7 +154,7 @@ The capture helper runs these deterministic gates:
 YEAR=2026
 ./scripts/annual-search-verify.sh \
   --year "$YEAR" \
-  --out-root /srv/healtharchive/ops/search-eval \
+  --out-root <service-data-root>/ops/search-eval \
   --base-url http://127.0.0.1:8001
 
 ./scripts/verify_public_surface.py \
@@ -188,7 +188,7 @@ For every incident or deviation during the campaign, classify it as:
 - **Accepted**: known gap accepted for this edition with a reason;
 - **Ops follow-up**: track in `../../healtharchive-ops-roadmap.md`;
 - **Product/engineering backlog**: track in `../../../planning/roadmap.md`;
-- **External validation**: track in the active external/admissions plan.
+- **External validation**: track in the public roadmap/current work tracker.
 
 Do not leave closeout-only TODOs in chat history or terminal scrollback.
 

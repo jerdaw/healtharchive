@@ -133,7 +133,7 @@ To capture v1 + v2 and generate a diff report in one command:
 On the production VPS, prefer a persistent output directory:
 
 ```bash
-./scripts/search-eval-run.sh --base-url https://api.healtharchive.ca --out-dir /srv/healtharchive/ops/search-eval
+./scripts/search-eval-run.sh --base-url https://api.healtharchive.ca --out-dir <service-data-root>/ops/search-eval
 ```
 
 ## 4) Minimal pass/fail checklist for releases
@@ -167,7 +167,7 @@ stored PostgreSQL FTS vector is populated. The public API expects
 It does not recompute missing vectors on the public request path.
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 set -a; source /etc/healtharchive/backend.env; set +a
 
 ./.venv/bin/python - <<'PY'
@@ -185,7 +185,7 @@ PY
 If `search_vector_missing` is non-zero, run:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 set -a; source /etc/healtharchive/backend.env; set +a
 ./.venv/bin/healtharchive backfill-search-vector
 ```

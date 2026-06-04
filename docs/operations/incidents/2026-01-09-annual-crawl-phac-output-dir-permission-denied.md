@@ -64,25 +64,25 @@ Recovery restored a writable output directory and reset the job’s retry budget
 
 - Diagnosed job output dir mount + permissions:
   - Confirmed job config and path:
-    - `healtharchive show-job --id 7` → `Output dir: /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101`
+    - `healtharchive show-job --id 7` → `Output dir: <service-data-root>/jobs/phac/20260101T000502Z__phac-20260101`
   - Confirmed it is an `sshfs` hot path mountpoint:
-    - `findmnt -T /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101 -o TARGET,SOURCE,FSTYPE,OPTIONS`
+    - `findmnt -T <service-data-root>/jobs/phac/20260101T000502Z__phac-20260101 -o TARGET,SOURCE,FSTYPE,OPTIONS`
   - Confirmed the worker user:
     - `systemctl show -p User -p Group healtharchive-worker.service` → `User=haadmin`, `Group=haadmin`
   - Attempted to fix ownership failed (`Permission denied`) because the output dir is on `sshfs`:
     - `sudo chown <worker_user>:<worker_group> <output_dir>`
 - Ensured a writable output dir:
   - Verified writability with a host-level probe:
-    - `touch /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101/.writable_test && rm /srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101/.writable_test`
+    - `touch <service-data-root>/jobs/phac/20260101T000502Z__phac-20260101/.writable_test && rm <service-data-root>/jobs/phac/20260101T000502Z__phac-20260101/.writable_test`
   - Validated annual tiering state for `phac`:
-    - `sudo /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-annual-output-tiering.py --year 2026 --sources phac --apply`
+    - `sudo <deploy-root>/.venv/bin/python3 <deploy-root>/scripts/vps-annual-output-tiering.py --year 2026 --sources phac --apply`
 - Validated job configuration:
   - `healtharchive validate-job-config --id 7`
 - Reset the job retry budget:
   - Direct `psql` access failed due to missing DB roles for the operator account (`role "haadmin" does not exist`, `role "root" does not exist`).
   - Used a small Python snippet with `ha_backend.db.get_session()` to set `retry_count=0` for `job_id=7`:
     - ```bash
-      /opt/healtharchive/.venv/bin/python3 - <<'PY'
+      <deploy-root>/.venv/bin/python3 - <<'PY'
       from ha_backend.db import get_session
       from ha_backend.models import ArchiveJob
 

@@ -50,7 +50,7 @@ healtharchive check-env
 
 **Output**:
 ```
-Archive root: /mnt/nasd/nobak/healtharchive/jobs
+Archive root: <archive-root>
 Archive root exists: True
 Archive tool command: archive-tool
 ```
@@ -140,7 +140,7 @@ healtharchive create-job --source phac --override '{
 ```
 Created job ID: 42
 Name: hc-20260118
-Output directory: /mnt/nasd/nobak/healtharchive/jobs/hc/20260118T210911Z__hc-20260118
+Output directory: <archive-root>/hc/20260118T210911Z__hc-20260118
 Status: queued
 ```
 
@@ -258,7 +258,7 @@ healtharchive register-job-dir --source SOURCE --output-dir PATH [--name NAME]
 ```bash
 healtharchive register-job-dir \
   --source hc \
-  --output-dir /mnt/nasd/nobak/healtharchive/jobs/hc/20260101T120000Z__hc-20260101
+  --output-dir <archive-root>/hc/20260101T120000Z__hc-20260101
 ```
 
 **Use case**: Import externally-run crawls into database
@@ -387,7 +387,7 @@ Created at:      2026-01-01 00:05:02.537667+00:00
 Queued at:       2026-01-01 00:05:02.331347+00:00
 Started at:      2026-04-10 16:15:18.050361+00:00
 Finished at:     None
-Output dir:      /srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101
+Output dir:      <service-data-root>/jobs/hc/20260101T000502Z__hc-20260101
 Crawler RC:      None
 Crawler status:  None
 Crawler stage:   promoted_to_playwright_warc
@@ -891,7 +891,7 @@ Commands respect these environment variables:
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `HEALTHARCHIVE_DATABASE_URL` | Database connection | `sqlite:///healtharchive.db` |
-| `HEALTHARCHIVE_ARCHIVE_ROOT` | Base directory for jobs | `/mnt/nasd/nobak/healtharchive/jobs` |
+| `HEALTHARCHIVE_ARCHIVE_ROOT` | Base directory for jobs | `<archive-root>` |
 | `HEALTHARCHIVE_TOOL_CMD` | archive-tool command | `archive-tool` |
 | `HEALTHARCHIVE_LOG_LEVEL` | Logging level | `INFO` |
 

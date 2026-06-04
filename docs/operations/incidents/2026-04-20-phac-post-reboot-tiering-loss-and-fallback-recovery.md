@@ -132,7 +132,7 @@ numbering fix, and resume PHAC under the fallback backend.
 10. Traced the remaining HC public replay `502` to a malformed archived cookie
     header line (`AWSALBCORS=...`) that pywb surfaced and Caddy rejected, then
     deployed replay header sanitization plus the replay unit fix that loads
-    `/srv/healtharchive/replay/sitecustomize.py` via `PYTHONPATH=/webarchive`.
+    `<service-data-root>/replay/sitecustomize.py` via `PYTHONPATH=/webarchive`.
 11. Optimized raw snapshot WARC lookup, updated the public verifier to report
     transport timeouts cleanly, and split the verifier timeout budget so the
     raw HTML probe can tolerate slower WARC reads without masking other checks.
@@ -199,8 +199,8 @@ What we did to confirm we’re actually healthy (and not just “running”).
   - `timestamp_utc=2026-04-20T13:21:43Z`
   - `timestamp_utc=2026-04-20T15:08:00Z`
 - Relevant log path(s):
-  - `/srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101/archive_initial_crawl_-_attempt_1_20260420_132017.combined.log`
-  - `/srv/healtharchive/jobs/phac/20260101T000502Z__phac-20260101/archive_playwright_warc_capture_20260420_143518.combined.log`
+  - `<service-data-root>/jobs/phac/20260101T000502Z__phac-20260101/archive_initial_crawl_-_attempt_1_20260420_132017.combined.log`
+  - `<service-data-root>/jobs/phac/20260101T000502Z__phac-20260101/archive_playwright_warc_capture_20260420_143518.combined.log`
 - Metric names:
   - `healtharchive_crawl_running_job_configured_backend_info`
   - `healtharchive_crawl_running_job_fallback_active`

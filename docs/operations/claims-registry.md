@@ -8,13 +8,13 @@ Use this to back any reliability/automation/privacy/reproducibility claims with 
     - Release assets: `manifest.json` + `SHA256SUMS` + `healtharchive-*.jsonl.gz`
     - Workflow: `jerdaw/healtharchive-datasets` → Actions → “Publish dataset release”
   - Cadence: quarterly (Jan/Apr/Jul/Oct)
-  - Recorded in: dataset repo Releases + `/srv/healtharchive/ops/adoption/`
+  - Recorded in: dataset repo Releases + `<service-data-root>/ops/adoption/`
 - **Claim:** Dataset releases are integrity-verifiable.
   - Evidence:
     - Download assets into one directory and run `sha256sum -c SHA256SUMS`
     - `manifest.json` includes artifact SHA256s and row counts
   - Cadence: per release
-  - Recorded in: release assets + `/srv/healtharchive/ops/adoption/`
+  - Recorded in: release assets + `<service-data-root>/ops/adoption/`
 - **Claim:** Change tracking is computed on schedule.
   - Evidence:
     - systemd timer: `healtharchive-change-tracking.timer` (plus sentinel `/etc/healtharchive/change-tracking-enabled`)
@@ -31,7 +31,7 @@ Use this to back any reliability/automation/privacy/reproducibility claims with 
 - **Claim:** Annual search verification artifacts are captured (when enabled).
   - Evidence:
     - systemd timer: `healtharchive-annual-search-verify.timer` (plus sentinel `/etc/healtharchive/automation-enabled`)
-    - artifacts: `/srv/healtharchive/ops/search-eval/<year>/final/`
+    - artifacts: `<service-data-root>/ops/search-eval/<year>/final/`
   - Cadence: daily timer, captures once per year when ready
   - Recorded in: ops artifacts (+ optional Healthchecks ping)
 - **Claim:** Coverage guardrails run for annual editions (when enabled).
@@ -60,10 +60,10 @@ Use this to back any reliability/automation/privacy/reproducibility claims with 
   - Recorded in: journald
 - **Claim:** Quarterly restore tests are performed (backups are usable).
   - Evidence:
-    - restore-test logs: `/srv/healtharchive/ops/restore-tests/restore-test-YYYY-MM-DD.md`
+    - restore-test logs: `<service-data-root>/ops/restore-tests/restore-test-YYYY-MM-DD.md`
     - procedure reference: `docs/operations/restore-test-procedure.md`
   - Cadence: quarterly
-  - Recorded in: `/srv/healtharchive/ops/restore-tests/`
+  - Recorded in: `<service-data-root>/ops/restore-tests/`
 - **Claim:** Public usage metrics are privacy-preserving and aggregated.
   - Evidence:
     - DB table: `usage_metrics` (aggregated daily counts only)

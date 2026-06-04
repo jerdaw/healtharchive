@@ -55,5 +55,5 @@ This should preserve the current human-readable default output.
 ## Operator usage
 
 - Human mode: `./scripts/verify_ops_automation.sh`
-- JSON mode (diff-friendly): `./scripts/verify_ops_automation.sh --json > /srv/healtharchive/ops/automation/posture.json`
+- JSON mode (diff-friendly): `./scripts/verify_ops_automation.sh --json > <service-data-root>/ops/automation/posture.json`
 - Pretty-print (optional): `./scripts/verify_ops_automation.sh --json | python3 -m json.tool`

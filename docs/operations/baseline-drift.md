@@ -6,7 +6,7 @@ Goal: avoid “configuration drift” where production stops matching what the p
 This is implemented as:
 
 1) **Desired state (in git)**: `production-baseline-policy.toml`
-2) **Observed state (generated on the VPS)**: JSON snapshots written to `/srv/healtharchive/ops/baseline/`
+2) **Observed state (generated on the VPS)**: JSON snapshots written to `<service-data-root>/ops/baseline/`
 3) **Drift check**: compares observed vs policy and fails on required mismatches
 
 ## Files
@@ -20,7 +20,7 @@ This is implemented as:
 On the VPS (as `haadmin`):
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/check_baseline_drift.py --mode live
 ```
 
@@ -30,7 +30,7 @@ This writes:
 - `drift-report-<timestamp>.txt` (human-readable)
 - plus `observed-latest.json` and `drift-report-latest.txt`
 
-All files live under `/srv/healtharchive/ops/baseline/`.
+All files live under `<service-data-root>/ops/baseline/`.
 
 ## “Local only” mode (no network dependency)
 

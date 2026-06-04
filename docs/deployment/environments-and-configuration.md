@@ -7,8 +7,8 @@ wired together across environments.
 Shared-VPS ownership note:
 
 1. This document owns the frontend/backend wiring contract for HealthArchive.
-2. Shared host topology, ingress ownership, service inventory, and other cross-project VPS facts are canonical in `/home/jer/repos/vps/platform-ops`.
-3. Use `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md` as the default boundary reference when deciding where a VPS fact belongs.
+2. Shared host topology, ingress ownership, service inventory, and other cross-project VPS facts are canonical in `private shared-ops workspace`.
+3. Use `private shared-ops documentation boundary` as the default boundary reference when deciding where a VPS fact belongs.
 
 The root `ENVIRONMENTS.md` is a pointer to this file to avoid duplication.
 
@@ -19,8 +19,8 @@ It is useful when:
   line up.
 
 Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
-operations state live in `/home/jer/repos/vps/platform-ops`. Use
-`/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+operations state live in `private shared-ops workspace`. Use
+`private shared-ops documentation boundary`
 as the default rule for what belongs in this repo versus shared ops
 documentation.
 
@@ -51,7 +51,7 @@ For deeper operational details, see:
 On the production VPS, run the baseline drift check in live mode:
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 ./scripts/check_baseline_drift.py --mode live
 ```
 
@@ -114,7 +114,7 @@ On the production backend host (systemd env file / Docker env / PaaS env):
 ```bash
 export HEALTHARCHIVE_ENV=production
 export HEALTHARCHIVE_DATABASE_URL=postgresql+psycopg://healtharchive:<DB_PASSWORD>@127.0.0.1:5432/healtharchive
-export HEALTHARCHIVE_ARCHIVE_ROOT=/srv/healtharchive/jobs
+export HEALTHARCHIVE_ARCHIVE_ROOT=<service-data-root>/jobs
 export HEALTHARCHIVE_ZIMIT_DOCKER_IMAGE=ghcr.io/openzim/zimit@sha256:<PINNED_DIGEST>
 export HEALTHARCHIVE_PLAYWRIGHT_DOCKER_IMAGE=mcr.microsoft.com/playwright:v1.50.1-jammy
 export HEALTHARCHIVE_ADMIN_TOKEN=<LONG_RANDOM_SECRET>
@@ -130,7 +130,7 @@ export HEALTHARCHIVE_EXPORTS_DEFAULT_LIMIT=1000
 export HEALTHARCHIVE_EXPORTS_MAX_LIMIT=10000
 export HEALTHARCHIVE_PUBLIC_SITE_URL=https://healtharchive.ca
 export HEALTHARCHIVE_REPLAY_BASE_URL=https://replay.healtharchive.ca
-export HEALTHARCHIVE_REPLAY_PREVIEW_DIR=/srv/healtharchive/replay/previews
+export HEALTHARCHIVE_REPLAY_PREVIEW_DIR=<service-data-root>/replay/previews
 ```
 
 Notes:
@@ -189,7 +189,7 @@ production except for DB/archive root and CORS origins:
 ```bash
 export HEALTHARCHIVE_ENV=staging
 export HEALTHARCHIVE_DATABASE_URL=postgresql+psycopg://healtharchive:<DB_PASSWORD>@127.0.0.1:5432/healtharchive_staging
-export HEALTHARCHIVE_ARCHIVE_ROOT=/srv/healtharchive/jobs-staging
+export HEALTHARCHIVE_ARCHIVE_ROOT=<service-data-root>/jobs-staging
 export HEALTHARCHIVE_ADMIN_TOKEN=<LONG_RANDOM_SECRET>
 export HEALTHARCHIVE_CORS_ORIGINS=https://healtharchive-staging.example.com
 export HEALTHARCHIVE_LOG_LEVEL=INFO

@@ -5,8 +5,8 @@ app monorepo (`frontend/`, Next.js).
 
 Shared VPS facts that are not specific to the frontend alone are canonical in:
 
-- `/home/jer/repos/vps/platform-ops`
-- `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+- `private shared-ops workspace`
+- `private shared-ops documentation boundary`
 
 ## Start here
 

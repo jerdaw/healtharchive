@@ -9,9 +9,9 @@ This checklist is intentionally short. If a task feels too heavy to do regularly
 
 - **Treat green `main` as the deploy gate** (run local checks, push, wait for CI).
 - **Deploy using the VPS helper** (safe deploy + verification):
-  - `cd /opt/healtharchive && ./scripts/vps-deploy.sh --apply --baseline-mode live`
+  - `cd <deploy-root> && ./scripts/vps-deploy.sh --apply --baseline-mode live`
 - **Verify observability is still healthy** (internal; loopback-only):
-  - `cd /opt/healtharchive && ./scripts/vps-verify-observability.sh`
+  - `cd <deploy-root> && ./scripts/vps-verify-observability.sh`
 - **Update docs if reality changed**
   - If you had to do manual steps not captured in a runbook/playbook, update the canonical doc(s) so the next deploy is repeatable.
 - If the deploy script fails, **don’t retry blindly**:
@@ -25,13 +25,13 @@ Related docs:
 ## Weekly (10–15 minutes)
 
 - **Observability sanity check**
-  - `cd /opt/healtharchive && ./scripts/vps-verify-observability.sh`
+  - `cd <deploy-root> && ./scripts/vps-verify-observability.sh`
 - **Service health**
   - `curl -sS http://127.0.0.1:8001/api/health; echo`
   - `sudo systemctl status healtharchive-api healtharchive-worker --no-pager -l`
 - **Disk usage trend**
   - `df -h /`
-  - If `/srv/healtharchive` exists: `du -sh /srv/healtharchive/* | sort -h | tail -n 5`
+  - If `<service-data-root>` exists: `du -sh <service-data-root>/* | sort -h | tail -n 5`
   - If cleanup is needed: [Disk baseline and cleanup](disk-baseline-and-cleanup.md)
 - **Recent errors**
   - `sudo journalctl -u healtharchive-api -n 200 --no-pager`
@@ -42,12 +42,12 @@ Related docs:
 ## Ongoing automation maintenance
 
 - Keep systemd unit templates installed/updated on the VPS after repo updates:
-  - `cd /opt/healtharchive && sudo ./scripts/vps-install-systemd-units.sh --apply --restart-worker`
+  - `cd <deploy-root> && sudo ./scripts/vps-install-systemd-units.sh --apply --restart-worker`
 - Treat sentinel files under `/etc/healtharchive/` as the explicit on/off controls for automation.
 - If you enable Healthchecks pings, keep ping URLs only in the root-owned VPS env file:
   - `/etc/healtharchive/healthchecks.env` (never commit ping URLs)
 - If you use Healthchecks pings, periodically audit for drift (missing or stale checks):
-  - `cd /opt/healtharchive && sudo python3 ./scripts/verify_healthchecks_alignment.py`
+  - `cd <deploy-root> && sudo python3 ./scripts/verify_healthchecks_alignment.py`
 - If you enable optional automations (coverage guardrails, replay smoke, cleanup), confirm their timers + sentinels are intentional.
 
 See: `../deployment/systemd/README.md`
@@ -76,13 +76,13 @@ See: `../deployment/systemd/README.md`
 - **Docs maintenance**
   - Re-read `incidents/severity.md` + `playbooks/core/incident-response.md` and ensure they match current reality.
 - **Adoption signals entry** (public-safe)
-  - Add a dated entry under `/srv/healtharchive/ops/adoption/` (links + aggregates only).
+  - Add a dated entry under `<service-data-root>/ops/adoption/` (links + aggregates only).
 - **Mentions log refresh** (public-safe)
   - Update `mentions-log.md` with new public links (permission-aware; link-only).
 - **Automation posture check**
-  - On the VPS run: `cd /opt/healtharchive && ./scripts/verify_ops_automation.sh`
+  - On the VPS run: `cd <deploy-root> && ./scripts/verify_ops_automation.sh`
   - Optional (diff-friendly): `./scripts/verify_ops_automation.sh --json | python3 -m json.tool`
-  - Optional (JSON-only artifact): `./scripts/verify_ops_automation.sh --json-only > /srv/healtharchive/ops/automation/posture.json`
+  - Optional (JSON-only artifact): `./scripts/verify_ops_automation.sh --json-only > <service-data-root>/ops/automation/posture.json`
   - Spot-check logs: `journalctl -u <service> -n 200`
 - **Growth constraints review**
   - Revisit `growth-constraints.md` (storage, source caps, performance budgets).
@@ -94,7 +94,7 @@ See: `../deployment/systemd/README.md`
   - Review `annual-campaign.md` for scope changes.
   - Ensure enough storage headroom for a full capture cycle.
   - Run the crawl preflight audit:
-    - `cd /opt/healtharchive && YEAR=2026 && ./scripts/vps-preflight-crawl.sh --year "$YEAR"`
+    - `cd <deploy-root> && YEAR=2026 && ./scripts/vps-preflight-crawl.sh --year "$YEAR"`
   - Dry-run the scheduler if it is enabled:
     - `sudo systemctl start healtharchive-schedule-annual-dry-run.service`
     - `sudo journalctl -u healtharchive-schedule-annual-dry-run.service -n 200 --no-pager`

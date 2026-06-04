@@ -6,7 +6,7 @@
 
 ## Overview
 
-This plan implemented the first batch of roadmap quality/governance work from the comprehensive 2026-02-11 audit, focusing on open-source governance standards, frontend SEO/discoverability, and CI security foundations. These items provide high admissions/portfolio value with minimal code risk and no VPS access requirements.
+This plan implemented the first batch of roadmap quality/governance work from the comprehensive 2026-02-11 audit, focusing on open-source governance standards, frontend SEO/discoverability, and CI security foundations. These items improved public project credibility with minimal code risk and no production-host access requirements.
 
 **Items Completed**: #8, #9, #10, #11, #14, #20, #21, #34
 **Items Partially Completed**: #18 (requires manual vulnerability fixes)
@@ -451,7 +451,7 @@ Strict-Transport-Security: max-age=31536000; includeSubDomains
 **Status**: ✅ Completed
 **Roadmap Item**: #12
 
-Added test coverage enforcement to prevent quality regressions and provide concrete portfolio metrics.
+Added test coverage enforcement to prevent quality regressions and provide concrete public quality metrics.
 
 #### Test Coverage Thresholds (#12)
 
@@ -510,7 +510,7 @@ exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", ...]
 - Bottleneck: `indexing/pipeline.py` at 22.55% (background processing, complex file I/O)
 - 75% is realistic baseline that prevents regressions
 - 80% is achievable goal with ~100 more test lines
-- Provides concrete portfolio metric: "Maintains >75% test coverage with CI enforcement"
+- Provides concrete public quality metric: "Maintains >75% test coverage with CI enforcement"
 
 **Path to 80%**:
 1. Add integration tests for indexing/pipeline.py
@@ -528,7 +528,7 @@ exclude_lines = ["pragma: no cover", "if TYPE_CHECKING:", ...]
 
 **Quality Benefits**:
 - Prevents coverage regressions on critical modules
-- Concrete quality metric for admissions/portfolio
+- Concrete quality metric for public project health
 - HTML reports identify untested code paths
 - Baseline for incremental improvements
 - Evidence: "76.96% test coverage on critical paths, CI-enforced"
@@ -897,7 +897,7 @@ After completing the manual vulnerability fixes:
 - **CORS configuration**: tested origin handling, method restrictions, credentials disabled
 - **Test coverage enforced**: 76.96% on critical modules (75% threshold, CI-enforced)
 
-**Admissions/Portfolio Value**:
+**Public Project Value**:
 - ✅ Professional SEO implementation (OG tags, sitemap, Organization + Dataset structured data)
 - ✅ Dataset discoverability in Google Dataset Search
 - ✅ Observable API with correlation logging + request IDs
@@ -915,7 +915,7 @@ After completing the manual vulnerability fixes:
 - ✅ **API reliability**: health checks, error scenarios, CORS validation
 - ✅ **Pre-commit quality gates**: Consistent hooks across all repos (ruff, mypy, eslint, prettier)
 - ✅ **Automated code quality**: Formatting, linting, type checking enforced pre-commit
-- ✅ **Concrete quality metrics for portfolio/admissions**
+- ✅ **Concrete quality metrics for public project health**
 - ✅ Automated dependency management (Dependabot)
 - ⚠️ Security audit discipline (partial - requires manual vuln fixes)
 - ⚠️ Open-source governance (deferred - requires manual implementation)

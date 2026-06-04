@@ -21,7 +21,7 @@ during annual campaign season.
 ## Preconditions
 
 - You are on the VPS.
-- Backend checkout is at `/opt/healtharchive`.
+- Backend checkout is at `<deploy-root>`.
 - Backend env file is `/etc/healtharchive/backend.env`.
 - Prefer a maintenance window with `healtharchive-worker.service` stopped while
   mounts are being repaired.
@@ -29,9 +29,9 @@ during annual campaign season.
 ## 1) Load Env And Capture Read-Only State
 
 ```bash
-cd /opt/healtharchive
+cd <deploy-root>
 YEAR=2026
-HA=/opt/healtharchive/.venv/bin/healtharchive
+HA=<deploy-root>/.venv/bin/healtharchive
 
 set -a; source /etc/healtharchive/backend.env; set +a
 
@@ -53,9 +53,9 @@ If `check-db` fails, stop here and fix DB/env first.
 ## 2) Verify Storage Box Base Mount
 
 ```bash
-findmnt /srv/healtharchive/storagebox
-ls -ld /srv/healtharchive/storagebox
-ls /srv/healtharchive/storagebox/jobs >/dev/null
+findmnt <service-data-root>/storagebox
+ls -ld <service-data-root>/storagebox
+ls <service-data-root>/storagebox/jobs >/dev/null
 ```
 
 Expected:
@@ -122,8 +122,8 @@ This is the preferred app-local fix for annual metadata/config drift.
 
 ```bash
 sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
-  /opt/healtharchive/.venv/bin/python3 \
-  /opt/healtharchive/scripts/vps-annual-output-tiering.py \
+  <deploy-root>/.venv/bin/python3 \
+  <deploy-root>/scripts/vps-annual-output-tiering.py \
   --year "$YEAR"
 ```
 
@@ -151,8 +151,8 @@ Repair stale annual output-dir mounts:
 
 ```bash
 sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
-  /opt/healtharchive/.venv/bin/python3 \
-  /opt/healtharchive/scripts/vps-annual-output-tiering.py \
+  <deploy-root>/.venv/bin/python3 \
+  <deploy-root>/scripts/vps-annual-output-tiering.py \
   --year "$YEAR" \
   --apply \
   --repair-stale-mounts \
@@ -163,8 +163,8 @@ If the script reported `unexpected_mount_type`, use:
 
 ```bash
 sudo --preserve-env=HEALTHARCHIVE_DATABASE_URL,HEALTHARCHIVE_ARCHIVE_ROOT \
-  /opt/healtharchive/.venv/bin/python3 \
-  /opt/healtharchive/scripts/vps-annual-output-tiering.py \
+  <deploy-root>/.venv/bin/python3 \
+  <deploy-root>/scripts/vps-annual-output-tiering.py \
   --year "$YEAR" \
   --apply \
   --repair-unexpected-mounts \

@@ -406,6 +406,7 @@ After your first contribution:
 - [Development Setup](../development/dev-environment-setup.md)
 - [Testing Guidelines](../development/testing-guidelines.md)
 - [Architecture Guide](../architecture.md)
-- [Documentation Guidelines](../documentation-guidelines.md)
+- Write public-safe docs that explain what changed, how to verify it, and any
+  local setup needed to reproduce it.
 
 Welcome to the HealthArchive community! 🚀

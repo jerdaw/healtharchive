@@ -30,29 +30,30 @@ Canonical docs to consult first:
 - `docs/deployment/production-rollout-checklist.md` – production rollout steps.
 - `docs/operations/monitoring-and-ci-checklist.md` – monitoring, uptime, and CI guidance.
 - `docs/operations/monitoring-and-alerting.md` – Critical crawl metrics, alert thresholds, and monitoring strategy.
-- `docs/deployment/production-single-vps.md` – current production runbook (Hetzner + Tailscale-only SSH, nightly backups, NAS pull).
+- `docs/deployment/production-single-vps.md` – production runbook retained for
+  private/operator context; keep public-facing docs generalized.
 - `docs/planning/roadmap.md` – backlog of not-yet-implemented work.
 - `docs/planning/implemented/` – historical implementation plans (executed).
 - Frontend bilingual/dev architecture: `frontend/docs/development/bilingual-dev-guide.md`
-- `/home/jer/repos/vps/platform-ops` – shared VPS inventory, roadmap, handoff, and cross-project runbooks
-- `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md` – canonical boundary for what belongs in `platform-ops` vs this repo
+- Private shared-ops workspace, when available locally – shared host inventory,
+  roadmap, handoff, and cross-project runbooks
+- Private shared-ops documentation boundary – canonical rule for what belongs
+  in the shared ops workspace vs this repo
 
 Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
-operations state live in `/home/jer/repos/vps/platform-ops`. Use
-`/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
-as the default rule for what belongs in this repo versus shared ops
-documentation.
+operations state live in the private shared-ops workspace. Use that workspace's
+documentation boundary as the default rule for what belongs in this repo versus
+shared ops documentation.
 
 Shared-touching live runtime facts for the frontend, API, and replay services
-now also live in the repo-root `platform-ops-contract.yaml`. When changing a
+belong in private shared-ops inventory/current-state surfaces. When changing a
 live canonical host, private bind, env-file path, release root, runtime owner,
-or shared health endpoint contract, update that manifest and the matching
-`/home/jer/repos/vps/platform-ops` inventory/current-state surfaces in the same
-change window.
+or shared health endpoint contract, update those private ops records in the
+same change window.
 
 When you're doing anything beyond tiny local changes, **open those docs and sync your mental model first**.
 
-**Cross-project ops note:** Backend behavior and backend-facing docs belong in this repo. Shared VPS standards, live service inventory, ingress ownership, shared host access posture, and cross-project migration/operations state belong in `/home/jer/repos/vps/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`). Host-side paths under `/etc/projects-merge/...` remain intentionally unchanged.
+**Cross-project ops note:** Backend behavior and backend-facing docs belong in this repo. Shared VPS standards, live service inventory, ingress ownership, shared host access posture, and cross-project migration/operations state belong in the private shared-ops workspace. Host-side paths are environment-specific and should not be documented publicly unless they are already part of a public contract.
 
 ---
 
@@ -82,7 +83,7 @@ There are two distinct operating modes:
    - Prefer non-`sudo` commands first
    - Use one-shot `sudo` only for read-only inspection that truly needs it and
      only within the operator-approved session rules
-   - Do not edit `/opt/healtharchive` directly
+   - Do not edit the production deploy checkout directly
    - Do not use the VPS as the main coding workspace
    - For any state-changing action, provide objective, exact command, expected
      impact, and rollback path, then wait for operator approval

@@ -42,8 +42,8 @@ healtharchive show-job --id 42
   "pages_crawled": 147,
   "pages_total": 500,
   "pages_failed": 12,
-  "output_dir": "/mnt/nasd/nobak/healtharchive/jobs/hc/20260118T200500Z__hc-20260118",
-  "combined_log_path": "/mnt/.../archive_crawl_20260118T200511Z.combined.log",
+  "output_dir": "<archive-root>/hc/20260118T200500Z__hc-20260118",
+  "combined_log_path": "<archive-root>/.../archive_crawl_20260118T200511Z.combined.log",
   "retry_count": 0
 }
 ```
@@ -77,7 +77,7 @@ less "$LOG_PATH"
 #### 1. **Permission Denied**
 
 ```
-ERROR: Permission denied: '/mnt/nasd/nobak/healtharchive/jobs/hc/...'
+ERROR: Permission denied: '<archive-root>/hc/...'
 ```
 
 **Diagnosis**: Output directory has wrong permissions
@@ -134,19 +134,20 @@ ERROR: No space left on device
 **Fix**:
 ```bash
 # Check disk usage
-df -h /mnt/nasd/nobak
+df -h <archive-storage-root>
 
 # Find large directories
-du -sh /mnt/nasd/nobak/healtharchive/jobs/* | sort -rh | head -10
+du -sh <archive-root>/* | sort -rh | head -10
 
 # Clean up old jobs (carefully!)
 healtharchive cleanup-job --id OLD_JOB_ID --mode temp
 
 # Or manually remove old temp directories
-rm -rf /mnt/nasd/nobak/healtharchive/jobs/hc/*/.tmp_*
+rm -rf <archive-root>/hc/*/.tmp_*
 ```
 
-**See**: `operations/playbooks/crawl/cleanup-automation.md`
+For repeat cleanup issues, document the local reproduction steps and prefer
+adding a narrowly scoped automated check over manual cleanup.
 
 ---
 
@@ -205,7 +206,8 @@ docker stop $(docker ps -q --filter ancestor=ghcr.io/openzim/zimit)
 healtharchive retry-job --id 42
 ```
 
-**See**: Real incident report: [operations/incidents/2026-01-09-annual-crawl-hc-job-stalled.md](../operations/incidents/2026-01-09-annual-crawl-hc-job-stalled.md)
+For repeated stalls, preserve the relevant local logs and record the exact
+source, seed, worker settings, and elapsed time before retrying.
 
 ---
 
@@ -428,14 +430,10 @@ curl -H "X-Admin-Token: $HEALTHARCHIVE_ADMIN_TOKEN" \
 
 ## Step 7: Post-Mortem (For Serious Failures)
 
-If this was a significant failure (e.g., production annual crawl), document it.
+If this was a significant failure, document it in the appropriate private
+operator record before making state-changing recovery attempts.
 
 ### Create Incident Note
-
-```bash
-cp docs/_templates/incident-template.md \
-   docs/operations/incidents/$(date +%Y-%m-%d)-brief-description.md
-```
 
 **Fill in**:
 - Timeline of events
@@ -444,9 +442,7 @@ cp docs/_templates/incident-template.md \
 - Resolution steps
 - Preventive measures
 
-**Example**: [operations/incidents/2026-01-09-annual-crawl-hc-job-stalled.md](../operations/incidents/2026-01-09-annual-crawl-hc-job-stalled.md)
-
-### Update Runbooks
+### Update Documentation
 
 If you discovered a new failure mode or solution:
 
@@ -554,14 +550,12 @@ SELECT COUNT(*) FROM snapshots WHERE job_id = 42;
 
 If you're still stuck:
 
-1. **Check existing incidents**: [operations/incidents/](../operations/incidents/README.md)
-2. **Review playbooks**: [operations/playbooks/](../operations/playbooks/README.md)
-3. **Search GitHub issues**: [github.com/jerdaw/healtharchive/issues](https://github.com/jerdaw/healtharchive/issues)
-4. **Ask for help**: Open a new issue with:
+1. **Search GitHub issues**: [github.com/jerdaw/healtharchive/issues](https://github.com/jerdaw/healtharchive/issues)
+2. **Ask for help**: Open a new issue with:
    - Job ID and status output
    - Relevant log excerpts
    - Steps you've already tried
-5. **Consult archive-tool docs**: `src/archive_tool/docs/documentation.md`
+3. **Consult archive-tool docs**: `src/archive_tool/docs/documentation.md`
 
 ---
 
@@ -569,7 +563,6 @@ If you're still stuck:
 
 - **Architecture Guide**: [architecture.md](../architecture.md)
 - **Archive Tool Documentation**: `src/archive_tool/docs/documentation.md`
-- **Incident Response**: [operations/playbooks/core/incident-response.md](../operations/playbooks/core/incident-response.md)
 
 ---
 

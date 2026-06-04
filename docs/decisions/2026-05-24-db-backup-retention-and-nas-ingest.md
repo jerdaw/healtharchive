@@ -5,7 +5,7 @@ Status: accepted
 ## Context
 
 On 2026-05-23, the production VPS root filesystem reached 100% usage after
-nightly PostgreSQL dumps accumulated under `/srv/healtharchive/backups`.
+nightly PostgreSQL dumps accumulated under `<service-data-root>/backups`.
 PostgreSQL temp-file writes failed, API health degraded, and crawl/search
 operator checks failed until root space was recovered.
 
@@ -16,9 +16,9 @@ backup ingest convention under `/volume1/automated-backup-ingest/...`.
 ## Decision
 
 - Keep only the newest successful PostgreSQL dump in the VPS local root-disk
-  cache at `/srv/healtharchive/backups`.
+  cache at `<service-data-root>/backups`.
 - Mirror successful dumps to the VPS-mounted Storage Box path
-  `/srv/healtharchive/storagebox/backups/db/`.
+  `<service-data-root>/storagebox/backups/db/`.
 - Pull retained DB dumps from the Storage Box mirror into the NAS protected
   ingest path
   `/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/`.
@@ -39,7 +39,7 @@ consistent with other automated service backups.
   production incident.
 - Keep two local dumps by default: rejected after the next scheduled run left
   root above the warning threshold on the 75GB VPS.
-- Pull from `/srv/healtharchive/backups`: rejected because that path is now a
+- Pull from `<service-data-root>/backups`: rejected because that path is now a
   short cache, not the durable retained set.
 - Use `/volume1/nobak/...` on the NAS: rejected because it is not the NASD
   protected service-backup ingest convention.

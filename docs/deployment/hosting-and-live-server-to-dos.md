@@ -125,7 +125,7 @@ in your local shell). Typical flow:
     your risk tolerance.
 
     ```bash
-    export HEALTHARCHIVE_ARCHIVE_ROOT=/srv/healtharchive/jobs
+    export HEALTHARCHIVE_ARCHIVE_ROOT=<service-data-root>/jobs
     ```
 
 - `HEALTHARCHIVE_ADMIN_TOKEN`

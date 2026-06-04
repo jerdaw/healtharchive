@@ -147,7 +147,7 @@ Represents a single crawl job execution.
 | `source_id` | Integer | Yes | Foreign key → `sources.id` |
 | `edition_id` | Integer | Yes | Foreign key → `annual_editions.id` |
 | `name` | String(200) | No | Job name (used in ZIM naming) |
-| `output_dir` | String(500) | No | Absolute path to job directory |
+| `output_dir` | String(500) | No | Full path to job directory |
 | `shard_key` | String(200) | Yes | Deterministic shard key within an annual edition |
 | `shard_kind` | String(50) | Yes | Shard type (`path-language`, `legacy-full-site`, etc.) |
 | `acceptance_state` | String(50) | Yes | Review state (`pending`, `needs_review`, `accepted`, `accepted_gap`, `excluded`) |

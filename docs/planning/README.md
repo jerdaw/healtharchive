@@ -11,18 +11,15 @@ When complete, move them to `docs/planning/implemented/` and date them.
 
 Active plans:
 
-- Admissions strengthening (OMSAS ABS + CanMEDS, ~12 weeks): `2026-02-admissions-strengthening-plan.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
 
 ## Current priority sequence
 
 Treat the following as the current "what's next" order across roadmap docs:
 
-1. After the crawl/ops path is stabilized, the main project emphasis is the
-   active admissions-strengthening plan.
-   - That plan is the canonical home for the next external-validation,
-     methods-paper, and dataset-release work.
-   - Canonical plan: `2026-02-admissions-strengthening-plan.md`
+1. After the crawl/ops path is stabilized, the main project emphasis is
+   external validation, public methodology, and dataset-release work.
+   - Track concrete follow-through in the roadmap and current work tracker.
 2. Optional broad `q=...&view=pages` DB/index-plan tuning remains a future
    backend/search backlog item if repeated warm-cache samples exceed the
    desired response target.

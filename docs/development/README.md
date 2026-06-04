@@ -14,7 +14,7 @@
 | Run backend locally | [Live Testing](live-testing.md) |
 | Run tests | [Testing Guidelines](testing-guidelines.md) |
 | Understand architecture | [Architecture](../architecture.md) |
-| Deploy changes | [Change to Production](playbooks/change-to-production.md) |
+| Hosted deployment | Use the private operator runbook for the target environment |
 
 ## All Development Documentation
 

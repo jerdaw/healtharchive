@@ -32,7 +32,7 @@ Examples (adjust paths):
 DBNAME="healtharchive_restore_test_$(date -u +%Y%m%d)"
 
 # Pick a backup file (example naming from the production runbook)
-BACKUP="/srv/healtharchive/backups/healtharchive_YYYY-MM-DDTHHMMSSZ.dump"
+BACKUP="<service-data-root>/backups/healtharchive_YYYY-MM-DDTHHMMSSZ.dump"
 
 sudo -u postgres createdb -O healtharchive "$DBNAME"
 
@@ -55,7 +55,7 @@ Run API checks against the restored DB by temporarily overriding
 
 ```bash
 export HEALTHARCHIVE_DATABASE_URL="postgresql+psycopg://.../healtharchive_restore_test"
-/opt/healtharchive/.venv/bin/alembic current
+<deploy-root>/.venv/bin/alembic current
 ```
 
 This confirms the restored schema is usable.
@@ -71,7 +71,7 @@ Run these against the restored DB:
 If you need a quick CLI-only check, run:
 
 ```bash
-/opt/healtharchive/.venv/bin/healtharchive check-db
+<deploy-root>/.venv/bin/healtharchive check-db
 ```
 
 ## Step 5 — Record results
