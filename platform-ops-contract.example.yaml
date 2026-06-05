@@ -1,0 +1,11 @@
+# Example only. Do not put real production hostnames, private binds,
+# env-file paths, release roots, or deployment inventories in public Git.
+
+service: example-service
+public_host: example.org
+private_bind: 127.0.0.1:0000
+container_name: example-container
+env_file: /path/to/private/env/file
+release_root: /path/to/private/release/root
+health_endpoint: /health
+deployment_docs: private maintainer notes

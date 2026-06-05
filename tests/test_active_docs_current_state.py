@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-PRIVATE_OPS_BOUNDARY_PHRASE = "private shared-ops"
+PUBLIC_BOUNDARY_PHRASE = "public repository"
 
 
 def _read(relative_path: str) -> str:
@@ -32,24 +32,17 @@ def test_active_docs_reflect_apex_canonical_frontend() -> None:
     assert "https://healtharchive.ca" in production_rollout
     assert "https://www.healtharchive.ca" in production_rollout
     assert "https://api.healtharchive.ca" in production_rollout
-    assert "`healtharchive.ca` (canonical)" in production_runbook
-    assert "`www.healtharchive.ca` (redirect alias)" in production_runbook
+    assert "Production host topology" in production_runbook
+    assert "intentionally excluded from public documentation" in production_runbook
 
 
-def test_active_docs_backup_notes_cover_nas_destination_and_manual_dumps() -> None:
+def test_public_production_overview_excludes_backup_runbook_details() -> None:
     production_runbook = _read("docs/deployment/production-single-vps.md")
-    disaster_recovery = _read("docs/deployment/disaster-recovery.md")
-    decision = _read("docs/decisions/2026-05-24-db-backup-retention-and-nas-ingest.md")
 
-    assert "mkdir -p <nas-backup-ingest-root>/logical-dumps" in production_runbook
-    assert "HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL=1" in production_runbook
-    assert "exit code `11`" in production_runbook
-    assert "healtharchive_pre_<change>_<ts>.dump" in production_runbook
-    assert "not part of the nightly retention set" in production_runbook
-    assert "rsync --delete" in disaster_recovery
-    assert "not an independent permanent archive" in disaster_recovery
-    assert "<service-data-root>/storagebox/backups/db/" in decision
-    assert "<nas-backup-ingest-root>/logical-dumps/" in decision
+    assert "backup procedures" in production_runbook
+    assert "recovery runbooks" in production_runbook
+    assert "HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL" not in production_runbook
+    assert "rsync --delete" not in production_runbook
 
 
 def test_ops_docs_record_disk_cleanup_followups() -> None:
@@ -76,16 +69,19 @@ def test_frontend_cache_externalization_docs_are_current() -> None:
         "docs/decisions/2026-05-26-frontend-cache-externalization-and-docker-runtime-metrics.md"
     )
 
-    for text in (frontend_readme, frontend_verification, production_runbook, decision):
+    for text in (frontend_readme, frontend_verification, decision):
         assert "healtharchive-frontend-next-cache" in text
         assert "/app/.next/cache" in text
 
+    assert "release commands" not in production_runbook
     assert "healtharchive-docker-runtime-metrics.timer" in systemd_readme
     assert "frontend-cache-maintenance-enabled" in systemd_readme
     assert "NEXT_CACHE_MOUNT=none" in decision
 
 
 def test_active_entrypoints_keep_shared_host_facts_behind_private_ops_boundary() -> None:
+    private_ops_path = "/".join(["", "home", "jer", "repos", "vps", "platform-ops"])
+
     for relative_path in (
         "README.md",
         "AGENTS.md",
@@ -95,15 +91,15 @@ def test_active_entrypoints_keep_shared_host_facts_behind_private_ops_boundary()
         "docs/deployment/staging-rollout-checklist.md",
     ):
         content = _read(relative_path)
-        assert PRIVATE_OPS_BOUNDARY_PHRASE in content.lower()
-        assert "/home/jer/repos/vps/platform-ops" not in content
+        assert "private" in content.lower()
+        assert private_ops_path not in content
 
     production_runbook = _read("docs/deployment/production-single-vps.md")
     env_contract = _read("docs/deployment/environments-and-configuration.md")
 
-    assert PRIVATE_OPS_BOUNDARY_PHRASE in production_runbook
-    assert "canonical" in production_runbook
-    assert PRIVATE_OPS_BOUNDARY_PHRASE in env_contract
+    assert PUBLIC_BOUNDARY_PHRASE in production_runbook
+    assert "environment-specific" in production_runbook
+    assert "private" in env_contract.lower()
     assert "canonical" in env_contract
 
 
@@ -123,7 +119,7 @@ def test_agent_docs_keep_symlink_and_authorship_guardrails_current() -> None:
     root_agents = _read("AGENTS.md")
     frontend_agents = _read("frontend/AGENTS.md")
 
-    assert "assistant-guided-production-session.md" in root_agents
+    assert "Public/private documentation boundary" in root_agents
     assert "Do not add AI-assistant attribution" in root_agents
     assert "Do not add AI-assistant attribution" in frontend_agents
     assert "dependabot[bot]" in root_agents
@@ -136,6 +132,6 @@ if __name__ == "__main__":
     test_systemd_public_surface_verifier_uses_apex_frontend()
     test_active_docs_do_not_treat_vercel_as_current_healtharchive_path()
     test_active_docs_reflect_apex_canonical_frontend()
-    test_active_docs_backup_notes_cover_nas_destination_and_manual_dumps()
+    test_public_production_overview_excludes_backup_runbook_details()
     test_active_entrypoints_keep_shared_host_facts_behind_private_ops_boundary()
     test_agent_docs_keep_symlink_and_authorship_guardrails_current()

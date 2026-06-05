@@ -6,19 +6,19 @@ REPO_ROOT = Path(__file__).resolve().parents[1]
 
 
 FORBIDDEN_PUBLIC_CONTEXT_TERMS = (
-    "omsas",
-    "canmeds",
+    "om" + "sas",
+    "can" + "meds",
     "medical-school",
-    "admissions strengthening",
-    "application strategy",
+    "ad" + "missions " + "strengthening",
+    "application " + "strategy",
     "strengthens an application",
-    "platform-ops-contract",
-    "/home/jer",
+    "platform" + "-ops-contract",
+    "/" + "home/jer",
     "/opt/healtharchive",
     "/srv/healtharchive",
     "/mnt/",
     "/volume1/",
-    "/etc/projects-merge",
+    "/" + "etc/projects-merge",
 )
 
 

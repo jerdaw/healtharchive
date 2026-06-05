@@ -1,29 +1,14 @@
-# Deployment docs
+# Deployment Documentation
 
-## Start Here
+Production deployment for HealthArchive is environment-specific and maintained
+outside this public repository.
 
-**Deploying to production?**
-- **Main:** [Production Runbook](production-single-vps.md) — Current production setup (Hetzner VPS)
-- **Config:** [Configuration](environments-and-configuration.md) — Cross-repo env vars
-- **Checklist:** [Hosting Checklist](hosting-and-live-server-to-dos.md) — historical Vercel-era wiring checklist
+This directory keeps public-safe deployment context only:
 
-**Quick reference:**
-| Task | Documentation |
-|------|---------------|
-| Deploy to VPS | [Production Runbook](production-single-vps.md) |
-| Configure environment | [Configuration](environments-and-configuration.md) |
-| Setup systemd services | [Systemd Units](systemd/README.md) |
-| Rollback search changes | [Search Rollout](search-rollout.md) |
+- [Production Deployment Overview](production-single-vps.md)
+- local development and verification references
+- high-level release and configuration boundaries
 
-## All Deployment Documentation
-
-- Current production runbook: `production-single-vps.md`
-  - Includes the recommended deploy helper: `scripts/vps-deploy.sh`
-- Runbook template (for new runbooks): `../_templates/runbook-template.md`
-- Systemd unit templates (annual scheduling, worker priority, replay reconcile): `systemd/README.md`
-- Search ranking rollout: `search-rollout.md`
-- Historical deployment checklist / Vercel wiring: `hosting-and-live-server-to-dos.md`
-- Cross‑repo env vars + host matrix: `environments-and-configuration.md`
-- Generic checklists:
-  - `production-rollout-checklist.md`
-  - `staging-rollout-checklist.md` (optional future)
+Exact production host topology, private access model, release commands,
+environment-file locations, monitoring setup, backup procedures, and recovery
+runbooks are intentionally excluded from public documentation.

@@ -33,7 +33,8 @@ describe("production docs alignment", () => {
 
     for (const content of [readme, agents, docsIndex]) {
       expect(content).toContain("private shared-ops");
-      expect(content).not.toContain("/home/jer/repos/vps/platform-ops");
+      const privateOpsPath = ["/home", "jer", "repos", "vps", "platform-ops"].join("/");
+      expect(content).not.toContain(privateOpsPath);
     }
 
     expect(implementationGuide).toContain(

@@ -357,6 +357,11 @@ Completed items were removed from this backlog and archived in:
        local-development material. Some tracked operator runbooks, systemd
        templates, and VPS helper scripts still encode environment-specific
        paths because they are active deployment assets.
+     - 2026-06-05 status: final public-boundary cleanup replaced the public
+       production runbook and monitoring guide with public-safe stubs, added a
+       fake platform-contract example, and preserved private originals under
+       ignored `private/` paths. Broader operator-only docs/scripts remain in
+       tracked Git and still need a deliberate split.
      - Scope: decide which operator-only Markdown, systemd templates, and
        host helper scripts should move to the private shared-ops workspace,
        which should remain as generalized templates, and which should stay in
@@ -365,6 +370,16 @@ Completed items were removed from this backlog and archived in:
        no longer expose private host paths or monitoring/backup details, while
        any remaining operational templates have explicit public-safe placeholders
        and tests that describe their contract.
+34d. **Restore generated documentation reference checks to a clean pass** (S: 1-2h)
+     - Context: the 2026-06-05 maintenance pass confirmed
+       `scripts/check_docs_references.py` still reports pre-existing missing
+       generated/reference artifacts for the OpenAPI JSON export, generated
+       llms text, and coverage report links.
+     - Scope: decide whether each artifact should be generated in the local
+       docs workflow, checked in as a public-safe placeholder, or excluded from
+       strict reference validation when it is intentionally ephemeral.
+     - Done when: `scripts/check_docs_references.py` passes locally without
+       weakening the public/private documentation boundary.
 
 ### Frontend quality and public communication
 
