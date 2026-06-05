@@ -49,6 +49,8 @@ jobs:
           target="${RUNNER_TEMP}/repos-root/${CHECKOUT_ID}"
           mkdir -p "${target}"
           cp -a "${GITHUB_WORKSPACE}/." "${target}/"
+          contract_base="platform-ops-contract"
+          cp "${target}/${contract_base}.example.yaml" "${target}/${contract_base}.yaml"
 
       - name: Run shared doc-boundary check
         run: |
