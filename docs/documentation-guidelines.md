@@ -9,8 +9,9 @@ monorepo and the separate datasets repo.
 - Docs portal (local): Run `make docs-serve` in the backend repo root.
 - Current site navigation config: `mkdocs.yml` (current source of truth for
   sidebar structure; update this reference when the docs platform changes).
-- Cross-repo environment wiring: `docs/deployment/environments-and-configuration.md`
-- Ops roadmap/todo: `docs/operations/healtharchive-ops-roadmap.md`
+- Public deployment/operations boundary summaries: `docs/deployment/README.md`
+  and `docs/operations/README.md`
+- Private deployment wiring and ops roadmap/todo: private operations workspace
 - Future roadmap backlog (not-yet-implemented work): `docs/planning/roadmap.md`
 - Implemented plans archive (historical records): `docs/planning/implemented/`
 - Docs-platform migration prep inventory: `docs/planning/implemented/2026-04-15-zensical-migration-prep.md`
@@ -67,13 +68,17 @@ enough.
 ### What goes in the current docs-site nav
 
 - All README index pages
-- Docs that are frequently accessed or critical for operations
+- Docs that are frequently accessed or critical for public understanding,
+  methodology, local development, and contribution work
 - At least one representative doc from each major category
-- Core playbooks (operator responsibilities, deploy & verify, incident response)
+- Public deployment/operations boundary summaries
 
 ### What stays README-only
 
-- Detailed playbooks beyond the core set (discoverable via playbooks/README.md)
+- Public-safe specialist docs that are useful but not part of the primary reader path
+- Operator runbooks, deployment procedures, and response playbooks belong in
+  the private operations workspace. Public tracked copies should be high-level
+  summaries or boundary stubs.
 - Historical/archived roadmaps (implemented/)
 - Log files and templates
 - Highly specialized procedures
@@ -194,14 +199,14 @@ Use consistent doc types so people know what to expect:
 
 ## Quality bar (definition of done)
 
-For anything procedural (runbook/playbook/checklist), include:
+For anything procedural (runbook/playbook/checklist) that is public-safe, include:
 
 - **Purpose**: why this doc exists and what it covers.
-- **Audience + access**: who should run it, and from where (local vs VPS; `haadmin` vs `root`).
-- **Preconditions**: required state and inputs (paths, env vars, service names).
-- **Steps**: explicit commands (prefer stable scripts), ordered, with “what this changes”.
+- **Audience + access**: who should run it, without naming private production accounts or access paths.
+- **Preconditions**: required state and inputs, using placeholders for private runtime paths, env files, and service names.
+- **Steps**: explicit commands for local/dev workflows; public production docs should link to private operator material instead of publishing live commands.
 - **Verification**: what “done” means (health checks, drift check, smoke tests).
-- **Safety**: common footguns, irreversible actions, and rollback/recovery notes.
+- **Safety**: common public-safe footguns and continuity notes; detailed restoration procedures stay private.
 - **References**: links to canonical docs, incident notes, or roadmaps.
 
 For anything public-facing (policy pages, changelog, partner kit):
@@ -221,9 +226,9 @@ Docs should reflect **current reality**. If something is intentionally outdated:
 
 Suggested cadence (keep it lightweight):
 
-- **After any production change**: update the relevant runbook/playbook and keep deploy/verify steps accurate.
-- **After sev0/sev1 incidents**: ensure recovery steps are captured and follow-ups exist (roadmap or TODOs).
-- **Quarterly**: skim the production runbook + incident response playbook and fix any drift discovered during routine ops.
+- **After any production change**: update the private runbook/playbook and the public-safe summary if user, contributor, or methodology expectations changed.
+- **After sev0/sev1 incidents**: ensure private response notes capture restoration details, and public follow-ups exist when user expectations changed.
+- **Quarterly**: review the public deployment/operations summaries and the private operator playbooks for drift.
 
 ## Roadmap workflow
 
@@ -232,8 +237,8 @@ This project separates **backlog** vs **implementation plans** vs **canonical do
 - Short pointer (for new contributors): `roadmap-process.md`
 - `docs/planning/roadmap.md` is the single backlog of not-yet-implemented items.
 - When you start work, create a focused implementation plan under `docs/planning/`.
-- When the work is done, update canonical docs (deployment/ops/dev) so the result is maintainable.
-- For production-impacting work, run `docs/operations/playbooks/validation/production-closeout.md` before declaring the work closed.
+- When the work is done, update canonical public docs and any private operations docs needed to keep the result maintainable.
+- For production-impacting work, use the private production closeout checklist before declaring the work closed; record only public-safe outcomes in tracked docs.
 - Then move the implementation plan into `docs/planning/implemented/` with a dated filename.
 
 Rule of thumb: documentation should describe **what exists and how to use/operate it**, not the order it was implemented.
@@ -289,9 +294,9 @@ Completed plans >200 lines should be compressed to this format (~40-80 lines):
 - File titles and filenames should reflect the document’s actual purpose and content. If the purpose or content changes, rename the file and update links as needed.
 - Put roadmaps and active implementation plans in `docs/planning`.
 - Move completed implementation plans into `docs/planning/implemented/` (dated).
-- Put operational procedures in `docs/operations`.
-- Put incident notes / lightweight postmortems in `docs/operations/incidents/` (template: `docs/_templates/incident-template.md`).
-- Put ops playbooks (task-oriented checklists) in `docs/operations/playbooks/`.
-- Put deployment/runbooks in `docs/deployment`.
+- Put public-safe operational summaries in `docs/operations`.
+- Put public-safe incident summaries in `docs/operations/incidents/` only when disclosure is intentional.
+- Put public-safe ops playbook summaries in `docs/operations/playbooks/`; detailed operator checklists stay private.
+- Put public-safe deployment summaries in `docs/deployment`; live deployment runbooks stay private.
 - Put developer workflows (local setup, testing, debugging) in `docs/development`.
 - Put dev playbooks (task workflows) in `docs/development/playbooks/`.

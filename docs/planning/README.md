@@ -23,7 +23,8 @@ Treat the following as the current "what's next" order across roadmap docs:
 2. Optional broad `q=...&view=pages` DB/index-plan tuning remains a future
    backend/search backlog item if repeated warm-cache samples exceed the
    desired response target.
-   - Canonical tracker: `../operations/healtharchive-ops-roadmap.md`
+   - Canonical tracker: private operations workspace for live tuning notes;
+     public backlog entries stay in `roadmap.md`.
 3. Any docs-site migration planning should use the archived prep inventory as
    the starting point, but the actual generator swap remains a separate change
    series.
@@ -41,8 +42,8 @@ Recently closed items:
 - API DB pool exhaustion recurrence prevention:
   - Current state: completed. API request-scoped database sessions are closed
     promptly, export responses no longer stream from live DB iterators, the
-    production database role has a 60-second idle transaction timeout, and
-    Prometheus alerts on excessive idle transactions.
+    production database role has a bounded idle transaction timeout, and private
+    monitoring alerts cover excessive idle transactions.
   - Incident:
     `../operations/incidents/2026-05-29-api-db-pool-exhaustion.md`
   - Deployed ref: `b4975c4f4986eca7da382618076f1f609e10fbef`
@@ -67,13 +68,13 @@ Recently closed items:
     `playwright_warc` fallback for now, and keep the temporary high-churn
     exclusions until a separate live verification proves those paths are stable.
   - No targeted PHAC recrawl is needed for the 2026 annual edition.
-  - Status tracking + next-step guidance: `../operations/healtharchive-ops-roadmap.md`
-- Annual output-dir mount topology conversion (direct `sshfs` mounts → bind mounts):
+  - Status tracking + next-step guidance: private operations workspace
+- Annual output-dir mount topology conversion:
   - Current state: completed on 2026-05-06 for annual jobs `6`, `7`, and `8`.
-  - Verification: one Storage Box `sshfs` process, hot/cold directory identity
-    matched, annual status remained `indexed=3`, and replay smoke returned
-    `200` for HC, PHAC, and CIHR.
-  - Status tracking: `../operations/healtharchive-ops-roadmap.md`
+  - Verification: private storage mount topology matched expectations, annual
+    status remained `indexed=3`, and replay smoke returned `200` for HC, PHAC,
+    and CIHR.
+  - Status tracking: private operations workspace
 - Preserved VPS branch follow-up:
   - Current state: `prod-pre-a3e0dece` was reviewed against deployed
     `ca25d8ea` and deleted from the VPS.

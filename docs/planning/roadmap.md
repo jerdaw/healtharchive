@@ -29,30 +29,34 @@ Use this backlog as the public tracker for:
 Individual items:
 
 - External outreach + verification execution (operator-only):
-  - Playbook: `../operations/playbooks/external/outreach-and-verification.md`
+  - Private execution procedure: private operations workspace
+  - Public materials: `../operations/outreach-templates.md`,
+    `../operations/partner-kit.md`, and `../operations/mentions-log.md`
 - Secure at least 1 distribution partner (permission to name them publicly).
 - Secure at least 1 verifier (permission to name them publicly).
 - Write and publish a methods paper (preprint + JOSS submission).
   - Outline: `../operations/methods-note-outline.md`
 - Publish first formal dataset release with Zenodo DOI.
-  - Runbook: `../operations/dataset-release-runbook.md`
+  - Public contract: `../operations/export-integrity-contract.md`
+  - Private release procedure: private operations workspace
 - Maintain a public-safe mentions/citations log with real entries:
   - `../operations/mentions-log.md` (links only; no private contact data)
-- Healthchecks.io alignment: keep systemd timers, `/etc/healtharchive/healthchecks.env`, and the Healthchecks UI in sync.
-  - See: `../operations/playbooks/validation/healthchecks-parity.md` and `../deployment/production-single-vps.md`
+- Healthchecks.io alignment: keep private scheduler configuration, private
+  health-check environment configuration, and the external healthchecks UI in sync.
+  - Public tracking should expose only public-safe status evidence.
 - Investigate Ontario Health811 (https://health811.ontario.ca/static/guest/home/) to see what value our project has in relation to that service.
 
 Track the current status and next actions in:
 
-- `../operations/healtharchive-ops-roadmap.md` for the current ops posture,
-  optional search tuning, and routine quarterly evidence collection
+- the private operations workspace for current ops posture, optional search
+  tuning, and routine quarterly evidence collection
 - this roadmap for external-validation and scholarly-output follow-through
 
 Supporting materials:
 
 - `../operations/outreach-templates.md`
 - `../operations/partner-kit.md`
-- `../operations/verification-packet.md`
+- private verification packet maintained outside public Git
 
 ## Transparency & public reporting (policy posture)
 
@@ -74,22 +78,27 @@ Decision: these are all worth implementing because they materially improve exter
 Outstanding work (not fully implemented yet):
 
 - Distribution partner proof (pending).
-  - Existing scaffolding: `../operations/playbooks/external/outreach-and-verification.md`, `../operations/partner-kit.md`
+  - Public scaffolding: `../operations/partner-kit.md`, `../operations/outreach-templates.md`, `../operations/mentions-log.md`
+  - Private procedure: private operations workspace
   - Done when: one partner can be named publicly, with a durable public link/embed recorded in `../operations/mentions-log.md`.
 - Verifier proof (pending).
-  - Existing scaffolding: `../operations/verification-packet.md`
+  - Public scaffolding: `../operations/mentions-log.md`
+  - Private procedure: private verification packet maintained outside public Git
   - Done when: one verifier provides written confirmation and permission to be named publicly.
 - Mentions/citations log discipline with real artifacts (partially implemented).
   - Existing scaffolding: `../operations/mentions-log.md`, `../_templates/mentions-log-template.md`
   - Done when: log has real dated entries tied to public links, and quarterly cadence updates are happening.
 - Quarterly dataset release impact trail (partially implemented; pipeline exists).
-  - Existing scaffolding: `../operations/dataset-release-runbook.md`, `../operations/playbooks/external/adoption-signals.md`
+  - Public scaffolding: `../operations/export-integrity-contract.md`
+  - Private procedure: private operations workspace
   - Done when: at least two consecutive quarterly cycles have both (a) published dataset releases and (b) dated adoption-signal entries.
 - Restore-test discipline as repeated practice (partially implemented; first cycle done).
-  - Existing scaffolding: `../operations/restore-test-procedure.md`, `../operations/playbooks/validation/restore-test.md`
+  - Public state: tracked operations files are public-boundary stubs.
+  - Private procedure: private operations workspace
   - Done when: restore-test logs exist for at least two consecutive quarterly cycles.
 - Automation discipline with evidence artifacts (partially implemented).
-  - Existing scaffolding: `../operations/playbooks/validation/automation-maintenance.md`, `../operations/automation-verification-rituals.md`
+  - Public state: tracked operations files are public-boundary stubs.
+  - Private procedure: private operations workspace
   - Done when: quarterly posture snapshots and run evidence exist, and failures are visible in logs/monitoring.
 - External uptime/availability history (partially implemented).
   - Existing backlog: item #32 and item #33 below.
@@ -136,15 +145,16 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 ### Storage & retention (backend)
 
 - Storage/retention upgrades (only with a designed replay retention policy).
-  - See: `../operations/growth-constraints.md`, `../deployment/replay-service-pywb.md`
+  - Public notes should describe user-facing retention policy only; private
+    capacity planning and replay operations live in the private operations
+    workspace.
 - Annual WARC capacity decision before the next campaign.
-  - Context: after 2026 CIHR temp-dir cleanup, the 1 TiB Storage Box still had
-    only about `249G` free while the CIHR stable WARC set alone occupied about
-    `710G`.
+  - Context: after 2026 CIHR temp-dir cleanup, private archival storage capacity
+    still had limited free headroom relative to the stable WARC set.
   - Done when: the operator has chosen and documented one capacity path
-    (larger Storage Box, cold offload with replay impact documented, or
-    source/year hot-retention limits), and the production runbook reflects the
-    chosen path before any new annual jobs are queued.
+    (larger private archival storage tier, cold offload with replay impact
+    documented, or source/year hot-retention limits), and the private operations
+    record reflects the chosen path before any new annual jobs are queued.
 
 ### Crawling & indexing reliability (backend)
 
@@ -266,7 +276,9 @@ Keep this list short; prefer linking to the canonical doc that explains the item
       merging them into the stable `.zimit_resume.yaml`
     - fallback backends now append to the next free stable WARC slot instead of
       overwriting `warc-000001.warc.gz` on reruns
-  - Immediate follow-through is tracked in `../operations/healtharchive-ops-roadmap.md`; keep live-run monitoring and maintenance-window cutovers there rather than duplicating them in this backlog.
+  - Immediate follow-through is tracked in the private operations workspace; keep
+    live-run monitoring and maintenance-window cutovers there rather than
+    duplicating them in this public backlog.
   - Remaining work:
     - decide whether PHAC should remain Browsertrix-first for future annual
       campaigns or adopt a different default/fallback posture after reviewing
@@ -278,10 +290,12 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     - keep the operator path centered on `annual-status`, `list-jobs`, and
       `show-job` so post-run PHAC analysis is observable without ad hoc log
       reconstruction
-  - Related docs: `../operations/annual-campaign.md`, `../operations/healtharchive-ops-roadmap.md`
+  - Related docs: public annual-campaign summary under `../operations/`; private
+    run-specific guidance in the private operations workspace.
 - Continue crawl telemetry calibration from live annual-crawl runs, but use dashboard trends (crawl rate / phase churn / progress age) rather than direct throughput alerts.
   - Current focus: validate dashboard thresholds/visual cues and only promote a signal back into Alertmanager if it becomes clearly actionable.
-  - Related docs: `../operations/monitoring-and-alerting.md`, `../operations/healtharchive-ops-roadmap.md`
+  - Related docs: `../operations/monitoring-and-alerting.md`; private
+    run-specific guidance in the private operations workspace.
 - Consider whether a separate staging backend is worth it (increases ops surface; only do if it buys real safety).
   - See: `../deployment/environments-and-configuration.md`
 
@@ -354,9 +368,9 @@ Completed items were removed from this backlog and archived in:
 34c. **Split private operational assets from the public repo surface** (M-L: 2-4 days)
      - Context: the public docs portal and generated `docs/llms.txt` are now
        constrained to public-safe project, methodology, API, contribution, and
-       local-development material. Some tracked operator-only templates and
-       host helper scripts still encode environment-specific paths because they
-       are active private operations assets.
+       local-development material. Public deployment and operations docs are
+       now summaries or boundary stubs; any detailed operator procedures belong
+       in the private operations workspace.
      - 2026-06-05 status: final public-boundary cleanup replaced the public
        production runbook and monitoring guide with public-safe stubs, added a
        fake platform-contract example, and preserved private originals under
@@ -366,10 +380,13 @@ Completed items were removed from this backlog and archived in:
        `docs/operations/` operator runbooks, continuity procedures, validation
        playbooks, runtime templates, and historical incident details were
        replaced with public-boundary stubs or removed from tracked public docs.
-     - Scope: decide which operator-only Markdown, service-unit templates, and
-       host helper scripts should move to the private shared-ops workspace,
-       which should remain as generalized templates, and which should stay in
-       this repo because they are part of the application contract.
+     - 2026-06-05 final status: the public operations index no longer advertises
+       operator procedures, external/adoption playbooks are boundary stubs, and
+       tests enforce exact public-boundary tombstones plus a public-safe
+       non-stub allowlist.
+     - Scope: keep the public documentation boundary enforced, and only retain
+       generalized templates or application-contract files in public Git when
+       they use explicit placeholders.
      - Done when: repo-root READMEs, generated docs, and tracked documentation
        no longer expose private host paths or operational continuity details, while
        any remaining operational templates have explicit public-safe placeholders
