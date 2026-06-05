@@ -1,23 +1,15 @@
-# Adoption signals playbook (quarterly)
+# Public Boundary Stub
 
-Goal: record lightweight, public-safe “is anyone using this?” signals without storing private contact details.
+This public file intentionally contains only a safe summary.
 
-Canonical references:
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- Template: `../../../_templates/adoption-signals-log-template.md`
-- Ops roadmap (remaining external work): `../../healtharchive-ops-roadmap.md`
+Public scope:
 
-## Procedure (high level)
-
-1. Create a new dated entry using `../../../_templates/adoption-signals-log-template.md`.
-2. Store it on the VPS under:
-   - `<service-data-root>/ops/adoption/`
-
-Rules:
-
-- Links + aggregate counts only.
-- No private emails, names, or identifying details unless permission is explicit and documented elsewhere.
-
-## What “done” means
-
-- A dated adoption signals entry exists under `<service-data-root>/ops/adoption/`.
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

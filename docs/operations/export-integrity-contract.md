@@ -1,4 +1,4 @@
-# Export Integrity Contract (internal)
+# Export Integrity Contract (public-safe)
 
 Exports and dataset releases must be defensible and reproducible over time.
 

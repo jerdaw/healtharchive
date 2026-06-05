@@ -1,17 +1,15 @@
-# Agent Handoff Guidelines (internal)
+# Public Boundary Stub
 
-This repo contains internal operations documentation. Keep everything **public-safe**:
+This public file intentionally contains only a safe summary.
 
-- Do not include secrets, tokens, private emails, internal IPs, or private names.
-- Prefer stable identifiers over prose (timer names, release tags, file paths, commit SHAs).
-- When recording “firsts”, treat them as historical facts and include stable IDs (e.g., release tag, log filename).
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-Related docs:
+Public scope:
 
-- `docs/operations/claims-registry.md`
-- `docs/operations/data-handling-retention.md`
-- `docs/operations/export-integrity-contract.md`
-- `docs/operations/automation-verification-rituals.md`
-- `docs/operations/dataset-release-runbook.md`
-- `docs/operations/risk-register.md`
-- `docs/operations/healtharchive-ops-roadmap.md` (todo list)
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

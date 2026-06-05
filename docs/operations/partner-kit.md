@@ -1,4 +1,4 @@
-# Partner Kit (internal ops guide)
+# Partner Kit (public-safe reference)
 
 Purpose: A lightweight, partner-ready kit that makes it easy to link to
 HealthArchive without implying endorsement or medical guidance.

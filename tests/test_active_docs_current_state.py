@@ -24,6 +24,23 @@ REVIEWED_PRIVATE_TERMS = (
     "production" + " verification",
 )
 
+PUBLIC_BOUNDARY_STUB = """# Public Boundary Stub
+
+This public file intentionally contains only a safe summary.
+
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
+
+Public scope:
+
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.
+"""
+
 
 def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
@@ -51,8 +68,11 @@ def test_operator_heavy_docs_are_public_boundary_stubs() -> None:
         "docs/deployment/production-rollout-checklist.md",
         "docs/deployment/runbook-vps" + "-deploy.md",
         "docs/deployment/" + "sys" + "temd/README.md",
+        "docs/operations/agent-handoff-guidelines.md",
         "docs/operations/playbooks/core/deploy-and-verify.md",
         "docs/operations/playbooks/core/incident-response.md",
+        "docs/operations/playbooks/external/adoption-signals.md",
+        "docs/operations/playbooks/external/outreach-and-verification.md",
         "docs/operations/playbooks/validation/production-closeout.md",
         "docs/operations/runbooks/README.md",
         "docs/operations/incidents/README.md",
@@ -63,6 +83,57 @@ def test_operator_heavy_docs_are_public_boundary_stubs() -> None:
         assert text.startswith("# Public Boundary Stub")
         assert "private operations workspace" in text
         assert "host topology" in text
+
+
+def test_public_boundary_stubs_are_plain_tombstones() -> None:
+    repo_root = _repo_root()
+    public_roots = (repo_root / "docs" / "deployment", repo_root / "docs" / "operations")
+
+    for root in public_roots:
+        for path in root.rglob("*.md"):
+            text = path.read_text(encoding="utf-8")
+            if text.startswith("# Public Boundary Stub"):
+                assert text == PUBLIC_BOUNDARY_STUB, path.relative_to(repo_root).as_posix()
+
+
+def test_operations_index_is_public_boundary_summary() -> None:
+    text = _read("docs/operations/README.md")
+
+    assert "safe for a public" in text
+    assert "private operations workspace" in text
+    assert "stale-link safety" in text
+    assert "New operator?" not in text
+    assert "Deploy & Verify" not in text
+    assert "Incident Response" not in text
+    assert "All Operational Documentation" not in text
+
+
+def test_public_operations_non_stubs_are_explicitly_limited() -> None:
+    repo_root = _repo_root()
+    public_roots = (repo_root / "docs" / "deployment", repo_root / "docs" / "operations")
+    allowed_non_stub_paths = {
+        "docs/operations/README.md",
+        "docs/operations/citation-handout.md",
+        "docs/operations/export-integrity-contract.md",
+        "docs/operations/exports-data-dictionary.md",
+        "docs/operations/mentions-log.md",
+        "docs/operations/methods-note-outline.md",
+        "docs/operations/monitoring-and-alerting.md",
+        "docs/operations/one-page-brief.md",
+        "docs/operations/outreach-templates.md",
+        "docs/operations/partner-kit.md",
+        "docs/operations/search-golden-queries.md",
+    }
+    observed_non_stub_paths: set[str] = set()
+
+    for root in public_roots:
+        for path in root.rglob("*.md"):
+            text = path.read_text(encoding="utf-8")
+            relative_path = path.relative_to(repo_root).as_posix()
+            if "This public file intentionally contains only a safe summary" not in text:
+                observed_non_stub_paths.add(relative_path)
+
+    assert observed_non_stub_paths == allowed_non_stub_paths
 
 
 def test_private_runtime_artifacts_are_not_tracked_in_public_docs() -> None:
