@@ -67,8 +67,8 @@ Historical identity note:
 ├── docs/                     # Documentation source for the current docs portal
 │   ├── architecture.md       # Detailed architecture and implementation guide
 │   ├── development/          # Local dev + live-testing flows
-│   ├── deployment/           # Public deployment notes and generic checklists
-│   ├── operations/           # Public-safe operations policy and summaries
+│   ├── deployment/           # Public deployment overviews only
+│   ├── operations/           # Public-safe operations summaries
 │   ├── frontend/             # Docs portal bridge to in-tree frontend docs
 │   └── datasets-external/    # Link-out pointers to datasets repo/docs
 ├── mkdocs.yml                # Current documentation navigation source of truth
