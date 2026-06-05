@@ -25,6 +25,30 @@ def test_split_host_port_parses_common_ss_formats() -> None:
     assert baseline_snapshot._split_host_port("127.0.0.1:not-a-port") is None
 
 
+def test_baseline_policy_default_can_be_configured(monkeypatch) -> None:
+    _add_scripts_to_path()
+    import baseline_snapshot
+
+    monkeypatch.setenv(baseline_snapshot.BASELINE_POLICY_ENV_VAR, "/tmp/ha-policy.toml")
+
+    assert baseline_snapshot._default_policy_path() == Path("/tmp/ha-policy.toml")
+
+
+def test_baseline_policy_candidates_keep_private_paths_first(monkeypatch) -> None:
+    _add_scripts_to_path()
+    import baseline_snapshot
+
+    monkeypatch.delenv(baseline_snapshot.BASELINE_POLICY_ENV_VAR, raising=False)
+
+    candidates = [path.as_posix() for path in baseline_snapshot._policy_path_candidates()]
+
+    assert candidates[0].endswith("/private/operations/production-baseline-policy.toml")
+    assert candidates[1].endswith(
+        "/private/public-boundary-2026-06-05/operations/production-baseline-policy.toml"
+    )
+    assert candidates[-1].endswith("/docs/operations/production-baseline-policy.toml")
+
+
 def test_is_loopback_addr_covers_ipv4_and_ipv6() -> None:
     _add_scripts_to_path()
     import check_baseline_drift

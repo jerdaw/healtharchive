@@ -11,7 +11,7 @@ Usage:
   ./scripts/vps-deploy.sh [--apply] [--ref REF] [--repo-dir DIR] [--env-file FILE] [--health-url URL]
                          [--skip-deps] [--skip-migrations] [--skip-restart] [--restart-replay]
                          [--skip-worker-restart] [--force-worker-restart]
-                         [--skip-baseline-drift] [--baseline-mode MODE]
+                         [--skip-baseline-drift] [--baseline-mode MODE] [--baseline-policy FILE]
                          [--skip-public-surface-verify]
                          [--install-systemd-units] [--apply-alerting]
                          [--public-api-base URL] [--public-frontend-base URL] [--public-timeout-seconds SECONDS]
@@ -55,6 +55,7 @@ SKIP_WORKER_RESTART="false"
 FORCE_WORKER_RESTART="false"
 SKIP_BASELINE_DRIFT="false"
 BASELINE_MODE="local"
+BASELINE_POLICY="${HEALTHARCHIVE_BASELINE_POLICY:-}"
 SKIP_PUBLIC_SURFACE_VERIFY="false"
 INSTALL_SYSTEMD_UNITS="false"
 APPLY_ALERTING="false"
@@ -127,6 +128,10 @@ while [[ $# -gt 0 ]]; do
       ;;
     --baseline-mode)
       BASELINE_MODE="$2"
+      shift 2
+      ;;
+    --baseline-policy)
+      BASELINE_POLICY="$2"
       shift 2
       ;;
     --skip-public-surface-verify)
@@ -274,6 +279,27 @@ report_service_statuses() {
   sudo systemctl status healtharchive-worker --no-pager -l || true
 }
 
+resolve_baseline_policy() {
+  if [[ -n "${BASELINE_POLICY}" ]]; then
+    printf '%s\n' "${BASELINE_POLICY}"
+    return 0
+  fi
+
+  local candidates=(
+    "${REPO_DIR}/private/operations/production-baseline-policy.toml"
+    "${REPO_DIR}/private/public-boundary-2026-06-05/operations/production-baseline-policy.toml"
+    "${REPO_DIR}/docs/operations/production-baseline-policy.toml"
+  )
+  local candidate
+  for candidate in "${candidates[@]}"; do
+    if [[ -f "${candidate}" ]]; then
+      printf '%s\n' "${candidate}"
+      return 0
+    fi
+  done
+  return 1
+}
+
 lock_dir="$(dirname "${LOCK_FILE}")"
 mkdir -p "${lock_dir}"
 
@@ -296,6 +322,28 @@ fi
 
 cd "${REPO_DIR}"
 
+BASELINE_POLICY_RESOLVED=""
+if [[ "${SKIP_BASELINE_DRIFT}" != "true" ]]; then
+  case "${BASELINE_MODE}" in
+    local|live)
+      ;;
+    *)
+      echo "ERROR: --baseline-mode must be 'local' or 'live' (got: ${BASELINE_MODE})" >&2
+      exit 2
+      ;;
+  esac
+
+  if BASELINE_POLICY_RESOLVED="$(resolve_baseline_policy)"; then
+    :
+  elif [[ "${APPLY}" == "true" ]]; then
+    echo "ERROR: Baseline drift policy file not found." >&2
+    echo "Set HEALTHARCHIVE_BASELINE_POLICY, pass --baseline-policy FILE, or use --skip-baseline-drift for a deliberate one-off deploy." >&2
+    exit 2
+  else
+    echo "WARN: Baseline drift policy file not found; dry-run will show check without an explicit --policy." >&2
+  fi
+fi
+
 echo "HealthArchive backend deploy"
 echo "----------------------------"
 echo "Mode:        $([[ "${APPLY}" == "true" ]] && echo APPLY || echo DRY-RUN)"
@@ -304,6 +352,9 @@ echo "Env file:    ${ENV_FILE}"
 echo "Health URL:  ${HEALTH_URL}"
 echo "Lock file:   ${LOCK_FILE}"
 echo "Baseline:    $([[ "${SKIP_BASELINE_DRIFT}" == "true" ]] && echo SKIPPED || echo "ENABLED (mode=${BASELINE_MODE})")"
+if [[ -n "${BASELINE_POLICY_RESOLVED}" ]]; then
+  echo "Baseline policy: ${BASELINE_POLICY_RESOLVED}"
+fi
 echo "Public verify: $([[ "${SKIP_PUBLIC_SURFACE_VERIFY}" == "true" ]] && echo SKIPPED || echo "ENABLED (api=${PUBLIC_API_BASE}, frontend=${PUBLIC_FRONTEND_BASE})")"
 echo "Systemd units: $([[ "${INSTALL_SYSTEMD_UNITS}" == "true" ]] && echo INSTALL || echo SKIP)"
 echo "Alerting:     $([[ "${APPLY_ALERTING}" == "true" ]] && echo APPLY || echo SKIP)"
@@ -422,19 +473,14 @@ wait_for_health "${HEALTH_URL}" 30 1
 run bash -lc "curl -fsS \"${HEALTH_URL}\" | head -c 2000; echo"
 
 if [[ "${SKIP_BASELINE_DRIFT}" != "true" ]]; then
-  case "${BASELINE_MODE}" in
-    local|live)
-      ;;
-    *)
-      echo "ERROR: --baseline-mode must be 'local' or 'live' (got: ${BASELINE_MODE})" >&2
-      exit 2
-      ;;
-  esac
-
   # Capture and enforce production baseline invariants (security posture, perms,
   # systemd enablement, etc.). This is intentionally a post-deploy gate so we
   # catch drift before calling the deploy "done".
-  run "${VENV_BIN}/python3" ./scripts/check_baseline_drift.py --mode "${BASELINE_MODE}"
+  baseline_cmd=("${VENV_BIN}/python3" ./scripts/check_baseline_drift.py --mode "${BASELINE_MODE}")
+  if [[ -n "${BASELINE_POLICY_RESOLVED}" ]]; then
+    baseline_cmd+=(--policy "${BASELINE_POLICY_RESOLVED}")
+  fi
+  run "${baseline_cmd[@]}"
 else
   echo "Skipping baseline drift check (--skip-baseline-drift)."
 fi

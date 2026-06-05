@@ -32,6 +32,7 @@ Options:
   --public-api-base URL       Public API base for verifiers (default: https://api.healtharchive.ca)
   --public-frontend-base URL  Public frontend base for verifiers (default: https://healtharchive.ca)
   --baseline-mode MODE        Baseline drift mode: local|live (default: live)
+  --baseline-policy FILE      Baseline drift policy TOML (or set HEALTHARCHIVE_BASELINE_POLICY)
   --out-root DIR              Report root dir (default: /srv/healtharchive/ops/preflight)
   --no-write                  Do not write report files; print only
   --skip-baseline-drift       Skip check_baseline_drift.py
@@ -55,6 +56,7 @@ API_BASE="http://127.0.0.1:8001"
 PUBLIC_API_BASE="https://api.healtharchive.ca"
 PUBLIC_FRONTEND_BASE="https://healtharchive.ca"
 BASELINE_MODE="live"
+BASELINE_POLICY="${HEALTHARCHIVE_BASELINE_POLICY:-}"
 OUT_ROOT="/srv/healtharchive/ops/preflight"
 WRITE_REPORTS="true"
 SKIP_BASELINE_DRIFT="false"
@@ -139,6 +141,15 @@ while [[ $# -gt 0 ]]; do
         exit 2
       fi
       BASELINE_MODE="$2"
+      shift 2
+      ;;
+    --baseline-policy)
+      if [[ $# -lt 2 ]]; then
+        echo "ERROR: --baseline-policy requires a file path argument" >&2
+        usage >&2
+        exit 2
+      fi
+      BASELINE_POLICY="$2"
       shift 2
       ;;
     --out-root)
@@ -676,7 +687,11 @@ step_ops_automation() {
 
 step_baseline_drift() {
   set -u -o pipefail
-  "${VENV_BIN}/python3" ./scripts/check_baseline_drift.py --mode "${BASELINE_MODE}"
+  local baseline_cmd=("${VENV_BIN}/python3" ./scripts/check_baseline_drift.py --mode "${BASELINE_MODE}")
+  if [[ -n "${BASELINE_POLICY}" ]]; then
+    baseline_cmd+=(--policy "${BASELINE_POLICY}")
+  fi
+  "${baseline_cmd[@]}"
 }
 
 step_security_admin_public() {
@@ -805,6 +820,9 @@ echo "api_base=${API_BASE}"
 echo "public_api_base=${PUBLIC_API_BASE}"
 echo "public_frontend_base=${PUBLIC_FRONTEND_BASE}"
 echo "baseline_mode=${BASELINE_MODE}"
+if [[ -n "${BASELINE_POLICY}" ]]; then
+  echo "baseline_policy=${BASELINE_POLICY}"
+fi
 if [[ -n "${YEAR}" ]]; then
   echo "annual_year=${YEAR}"
 fi
@@ -817,6 +835,7 @@ api_base=${API_BASE}
 public_api_base=${PUBLIC_API_BASE}
 public_frontend_base=${PUBLIC_FRONTEND_BASE}
 baseline_mode=${BASELINE_MODE}
+baseline_policy=${BASELINE_POLICY}
 annual_year=${YEAR:-}
 campaign_archive_root=${CAMPAIGN_ARCHIVE_ROOT:-}
 META

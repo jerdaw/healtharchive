@@ -28,8 +28,38 @@ def _repo_root() -> Path:
     return Path(__file__).resolve().parents[1]
 
 
+BASELINE_POLICY_ENV_VAR = "HEALTHARCHIVE_BASELINE_POLICY"
+BASELINE_POLICY_FILENAME = "production-baseline-policy.toml"
+
+
+def _policy_path_candidates() -> list[Path]:
+    repo_root = _repo_root()
+    return [
+        repo_root / "private" / "operations" / BASELINE_POLICY_FILENAME,
+        repo_root
+        / "private"
+        / "public-boundary-2026-06-05"
+        / "operations"
+        / BASELINE_POLICY_FILENAME,
+        repo_root / "docs" / "operations" / BASELINE_POLICY_FILENAME,
+    ]
+
+
 def _default_policy_path() -> Path:
-    return _repo_root() / "docs" / "operations" / "production-baseline-policy.toml"
+    override = os.environ.get(BASELINE_POLICY_ENV_VAR)
+    if override:
+        return Path(override).expanduser()
+
+    for path in _policy_path_candidates():
+        if path.is_file():
+            return path
+
+    return _policy_path_candidates()[0]
+
+
+def _format_policy_lookup_hint() -> str:
+    candidates = "\n".join(f"  - {path}" for path in _policy_path_candidates())
+    return f"Set {BASELINE_POLICY_ENV_VAR} or pass --policy. Checked default paths:\n{candidates}"
 
 
 def _read_text(path: Path) -> str:
@@ -560,6 +590,11 @@ def load_policy(path: Path) -> dict[str, Any]:
     if sys.version_info < (3, 11):
         raise RuntimeError("Python 3.11+ is required (uses tomllib).")
     import tomllib  # noqa: WPS433 (stdlib import gated by version)
+
+    if not path.is_file():
+        raise FileNotFoundError(
+            f"Baseline policy file not found: {path}\n{_format_policy_lookup_hint()}"
+        )
 
     data = tomllib.loads(_read_text(path))
     if not isinstance(data, dict):
