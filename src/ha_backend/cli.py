@@ -4340,6 +4340,151 @@ def cmd_verify_warc_manifest(args: argparse.Namespace) -> None:
         sys.exit(1)
 
 
+def _format_gib(value: int | None) -> str:
+    if value is None:
+        return "n/a"
+    return f"{value / 1024 / 1024 / 1024:.2f} GiB"
+
+
+def cmd_compact_warcs(args: argparse.Namespace) -> None:
+    """
+    Stage compacted WARC replacements for a job.
+
+    This is intentionally dry-run by default. In apply mode it writes compacted
+    WARCs to a staging directory only; it does not replace production WARCs.
+    """
+    from .indexing.warc_discovery import discover_warcs_for_job
+    from .models import ArchiveJob as ORMArchiveJob
+    from .models import Snapshot
+    from .warc_compaction import WarcRecordReference, compact_warcs_for_job
+
+    job_id = args.id
+    profile = args.profile
+    apply = args.apply
+    limit_warcs = args.limit_warcs
+    staging_dir = Path(args.staging_dir).expanduser() if args.staging_dir else None
+
+    with get_session() as session:
+        job = session.get(ORMArchiveJob, job_id)
+        if job is None:
+            print(f"ERROR: Job {job_id} not found.", file=sys.stderr)
+            sys.exit(1)
+        if job.status != "indexed":
+            print(
+                f"ERROR: Refusing to compact WARCs for job {job_id} with status={job.status!r}; expected 'indexed'.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        output_dir = Path(job.output_dir).resolve()
+        if not output_dir.is_dir():
+            print(
+                f"ERROR: Output directory {output_dir} does not exist or is not a directory.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        warc_paths = discover_warcs_for_job(job)
+        rows = (
+            session.query(Snapshot.warc_path, Snapshot.warc_record_id, Snapshot.url)
+            .filter(Snapshot.job_id == job_id)
+            .filter(Snapshot.warc_path.isnot(None))
+            .all()
+        )
+
+    if not warc_paths:
+        print(f"ERROR: No WARCs discovered for job {job_id}.", file=sys.stderr)
+        sys.exit(1)
+
+    warc_paths = sorted({path.resolve() for path in warc_paths})
+    if limit_warcs is not None:
+        if limit_warcs < 1:
+            print("ERROR: --limit-warcs must be >= 1.", file=sys.stderr)
+            sys.exit(1)
+        warc_paths = warc_paths[:limit_warcs]
+
+    selected_warc_set = {str(path.resolve()) for path in warc_paths}
+    required_records = [
+        WarcRecordReference(
+            warc_path=str(Path(warc_path).resolve()),
+            warc_record_id=record_id,
+            url=url,
+        )
+        for warc_path, record_id, url in rows
+        if warc_path and str(Path(warc_path).resolve()) in selected_warc_set
+    ]
+
+    print("WARC compaction plan")
+    print("--------------------")
+    print(f"Job ID:        {job_id}")
+    print(f"Profile:       {profile}")
+    print(f"Mode:          {'APPLY-STAGE' if apply else 'DRY-RUN'}")
+    print(f"Output dir:    {output_dir}")
+    print(f"WARCs:         {len(warc_paths)}")
+    print(f"Snapshot refs: {len(required_records)}")
+    if limit_warcs is not None:
+        print(f"Limit WARCs:   {limit_warcs}")
+    if staging_dir is not None:
+        print(f"Staging dir:   {staging_dir}")
+    print("")
+
+    result = compact_warcs_for_job(
+        job_id=job_id,
+        output_dir=output_dir,
+        warc_paths=warc_paths,
+        required_records=required_records,
+        profile=profile,
+        apply=apply,
+        staging_dir=staging_dir,
+    )
+
+    print("Summary")
+    print("-------")
+    print(f"Original WARC bytes:       {_format_gib(result.original_size_bytes)}")
+    print(f"Compacted WARC bytes:      {_format_gib(result.compacted_size_bytes)}")
+    if result.compacted_size_bytes is not None:
+        saved = result.original_size_bytes - result.compacted_size_bytes
+        print(f"Actual file bytes saved:   {_format_gib(saved)}")
+    print(f"Dropped payload bytes:     {_format_gib(result.payload_bytes_dropped)}")
+    print(f"Dropped records:           {result.records_dropped}")
+    print(
+        f"Snapshot records found:    {result.required_records_found}/{result.required_records_total}"
+    )
+    print("")
+
+    print("Dropped content types")
+    print("---------------------")
+    for ctype, payload_bytes in result.bytes_by_content_type_dropped.most_common(20):
+        records = result.content_types_dropped[ctype]
+        print(f"{_format_gib(payload_bytes):>12}  {records:8d}  {ctype}")
+    if not result.bytes_by_content_type_dropped:
+        print("(none)")
+
+    if result.staging_dir is not None:
+        print("")
+        print(f"Staged compacted WARCs: {result.staging_dir}")
+    if result.replacement_manifest_path is not None:
+        print(f"Replacement manifest:   {result.replacement_manifest_path}")
+    if result.report_path is not None:
+        print(f"Compaction report:      {result.report_path}")
+
+    if result.required_records_missing:
+        print("", file=sys.stderr)
+        print("ERROR: Some snapshot records were not found during compaction:", file=sys.stderr)
+        for ref in result.required_records_missing[:20]:
+            print(
+                f"  warc={ref.warc_path} record_id={ref.warc_record_id} url={ref.url}",
+                file=sys.stderr,
+            )
+        if len(result.required_records_missing) > 20:
+            print(f"  ... ({len(result.required_records_missing) - 20} more)", file=sys.stderr)
+        sys.exit(1)
+
+    if not apply:
+        print("")
+        print("Dry-run only. Re-run with --apply to write compacted WARCs to a staging directory.")
+
+
 def cmd_replay_index_job(args: argparse.Namespace) -> None:
     """
     Create or refresh a pywb replay collection for an existing ArchiveJob.
@@ -6430,6 +6575,46 @@ def build_parser() -> argparse.ArgumentParser:
         help="Output JSON instead of human-readable text.",
     )
     p_verify_manifest.set_defaults(func=cmd_verify_warc_manifest)
+
+    # compact-warcs
+    p_compact_warcs = subparsers.add_parser(
+        "compact-warcs",
+        help=(
+            "Stage compacted WARC replacements for a job. Dry-run by default; "
+            "apply writes to warcs_compacted/ and does not replace originals."
+        ),
+    )
+    p_compact_warcs.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ArchiveJob ID whose stable WARCs should be compacted.",
+    )
+    p_compact_warcs.add_argument(
+        "--profile",
+        default="replay-no-large-media",
+        choices=["replay-no-large-media"],
+        help="Compaction profile to use.",
+    )
+    p_compact_warcs.add_argument(
+        "--apply",
+        action="store_true",
+        default=False,
+        help="Write compacted WARCs to a staging directory. Originals are not replaced.",
+    )
+    p_compact_warcs.add_argument(
+        "--staging-dir",
+        help=(
+            "Optional staging directory for --apply. Defaults to "
+            "<output_dir>/warcs_compacted/<timestamp>."
+        ),
+    )
+    p_compact_warcs.add_argument(
+        "--limit-warcs",
+        type=int,
+        help="Only compact the first N discovered WARCs (debugging/sampling).",
+    )
+    p_compact_warcs.set_defaults(func=cmd_compact_warcs)
 
     # replay-index-job
     p_replay_index = subparsers.add_parser(

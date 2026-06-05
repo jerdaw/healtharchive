@@ -29,7 +29,7 @@ healtharchive --help
 | **Job Management** | `create-job`, `run-db-job`, `index-job`, `reconcile-completed-indexing`, `register-job-dir` |
 | **Direct Execution** | `run-job` |
 | **Inspection** | `list-jobs`, `show-job` |
-| **Maintenance** | `retry-job`, `reset-retry-count`, `cleanup-job`, `reset-crawl-state`, `replay-index-job` |
+| **Maintenance** | `retry-job`, `reset-retry-count`, `cleanup-job`, `reset-crawl-state`, `compact-warcs`, `replay-index-job` |
 | **Annual Campaign** | `schedule-annual`, `annual-status`, `salvage-annual-edition`, `plan-annual-shards`, `annual-edition-report`, `accept-annual-shard-gap`, `reconcile-annual-tool-options` |
 | **Seeding** | `seed-sources` |
 | **Worker** | `start-worker` |
@@ -528,6 +528,37 @@ healtharchive cleanup-job --id 42 --mode temp --force
 **Exit codes**:
 - `0` - Cleanup succeeded
 - `1` - Failed (job not indexed, replay enabled without --force)
+
+---
+
+### compact-warcs
+
+Stage compacted WARC replacements for an indexed job. The command is dry-run by
+default and never replaces production WARCs directly.
+
+**Usage**:
+```bash
+healtharchive compact-warcs --id JOB_ID
+healtharchive compact-warcs --id JOB_ID --apply --staging-dir <path>
+```
+
+**Arguments**:
+- `--id` (required) - Indexed job ID to compact
+- `--profile` (optional) - Compaction profile; currently `replay-no-large-media`
+- `--apply` (optional) - Write compacted WARCs to a staging directory
+- `--staging-dir` (optional) - Destination for staged compacted WARCs
+- `--limit-warcs` (optional) - Compact only the first N discovered WARCs for sampling
+
+**What it does**:
+1. Discovers the stable WARCs for the job.
+2. Reads snapshot references for the selected WARCs.
+3. Drops unreferenced large audio/video response records under the selected profile.
+4. Verifies snapshot-referenced records remain available.
+5. In apply mode, writes compacted WARCs, a replacement manifest, and a compaction report to staging.
+
+**Exit codes**:
+- `0` - Dry-run or staging completed without losing snapshot references
+- `1` - Job is missing/not indexed, WARCs are unavailable, or required snapshot records would be lost
 
 ---
 
