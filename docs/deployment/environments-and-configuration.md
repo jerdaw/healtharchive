@@ -4,21 +4,21 @@ This document is the **canonical frontend/backend wiring reference** for how
 the backend at the repo root and the in-tree frontend under `frontend/` are
 wired together across environments.
 
-Shared-VPS ownership note:
+Shared-host ownership note:
 
 1. This document owns the frontend/backend wiring contract for HealthArchive.
-2. Shared host topology, ingress ownership, service inventory, and other cross-project VPS facts are canonical in `private shared-ops workspace`.
-3. Use `private shared-ops documentation boundary` as the default boundary reference when deciding where a VPS fact belongs.
+2. Shared host topology, ingress ownership, service inventory, and other cross-project host facts are canonical in `private shared-ops workspace`.
+3. Use `private shared-ops documentation boundary` as the default boundary reference when deciding where a host fact belongs.
 
 The root `ENVIRONMENTS.md` is a pointer to this file to avoid duplication.
 
 It is useful when:
 
-- Setting or auditing environment variables on the VPS-hosted production stack.
+- Setting or auditing environment variables on the hosted production stack.
 - Double-checking that frontend hosts, backend hosts, and backend CORS settings
   line up.
 
-Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
+Shared host inventory, ingress ownership, canonical public hosts, and cross-project
 operations state live in `private shared-ops workspace`. Use
 `private shared-ops documentation boundary`
 as the default rule for what belongs in this repo versus shared ops
@@ -67,7 +67,7 @@ This validates:
 | Environment | Frontend (browser origin) | Backend API base | Notes |
 | --- | --- | --- | --- |
 | Local dev | `http://localhost:3000` | `http://127.0.0.1:8001` | Local dev flow. |
-| Production | `https://healtharchive.ca` / `https://www.healtharchive.ca` | `https://api.healtharchive.ca` | Current public site on the VPS. |
+| Production | `https://healtharchive.ca` / `https://www.healtharchive.ca` | `https://api.healtharchive.ca` | Current public site on the hosted production stack. |
 | Historical preview (retired) | `https://healtharchive.vercel.app` | `https://api.healtharchive.ca` | Historical only; not part of the current deployment model. |
 
 Optional future:
@@ -219,9 +219,9 @@ NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true
 NEXT_PUBLIC_SHOW_API_BASE_HINT=true
 ```
 
-### 3.2 Production VPS frontend env
+### 3.2 Production frontend env
 
-In the frontend runtime env file on the VPS:
+In the frontend runtime env file:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca

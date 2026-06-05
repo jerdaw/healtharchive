@@ -3,12 +3,12 @@
 > Status: optional future staging reference.
 >
 > There is no active standalone staging backend/frontend path in the current
-> direct-VPS production model. Keep this file only as a minimal placeholder
+> hosted production model. Keep this file only as a minimal placeholder
 > until a real staging environment is intentionally introduced.
 
 Documentation boundary note:
 
-1. Shared VPS facts that are not specific to HealthArchive alone are canonical in `private shared-ops workspace`.
+1. Shared host facts that are not specific to HealthArchive alone are canonical in `private shared-ops workspace`.
 2. The explicit ownership split is documented in `private shared-ops documentation boundary`.
 
 If you reintroduce staging later, define all of these first:

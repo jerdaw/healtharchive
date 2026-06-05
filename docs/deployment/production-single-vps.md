@@ -576,19 +576,18 @@ Host ha-vps
 ```
 
 - NAS destination:
-  `/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps`
+  `<nas-backup-ingest-root>/logical-dumps`
 - Rsync command (used manually + DSM scheduled task):
 
 ```bash
-mkdir -p /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps
-rsync -rt --delete ha-vps:<service-data-root>/storagebox/backups/db/ /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/
+mkdir -p <nas-backup-ingest-root>/logical-dumps
+rsync -rt --delete ha-vps:<service-data-root>/storagebox/backups/db/ <nas-backup-ingest-root>/logical-dumps/
 ```
 
 - Make the DSM scheduled task run both lines, not just `rsync`, so the NAS pull
   self-heals if the destination path disappears after a share rebuild or manual
   cleanup.
-- The homelab-managed DSM task should use
-  `/volume1/data/repos/homelab/nasd/tasks/dsm_healtharchive_db_backup.sh`,
+- The homelab-managed DSM task should use its private shared-ops launcher,
   with its source set to `ha-vps:<service-data-root>/storagebox/backups/db/`
   and its destination set to the `logical-dumps` path above.
 - If the destination is missing and the task runs only `rsync`, Synology Task

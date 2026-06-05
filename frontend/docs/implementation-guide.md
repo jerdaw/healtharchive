@@ -7,14 +7,14 @@ subtree in `jerdaw/healtharchive`. It covers:
 - API integration + offline fallback behavior
 - Styling system (`.ha-*` classes) and key UI components
 - Routes/pages and the snapshot viewer
-- Deployment notes (VPS + Caddy)
+- Deployment notes (hosted container runtime + ingress)
 
 Documentation boundary note:
 
-- Shared VPS facts that are not specific to the frontend alone are canonical in `private shared-ops workspace`.
+- Shared host facts that are not specific to the frontend alone are canonical in `private shared-ops workspace`.
 - Use `private shared-ops documentation boundary` when deciding whether a host fact belongs here or in the shared ops workspace.
 
-Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
+Shared host inventory, ingress ownership, canonical public hosts, and cross-project
 operations state live in `private shared-ops workspace`. Use
 `private shared-ops documentation boundary`
 as the default rule for what belongs in this repo versus shared ops
@@ -48,7 +48,7 @@ You’re joining after:
   - Service reporting routes (`/status`, `/impact`).
   - Change tracking routes (`/changes`, `/compare`, `/digest`).
 
-- Production frontend now runs on the Hetzner VPS behind host Caddy, with
+- Production frontend now runs on a hosted container runtime behind ingress, with
   `https://healtharchive.ca` as the canonical public origin and
   `https://www.healtharchive.ca` as a redirect alias.
 
@@ -165,7 +165,7 @@ npm run check
   `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE`, `NEXT_PUBLIC_SHOW_API_BASE_HINT`) are
   disabled to keep output quiet and deterministic.
 
-### Deployment env expectations (local / VPS runtime)
+### Deployment env expectations (local / hosted runtime)
 
 - `NEXT_PUBLIC_API_BASE_URL` must point at the backend for the environment.
 
@@ -930,26 +930,27 @@ All text is stable, but can be refined later.
 
 - `healtharchive.ca` – canonical public frontend origin.
 - `www.healtharchive.ca` – redirect-only alias to apex.
-- `api.healtharchive.ca` – backend API on the VPS.
-- `replay.healtharchive.ca` – replay service on the VPS.
+- `api.healtharchive.ca` – backend API.
+- `replay.healtharchive.ca` – replay service.
 
 Ingress ownership:
 
 - DNS remains with the existing provider/registrar.
-- Host Caddy remains the public ingress owner on the VPS.
+- Host ingress remains the public ingress owner.
 - The frontend app is proxied internally from host Caddy to `127.0.0.1:3200`.
 
 ### 9.3 DNS configuration
 
 Cloudflare should be configured so that:
 
-- `A healtharchive.ca -> <VPS public IP>`
-  → Points apex traffic at the VPS.
+- `A healtharchive.ca -> <public host IP>`
+  → Points apex traffic at the active public host.
 
 - `CNAME www -> healtharchive.ca`
   → Points the `www` alias at the canonical apex host.
 
-- `api` and `replay` records remain pointed at the existing VPS endpoints.
+- `api` and `replay` records remain pointed at the active backend and replay
+  endpoints.
 
 ---
 
@@ -997,7 +998,7 @@ We followed an 8-step build plan. Status:
 - **Deployment & DNS**
   - ✅ Next.js app migrated to a production standalone runtime path.
   - ✅ GitHub remains the source of truth for deployment builds.
-  - ✅ Public `healtharchive.ca` VPS cutover completed, with `www.healtharchive.ca` redirecting to apex.
+  - ✅ Public `healtharchive.ca` cutover completed, with `www.healtharchive.ca` redirecting to apex.
 
 ---
 

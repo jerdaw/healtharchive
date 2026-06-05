@@ -351,6 +351,20 @@ Completed items were removed from this backlog and archived in:
 32. **Add automated uptime monitoring badge** (S: 1-2h) — external monitor (UptimeRobot) is described in the monitoring checklist but public badge and history page are not yet confirmed live as of 2026-03-25
 33. **Add public status page content with uptime history** (M: 1 day) — `../operations/service-levels.md` notes no dedicated status page yet
 34b. **Measure and record API/operational performance baselines** (S: 1-2h) — all baseline fields in `../operations/service-levels.md` remain TBD since 2026-01-18; collect real p50/p95 measurements from production under normal load and fill in the table
+34c. **Split private operational assets from the public repo surface** (M-L: 2-4 days)
+     - Context: the public docs portal and generated `docs/llms.txt` are now
+       constrained to public-safe project, methodology, API, contribution, and
+       local-development material. Some tracked operator runbooks, systemd
+       templates, and VPS helper scripts still encode environment-specific
+       paths because they are active deployment assets.
+     - Scope: decide which operator-only Markdown, systemd templates, and
+       host helper scripts should move to the private shared-ops workspace,
+       which should remain as generalized templates, and which should stay in
+       this repo because they are part of the application contract.
+     - Done when: repo-root READMEs, generated docs, and tracked documentation
+       no longer expose private host paths or monitoring/backup details, while
+       any remaining operational templates have explicit public-safe placeholders
+       and tests that describe their contract.
 
 ### Frontend quality and public communication
 

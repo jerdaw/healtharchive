@@ -9,29 +9,28 @@ nightly PostgreSQL dumps accumulated under `<service-data-root>/backups`.
 PostgreSQL temp-file writes failed, API health degraded, and crawl/search
 operator checks failed until root space was recovered.
 
-The production VPS has a 75GB root filesystem and a mounted Storage Box for
-large retained artifacts. The homelab NAS has a protected plain-file service
-backup ingest convention under `/volume1/automated-backup-ingest/...`.
+The production host has a bounded root filesystem and a mounted remote storage
+mirror for large retained artifacts. The homelab NAS has a protected
+plain-file service backup ingest convention under a private NAS ingest root.
 
 ## Decision
 
-- Keep only the newest successful PostgreSQL dump in the VPS local root-disk
+- Keep only the newest successful PostgreSQL dump in the production host's local root-disk
   cache at `<service-data-root>/backups`.
-- Mirror successful dumps to the VPS-mounted Storage Box path
+- Mirror successful dumps to the mounted remote storage path
   `<service-data-root>/storagebox/backups/db/`.
-- Pull retained DB dumps from the Storage Box mirror into the NAS protected
-  ingest path
-  `/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/`.
-- Do not use `/volume1/nobak/healtharchive/backups/db/` for HealthArchive DB
-  dumps.
+- Pull retained DB dumps from the mirror into the NAS protected ingest path
+  `<nas-backup-ingest-root>/logical-dumps/`.
+- Do not use an unprotected NAS scratch path for HealthArchive DB dumps.
 
 ## Rationale
 
 The root filesystem is too small to hold multiple weeks of custom-format
 database dumps safely. A one-dump local cache preserves immediate rollback
-convenience while keeping root headroom. Storage Box is the durable VPS-side
-mirror, and the NAS protected ingest path keeps the homelab backup convention
-consistent with other automated service backups.
+convenience while keeping root headroom. The mounted remote storage path is
+the durable production-host-side mirror, and the NAS protected ingest path
+keeps the homelab backup convention consistent with other automated service
+backups.
 
 ## Alternatives considered
 
@@ -41,7 +40,7 @@ consistent with other automated service backups.
   root above the warning threshold on the 75GB VPS.
 - Pull from `<service-data-root>/backups`: rejected because that path is now a
   short cache, not the durable retained set.
-- Use `/volume1/nobak/...` on the NAS: rejected because it is not the NASD
+- Use an unprotected NAS scratch path: rejected because it is not the NASD
   protected service-backup ingest convention.
 
 ## Consequences
@@ -49,25 +48,27 @@ consistent with other automated service backups.
 ### Positive
 
 - Root disk usage remains below warning thresholds after normal backup runs.
-- VPS, Storage Box, and NAS backup responsibilities are clearly separated.
+- Production-host local cache, mounted remote storage, and NAS backup
+  responsibilities are clearly separated.
 - The NAS DSM task can stay as a stable launcher while repo-managed defaults
   own source/destination changes.
 
 ### Negative / risks
 
-- Operators should not rely on the VPS root cache for older restore points.
+- Operators should not rely on the production host's root cache for older
+  restore points.
 - Manual deletion of local dumps can make exported backup byte metrics stale
   until the next scheduled backup run.
 
 ## Verification / rollout
 
 - `healtharchive-db-backup.service` completed successfully on 2026-05-24.
-- VPS local cache retained one dump after manual pruning.
-- Storage Box contained the May 23 and May 24 dumps.
+- Production-host local cache retained one dump after manual pruning.
+- Mounted remote storage contained the May 23 and May 24 dumps.
 - NASD dry-run and real wrapped backup task succeeded after the homelab launcher
   was updated.
-- Final VPS health checks showed `df -h /` at 46%, public API health `db: ok`,
-  and `ha-check` ending with `OK: snapshot complete`.
+- Final host health checks showed `df -h /` at 46%, public API health
+  `db: ok`, and `ha-check` ending with `OK: snapshot complete`.
 
 Rollback, if needed: increase `HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL` in
 `/etc/healtharchive/backend.env`, but only after confirming root headroom and

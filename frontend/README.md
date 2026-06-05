@@ -3,11 +3,10 @@
 HealthArchive.ca is an independent, non-governmental project to preserve and surface
 historical versions of **Canadian public health web content** (e.g., PHAC, Health Canada).
 
-Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
-operations state live in `/home/jer/repos/vps/platform-ops`. Use
-`/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
-as the default rule for what belongs in this repo versus shared ops
-documentation.
+Shared host inventory, ingress ownership, canonical public hosts, and
+cross-project operations state live in the private shared-ops workspace. Use
+that workspace's documentation boundary as the default rule for what belongs
+in this repo versus shared ops documentation.
 
 This directory contains the **Next.js frontend** for the public site at:
 
@@ -23,11 +22,13 @@ are centralized in `src/lib/siteCopy.ts`.
 
 - Backend API + ops docs: https://github.com/jerdaw/healtharchive
 - **Unified Documentation Site**: Documentation for the monorepo lives in the [backend/docs hub](https://github.com/jerdaw/healtharchive). Run `make docs-serve` at the repo root to view the searchable UI.
-- **Shared VPS ops workspace**: `/home/jer/repos/vps/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`) contains the shared inventory, roadmap, handoff, and cross-project runbooks.
+- **Shared ops workspace**: private shared-ops documentation contains the
+  shared inventory, roadmap, handoff, and cross-project runbooks.
 
 ## Shared documentation boundary
 
-- `platform-ops/` is the default home for shared VPS facts that are not specific to the HealthArchive frontend alone:
+- The private shared-ops workspace is the default home for shared host facts
+  that are not specific to the HealthArchive frontend alone:
   - shared host access posture
   - shared ingress ownership
   - cross-project service inventory
@@ -38,7 +39,7 @@ are centralized in `src/lib/siteCopy.ts`.
   - deployment and verification steps for the frontend
   - route behavior, UX, and browser-facing integration details
 - Boundary reference:
-  - `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
+  - private shared-ops documentation boundary
 
 ---
 
@@ -57,7 +58,7 @@ are centralized in `src/lib/siteCopy.ts`.
   - TailwindCSS for layout/spacing
   - Custom `.ha-*` utility classes in `src/app/globals.css` for the design system
 - **Package manager:** npm
-- **Hosting target:** Hetzner VPS frontend service (direct Docker runtime behind host Caddy)
+- **Hosting target:** container runtime behind host ingress
 
 ### Key UI/UX features
 
@@ -152,7 +153,7 @@ npm run build
 npm start
 ```
 
-For VPS/container deployments, the production image uses Next.js standalone
+For hosted/container deployments, the production image uses Next.js standalone
 output via the repo `Dockerfile`.
 
 ### 5. Run checks (recommended)
@@ -200,7 +201,7 @@ bash scripts/setup-hooks.sh
 - GitHub Actions also provides:
   - `Workflow Lint` for `.github/workflows/**`
   - `Production Smoke` as a manual public-surface verification workflow
-- Production deploys remain manual on the VPS; root GitHub Actions workflows
+- Production deploys remain manual; root GitHub Actions workflows
   are used for CI and public smoke verification, not for automatic production
   deploys.
 
@@ -212,7 +213,9 @@ bash scripts/setup-hooks.sh
   - Live APIs (preferred): `/api/search`, `/api/sources`, `/api/snapshot/{id}`, `/api/snapshots/raw/{id}`, `/api/stats`, `/api/health`.
   - Offline fallback: bundled sample records under `src/data/demo-records.ts` and static snapshots under `public/demo-archive/**` when the API is unavailable.
 - API client: `src/lib/api.ts` (uses `NEXT_PUBLIC_API_BASE_URL`, defaulting to `http://localhost:8001`).
-- Production backend: single Hetzner VPS (Nuremberg) running Postgres + API + worker + Caddy; SSH is Tailscale-only; public ports are 80/443 only. Full runbook lives in `healtharchive/docs/deployment/production-single-vps.md`.
+- Production backend: hosted Postgres + API + worker + ingress runtime. Full
+  operator runbooks are environment-specific and kept outside the public docs
+  portal.
 - Issue intake: `/report` posts to the same-origin API route `src/app/api/report/route.ts`, which forwards to the backend `/api/reports` endpoint.
 - Pages:
   - `/archive`: uses backend search with pagination and page-size selection; falls back to an offline sample dataset and shows a fallback notice.
@@ -276,7 +279,7 @@ Current target production model:
 
 - Canonical source path: [`frontend/`](https://github.com/jerdaw/healtharchive/tree/main/frontend) in the app monorepo
 - Production branch: `main`
-- Runtime: direct Docker container on the Hetzner VPS
+- Runtime: Docker container behind host ingress
 - Public ingress: host Caddy
 - Current authoritative DNS: Namecheap
 - Domains:
@@ -291,10 +294,10 @@ Production image build:
 docker build -t healtharchive-frontend:local .
 ```
 
-Private VPS proof helper:
+Private deployment proof helper:
 
 ```bash
-./scripts/deploy-vps-proof.sh /etc/projects-merge/env/healtharchive-frontend.env
+./scripts/deploy-vps-proof.sh <frontend-env-file>
 ```
 
 By default, the helper mounts `/app/.next/cache` as a named Docker volume

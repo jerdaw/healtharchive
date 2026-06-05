@@ -2,9 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-CANONICAL_BOUNDARY_PATH = (
-    "/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md"
-)
+PRIVATE_OPS_BOUNDARY_PHRASE = "private shared-ops"
 
 
 def _read(relative_path: str) -> str:
@@ -43,20 +41,15 @@ def test_active_docs_backup_notes_cover_nas_destination_and_manual_dumps() -> No
     disaster_recovery = _read("docs/deployment/disaster-recovery.md")
     decision = _read("docs/decisions/2026-05-24-db-backup-retention-and-nas-ingest.md")
 
-    assert (
-        "mkdir -p /volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps"
-        in production_runbook
-    )
+    assert "mkdir -p <nas-backup-ingest-root>/logical-dumps" in production_runbook
     assert "HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL=1" in production_runbook
     assert "exit code `11`" in production_runbook
     assert "healtharchive_pre_<change>_<ts>.dump" in production_runbook
     assert "not part of the nightly retention set" in production_runbook
     assert "rsync --delete" in disaster_recovery
     assert "not an independent permanent archive" in disaster_recovery
-    assert "/srv/healtharchive/storagebox/backups/db/" in decision
-    assert (
-        "/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/" in decision
-    )
+    assert "<service-data-root>/storagebox/backups/db/" in decision
+    assert "<nas-backup-ingest-root>/logical-dumps/" in decision
 
 
 def test_ops_docs_record_disk_cleanup_followups() -> None:
@@ -92,7 +85,7 @@ def test_frontend_cache_externalization_docs_are_current() -> None:
     assert "NEXT_CACHE_MOUNT=none" in decision
 
 
-def test_active_entrypoints_point_shared_vps_facts_to_platform_ops() -> None:
+def test_active_entrypoints_keep_shared_host_facts_behind_private_ops_boundary() -> None:
     for relative_path in (
         "README.md",
         "AGENTS.md",
@@ -102,14 +95,15 @@ def test_active_entrypoints_point_shared_vps_facts_to_platform_ops() -> None:
         "docs/deployment/staging-rollout-checklist.md",
     ):
         content = _read(relative_path)
-        assert CANONICAL_BOUNDARY_PATH in content
+        assert PRIVATE_OPS_BOUNDARY_PHRASE in content.lower()
+        assert "/home/jer/repos/vps/platform-ops" not in content
 
     production_runbook = _read("docs/deployment/production-single-vps.md")
     env_contract = _read("docs/deployment/environments-and-configuration.md")
 
-    assert "/home/jer/repos/vps/platform-ops" in production_runbook
+    assert PRIVATE_OPS_BOUNDARY_PHRASE in production_runbook
     assert "canonical" in production_runbook
-    assert "/home/jer/repos/vps/platform-ops" in env_contract
+    assert PRIVATE_OPS_BOUNDARY_PHRASE in env_contract
     assert "canonical" in env_contract
 
 
@@ -143,5 +137,5 @@ if __name__ == "__main__":
     test_active_docs_do_not_treat_vercel_as_current_healtharchive_path()
     test_active_docs_reflect_apex_canonical_frontend()
     test_active_docs_backup_notes_cover_nas_destination_and_manual_dumps()
-    test_active_entrypoints_point_shared_vps_facts_to_platform_ops()
+    test_active_entrypoints_keep_shared_host_facts_behind_private_ops_boundary()
     test_agent_docs_keep_symlink_and_authorship_guardrails_current()

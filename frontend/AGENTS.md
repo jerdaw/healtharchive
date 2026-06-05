@@ -24,10 +24,10 @@
   - `docs/development/bilingual-dev-guide.md` → bilingual UI rules.
   - `docs/deployment/verification.md` → Preview/Production verification.
   - `docs/changelog-process.md` → changelog updates.
-- Shared-VPS documentation boundary:
-  - `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
-- Shared cross-project VPS ops:
-  - `/home/jer/repos/vps/platform-ops` → shared inventory, roadmap, handoff, and runbooks
+- Shared-host documentation boundary:
+  - private shared-ops documentation boundary
+- Shared cross-project host ops:
+  - private shared-ops workspace → shared inventory, roadmap, handoff, and runbooks
 - Central Documentation (Backend Repo):
   - `../healtharchive/mkdocs.yml` (navigation source of truth)
   - `../healtharchive/docs/documentation-guidelines.md`
@@ -39,15 +39,14 @@
   - French is an automated alpha translation; English governs for any inconsistencies (see `src/components/i18n/FrenchTranslationBanner.tsx` and `src/components/policy/EnglishControlsNotice.tsx`).
   - Prefer `getSiteCopy(locale)` and `pickLocalized(locale, { en, fr })` instead of sprinkling ad-hoc strings.
 
-Shared VPS inventory, ingress ownership, canonical public hosts, and cross-project
-operations state live in `/home/jer/repos/vps/platform-ops`. Use
-`/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md`
-as the default rule for what belongs in this repo versus shared ops
-documentation.
+Shared host inventory, ingress ownership, canonical public hosts, and
+cross-project operations state live in the private shared-ops workspace. Use
+that workspace's documentation boundary as the default rule for what belongs
+in this repo versus shared ops documentation.
 
 When you’re unsure about architecture, routes, or design decisions, **read `docs/implementation-guide.md` first instead of guessing**.
 
-**Cross-project ops note:** Frontend behavior and frontend-facing docs belong in this repo. Shared VPS standards, live service inventory, shared ingress ownership, shared host access posture, and cross-project migration/operations state belong in `/home/jer/repos/vps/platform-ops` (historical local alias: `/home/jer/repos/projects-merge`). Use `/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md` as the default ownership rule. Host-side paths under `/etc/projects-merge/...` remain intentionally unchanged.
+**Cross-project ops note:** Frontend behavior and frontend-facing docs belong in this repo. Shared host standards, live service inventory, shared ingress ownership, shared host access posture, and cross-project migration/operations state belong in the private shared-ops workspace. Use that workspace's documentation boundary as the default ownership rule. Host-side paths are environment-specific and should not be documented publicly unless they are already part of a public contract.
 
 ---
 

@@ -7,10 +7,10 @@ frontend + backend with a focus on:
 - CORS between the frontend and backend.
 - The snapshot viewer iframe loading raw HTML from the backend.
 
-Shared-VPS ownership note:
+Shared-host ownership note:
 
 - This guide is canonical for HealthArchive frontend verification steps.
-- Shared host topology, ingress ownership, and other cross-project VPS facts are canonical in `private shared-ops workspace`.
+- Shared host topology, ingress ownership, and other cross-project host facts are canonical in `private shared-ops workspace`.
 - Boundary reference: `private shared-ops documentation boundary`
 
 ## Current deployment model (important context)
@@ -19,7 +19,7 @@ Shared-VPS ownership note:
 - **Canonical frontend domain:** `https://healtharchive.ca`
 - **Frontend alias:** `https://www.healtharchive.ca` (redirects to apex)
 - **Replay domain:** `https://replay.healtharchive.ca`
-- **Target frontend runtime:** VPS-hosted Next.js container behind host Caddy
+- **Target frontend runtime:** hosted Next.js container behind host ingress
 - **Runtime cache:** `/app/.next/cache` should be mounted as the named Docker
   volume `healtharchive-frontend-next-cache` in production.
 - **Strict backend CORS allowlist (current choice):**

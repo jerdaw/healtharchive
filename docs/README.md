@@ -37,7 +37,7 @@ datasets repo:
 - Frontend bridge: `frontend/README.md`
 - Datasets pointers: `datasets-external/README.md`
 
-Private operations documentation is the canonical home for shared host facts
+Private shared-ops documentation is the canonical home for shared host facts
 such as ingress ownership, service inventory, backup posture, and host access
 rules. This public portal keeps only the app-specific and local-development
 material needed to understand and reproduce the project.

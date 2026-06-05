@@ -32,7 +32,7 @@ Repository boundaries:
 
 Shared documentation boundary:
 
-- Private operations documentation is the default home for shared host facts
+- Private shared-ops documentation is the default home for shared host facts
   that are not specific to HealthArchive alone:
   - host access posture
   - shared ingress ownership
@@ -650,5 +650,3 @@ quick end-to-end smoke test:
 The `archive_tool` subpackage also has its own detailed documentation in
 `src/archive_tool/docs/documentation.md` describing its internal state
 machine and Docker orchestration, and how it cooperates with the backend.
-
-Developed, in part, with the use of artificial intelligence tooling.

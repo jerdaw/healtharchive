@@ -1,7 +1,7 @@
 # Production rollout checklist – backend + frontend
 
 This is the active high-level production verification checklist for the current
-HealthArchive direct-VPS deployment.
+HealthArchive hosted production deployment.
 
 Current production reality:
 
@@ -9,7 +9,7 @@ Current production reality:
 - frontend alias: `https://www.healtharchive.ca` -> apex redirect
 - backend API: `https://api.healtharchive.ca`
 - replay host (optional): `https://replay.healtharchive.ca`
-- public ingress owner: host Caddy on the Hetzner VPS
+- public ingress owner: host ingress
 
 Use this file as the quick production checklist. Use
 [`production-single-vps.md`](production-single-vps.md) as the full rebuild and
@@ -18,12 +18,12 @@ deployment runbook.
 Documentation boundary note:
 
 1. This checklist is canonical for the active HealthArchive production verification flow.
-2. Shared VPS facts that are not specific to HealthArchive alone are canonical in `private shared-ops workspace`.
+2. Shared host facts that are not specific to HealthArchive alone are canonical in `private shared-ops workspace`.
 3. The explicit ownership split is documented in `private shared-ops documentation boundary`.
 
 ## 1. Preconditions
 
-- [ ] the backend VPS env file is current (`/etc/healtharchive/backend.env`)
+- [ ] the backend runtime env file is current (`<backend-env-file>`)
 - [ ] code from `main` is deployed at the intended revision
 - [ ] `make prepush` or equivalent repo checks passed before deployment
 - [ ] any schema changes have been migrated and verified
@@ -37,7 +37,7 @@ References:
 
 ## 2. Backend runtime checks
 
-On the VPS:
+On the production host:
 
 ```bash
 curl -i http://127.0.0.1:8001/api/health

@@ -17,14 +17,14 @@ describe("production docs alignment", () => {
     expect(envExample).not.toContain("Vercel Preview example");
     expect(implementationGuide).not.toContain("Cloudflare remains the DNS provider.");
     expect(implementationGuide).not.toContain(
-      "Public `healtharchive.ca` / `www.healtharchive.ca` cutover to VPS ingress is the active next step.",
+      "Public `healtharchive.ca` / `www.healtharchive.ca` cutover to host ingress is the active next step.",
     );
     expect(implementationGuide).toContain(
-      "Host Caddy remains the public ingress owner on the VPS.",
+      "Host ingress remains the public ingress owner.",
     );
   });
 
-  it("points shared VPS facts to platform-ops in active entry points", () => {
+  it("keeps shared host facts behind the private ops documentation boundary", () => {
     const readme = readRepoFile("README.md");
     const agents = readRepoFile("AGENTS.md");
     const docsIndex = readRepoFile("docs/README.md");
@@ -32,16 +32,15 @@ describe("production docs alignment", () => {
     const verificationGuide = readRepoFile("docs/deployment/verification.md");
 
     for (const content of [readme, agents, docsIndex]) {
-      expect(content).toContain(
-        "/home/jer/repos/vps/platform-ops/docs/standards/PLAT-009-shared-vps-documentation-boundary.md",
-      );
+      expect(content).toContain("private shared-ops");
+      expect(content).not.toContain("/home/jer/repos/vps/platform-ops");
     }
 
     expect(implementationGuide).toContain(
-      "Shared VPS facts that are not specific to the frontend alone are canonical in `/home/jer/repos/vps/platform-ops`.",
+      "Shared host facts that are not specific to the frontend alone are canonical in `private shared-ops workspace`.",
     );
     expect(verificationGuide).toContain(
-      "Shared host topology, ingress ownership, and other cross-project VPS facts are canonical in `/home/jer/repos/vps/platform-ops`.",
+      "Shared host topology, ingress ownership, and other cross-project host facts are canonical in `private shared-ops workspace`.",
     );
   });
 });

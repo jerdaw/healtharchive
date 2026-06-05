@@ -1,10 +1,12 @@
-import os
+from pathlib import Path
 
-CORE_DOCS = [
-    "AGENTS.md",
+PUBLIC_CONTEXT_DOCS = [
     "README.md",
+    "docs/README.md",
     "docs/architecture.md",
-    "docs/documentation-guidelines.md",
+    "docs/api-consumer-guide.md",
+    "docs/development/live-testing.md",
+    "docs/contributing.md",
 ]
 
 
@@ -12,15 +14,14 @@ def generate_llms_txt():
     content = "# HealthArchive - Developer Assistant Context\n\n"
     content += "This file provides high-level context for automated developer assistants working on HealthArchive.\n\n"
 
-    for doc_path in CORE_DOCS:
-        if os.path.exists(doc_path):
-            with open(doc_path, "r") as f:
-                content += f"## {doc_path}\n\n"
-                content += f.read()
-                content += "\n\n---\n\n"
+    for doc_path in PUBLIC_CONTEXT_DOCS:
+        path = Path(doc_path)
+        if path.exists():
+            content += f"## {doc_path}\n\n"
+            content += path.read_text(encoding="utf-8")
+            content += "\n\n---\n\n"
 
-    with open("docs/llms.txt", "w") as f:
-        f.write(content)
+    Path("docs/llms.txt").write_text(content, encoding="utf-8")
     print("Generated docs/llms.txt")
 
 

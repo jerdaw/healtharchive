@@ -116,10 +116,9 @@ production access.
     trends in Grafana rather than via direct throughput pages.
 - Root disk recovery from the 2026-05-23 DB backup cache incident is complete:
   - repo-managed DB backup timer is deployed and successful;
-  - local VPS DB backup retention is one successful dump;
+  - local production-host DB backup retention is one successful dump;
   - Storage Box mirror path is `<service-data-root>/storagebox/backups/db/`;
-  - NASD protected ingest path is
-    `/volume1/automated-backup-ingest/service-backups/healtharchive/logical-dumps/`;
+  - NASD protected ingest path is `<nas-backup-ingest-root>/logical-dumps/`;
   - NASD dry-run and real wrapped sync succeeded;
   - rsyslog logrotate now handles `/var/log` as `root:syslog`;
   - the live frontend Next.js fetch cache was cleared after it reached about
