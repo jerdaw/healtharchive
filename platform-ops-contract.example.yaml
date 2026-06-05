@@ -1,11 +1,35 @@
 # Example only. Do not put real production hostnames, private binds,
 # env-file paths, release roots, or deployment inventories in public Git.
 
-service: example-service
-public_host: example.org
-private_bind: 127.0.0.1:0000
-container_name: example-container
-env_file: /path/to/private/env/file
-release_root: /path/to/private/release/root
-health_endpoint: /health
-deployment_docs: private maintainer notes
+version: 1
+repo_root: healtharchive/healtharchive
+public_boundary: true
+services:
+  - service_id: healtharchive-example
+    inventory_repo: example-inventory
+    runtime: docker
+    ingress: example-ingress
+    canonical_host: example.org
+    public_hosts:
+      - example.org
+    private_bind: 127.0.0.1:0000
+    container_name: example-container
+    systemd_unit: null
+    env_file: /path/to/private/env/file
+    release_root: /path/to/private/release/root
+    health:
+      public:
+        url: https://example.org/health
+        kind: json
+        expect_status:
+          - 200
+        expect_json_status:
+          - ok
+      private: null
+    boundary_entrypoints:
+      - README.md
+      - AGENTS.md
+
+notes:
+  - Production platform contracts are environment-specific and intentionally excluded from this public repository.
+  - Keep this file as schema shape only; use fake/example values in public Git.
