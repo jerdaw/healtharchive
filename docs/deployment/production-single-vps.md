@@ -1,20 +1,15 @@
-# Production Deployment Overview
+# Public Boundary Stub
 
-HealthArchive is deployed in an environment-specific production setup maintained
-outside this public repository.
+This public file intentionally contains only a safe summary.
 
-This public repository documents:
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- project purpose
-- architecture overview
-- public methodology
-- limitations
-- public data handling
-- reproducible local development
+Public scope:
 
-Production host topology, private network access, deployment paths, monitoring
-configuration, backup procedures, hardening details, incident response notes,
-and recovery runbooks are intentionally excluded from public documentation.
-
-For local development, use the setup instructions in the main README and
-developer documentation.
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

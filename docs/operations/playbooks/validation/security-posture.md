@@ -1,36 +1,15 @@
-# Security posture playbook (operators)
+# Public Boundary Stub
 
-Goal: keep the public surface safe-by-default and avoid accidental exposure.
+This public file intentionally contains only a safe summary.
 
-Canonical references:
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- Production runbook: `../../../deployment/production-single-vps.md`
-- Hosting checklist (TLS/HSTS): `../../../deployment/hosting-and-live-server-to-dos.md`
-- Env wiring + CORS: `../../../deployment/environments-and-configuration.md`
-- Admin verification: `./scripts/verify-security-and-admin.sh`
+Public scope:
 
-## Secrets discipline (always)
-
-- Store secrets only in VPS-managed env files or a secret manager, never in git.
-  - `HEALTHARCHIVE_ADMIN_TOKEN`
-  - DB URL/password
-  - Healthchecks ping URLs
-
-## HTTPS + HSTS (API)
-
-- Maintain HSTS at the reverse proxy (Caddy) for `api.healtharchive.ca`.
-- After changes, verify HSTS is present:
-  - `./scripts/verify-security-and-admin.sh --api-base https://api.healtharchive.ca --require-hsts`
-
-## Strict CORS allowlist (API)
-
-- Keep `HEALTHARCHIVE_CORS_ORIGINS` narrow.
-- Treat widening CORS as a deliberate decision (and re-verify headers).
-- Verify real headers from production (example):
-  - `curl -sS -D- -o /dev/null -H 'Origin: https://healtharchive.ca' https://api.healtharchive.ca/api/health | rg -i '^access-control-allow-origin:'`
-
-## What “done” means
-
-- Admin endpoints are not publicly accessible.
-- HSTS is present on `https://api.healtharchive.ca/api/health`.
-- CORS behavior matches the allowlist policy.
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

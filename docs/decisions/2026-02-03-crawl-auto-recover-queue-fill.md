@@ -46,12 +46,12 @@ Status: accepted
 ## Verification / rollout
 
 - Unit tests cover the auto-start decision logic, state recording, and metrics output.
-- Systemd template enables queue fill by default on the VPS:
-  - `docs/deployment/systemd/healtharchive-crawl-auto-recover.service`
+- Private operations templates enable queue fill for managed deployments.
 - Operational drill:
   - `docs/operations/playbooks/crawl/crawl-auto-recover-drills.md` (queue fill / auto-start section)
 - Rollback:
-  - Remove `--ensure-min-running-jobs` from the systemd unit (or set it to `0`) and redeploy.
+  - Disable queue-fill in the private operations template and redeploy through
+    the private operations workflow.
 
 ## References
 

@@ -1,14 +1,15 @@
-# Deployment Documentation
+# Public Boundary Stub
 
-Production deployment for HealthArchive is environment-specific and maintained
-outside this public repository.
+This public file intentionally contains only a safe summary.
 
-This directory keeps public-safe deployment context only:
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- [Production Deployment Overview](production-single-vps.md)
-- local development and verification references
-- high-level release and configuration boundaries
+Public scope:
 
-Exact production host topology, private access model, release commands,
-environment-file locations, monitoring setup, backup procedures, and recovery
-runbooks are intentionally excluded from public documentation.
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

@@ -1,72 +1,15 @@
-# Claims Registry (internal)
+# Public Boundary Stub
 
-Use this to back any reliability/automation/privacy/reproducibility claims with proof artifacts.
+This public file intentionally contains only a safe summary.
 
-- **Claim:** Quarterly dataset releases run automatically (metadata-only).
-  - Evidence:
-    - GitHub Releases: `https://github.com/jerdaw/healtharchive-datasets/releases` (tags `healtharchive-dataset-YYYY-MM-DD`)
-    - Release assets: `manifest.json` + `SHA256SUMS` + `healtharchive-*.jsonl.gz`
-    - Workflow: `jerdaw/healtharchive-datasets` → Actions → “Publish dataset release”
-  - Cadence: quarterly (Jan/Apr/Jul/Oct)
-  - Recorded in: dataset repo Releases + `<service-data-root>/ops/adoption/`
-- **Claim:** Dataset releases are integrity-verifiable.
-  - Evidence:
-    - Download assets into one directory and run `sha256sum -c SHA256SUMS`
-    - `manifest.json` includes artifact SHA256s and row counts
-  - Cadence: per release
-  - Recorded in: release assets + `<service-data-root>/ops/adoption/`
-- **Claim:** Change tracking is computed on schedule.
-  - Evidence:
-    - systemd timer: `healtharchive-change-tracking.timer` (plus sentinel `/etc/healtharchive/change-tracking-enabled`)
-    - logs: `journalctl -u healtharchive-change-tracking.service`
-    - public surface: `/changes` + `/api/changes`
-  - Cadence: daily
-  - Recorded in: journald (+ optional Healthchecks ping)
-- **Claim:** Replay indexes are reconciled on schedule (when replay enabled).
-  - Evidence:
-    - systemd timer: `healtharchive-replay-reconcile.timer` (plus sentinel `/etc/healtharchive/replay-automation-enabled`)
-    - logs: `journalctl -u healtharchive-replay-reconcile.service`
-  - Cadence: daily
-  - Recorded in: journald (+ optional Healthchecks ping)
-- **Claim:** Annual search verification artifacts are captured (when enabled).
-  - Evidence:
-    - systemd timer: `healtharchive-annual-search-verify.timer` (plus sentinel `/etc/healtharchive/automation-enabled`)
-    - artifacts: `<service-data-root>/ops/search-eval/<year>/final/`
-  - Cadence: daily timer, captures once per year when ready
-  - Recorded in: ops artifacts (+ optional Healthchecks ping)
-- **Claim:** Coverage guardrails run for annual editions (when enabled).
-  - Evidence:
-    - systemd timer: `healtharchive-coverage-guardrails.timer` (plus sentinel `/etc/healtharchive/coverage-guardrails-enabled`)
-    - metrics: `healtharchive_coverage_*` in node_exporter textfile collector
-  - Cadence: daily
-  - Recorded in: metrics (+ optional Healthchecks ping)
-- **Claim:** Replay smoke tests run for latest indexed jobs (when enabled).
-  - Evidence:
-    - systemd timer: `healtharchive-replay-smoke.timer` (plus sentinel `/etc/healtharchive/replay-smoke-enabled`)
-    - metrics: `healtharchive_replay_smoke_*` in node_exporter textfile collector
-  - Cadence: daily
-  - Recorded in: metrics (+ optional Healthchecks ping)
-- **Claim:** Cleanup automation runs safely on indexed jobs (when enabled).
-  - Evidence:
-    - systemd timer: `healtharchive-cleanup-automation.timer` (plus sentinel `/etc/healtharchive/cleanup-automation-enabled`)
-    - logs: `journalctl -u healtharchive-cleanup-automation.service`
-  - Cadence: weekly
-  - Recorded in: journald (+ optional Healthchecks ping)
-- **Claim:** Annual campaign scheduling is automated and gated.
-  - Evidence:
-    - systemd timer: `healtharchive-schedule-annual.timer` (plus sentinel `/etc/healtharchive/automation-enabled`)
-    - logs: `journalctl -u healtharchive-schedule-annual.service`
-  - Cadence: annually (Jan 01 UTC)
-  - Recorded in: journald
-- **Claim:** Quarterly restore tests are performed (backups are usable).
-  - Evidence:
-    - restore-test logs: `<service-data-root>/ops/restore-tests/restore-test-YYYY-MM-DD.md`
-    - procedure reference: `docs/operations/restore-test-procedure.md`
-  - Cadence: quarterly
-  - Recorded in: `<service-data-root>/ops/restore-tests/`
-- **Claim:** Public usage metrics are privacy-preserving and aggregated.
-  - Evidence:
-    - DB table: `usage_metrics` (aggregated daily counts only)
-    - API: `GET /api/usage` (windowed aggregates; no personal identifiers)
-  - Cadence: daily aggregation; public reporting window is configurable
-  - Recorded in: DB + `/api/usage`
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
+
+Public scope:
+
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

@@ -1,18 +1,15 @@
-# Dataset release integrity playbook (quarterly)
+# Public Boundary Stub
 
-Goal: confirm a dataset release exists and its checksums verify cleanly.
+This public file intentionally contains only a safe summary.
 
-Canonical reference:
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- `../../dataset-release-runbook.md`
+Public scope:
 
-## Procedure (high level)
-
-1. Identify the latest dataset release (GitHub Releases, datasets repo).
-2. Download the release assets for the quarter/date you expect.
-3. Verify integrity:
-   - `sha256sum -c SHA256SUMS`
-
-## What “done” means
-
-- `sha256sum -c SHA256SUMS` completes without errors for the latest release.
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

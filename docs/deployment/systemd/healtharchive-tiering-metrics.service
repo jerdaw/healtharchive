@@ -1,9 +1,0 @@
-[Unit]
-Description=HealthArchive tiering health metrics (node_exporter textfile)
-ConditionPathExists=/usr/bin/systemctl
-
-[Service]
-Type=oneshot
-User=root
-Group=root
-ExecStart=/usr/bin/python3 /opt/healtharchive/scripts/vps-tiering-metrics-textfile.py

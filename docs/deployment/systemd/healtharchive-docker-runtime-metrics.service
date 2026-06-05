@@ -1,9 +1,0 @@
-[Unit]
-Description=HealthArchive Docker runtime metrics (node_exporter textfile)
-Documentation=https://github.com/jerdaw/healtharchive
-ConditionPathExists=/opt/healtharchive/scripts/vps-docker-runtime-metrics-textfile.py
-ConditionPathExists=/usr/bin/docker
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/python3 /opt/healtharchive/scripts/vps-docker-runtime-metrics-textfile.py

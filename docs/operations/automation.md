@@ -1,19 +1,15 @@
-# Automation (Operations)
+# Public Boundary Stub
 
-This page is an index to automation-related docs for operators.
+This public file intentionally contains only a safe summary.
 
-## Core docs
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- Automation implementation plan: [automation-implementation-plan.md](automation-implementation-plan.md)
-- Automation verification rituals: [automation-verification-rituals.md](automation-verification-rituals.md)
+Public scope:
 
-## Playbooks
-
-- Crawl cleanup automation: [playbooks/crawl/cleanup-automation.md](playbooks/crawl/cleanup-automation.md)
-- Storage hot-path stale mount drills: [playbooks/storage/storagebox-sshfs-stale-mount-drills.md](playbooks/storage/storagebox-sshfs-stale-mount-drills.md)
-- Storage hot-path stale mount recovery: [playbooks/storage/storagebox-sshfs-stale-mount-recovery.md](playbooks/storage/storagebox-sshfs-stale-mount-recovery.md)
-
-## Monitoring
-
-- Monitoring & alerting: [monitoring-and-alerting.md](monitoring-and-alerting.md)
-- Thresholds & tuning: [thresholds-and-tuning.md](thresholds-and-tuning.md)
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

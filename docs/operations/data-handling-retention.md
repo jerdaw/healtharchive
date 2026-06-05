@@ -1,43 +1,15 @@
-# Data Handling & Retention (internal)
+# Public Boundary Stub
 
-Prevent accidental collection/retention creep and PHI risk. Keep notes public-safe.
+This public file intentionally contains only a safe summary.
 
-## Issue reports (`POST /api/reports`)
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-Stored in DB table `issue_reports` with fields:
+Public scope:
 
-- `category`, `description` (free text)
-- optional `reporter_email`, `snapshot_id`, `original_url`, `page_url`
-- `status`, `internal_notes`
-
-Policy:
-
-- Public UI must warn users **not** to submit personal health information.
-- Admin views are operator-only; never expose reports in public UI.
-- If a report includes PHI, do not copy it into other systems/logs; redact/delete and record a public-safe note.
-- Reporter email is optional and should be used only for follow-up on the submitted issue.
-- There is **no automated per-report purge job today**. Do not promise a fixed deletion timeline unless one has been implemented.
-- Live report records remain in the primary database until a maintainer redacts or deletes them during case handling or periodic review.
-- Nightly database backups retain copies for up to 14 days; redacted/deleted report content can persist in those backup sets until that retention window expires.
-
-## Usage metrics (`GET /api/usage`)
-
-- Stored in DB table `usage_metrics`: `metric_date`, `event`, `count`.
-- Aggregated daily counts only (no IPs, no user IDs).
-- Public API returns a rolling window (`HEALTHARCHIVE_USAGE_METRICS_WINDOW_DAYS`).
-
-## Backups
-
-- Postgres dumps (custom-format) are stored on the VPS (see `docs/deployment/production-single-vps.md`).
-- Treat dumps as sensitive; they may contain report text/emails and should not be shared publicly.
-
-## Server/application logs
-
-- journald and web server logs may include IPs and request paths.
-- Treat logs as sensitive; do not paste raw logs into public issues or git.
-
-## Ops logs (public-safe)
-
-- Restore tests: `<service-data-root>/ops/restore-tests/` (public-safe Markdown entries only).
-- Adoption signals: `<service-data-root>/ops/adoption/` (public-safe; quarterly; links + aggregates only).
-- Mentions log: `mentions-log.md` (public-safe, link-only; no private contact details).
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

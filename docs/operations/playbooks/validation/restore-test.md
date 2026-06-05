@@ -1,20 +1,15 @@
-# Restore test playbook (quarterly)
+# Public Boundary Stub
 
-Goal: prove backups are usable by performing a restore and minimal API checks.
+This public file intentionally contains only a safe summary.
 
-Canonical reference:
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- `../../restore-test-procedure.md`
+Public scope:
 
-## Procedure (high level)
-
-1. Follow `../../restore-test-procedure.md`.
-2. Record results using the template:
-   - `../../../_templates/restore-test-log-template.md`
-3. Store the public-safe log on the VPS:
-   - `<service-data-root>/ops/restore-tests/`
-
-## What “done” means
-
-- A dated restore-test log exists under `<service-data-root>/ops/restore-tests/`.
-- Core API checks against the restored DB succeed (health, stats, sources).
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

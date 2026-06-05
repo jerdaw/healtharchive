@@ -1,34 +1,15 @@
-# Automation Verification Rituals (internal)
+# Public Boundary Stub
 
-Use these checks before claiming automation is “on”.
+This public file intentionally contains only a safe summary.
 
-## systemd timers
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- One-command posture check (recommended): `./scripts/verify_ops_automation.sh`
-- Diff-friendly JSON summary (optional): `./scripts/verify_ops_automation.sh --json | python3 -m json.tool`
-- JSON-only artifact (optional): `./scripts/verify_ops_automation.sh --json-only > <service-data-root>/ops/automation/posture.json`
-- Strict checks (optional):
-  - all timers present: `./scripts/verify_ops_automation.sh --require-all-present`
-  - all timers enabled: `./scripts/verify_ops_automation.sh --require-all-enabled`
-- `systemctl is-enabled <timer>` (should be `enabled`)
-- sentinel file exists under `/etc/healtharchive/*enabled`
-- `systemctl list-timers --all | grep healtharchive-` (shows next/last run)
-- `journalctl -u <service> -n 200` (shows last run success)
+Public scope:
 
-## Posture snapshots (optional)
-
-- Keep dated JSON under `<service-data-root>/ops/automation/` so you can diff over time.
-- If the directory is missing, run: `sudo ./scripts/vps-bootstrap-ops-dirs.sh` (idempotent).
-- Diff examples:
-  - `diff -u <(python3 -m json.tool < old.json) <(python3 -m json.tool < new.json)`
-
-## Dataset releases
-
-- Confirm GitHub Actions are enabled in `jerdaw/healtharchive-datasets`
-- Confirm a release exists for the expected quarter/date
-- Download assets and verify: `sha256sum -c SHA256SUMS`
-
-## Restore tests
-
-- Confirm a dated log file exists in `<service-data-root>/ops/restore-tests/`
-- Ensure it includes: backup source, schema check, API checks, pass/fail, follow-ups
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

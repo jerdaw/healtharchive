@@ -1,21 +1,15 @@
-# Dataset Release Runbook (internal)
+# Public Boundary Stub
 
-This release is normally hands-off (GitHub Actions). Use this checklist for verification or recovery.
+This public file intentionally contains only a safe summary.
 
-## Checklist
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-1) Check `https://github.com/jerdaw/healtharchive-datasets/releases` for the latest tag.
-2) Download all assets to one directory; run `sha256sum -c SHA256SUMS`.
-3) Inspect `manifest.json` for `truncated=false` and plausible row counts.
-4) Record a quarterly entry in `<service-data-root>/ops/adoption/` (links + aggregates only).
+Public scope:
 
-Notes:
-
-- The datasets publish workflow also validates the release bundle before publishing:
-  - `manifest.json` required fields + invariants (including `truncated=false`)
-  - Checksums match both `manifest.json` and `SHA256SUMS`
-
-## If a release is missing
-
-- Manually run the **Publish dataset release** workflow in GitHub Actions.
-- Confirm it creates a tag `healtharchive-dataset-YYYY-MM-DD` and uploads assets.
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

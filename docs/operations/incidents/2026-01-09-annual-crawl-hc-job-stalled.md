@@ -1,111 +1,15 @@
-# Incident: Annual crawl — HC job stalled (2026-01-09)
+# Public Boundary Stub
 
-Status: resolved
+This public file intentionally contains only a safe summary.
 
-## Metadata
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- Date (UTC): 2026-01-09
-- Severity: sev1
-- Environment: production
-- Primary area: crawl
-- Owner: (unassigned)
-- Start (UTC): 2026-01-09T07:34:37Z (last observed crawl progress)
-- End (UTC): 2026-01-16T02:56:12Z
+Public scope:
 
----
-
-## Summary
-
-The annual crawl job for `hc` (job 6) entered a stalled state: `crawlStatus` stopped advancing and the crawl metrics exporter flagged it as stalled. The stall correlated with repeated `Navigation timeout` warnings on canada.ca pages.
-
-Manual recovery (stop worker + recover stale jobs) was intentionally deferred while `cihr` (job 8) was actively crawling, to avoid turning an in-progress crawl into a `failed` job at max retries. The blocked recovery was later performed successfully on 2026-01-16.
-
-## Impact
-
-- User-facing impact: annual campaign remained `Ready for search: NO`.
-- Internal impact: operator attention required; `hc` crawl not progressing.
-- Data impact:
-  - Data loss: unknown (WARCs exist in temp dirs, but crawl completeness is unknown until completion).
-  - Data integrity risk: low/unknown (no specific corruption signals observed; primarily a progress/stall problem).
-  - Recovery completeness: recovered for the 2026-01-09 stalled attempt.
-
-## Detection
-
-- `./scripts/vps-crawl-status.sh --year 2026 --job-id 6`:
-  - `healtharchive_crawl_running_job_stalled{job_id="6",source="hc"} 1`
-  - `last_progress_age_seconds` climbed into multi-hour range.
-  - `crawlStatus tail` stopped advancing.
-  - `recent timeouts` showed repeated `Navigation timeout of 90000 ms exceeded`.
-
-## Decision log
-
-- 2026-01-09 — Deferred the “stop worker + recover stale jobs” procedure while job 8 (`cihr`) was actively crawling to reduce the risk of interrupting it at max retries.
-
-## Timeline (UTC)
-
-- 2026-01-09T06:05:14Z — Job 6 started (latest observed start time in status snapshot).
-- 2026-01-09T07:34:37Z — Last observed `crawlStatus` progress for job 6 (`crawled=437`, `total=3209`, `pending=1`).
-- 2026-01-09T12:57:17Z — Status snapshot shows multi-hour no-progress and `stalled=1`.
-- 2026-01-09T13:33:23Z — Status snapshot still shows `stalled=1`.
-- 2026-01-16T02:56:12Z — Manual recovery performed (stop worker + recover stale jobs). Job 6 restarted and began a new crawl attempt.
-
-## Root cause
-
-Unknown. Strong signals point to crawl progress blocked by repeated page load failures/timeouts and/or a crawler worker getting stuck on a specific URL.
-
-As of 2026-01-16, the job showed many `net::ERR_HTTP2_PROTOCOL_ERROR` failures on canada.ca and `archive_tool` applied repeated backoff delays after hitting its HTTP/network error threshold.
-
-## Contributing factors
-
-- Many canada.ca pages timed out (90s navigation timeouts), increasing the chance of long “pending page” windows.
-- `hc` and `cihr` were both running; the safest recovery approach (stopping the worker) would interrupt both.
-
-## Decision: Manual Recovery (Option C)
-
-We elected to stick with the manual recover-stale-jobs procedure (documented in `../playbooks/crawl/crawl-stalls.md`) rather than automating granular per-job stops. The risk of interrupting a healthy concurrent job is acceptable given the rarity of stalls, and stopping the worker is the safest way to ensure no partial state corruption.
-
-## Resolution / Recovery
-
-Performed on 2026-01-16 (VPS):
-
-- Followed `docs/operations/playbooks/crawl/crawl-stalls.md`:
-  - `sudo systemctl stop healtharchive-worker.service`
-  - `set -a; source /etc/healtharchive/backend.env; set +a`
-  - `<deploy-root>/.venv/bin/healtharchive recover-stale-jobs --older-than-minutes 5 --apply --source hc --limit 1`
-  - `sudo systemctl start healtharchive-worker.service`
-- Verified the job restarted (`Started at` updated) and a new combined log was created.
-
-## Post-incident verification
-
-- The 2026-01-16 recovery created a new combined log and advanced `Started at`
-  for job `6`.
-- The 2026-01-09 stalled attempt was superseded by the restarted crawl. Later
-  annual-crawl follow-up work is tracked separately in the ops roadmap and
-  newer incident notes.
-
-## Open questions (still unknown)
-
-- What exact URL/work unit is the crawler stuck on (if any), and does it repeat across retries?
-- Are timeouts driven by site performance, network issues, headless browser instability, or scope rules?
-- Would changing timeouts/adaptive restart thresholds reduce repeat stalls without harming completeness?
-
-## Action items (TODOs)
-
-- [x] After `cihr` completes (or during a maintenance window), perform the planned recovery steps and update this note with outcomes. (priority=high)
-- [ ] (Pending Operator Check) If the stall repeats, capture the specific repeated URL(s) and assess whether scope/timeout tuning is warranted. (owner=ops, priority=medium)
-- [x] Consider tightening/clarifying automation boundaries: per-job recovery without stopping unrelated active crawls.
-  - **Decision:** Explicitly deferred/rejected in favor of manual "stop worker + recover" procedure (Option C) to minimize complexity.
-
-## Automation opportunities
-
-- Improve “stalled crawl” detection to include the most recent pending URL and age as part of operator output (snapshot script) and/or alert annotations.
-- Investigate whether recovery can be scoped to a single crawl process/container without stopping the entire worker loop (risk: false positives and partial state).
-
-## References / Artifacts
-
-- Operator snapshot script: `scripts/vps-crawl-status.sh`
-- Latest combined log (as of 2026-01-09 12:57Z snapshot): `<service-data-root>/jobs/hc/20260101T000502Z__hc-20260101/archive_new_crawl_phase_-_attempt_1_20260109_060517.combined.log`
-- Latest combined log after 2026-01-16 recovery: `<service-data-root>/jobs/hc/20260101T000502Z__hc-20260101/archive_new_crawl_phase_-_attempt_1_20260116_025617.combined.log`
-- Playbook: `../playbooks/crawl/crawl-stalls.md`
-- Playbook: `../playbooks/core/incident-response.md`
-- Related: `2026-01-09-annual-crawl-phac-output-dir-permission-denied.md`
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

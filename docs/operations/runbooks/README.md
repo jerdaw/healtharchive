@@ -1,14 +1,15 @@
-# Runbooks (internal)
+# Public Boundary Stub
 
-Runbooks are short, goal-oriented procedures intended for **live incident response**.
+This public file intentionally contains only a safe summary.
 
-If you are unsure where to start, use the main incident response playbook:
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- [Incident response playbook](../playbooks/core/incident-response.md)
+Public scope:
 
-## Runbooks
-
-- [Crawl restart budget low](crawl-restart-budget-low.md)
-- [Crawl temp dirs high](crawl-temp-dirs-high.md)
-- [Crawl state file probe failure](crawl-state-file-probe-failure.md)
-- [Indexing not started](indexing-not-started.md)
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

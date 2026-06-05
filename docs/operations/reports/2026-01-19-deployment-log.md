@@ -1,34 +1,15 @@
-# Deployment Log: Annual Crawl Hardening 2026
+# Public Boundary Stub
 
-**Date:** 2026-01-19
-**Operator:** Auto-Deployment Agent
-**Scope:** VPS Production Environment (Job 6, 7, 8)
+This public file intentionally contains only a safe summary.
 
-## Objectives
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- Deploy strict timeout handling (180s) to prevent stalls.
-- Enable auto-recovery for SSHFS mounts and worker processes.
-- Implement deep operational monitoring (metrics & alerts).
+Public scope:
 
-## Execution Log
-
-| Time (EST) | Phase | Action | Result |
-| :--- | :--- | :--- | :--- |
-| 10:45 | Phase 1 | Pre-deployment state capture | Baseline recorded. Job 6 running. |
-| 10:50 | Phase 2 | Codebase Update | Pulled `main` (commit `18a8818`). |
-| 10:55 | Phase 3 | Service Restart | Worker restarted. `daemon-reload` applied. |
-| 11:00 | Phase 4 | Verification | Job detected. Metrics confirmed flowing. |
-| 11:15 | Phase 5 | Investigation | Confirmed `indexed_pages=0` is expected behavior. |
-| 11:30 | Phase 6 | Alerting | 9 Alert rules verified with `promtool`. |
-
-## Final Status Verified
-
-- **Job 6 Status**: Running (Active).
-- **Progress**: 359/2908 pages scanned. 56 WARCs generated.
-- **Monitoring**: Active. `node_exporter` scraping `healtharchive_crawl.prom`.
-- **Alerts**: 9 Rules active. "Zero Rules Firing" (Green state).
-
-## Handoff Notes
-
-- **New Ops Docs**: See `docs/operations/monitoring-and-alerting.md` and `docs/operations/runbooks/`.
-- **Next scheduled action**: None. System is in auto-pilot.
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

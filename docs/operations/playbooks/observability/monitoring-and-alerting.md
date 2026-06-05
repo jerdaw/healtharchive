@@ -1,41 +1,15 @@
-# Monitoring + alerting playbook (operators)
+# Public Boundary Stub
 
-Goal: detect user-visible outages and silent automation failures with low noise.
+This public file intentionally contains only a safe summary.
 
-Canonical reference:
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- `../../monitoring-and-ci-checklist.md`
+Public scope:
 
-## External uptime monitors (required)
-
-Ensure monitors exist for:
-
-- `https://api.healtharchive.ca/api/health`
-- `https://healtharchive.ca/archive`
-- `https://replay.healtharchive.ca/` (only if you rely on replay)
-
-After changes, you can smoke-test from any machine with internet:
-
-- `healtharchive/scripts/smoke-external-monitors.sh`
-
-## “Timer ran” monitoring (optional, recommended)
-
-If you want alerts when systemd timers stop running:
-
-1. Create checks in your Healthchecks provider.
-2. Store ping URLs only on the VPS:
-   - `/etc/healtharchive/healthchecks.env` (root-owned)
-   - This file may be shared across multiple automations; it is OK to keep both:
-     - legacy `HC_*` variables (DB backup + disk check)
-     - newer `HEALTHARCHIVE_HC_PING_*` variables (systemd unit templates)
-3. Keep the unit templates installed/updated on the VPS:
-   - `sudo ./scripts/vps-install-systemd-units.sh --apply --restart-worker`
-
-## What “done” means
-
-- External monitors are green and alert routing is confirmed.
-- If enabled, Healthchecks pings are configured without committing URLs to git.
-- If you use internal Prometheus-based alerts, Alertmanager is configured and test alerts deliver:
-  - [observability-guide.md#6-configure-alerting](observability-guide.md#6-configure-alerting)
-- If you use WARC tiering to a Storage Box, tiering metrics are enabled so you get high-signal alerts:
-  - `sudo systemctl enable --now healtharchive-tiering-metrics.timer`
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

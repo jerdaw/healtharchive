@@ -2,81 +2,78 @@ from __future__ import annotations
 
 from pathlib import Path
 
-PUBLIC_BOUNDARY_PHRASE = "public repository"
+REVIEWED_PRIVATE_TERMS = (
+    "tail" + "scale",
+    "ha" + "admin",
+    "het" + "zner",
+    "back" + "up",
+    "recov" + "ery",
+    "sys" + "temd",
+    "prome" + "theus",
+    "push" + "over",
+    "/" + "srv",
+    "/" + "etc",
+    "ss" + "hfs",
+    "storage" + " box",
+    "storage" + "box",
+    "healtharchive" + "-api",
+    "healtharchive" + "-worker",
+    "vps" + "-deploy",
+    "deploy" + "-vps",
+    "verify" + "-production",
+    "production" + " verification",
+)
+
+
+def _repo_root() -> Path:
+    return Path(__file__).resolve().parents[1]
 
 
 def _read(relative_path: str) -> str:
-    repo_root = Path(__file__).resolve().parents[1]
-    return (repo_root / relative_path).read_text(encoding="utf-8")
+    return (_repo_root() / relative_path).read_text(encoding="utf-8")
 
 
-def test_systemd_public_surface_verifier_uses_apex_frontend() -> None:
-    text = _read("docs/deployment/systemd/healtharchive-public-surface-verify.service")
-    assert "--frontend-base https://healtharchive.ca" in text
+def test_deployment_and_operations_docs_are_public_boundary_safe() -> None:
+    public_roots = (_repo_root() / "docs" / "deployment", _repo_root() / "docs" / "operations")
+
+    for root in public_roots:
+        for path in root.rglob("*"):
+            if not path.is_file():
+                continue
+            text = path.read_text(encoding="utf-8", errors="ignore").lower()
+            for term in REVIEWED_PRIVATE_TERMS:
+                assert term not in text, f"{path.relative_to(_repo_root())} contains {term!r}"
 
 
-def test_active_docs_do_not_treat_vercel_as_current_healtharchive_path() -> None:
-    production_rollout = _read("docs/deployment/production-rollout-checklist.md")
-    staging_rollout = _read("docs/deployment/staging-rollout-checklist.md")
-    architecture = _read("docs/architecture.md")
-
-    assert "https://healtharchive.vercel.app" not in production_rollout
-    assert "https://healtharchive.vercel.app" not in architecture
-    assert "There is no active standalone staging backend/frontend path" in staging_rollout
-
-
-def test_active_docs_reflect_apex_canonical_frontend() -> None:
-    production_rollout = _read("docs/deployment/production-rollout-checklist.md")
-    production_runbook = _read("docs/deployment/production-single-vps.md")
-
-    assert "https://healtharchive.ca" in production_rollout
-    assert "https://www.healtharchive.ca" in production_rollout
-    assert "https://api.healtharchive.ca" in production_rollout
-    assert "Production host topology" in production_runbook
-    assert "intentionally excluded from public documentation" in production_runbook
-
-
-def test_public_production_overview_excludes_backup_runbook_details() -> None:
-    production_runbook = _read("docs/deployment/production-single-vps.md")
-
-    assert "backup procedures" in production_runbook
-    assert "recovery runbooks" in production_runbook
-    assert "HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL" not in production_runbook
-    assert "rsync --delete" not in production_runbook
-
-
-def test_ops_docs_record_disk_cleanup_followups() -> None:
-    disk_cleanup = _read("docs/operations/disk-baseline-and-cleanup.md")
-    ops_roadmap = _read("docs/operations/healtharchive-ops-roadmap.md")
-    future_roadmap = _read("docs/planning/roadmap.md")
-
-    assert "su root syslog" in disk_cleanup
-    assert "/app/.next/cache/fetch-cache" in disk_cleanup
-    assert "healtharchive-docker-runtime-metrics.timer" in disk_cleanup
-    assert "healtharchive-frontend-cache-maintenance.timer" in disk_cleanup
-    assert "final root usage was `46%`" in ops_roadmap
-    assert "frontend redeploys mount `/app/.next/cache`" in ops_roadmap
-    assert "Bound or externalize the frontend Next.js runtime fetch cache" not in future_roadmap
-    assert "Docker writable-layer growth monitoring" not in future_roadmap
-
-
-def test_frontend_cache_externalization_docs_are_current() -> None:
-    frontend_readme = _read("frontend/README.md")
-    frontend_verification = _read("frontend/docs/deployment/verification.md")
-    production_runbook = _read("docs/deployment/production-single-vps.md")
-    systemd_readme = _read("docs/deployment/systemd/README.md")
-    decision = _read(
-        "docs/decisions/2026-05-26-frontend-cache-externalization-and-docker-runtime-metrics.md"
+def test_operator_heavy_docs_are_public_boundary_stubs() -> None:
+    stubbed_paths = (
+        "docs/deployment/disaster-" + "recov" + "ery.md",
+        "docs/deployment/production-rollout-checklist.md",
+        "docs/deployment/runbook-vps" + "-deploy.md",
+        "docs/deployment/" + "sys" + "temd/README.md",
+        "docs/operations/playbooks/core/deploy-and-verify.md",
+        "docs/operations/playbooks/core/incident-response.md",
+        "docs/operations/playbooks/validation/production-closeout.md",
+        "docs/operations/runbooks/README.md",
+        "docs/operations/incidents/README.md",
     )
 
-    for text in (frontend_readme, frontend_verification, decision):
-        assert "healtharchive-frontend-next-cache" in text
-        assert "/app/.next/cache" in text
+    for relative_path in stubbed_paths:
+        text = _read(relative_path)
+        assert text.startswith("# Public Boundary Stub")
+        assert "private operations workspace" in text
+        assert "host topology" in text
 
-    assert "release commands" not in production_runbook
-    assert "healtharchive-docker-runtime-metrics.timer" in systemd_readme
-    assert "frontend-cache-maintenance-enabled" in systemd_readme
-    assert "NEXT_CACHE_MOUNT=none" in decision
+
+def test_private_runtime_artifacts_are_not_tracked_in_public_docs() -> None:
+    repo_root = _repo_root()
+    unit_dir = repo_root / "docs" / "deployment" / ("sys" + "temd")
+
+    assert not any(unit_dir.glob("*.service"))
+    assert not any(unit_dir.glob("*.timer"))
+    assert not (repo_root / "docs" / "deployment" / ("prome" + "theus-alerts-crawl.yml")).exists()
+    assert not (repo_root / "docs" / "deployment" / "pywb" / "config.yaml").exists()
+    assert not (repo_root / "docs" / "operations" / "production-baseline-policy.toml").exists()
 
 
 def test_active_entrypoints_keep_shared_host_facts_behind_private_ops_boundary() -> None:
@@ -94,17 +91,9 @@ def test_active_entrypoints_keep_shared_host_facts_behind_private_ops_boundary()
         assert "private" in content.lower()
         assert private_ops_path not in content
 
-    production_runbook = _read("docs/deployment/production-single-vps.md")
-    env_contract = _read("docs/deployment/environments-and-configuration.md")
-
-    assert PUBLIC_BOUNDARY_PHRASE in production_runbook
-    assert "environment-specific" in production_runbook
-    assert "private" in env_contract.lower()
-    assert "canonical" in env_contract
-
 
 def test_agent_docs_keep_symlink_and_authorship_guardrails_current() -> None:
-    repo_root = Path(__file__).resolve().parents[1]
+    repo_root = _repo_root()
 
     assert (repo_root / "CLAUDE.md").is_symlink()
     assert (repo_root / "GEMINI.md").is_symlink()
@@ -126,12 +115,3 @@ def test_agent_docs_keep_symlink_and_authorship_guardrails_current() -> None:
     assert "github-actions[bot]" in root_agents
     assert "dependabot[bot]" in frontend_agents
     assert "github-actions[bot]" in frontend_agents
-
-
-if __name__ == "__main__":
-    test_systemd_public_surface_verifier_uses_apex_frontend()
-    test_active_docs_do_not_treat_vercel_as_current_healtharchive_path()
-    test_active_docs_reflect_apex_canonical_frontend()
-    test_public_production_overview_excludes_backup_runbook_details()
-    test_active_entrypoints_keep_shared_host_facts_behind_private_ops_boundary()
-    test_agent_docs_keep_symlink_and_authorship_guardrails_current()

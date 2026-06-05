@@ -1,49 +1,15 @@
-# Coverage guardrails (annual regression checks)
+# Public Boundary Stub
 
-Goal: detect large year-over-year coverage drops after annual jobs are indexed.
+This public file intentionally contains only a safe summary.
 
-Canonical refs:
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- systemd unit templates: `../../../deployment/systemd/README.md`
-- monitoring checklist: `../../monitoring-and-ci-checklist.md`
+Public scope:
 
-## What this does
-
-- Compares the latest indexed **annual** job for each source to the prior year.
-- Emits node_exporter textfile metrics:
-  - `healtharchive_coverage_ratio{source="hc",year="2026"}`
-  - `healtharchive_coverage_regression{source="hc",year="2026"}`
-  - `healtharchive_coverage_warning{source="hc",year="2026"}`
-
-## Enablement (VPS)
-
-```bash
-sudo touch /etc/healtharchive/coverage-guardrails-enabled
-sudo systemctl enable --now healtharchive-coverage-guardrails.timer
-```
-
-## Manual check
-
-```bash
-sudo systemctl start healtharchive-coverage-guardrails.service
-sudo journalctl -u healtharchive-coverage-guardrails.service -n 200 --no-pager
-curl -s http://127.0.0.1:9100/metrics | rg '^healtharchive_coverage_'
-```
-
-## If an alert fires
-
-1. Identify the affected source and year from the metric labels.
-2. Confirm current and prior annual jobs:
-   ```bash
-   set -a; source /etc/healtharchive/backend.env; set +a
-   <deploy-root>/.venv/bin/healtharchive list-jobs --source hc --status indexed --limit 10
-   <deploy-root>/.venv/bin/healtharchive show-job --id <JOB_ID>
-   ```
-3. If the drop is real, inspect crawl logs for stalls/timeouts and consider:
-   - re-running the crawl (retryable),
-   - adjusting scope rules for that source,
-   - or filing a follow-up for annual tuning.
-
-## Config
-
-Edit `ops/automation/coverage-guardrails.toml` to change thresholds.
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

@@ -177,11 +177,11 @@ As of 2026-01-16, this plan is considered implemented; the operational “surfac
 
 - Storage hot-path watchdog:
   - `scripts/vps-storage-hotpath-auto-recover.py`
-  - `docs/deployment/systemd/healtharchive-storage-hotpath-auto-recover.timer`
-  - sentinel: `/etc/healtharchive/storage-hotpath-auto-recover-enabled`
+  - private operations scheduling template
+  - private operations sentinel
 - Tiering bind-mount helper:
   - `scripts/vps-warc-tiering-bind-mounts.sh` (supports `--repair-stale-mounts`)
-  - `docs/deployment/systemd/healtharchive-warc-tiering.service` uses `--repair-stale-mounts`
+  - private operations service template uses `--repair-stale-mounts`
 - Crawl stall recovery:
   - `scripts/vps-crawl-auto-recover.py` (safe-by-default; caps recoveries)
   - `healtharchive recover-stale-jobs` supports `--require-no-progress-seconds`

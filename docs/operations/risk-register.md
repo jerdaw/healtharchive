@@ -1,14 +1,15 @@
-# Risk Register (internal)
+# Public Boundary Stub
 
-Track the top operational risks and mitigations.
+This public file intentionally contains only a safe summary.
 
-- **Misinterpretation risk (archive mistaken for current guidance)**
-  - Mitigation: strong disclaimers; never add “interpretation” features; keep high-risk pages (`/browse`, `/snapshot`) explicit.
-- **PHI submission risk (issue reports)**
-  - Mitigation: clear warnings; minimize storage; admin-only access; delete/redact if PHI appears.
-- **Proxy/CORS misuse risk**
-  - Mitigation: keep the frontend same-origin report proxy narrow; do not turn it into a general proxy; keep backend CORS allowlist strict.
-- **Single-VPS availability risk**
-  - Mitigation: [Disaster Recovery Runbook](../deployment/disaster-recovery.md) (RTO/RPO); backups + restore tests; conservative automation caps; disk monitoring; clear rollback procedures.
-- **Export integrity / reproducibility risk**
-  - Mitigation: checksums + manifest; stable ordering/pagination; version fields (`diff_version`, `normalization_version`); avoid rewriting releases.
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
+
+Public scope:
+
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

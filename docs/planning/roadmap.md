@@ -354,20 +354,24 @@ Completed items were removed from this backlog and archived in:
 34c. **Split private operational assets from the public repo surface** (M-L: 2-4 days)
      - Context: the public docs portal and generated `docs/llms.txt` are now
        constrained to public-safe project, methodology, API, contribution, and
-       local-development material. Some tracked operator runbooks, systemd
-       templates, and VPS helper scripts still encode environment-specific
-       paths because they are active deployment assets.
+       local-development material. Some tracked operator-only templates and
+       host helper scripts still encode environment-specific paths because they
+       are active private operations assets.
      - 2026-06-05 status: final public-boundary cleanup replaced the public
        production runbook and monitoring guide with public-safe stubs, added a
        fake platform-contract example, and preserved private originals under
        ignored `private/` paths. Broader operator-only docs/scripts remain in
        tracked Git and still need a deliberate split.
-     - Scope: decide which operator-only Markdown, systemd templates, and
+     - 2026-06-05 second-pass status: public `docs/deployment/` and
+       `docs/operations/` operator runbooks, continuity procedures, validation
+       playbooks, runtime templates, and historical incident details were
+       replaced with public-boundary stubs or removed from tracked public docs.
+     - Scope: decide which operator-only Markdown, service-unit templates, and
        host helper scripts should move to the private shared-ops workspace,
        which should remain as generalized templates, and which should stay in
        this repo because they are part of the application contract.
      - Done when: repo-root READMEs, generated docs, and tracked documentation
-       no longer expose private host paths or monitoring/backup details, while
+       no longer expose private host paths or operational continuity details, while
        any remaining operational templates have explicit public-safe placeholders
        and tests that describe their contract.
 34d. **Restore generated documentation reference checks to a clean pass** (S: 1-2h)

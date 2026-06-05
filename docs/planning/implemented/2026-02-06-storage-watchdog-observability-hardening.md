@@ -13,8 +13,7 @@
   - `scripts/vps-storage-watchdog-burnin-report.py`
   - `tests/test_ops_storage_watchdog_burnin_report.py`
 - Added optional daily snapshot scheduling for burn-in (read-only):
-  - `docs/deployment/systemd/healtharchive-storage-watchdog-burnin-snapshot.service`
-  - `docs/deployment/systemd/healtharchive-storage-watchdog-burnin-snapshot.timer`
+  - private operations scheduling templates
   - `scripts/vps-storage-watchdog-burnin-snapshot.sh`
 
 ## Canonical Docs Updated

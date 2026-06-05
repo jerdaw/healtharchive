@@ -1,47 +1,15 @@
-# Replay service playbook (operators)
+# Public Boundary Stub
 
-Goal: keep replay (`replay.healtharchive.ca`) available when the project relies on it.
+This public file intentionally contains only a safe summary.
 
-Canonical references:
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- Replay runbook: `../../../deployment/replay-service-pywb.md`
-- Production runbook: `../../../deployment/production-single-vps.md`
-- Replay automation design: `../../replay-and-preview-automation-plan.md`
+Public scope:
 
-## Setup / recovery (if replay is missing)
-
-Follow `../../../deployment/replay-service-pywb.md`.
-
-## Verify replay is working
-
-1. Check the base URL is up:
-   - `curl -I https://replay.healtharchive.ca/ | head`
-2. Verify the public surface script can resolve a replay `browseUrl` for a known snapshot:
-   - `cd <deploy-root> && ./scripts/verify_public_surface.py`
-3. Verify the replay banner works on a direct replay page:
-   - Open a known `browseUrl` on `https://replay.healtharchive.ca/` and confirm the banner loads quickly, shows the page title + meta line (capture date + original URL) + disclaimer, and that the action links (View diff, Details, All snapshots, Raw HTML, Metadata JSON, Cite, Report issue, Hide) behave as expected.
-   - From HealthArchive search results, click `View` and confirm “← HealthArchive.ca” returns to the same search results page.
-
-## If public replay 502s but localhost pywb is 200
-
-Use this when `replay.healtharchive.ca/...` returns `502` but a direct localhost
-probe against pywb returns `200`.
-
-1. Confirm the exact replay path locally:
-   - `curl -sv --http1.1 "http://127.0.0.1:8090<PATH>" -o /dev/null | sed -n '1,40p'`
-2. Check Caddy for upstream parser errors:
-   - `sudo journalctl -u caddy -n 20 --no-pager`
-3. If Caddy reports a malformed header line (for example an archived bare
-   `AWSALBCORS=...` cookie continuation), treat it as replay-header
-   sanitization, not replay indexing.
-4. Confirm the replay service is loading `<service-data-root>/replay/sitecustomize.py`
-   via `PYTHONPATH=/webarchive` in `healtharchive-replay.service`.
-
-## Retention warning
-
-Replay depends on WARCs staying on disk. Do not delete WARCs for jobs you expect to replay.
-
-## What “done” means
-
-- `https://replay.healtharchive.ca/` responds successfully.
-- `./scripts/verify_public_surface.py` reports a working replay `browseUrl` where expected.
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.

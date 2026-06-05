@@ -1,52 +1,15 @@
-# Automation maintenance playbook (systemd timers)
+# Public Boundary Stub
 
-Goal: keep automation boring, observable, and explicitly controlled.
+This public file intentionally contains only a safe summary.
 
-Canonical references:
+Detailed operator procedures for this topic are environment-specific and are
+maintained in the private operations workspace. Public documentation should
+only describe the purpose, ownership boundary, and non-sensitive user impact.
 
-- systemd unit templates + enable/rollback: `../../../deployment/systemd/README.md`
-- Verification ritual: `../../automation-verification-rituals.md`
+Public scope:
 
-## Install/update templates (after repo updates)
-
-On the VPS:
-
-- `cd <deploy-root>`
-- `sudo ./scripts/vps-install-systemd-units.sh --apply --restart-worker`
-
-## Bootstrap ops directories (one-time)
-
-If `<service-data-root>/ops/` is not prepared:
-
-- `sudo ./scripts/vps-bootstrap-ops-dirs.sh`
-
-## Enablement controls (sentinel files)
-
-Automation is intentionally gated by sentinel files under `/etc/healtharchive/`.
-
-Follow the enable/rollback steps in `../../../deployment/systemd/README.md`.
-
-## Verify posture
-
-- `./scripts/verify_ops_automation.sh`
-- Spot-check logs:
-  - `journalctl -u <service> -n 200`
-
-## Storage watchdog cadence (monthly)
-
-For stale-mount watchdog reliability, include this in the periodic automation review:
-
-1. Re-run a safe dry-run watchdog drill:
-   - `../storage/storagebox-sshfs-stale-mount-drills.md` (Section 1)
-2. Re-run the safe persistent failed-apply alert-condition drill:
-   - `../storage/storagebox-sshfs-stale-mount-drills.md` (Section 2)
-3. Review watchdog state + key metrics:
-   - `<service-data-root>/ops/watchdog/storage-hotpath-auto-recover.json`
-   - `healtharchive_storage_hotpath_auto_recover_last_apply_ok`
-   - `healtharchive_storage_hotpath_auto_recover_apply_total`
-4. If `HealthArchiveStorageHotpathApplyFailedPersistent` fired recently, follow:
-   - `../storage/storagebox-sshfs-stale-mount-recovery.md`
-
-Burn-in helper command (safe, read-only summary):
-
-- `python3 scripts/vps-storage-watchdog-burnin-report.py --window-hours 168 --json`
+- Explain what the feature or workflow is for.
+- Keep methodology, limitations, local development, and contribution guidance public.
+- Keep host topology, private access paths, service-unit definitions, credential
+  locations, alert routes, exact commands, and restoration steps out of tracked
+  public documentation.
