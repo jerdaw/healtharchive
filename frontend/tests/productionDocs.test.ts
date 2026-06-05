@@ -12,7 +12,9 @@ describe("production docs alignment", () => {
     const envExample = readRepoFile(".env.example");
     const implementationGuide = readRepoFile("docs/implementation-guide.md");
 
-    expect(readme).not.toContain("https://healtharchive.vercel.app (Vercel default domain)");
+    expect(readme).not.toContain(
+      "https://healtharchive.vercel.app (Vercel default domain)",
+    );
     expect(readme).not.toContain("Coolify-managed container behind host Caddy");
     expect(envExample).not.toContain("Vercel Preview example");
     expect(implementationGuide).not.toContain("Cloudflare remains the DNS provider.");
@@ -33,7 +35,13 @@ describe("production docs alignment", () => {
 
     for (const content of [readme, agents, docsIndex]) {
       expect(content).toContain("private shared-ops");
-      const privateOpsPath = ["/home", "jer", "repos", "vps", "platform-ops"].join("/");
+      const privateOpsPath = [
+        "/home",
+        "jer",
+        "repos",
+        "vps",
+        "platform-ops",
+      ].join("/");
       expect(content).not.toContain(privateOpsPath);
     }
 
