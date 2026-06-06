@@ -58,6 +58,11 @@ configuration, monitoring configuration, and operator-only runbooks are
 maintained outside public documentation. If private deployment context is
 required, ask the maintainer instead of guessing or documenting it publicly.
 
+Durable private project and operations notes live in the private/shared
+operations source of truth. Ignored local `private/` folders, if present, are
+convenience copies only and are not the durable record. Actual secrets stay in
+Bitwarden or deployment environments.
+
 ---
 
 ## Dev environment & commands

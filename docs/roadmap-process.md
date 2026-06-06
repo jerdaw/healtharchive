@@ -14,7 +14,7 @@ Canonical guidance:
 - Roadmaps index: `planning/README.md`
 - Backlog: `planning/roadmap.md`
 - Implemented plans archive: `planning/implemented/README.md`
-- Production closeout checklist: private operations workspace
+- Production closeout checklist: private/shared operations source of truth
 
 ## Completion closeout
 
@@ -41,5 +41,5 @@ Use the annual campaign closeout when:
 - producing the annual wrap-up report or public-safe campaign summary.
 
 If the checklist finds a failure, keep the item open and record the public next
-action in `planning/roadmap.md`, or the operator-only next action in the private
-operations workspace.
+action in `planning/roadmap.md`, or the operator-only next action in the
+private/shared operations source of truth.

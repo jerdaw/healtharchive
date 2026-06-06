@@ -373,9 +373,10 @@ Completed items were removed from this backlog and archived in:
        in the private operations workspace.
      - 2026-06-05 status: final public-boundary cleanup replaced the public
        production runbook and monitoring guide with public-safe stubs, added a
-       fake platform-contract example, and preserved private originals under
-       ignored `private/` paths. Broader operator-only docs/scripts remain in
-       tracked Git and still need a deliberate split.
+       fake platform-contract example, migrated durable private originals to
+       the private/shared operations source of truth, and preserved ignored
+       local `private/` copies for convenience. Broader operator-only
+       docs/scripts remain in tracked Git and still need a deliberate split.
      - 2026-06-05 second-pass status: public `docs/deployment/` and
        `docs/operations/` operator runbooks, continuity procedures, validation
        playbooks, runtime templates, and historical incident details were
