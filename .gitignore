@@ -63,7 +63,9 @@ docs/openapi.json
 
 # Local assistant tooling (local development only)
 .assistant/
+/private
 private/
+.private-local-backups/
 
 # UV lock file (auto-generated, should not be committed)
 uv.lock
