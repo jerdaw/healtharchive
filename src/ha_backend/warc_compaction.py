@@ -7,6 +7,8 @@ from collections import Counter
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
+from time import monotonic
+from typing import Callable
 
 from warcio.archiveiterator import ArchiveIterator
 from warcio.warcwriter import WARCWriter
@@ -89,6 +91,12 @@ class WarcCompactionResult:
 
 def _now_utc_slug() -> str:
     return datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+
+
+def _format_gib(value: int | None) -> str:
+    if value is None:
+        return "n/a"
+    return f"{value / (1024**3):.2f} GiB"
 
 
 def _record_content_type(record) -> str:
@@ -210,6 +218,7 @@ def compact_warcs_for_job(
     profile: str = "replay-no-large-media",
     apply: bool = False,
     staging_dir: Path | None = None,
+    progress: Callable[[str], None] | None = None,
 ) -> WarcCompactionResult:
     output_dir = output_dir.resolve()
     warcs_dir = get_job_warcs_dir(output_dir).resolve()
@@ -252,7 +261,8 @@ def compact_warcs_for_job(
     original_manifest_path = get_job_warc_manifest_path(output_dir)
     original_manifest = load_warc_manifest(output_dir)
 
-    for source_path in warc_paths:
+    total_warcs = len(warc_paths)
+    for index, source_path in enumerate(warc_paths, start=1):
         try:
             rel = source_path.relative_to(warcs_dir)
         except ValueError:
@@ -260,6 +270,12 @@ def compact_warcs_for_job(
 
         staged_path = staging_dir / rel if staging_dir is not None else None
         source_size = source_path.stat().st_size
+        started_at = monotonic()
+        if progress is not None:
+            progress(
+                f"[{index}/{total_warcs}] scan {source_path.name} ({_format_gib(source_size)})"
+            )
+
         file_result = WarcCompactionFileResult(
             source_path=str(source_path),
             staged_path=str(staged_path) if staged_path else None,
@@ -321,6 +337,21 @@ def compact_warcs_for_job(
                 os.replace(tmp_path, staged_path)
                 file_result.compacted_size_bytes = staged_path.stat().st_size
             result.files.append(file_result)
+
+            if progress is not None:
+                elapsed = monotonic() - started_at
+                compacted = (
+                    _format_gib(file_result.compacted_size_bytes)
+                    if file_result.compacted_size_bytes is not None
+                    else "dry-run"
+                )
+                progress(
+                    f"[{index}/{total_warcs}] done {source_path.name}: "
+                    f"records={file_result.records_total} kept={file_result.records_kept} "
+                    f"dropped={file_result.records_dropped} "
+                    f"payload_dropped={_format_gib(file_result.payload_bytes_dropped)} "
+                    f"compacted={compacted} elapsed={elapsed:.1f}s"
+                )
 
             entry = manifest_by_stable_name.get(source_path.name, {})
             replacement_entry = {

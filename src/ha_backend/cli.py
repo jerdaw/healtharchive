@@ -4428,6 +4428,9 @@ def cmd_compact_warcs(args: argparse.Namespace) -> None:
         print(f"Staging dir:   {staging_dir}")
     print("")
 
+    def _progress(message: str) -> None:
+        print(message, file=sys.stderr, flush=True)
+
     result = compact_warcs_for_job(
         job_id=job_id,
         output_dir=output_dir,
@@ -4436,6 +4439,7 @@ def cmd_compact_warcs(args: argparse.Namespace) -> None:
         profile=profile,
         apply=apply,
         staging_dir=staging_dir,
+        progress=_progress,
     )
 
     print("Summary")
