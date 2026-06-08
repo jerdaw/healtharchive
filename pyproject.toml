@@ -27,7 +27,7 @@ healtharchive = "ha_backend.cli:main"
 
 [project.optional-dependencies]
 dev = [
-  "ruff==0.15.11",
+  "ruff==0.15.16",
   "mypy",
   "types-PyYAML",
   "pytest",
