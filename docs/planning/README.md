@@ -39,6 +39,14 @@ Current known items: none.
 
 Recently closed items:
 
+- 2026 CIHR WARC compaction closeout:
+  - Current state: completed. The staged compacted WARC set was promoted after
+    parse validation, replay indexes were rebuilt, replay smoke returned `200`,
+    and the pre-compaction rollback copy was removed after verification.
+  - Public-safe policy follow-up:
+    `../decisions/2026-06-11-annual-crawl-media-retention-policy.md`
+  - Remaining product work: keep the reusable promotion/original-retention
+    lifecycle tracked in `roadmap.md`.
 - API DB pool exhaustion recurrence prevention:
   - Current state: completed. API request-scoped database sessions are closed
     promptly, export responses no longer stream from live DB iterators, the

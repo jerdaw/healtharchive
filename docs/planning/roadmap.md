@@ -148,13 +148,60 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Public notes should describe user-facing retention policy only; private
     capacity planning and replay operations live in the private operations
     workspace.
-- Annual WARC capacity decision before the next campaign.
-  - Context: after 2026 CIHR temp-dir cleanup, private archival storage capacity
-    still had limited free headroom relative to the stable WARC set.
+- Annual WARC capacity and storage-tier decision before the next campaign.
+  - Context: the 2026 annual crawl showed that stable WARC storage can be
+    dominated by accidentally retained large media, and that future annual
+    campaigns need an explicit storage budget before they are queued.
+  - Scope:
+    - define hot replay, warm archival, and cold/offsite backup tiers
+    - compare hosted archival storage against operator-owned cold storage for
+      cost, security, reliability, drive wear, bandwidth, restore time, and
+      replay latency
+    - document which tiers may serve public replay directly and which tiers are
+      backup or pre-delete safety copies only
+    - keep detailed capacity tables, host wiring, and private storage locations
+      in the private operations workspace
   - Done when: the operator has chosen and documented one capacity path
     (larger private archival storage tier, cold offload with replay impact
-    documented, or source/year hot-retention limits), and the private operations
-    record reflects the chosen path before any new annual jobs are queued.
+    documented, or source/year hot-retention limits), the private operations
+    record reflects the chosen path, and public docs describe only the
+    user-facing retention policy before any new annual jobs are queued.
+- Operator-owned cold storage evaluation.
+  - Scope: decide whether operator-owned storage should be used for cold WARC
+    backups, pre-compaction originals, staged compaction outputs, disaster
+    recovery copies, or long-retention archival copies.
+  - Guardrails: do not make cold operator-owned storage the only live backing
+    store for public replay unless SLO/RPO/RTO, monitoring, security isolation,
+    restore testing, and degraded-mode behavior are explicitly documented.
+  - Done when: the private operations record captures the selected role for
+    operator-owned cold storage, the restore path has been tested, and the
+    public roadmap/user-facing docs avoid private network and host details.
+- Annual crawl storage budget gate.
+  - Scope: add a pre-run storage review for each source/year covering estimated
+    WARC growth, allowed content types, large-media caps, query-parameter
+    normalization, replay requirements, and source-specific hot-retention
+    limits.
+  - Policy target: preserve HTML, documents, and normal page assets needed for
+    replay; exclude or cap large video/audio captures unless explicitly
+    required for the archive purpose.
+  - Current guardrail: managed source profiles already include CIHR query
+    variant suppression and large-media/top-level binary exclusions; the
+    remaining work is to make the storage-budget review a hard annual
+    scheduling gate.
+  - Done when: new annual jobs cannot be queued without a documented storage
+    budget, media policy, and operator acknowledgement when the estimate
+    exceeds the current capacity target.
+- Productized compacted WARC promotion and original-retention lifecycle.
+  - Context: the 2026 CIHR WARC set was manually compacted, promoted, replay
+    reindexed, smoke-tested, and cleaned up after validation. The reusable path
+    should not depend on ad hoc file operations.
+  - Scope: after a staged WARC compaction passes parse/replay validation,
+    promote compacted WARCs through a maintenance-window procedure, rebuild any
+    replay indexes that depend on WARC byte offsets, verify search/replay, and
+    retain or offload originals only for an agreed safety window.
+  - Done when: the CLI/runbook path can promote a compacted WARC set without
+    ad hoc file operations, records provenance for the replaced originals, and
+    updates private capacity ledgers after the safety window closes.
 
 ### Crawling & indexing reliability (backend)
 

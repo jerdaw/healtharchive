@@ -556,6 +556,11 @@ healtharchive compact-warcs --id JOB_ID --apply --staging-dir <path>
 4. Verifies snapshot-referenced records remain available.
 5. In apply mode, writes compacted WARCs, a replacement manifest, and a compaction report to staging.
 
+**Operational note**:
+- Staging does not update replay indexes or replace live WARCs. After any
+  controlled promotion of compacted WARCs, rebuild replay indexes with
+  `replay-index-job` because replay indexes depend on WARC byte offsets.
+
 **Exit codes**:
 - `0` - Dry-run or staging completed without losing snapshot references
 - `1` - Job is missing/not indexed, WARCs are unavailable, or required snapshot records would be lost
