@@ -88,7 +88,6 @@ type FetchInit = RequestInit & {
 const DEFAULT_FETCH_TIMEOUT_MS = 8000;
 const SHORT_REVALIDATE_SECONDS = 60;
 const STANDARD_REVALIDATE_SECONDS = 300;
-const LONG_REVALIDATE_SECONDS = 3600;
 
 async function fetchJson<T>(path: string, query?: URLSearchParams, init?: FetchInit): Promise<T> {
   const baseUrl = getApiBaseUrl();
@@ -203,10 +202,7 @@ export async function searchSnapshots(params: SearchParams): Promise<SearchRespo
 }
 
 export async function fetchSnapshotDetail(id: number): Promise<SnapshotDetail> {
-  return fetchJson<SnapshotDetail>(`/api/snapshot/${id}`, undefined, {
-    cache: "force-cache",
-    next: { revalidate: LONG_REVALIDATE_SECONDS },
-  });
+  return fetchJson<SnapshotDetail>(`/api/snapshot/${id}`);
 }
 
 export async function fetchHealth(): Promise<HealthResponse> {
@@ -281,10 +277,7 @@ export async function fetchChangeCompare(params: {
   if (params.fromSnapshotId) {
     query.set("fromSnapshotId", String(params.fromSnapshotId));
   }
-  return fetchJson<ChangeCompare>("/api/changes/compare", query, {
-    cache: "force-cache",
-    next: { revalidate: LONG_REVALIDATE_SECONDS },
-  });
+  return fetchJson<ChangeCompare>("/api/changes/compare", query);
 }
 
 export async function fetchSnapshotCompareLive(
@@ -302,10 +295,7 @@ export async function fetchSnapshotCompareLive(
 }
 
 export async function fetchSnapshotTimeline(snapshotId: number): Promise<SnapshotTimeline> {
-  return fetchJson<SnapshotTimeline>(`/api/snapshots/${snapshotId}/timeline`, undefined, {
-    cache: "force-cache",
-    next: { revalidate: LONG_REVALIDATE_SECONDS },
-  });
+  return fetchJson<SnapshotTimeline>(`/api/snapshots/${snapshotId}/timeline`);
 }
 
 export async function resolveReplayUrl(params: {
@@ -332,8 +322,5 @@ export async function fetchSnapshotLatest(
     query.set("requireHtml", "0");
   }
 
-  return fetchJson<SnapshotLatest>(`/api/snapshots/${snapshotId}/latest`, query, {
-    cache: "force-cache",
-    next: { revalidate: STANDARD_REVALIDATE_SECONDS },
-  });
+  return fetchJson<SnapshotLatest>(`/api/snapshots/${snapshotId}/latest`, query);
 }

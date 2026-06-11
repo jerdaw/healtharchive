@@ -24,6 +24,13 @@ container runtime defaults; shared VPS inventory remains in `platform-ops`.
 - A sentinel-gated frontend cache maintenance timer clears
   `/app/.next/cache/fetch-cache` and restarts the frontend only when the cache
   exceeds the configured threshold.
+- The maintenance threshold should stay below the alert threshold. The script
+  default is `3 GiB`; the warning alert remains `4 GiB`, leaving headroom for
+  normal cache growth between maintenance runs.
+- Frontend server-side fetches should not persistently cache snapshot-specific
+  API URLs such as snapshot detail, timeline, latest-snapshot resolution, or
+  change comparison responses. Those calls have high cardinality and can grow
+  the Next.js fetch cache one visited snapshot at a time.
 
 ## Rationale
 
@@ -52,6 +59,8 @@ job is sentinel-gated because it may restart the public frontend container.
   dedicated, tested maintenance script.
 - The deployment helper makes the safer cache posture the default for future
   frontend redeploys.
+- The cache maintenance threshold gives the alert room to signal real drift
+  instead of normal cleanup timing.
 
 ### Negative / risks
 
@@ -61,6 +70,8 @@ job is sentinel-gated because it may restart the public frontend container.
   remain required.
 - The maintenance job restarts the frontend when it clears the cache, so it is
   gated by `/etc/healtharchive/frontend-cache-maintenance-enabled`.
+- Reintroducing persistent caching on high-cardinality API calls can recreate
+  cache growth even when the Docker volume and maintenance job are working.
 
 ## Verification / rollout
 
@@ -76,6 +87,8 @@ job is sentinel-gated because it may restart the public frontend container.
   - `docker inspect healtharchive-frontend` shows a mount at `/app/.next/cache`;
   - `curl -s http://127.0.0.1:9100/metrics | grep '^healtharchive_docker_'`
     returns fresh metrics;
+  - `healtharchive_frontend_cache_max_bytes` reports a value below the
+    `HealthArchiveFrontendFetchCacheHigh` alert threshold;
   - public frontend/API health checks still return `200`.
 
 Rollback: redeploy the frontend with `NEXT_CACHE_MOUNT=none` and disable the

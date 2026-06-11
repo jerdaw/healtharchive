@@ -10,6 +10,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Iterable
 
+DEFAULT_MAX_BYTES = 3 * 1024**3
+
 
 def _now_epoch() -> int:
     return int(datetime.now(timezone.utc).timestamp())
@@ -100,8 +102,10 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--max-bytes",
         type=int,
-        default=int(os.environ.get("HEALTHARCHIVE_FRONTEND_CACHE_MAX_BYTES", str(4 * 1024**3))),
-        help="Clear cache when bytes exceed this value. Default: 4 GiB.",
+        default=int(
+            os.environ.get("HEALTHARCHIVE_FRONTEND_CACHE_MAX_BYTES", str(DEFAULT_MAX_BYTES))
+        ),
+        help="Clear cache when bytes exceed this value. Default: 3 GiB.",
     )
     parser.add_argument(
         "--restart-after-clear",

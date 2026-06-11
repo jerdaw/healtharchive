@@ -236,6 +236,53 @@ def test_vps_frontend_cache_maintenance_clears_and_restarts_when_over_limit(
     assert "healtharchive_frontend_cache_restart_success" in prom
 
 
+def test_vps_frontend_cache_maintenance_default_threshold_has_alert_headroom(
+    tmp_path: Path, monkeypatch
+) -> None:
+    mod = _load_script_module(
+        "vps-frontend-cache-maintenance.py",
+        module_name="ha_test_vps_frontend_cache_maintenance_default",
+    )
+    monkeypatch.delenv("HEALTHARCHIVE_FRONTEND_CACHE_MAX_BYTES", raising=False)
+    calls: list[str] = []
+    byte_values = iter([(mod.DEFAULT_MAX_BYTES + 1, 1), (0, 1)])
+
+    def fake_path_bytes(_container: str, _path: str) -> tuple[int, int]:
+        return next(byte_values)
+
+    def fake_clear(_container: str, _path: str) -> int:
+        calls.append("clear")
+        return 1
+
+    monkeypatch.setattr(mod, "_path_bytes", fake_path_bytes)
+    monkeypatch.setattr(mod, "_clear_path", fake_clear)
+
+    out_dir = tmp_path / "out"
+    rc = mod.main(
+        [
+            "--apply",
+            "--no-restart-after-clear",
+            "--out-dir",
+            str(out_dir),
+            "--out-file",
+            "frontend-cache.prom",
+        ]
+    )
+    assert rc == 0
+    assert calls == ["clear"]
+
+    prom = (out_dir / "frontend-cache.prom").read_text(encoding="utf-8")
+    assert (
+        "healtharchive_frontend_cache_max_bytes"
+        '{container="healtharchive-frontend",path="/app/.next/cache/fetch-cache"} '
+        f"{3 * 1024**3}"
+    ) in prom
+    assert (
+        "healtharchive_frontend_cache_over_limit"
+        '{container="healtharchive-frontend",path="/app/.next/cache/fetch-cache"} 1'
+    ) in prom
+
+
 def test_vps_crawl_metrics_textfile_reports_pending_annual_output_dir_not_writable(
     tmp_path: Path, monkeypatch
 ) -> None:

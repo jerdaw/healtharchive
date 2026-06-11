@@ -130,7 +130,7 @@ groups:
           service: healtharchive
         annotations:
           summary: "Frontend Next.js fetch cache > 4 GiB"
-          description: "The frontend runtime fetch cache is above the maintenance threshold. Confirm healtharchive-frontend-cache-maintenance.timer is enabled or run the cache maintenance script during a safe window."
+          description: "The frontend runtime fetch cache is above the alert threshold. The cache maintenance threshold should normally be lower than this; confirm healtharchive-frontend-cache-maintenance.timer is enabled, verify its max-bytes setting, or run the cache maintenance script during a safe window."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/disk-baseline-and-cleanup.md"
 
       - alert: HealthArchiveFrontendCacheMaintenanceFailed
