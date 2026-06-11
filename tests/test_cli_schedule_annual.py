@@ -4,6 +4,8 @@ import sys
 from io import StringIO
 from pathlib import Path
 
+import pytest
+
 from ha_backend import cli as cli_module
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
@@ -39,6 +41,22 @@ def _run_cli(args_list: list[str]) -> str:
     return stdout.getvalue()
 
 
+def test_schedule_annual_apply_requires_storage_policy_ack(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(tmp_path / "jobs"))
+
+    with get_session() as session:
+        seed_sources(session)
+
+    with pytest.raises(SystemExit) as exc:
+        _run_cli(["schedule-annual", "--year", "2027", "--apply"])
+
+    assert exc.value.code == 1
+
+    with get_session() as session:
+        assert session.query(ArchiveJob).count() == 0
+
+
 def test_schedule_annual_dry_run_does_not_create_jobs(tmp_path, monkeypatch) -> None:
     _init_test_db(tmp_path, monkeypatch)
     monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(tmp_path / "jobs"))
@@ -60,7 +78,7 @@ def test_schedule_annual_apply_creates_jobs_ordered_and_labeled(tmp_path, monkey
     with get_session() as session:
         seed_sources(session)
 
-    _run_cli(["schedule-annual", "--year", "2027", "--apply"])
+    _run_cli(["schedule-annual", "--year", "2027", "--apply", "--ack-storage-policy"])
 
     with get_session() as session:
         jobs = session.query(ArchiveJob).order_by(ArchiveJob.id).all()
@@ -90,6 +108,17 @@ def test_schedule_annual_apply_creates_jobs_ordered_and_labeled(tmp_path, monkey
             assert cfg.get("campaign_date") == "2027-01-01"
             assert cfg.get("campaign_date_utc") == "2027-01-01T00:00:00Z"
             assert cfg.get("scheduler_version") == "v1"
+            storage_policy = cfg.get("annual_storage_policy")
+            assert storage_policy is not None
+            assert storage_policy["operator_acknowledged"] is True
+            assert storage_policy["large_media_policy"] == (
+                "exclude_or_cap_unless_explicitly_required"
+            )
+            assert "mp4" in storage_policy["large_media_extensions"]
+            assert "mp3" in storage_policy["large_media_extensions"]
+            assert storage_policy["replay_requirement"] == (
+                "rebuild_replay_indexes_after_warc_replacement"
+            )
             assert cfg.get("seeds")
             assert cfg.get("zimit_passthrough_args") is not None
             assert cfg.get("tool_options") is not None
@@ -105,8 +134,8 @@ def test_schedule_annual_apply_is_idempotent(tmp_path, monkeypatch) -> None:
     with get_session() as session:
         seed_sources(session)
 
-    _run_cli(["schedule-annual", "--year", "2027", "--apply"])
-    _run_cli(["schedule-annual", "--year", "2027", "--apply"])
+    _run_cli(["schedule-annual", "--year", "2027", "--apply", "--ack-storage-policy"])
+    _run_cli(["schedule-annual", "--year", "2027", "--apply", "--ack-storage-policy"])
 
     with get_session() as session:
         assert session.query(ArchiveJob).count() == 3
@@ -124,7 +153,7 @@ def test_schedule_annual_skips_source_with_active_job(tmp_path, monkeypatch) -> 
     with get_session() as session:
         create_job_for_source("hc", session=session)
 
-    _run_cli(["schedule-annual", "--year", "2027", "--apply"])
+    _run_cli(["schedule-annual", "--year", "2027", "--apply", "--ack-storage-policy"])
 
     with get_session() as session:
         jobs = session.query(ArchiveJob).order_by(ArchiveJob.id).all()
@@ -145,7 +174,17 @@ def test_schedule_annual_respects_max_create_per_run(tmp_path, monkeypatch) -> N
     with get_session() as session:
         seed_sources(session)
 
-    _run_cli(["schedule-annual", "--year", "2027", "--apply", "--max-create-per-run", "1"])
+    _run_cli(
+        [
+            "schedule-annual",
+            "--year",
+            "2027",
+            "--apply",
+            "--ack-storage-policy",
+            "--max-create-per-run",
+            "1",
+        ]
+    )
 
     with get_session() as session:
         jobs = session.query(ArchiveJob).order_by(ArchiveJob.id).all()

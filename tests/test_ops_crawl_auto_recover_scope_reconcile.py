@@ -8,6 +8,7 @@ from typing import Any
 from ha_backend.job_registry import (
     HC_CANADA_CA_SCOPE_EXCLUDE_RX,
     HC_CANADA_CA_SCOPE_INCLUDE_RX,
+    LARGE_MEDIA_BLOCK_RULE_RX,
     PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
     PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
 )
@@ -53,7 +54,12 @@ def test_compute_scope_args_rewrites_legacy_hc_scope() -> None:
         "--scopeExcludeRx",
         HC_CANADA_CA_SCOPE_EXCLUDE_RX,
     ]
-    assert normalized[6:] == ["--customFlag", "value"]
+    assert normalized[6:] == [
+        "--blockRules",
+        LARGE_MEDIA_BLOCK_RULE_RX,
+        "--customFlag",
+        "value",
+    ]
 
 
 def test_compute_scope_args_noop_when_phac_scope_is_canonical() -> None:
@@ -65,6 +71,8 @@ def test_compute_scope_args_noop_when_phac_scope_is_canonical() -> None:
         PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
         "--scopeExcludeRx",
         PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+        "--blockRules",
+        LARGE_MEDIA_BLOCK_RULE_RX,
     ]
     job = ArchiveJob(
         name="phac-20260101",

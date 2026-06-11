@@ -43,6 +43,10 @@ Recently closed items:
   - Current state: completed. The staged compacted WARC set was promoted after
     parse validation, replay indexes were rebuilt, replay smoke returned `200`,
     and the pre-compaction rollback copy was removed after verification.
+  - Prevention follow-up: annual scheduling now requires an explicit
+    storage/media-policy acknowledgement in apply mode, managed source profiles
+    include large-media URL block rules, and annual job configs retain the
+    acknowledged storage policy.
   - Public-safe policy follow-up:
     `../decisions/2026-06-11-annual-crawl-media-retention-policy.md`
   - Remaining product work: keep the reusable promotion/original-retention
@@ -93,6 +97,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Annual crawl storage guardrails:
+  `implemented/2026-06-11-annual-crawl-storage-guardrails.md`
 - WARC compaction staging: `implemented/2026-06-05-warc-compaction-staging.md`
 - Public search and CIHR follow-through:
   `implemented/2026-05-05-public-search-and-cihr-followthrough.md`

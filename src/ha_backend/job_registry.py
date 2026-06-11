@@ -18,6 +18,49 @@ from .config import get_archive_tool_config
 from .models import ArchiveJob as ORMArchiveJob
 from .models import Source
 
+DOCUMENT_BINARY_EXTENSIONS: tuple[str, ...] = (
+    "doc",
+    "docx",
+    "pdf",
+    "ppt",
+    "pptx",
+    "xls",
+    "xlsx",
+    "zip",
+)
+LARGE_MEDIA_EXTENSIONS: tuple[str, ...] = (
+    "3g2",
+    "3gp",
+    "aac",
+    "aif",
+    "aiff",
+    "avi",
+    "flac",
+    "m3u8",
+    "m4a",
+    "m4v",
+    "mkv",
+    "mov",
+    "mp3",
+    "mp4",
+    "mpeg",
+    "mpg",
+    "oga",
+    "ogg",
+    "ogv",
+    "opus",
+    "ts",
+    "wav",
+    "webm",
+    "wmv",
+)
+_DOCUMENT_BINARY_EXTENSIONS_RX = "(?:" + "|".join(DOCUMENT_BINARY_EXTENSIONS) + ")"
+_LARGE_MEDIA_EXTENSIONS_RX = "(?:" + "|".join(LARGE_MEDIA_EXTENSIONS) + ")"
+_CRAWL_COSTLY_BINARY_EXTENSIONS_RX = (
+    f"(?:{_DOCUMENT_BINARY_EXTENSIONS_RX}|{_LARGE_MEDIA_EXTENSIONS_RX})"
+)
+LARGE_MEDIA_BLOCK_RULE_RX = rf".*[.]{_LARGE_MEDIA_EXTENSIONS_RX}(?:[?#].*)?$"
+
 HC_CANADA_CA_SCOPE_INCLUDE_RX = (
     r"^https://www[.]canada[.]ca/"
     r"(?:"
@@ -70,7 +113,7 @@ CIHR_SCOPE_INCLUDE_RX = (
 # still be captured as subresources from crawled HTML pages, but avoiding direct
 # page navigation to them reduces timeout thrashing substantially.
 _CANADA_CA_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY = (
-    r"https://www[.]canada[.]ca/.*[.](?:pdf|mp4|zip|docx?|pptx?|xlsx?)(?:[?#].*)?"
+    rf"https://www[.]canada[.]ca/.*[.]{_CRAWL_COSTLY_BINARY_EXTENSIONS_RX}(?:[?#].*)?"
 )
 # The deployed zimit image currently forwards ``--extraChromeArgs`` into its
 # warc2zim preflight check, which causes immediate RC=2 failures before crawl
@@ -104,7 +147,9 @@ _PHAC_CANADIAN_IMMUNIZATION_GUIDE_EXCLUDE_RX_BODY = (
     r"https://www[.]canada[.]ca/en/public-health/services/canadian-immunization-guide"
     r"(?:/[^?#]*)?(?:[?#].*)?"
 )
-_CIHR_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY = r"https://cihr-irsc[.]gc[.]ca/.*[.](?:pdf|mp4|zip|docx?|pptx?|xlsx?|avi|m4a|mov|mp3|ogg|wav|webm)(?:[?#].*)?"
+_CIHR_BINARY_TOP_LEVEL_EXCLUDE_RX_BODY = (
+    rf"https://cihr-irsc[.]gc[.]ca/.*[.]{_CRAWL_COSTLY_BINARY_EXTENSIONS_RX}(?:[?#].*)?"
+)
 _CIHR_ASL_VIDEO_EXCLUDE_RX_BODY = (
     r"https://cihr-irsc[.]gc[.]ca/(?:[^?#]*/)?asl-video(?:/[^?#]*)?(?:[?#].*)?"
 )
@@ -155,6 +200,7 @@ def normalize_scope_passthrough_args(
     *,
     scope_include_rx: str,
     scope_exclude_rx: str,
+    block_rules: Iterable[str] = (),
     extra_chrome_args: Iterable[str] = (),
     remove_extra_chrome_args: Iterable[str] = (),
 ) -> list[str]:
@@ -166,6 +212,7 @@ def normalize_scope_passthrough_args(
     ``--extraChromeArgs`` values are preserved after the canonical ones.
     """
     remaining: list[str] = []
+    existing_block_rules: list[str] = []
     existing_extra_chrome_args: list[str] = []
     raw_args = [str(arg) for arg in args]
     i = 0
@@ -173,6 +220,13 @@ def normalize_scope_passthrough_args(
         tok = raw_args[i]
         if tok in {"--scopeType", "--scopeIncludeRx", "--scopeExcludeRx"}:
             i += 2 if (i + 1) < len(raw_args) else 1
+            continue
+        if tok == "--blockRules":
+            if (i + 1) < len(raw_args):
+                existing_block_rules.append(raw_args[i + 1])
+                i += 2
+            else:
+                i += 1
             continue
         if tok == "--extraChromeArgs":
             if (i + 1) < len(raw_args):
@@ -195,6 +249,14 @@ def normalize_scope_passthrough_args(
         seen_extra_chrome_args.add(value)
         normalized_extra_chrome_args.extend(["--extraChromeArgs", value])
 
+    normalized_block_rules: list[str] = []
+    seen_block_rules: set[str] = set()
+    for value in [*(str(arg) for arg in block_rules), *existing_block_rules]:
+        if value in seen_block_rules:
+            continue
+        seen_block_rules.add(value)
+        normalized_block_rules.extend(["--blockRules", value])
+
     return [
         "--scopeType",
         "custom",
@@ -202,6 +264,7 @@ def normalize_scope_passthrough_args(
         scope_include_rx,
         "--scopeExcludeRx",
         scope_exclude_rx,
+        *normalized_block_rules,
         *normalized_extra_chrome_args,
         *remaining,
     ]
@@ -227,6 +290,7 @@ def reconcile_scope_passthrough_args(
         existing_args,
         scope_include_rx=include_rx,
         scope_exclude_rx=exclude_rx,
+        block_rules=(LARGE_MEDIA_BLOCK_RULE_RX,),
         extra_chrome_args=extra_chrome_args,
         remove_extra_chrome_args=remove_extra_chrome_args,
     )
@@ -238,6 +302,10 @@ def _canonical_extra_chrome_passthrough_tokens() -> list[str]:
     for value in _CANADA_CA_EXTRA_CHROME_ARGS:
         tokens.extend(["--extraChromeArgs", value])
     return tokens
+
+
+def _canonical_large_media_block_rule_tokens() -> list[str]:
+    return ["--blockRules", LARGE_MEDIA_BLOCK_RULE_RX]
 
 
 @dataclass
@@ -279,6 +347,7 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             HC_CANADA_CA_SCOPE_INCLUDE_RX,
             "--scopeExcludeRx",
             HC_CANADA_CA_SCOPE_EXCLUDE_RX,
+            *_canonical_large_media_block_rule_tokens(),
             *_canonical_extra_chrome_passthrough_tokens(),
         ],
         default_tool_options={
@@ -327,6 +396,7 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
             "--scopeExcludeRx",
             PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+            *_canonical_large_media_block_rule_tokens(),
             *_canonical_extra_chrome_passthrough_tokens(),
         ],
         default_tool_options={
@@ -373,6 +443,7 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             CIHR_SCOPE_INCLUDE_RX,
             "--scopeExcludeRx",
             CIHR_SCOPE_EXCLUDE_RX,
+            *_canonical_large_media_block_rule_tokens(),
         ],
         default_tool_options={
             "cleanup": False,
@@ -583,6 +654,9 @@ def create_job_for_source(
 
 
 __all__ = [
+    "DOCUMENT_BINARY_EXTENSIONS",
+    "LARGE_MEDIA_EXTENSIONS",
+    "LARGE_MEDIA_BLOCK_RULE_RX",
     "SourceJobConfig",
     "SOURCE_JOB_CONFIGS",
     "get_config_for_source",

@@ -639,7 +639,8 @@ Plan or enqueue Jan 01 (UTC) annual campaign jobs for `hc`, `phac`, and `cihr`.
 
 **Usage**:
 ```bash
-healtharchive schedule-annual --year YEAR [--sources hc phac cihr] [--apply]
+healtharchive schedule-annual --year YEAR [--sources hc phac cihr]
+healtharchive schedule-annual --year YEAR --apply --ack-storage-policy
 ```
 
 **Examples**:
@@ -648,13 +649,25 @@ healtharchive schedule-annual --year YEAR [--sources hc phac cihr] [--apply]
 healtharchive schedule-annual --year 2026
 
 # Actually create jobs
-healtharchive schedule-annual --year 2026 --apply
+healtharchive schedule-annual --year 2026 --apply --ack-storage-policy
 ```
 
 **Notes**:
 - Dry-run by default
+- `--apply` requires `--ack-storage-policy`, confirming that annual storage
+  budget, large-media policy, and replay requirements were reviewed before jobs
+  are queued.
+- Annual job configs persist an `annual_storage_policy` block for provenance.
 - Idempotent for annual campaign metadata/name matches
 - Refuses to enqueue when a source already has an active non-indexed job
+- Managed annual source profiles use crawl scope exclusions plus Browsertrix
+  `--blockRules` for large audio/video URLs. Scope exclusions keep matching
+  URLs out of the page frontier; block rules prevent matching embedded media
+  requests from being loaded during page capture.
+- The current managed profiles still avoid direct navigation to binary
+  document URLs that historically caused crawl timeouts. That is a separate
+  throughput safeguard from large-media blocking and should be reviewed during
+  the source/year storage-policy acknowledgement.
 
 ### annual-status
 

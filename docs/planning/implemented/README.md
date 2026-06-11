@@ -4,6 +4,7 @@ This folder contains **historical implementation plans** that have already been 
 
 Implemented plans:
 
+- `2026-06-11-annual-crawl-storage-guardrails.md`
 - `2026-06-05-warc-compaction-staging.md`
 - `2026-05-05-public-search-and-cihr-followthrough.md`
 - `2026-04-29-annual-edition-recovery-handoff-docs.md`

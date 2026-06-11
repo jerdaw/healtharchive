@@ -16,7 +16,8 @@ repository.
 
 ## Decision
 
-- Preserve HTML pages, documents, and normal page-rendering assets by default.
+- Preserve HTML pages, in-scope documents, and normal page-rendering assets by
+  default.
 - Exclude or cap large video and audio captures unless a source/year plan
   explicitly says those media assets are required.
 - Treat annual crawl storage budgets, source-specific media policy, and replay
@@ -59,6 +60,13 @@ future years without quietly trading away replay reliability.
 ## Verification / rollout
 
 - Managed source crawl profiles should encode source-specific scope filters.
+- Managed source crawl profiles should use media URL block rules for large
+  audio/video extensions so embedded media requests are not loaded during page
+  capture unless explicitly required.
+- Large-media block rules should not become broad document block rules;
+  document capture policy remains part of each source/year scope review.
+- `schedule-annual --apply` should require operator acknowledgement that the
+  annual storage budget, media policy, and replay requirements were reviewed.
 - Tests should cover query-variant suppression and large-media exclusions for
   managed annual sources.
 - Post-crawl storage reports should compare actual WARC size against the
@@ -69,6 +77,7 @@ future years without quietly trading away replay reliability.
 ## References
 
 - Related code: `src/ha_backend/job_registry.py`
-- Related tests: `tests/test_job_registry.py`
+- Related tests: `tests/test_job_registry.py`,
+  `tests/test_cli_schedule_annual.py`
 - Related CLI: `healtharchive compact-warcs`
 - Related planning: `docs/planning/roadmap.md`

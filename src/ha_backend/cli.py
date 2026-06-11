@@ -47,7 +47,12 @@ from .config import (
 )
 from .db import get_engine, get_session
 from .indexing import index_job
-from .job_registry import create_job_for_source, reconcile_scope_passthrough_args
+from .job_registry import (
+    DOCUMENT_BINARY_EXTENSIONS,
+    LARGE_MEDIA_EXTENSIONS,
+    create_job_for_source,
+    reconcile_scope_passthrough_args,
+)
 from .jobs import create_job, run_persistent_job
 from .logging_config import configure_logging
 from .seeds import seed_sources
@@ -58,6 +63,32 @@ from .worker import run_worker_loop
 # Subprocess timeouts for status commands
 SYSTEM_STATUS_CHECK_TIMEOUT_SEC = 5  # Timeout for systemctl and findmnt checks
 ANNUAL_SOURCES_ORDERED = ("hc", "phac", "cihr")
+ANNUAL_STORAGE_POLICY_VERSION = "2026-06-11"
+
+
+def _utc_timestamp(dt: datetime) -> str:
+    return dt.astimezone(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def _annual_storage_policy_config(
+    *, source_code: str, acknowledged_at: datetime
+) -> dict[str, object]:
+    return {
+        "version": ANNUAL_STORAGE_POLICY_VERSION,
+        "source_code": source_code,
+        "operator_acknowledged": True,
+        "acknowledged_at_utc": _utc_timestamp(acknowledged_at),
+        "preserve_by_default": [
+            "html_pages",
+            "documents_when_in_scope",
+            "page_rendering_assets",
+        ],
+        "large_media_policy": "exclude_or_cap_unless_explicitly_required",
+        "large_media_extensions": list(LARGE_MEDIA_EXTENSIONS),
+        "document_binary_extensions": list(DOCUMENT_BINARY_EXTENSIONS),
+        "replay_requirement": "rebuild_replay_indexes_after_warc_replacement",
+    }
+
 
 # === Command implementations ===
 
@@ -935,6 +966,14 @@ def cmd_schedule_annual(args: argparse.Namespace) -> None:
     from .models import Source
 
     apply_mode = bool(getattr(args, "apply", False))
+    storage_policy_acknowledged = bool(getattr(args, "ack_storage_policy", False))
+    if apply_mode and not storage_policy_acknowledged:
+        print(
+            "ERROR: --apply requires --ack-storage-policy after reviewing annual "
+            "storage budget, large-media policy, and replay requirements.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     now = datetime.now(timezone.utc)
     year = getattr(args, "year", None)
@@ -1008,6 +1047,10 @@ def cmd_schedule_annual(args: argparse.Namespace) -> None:
     print(f"Campaign date:   {campaign_date} (Jan 01 UTC)")
     print(f"Sources:         {', '.join(sources_in_order) if sources_in_order else '(none)'}")
     print(f"Max creates:     {max_create_per_run}")
+    print(
+        "Storage policy: "
+        + ("acknowledged" if storage_policy_acknowledged else "review required before --apply")
+    )
     print(f"Archive root:    {tool_cfg.archive_root}")
     print("")
 
@@ -1103,6 +1146,10 @@ def cmd_schedule_annual(args: argparse.Namespace) -> None:
                     "campaign_date": campaign_date,
                     "campaign_date_utc": f"{campaign_date}T00:00:00Z",
                     "scheduler_version": "v1",
+                    "annual_storage_policy": _annual_storage_policy_config(
+                        source_code=source_code,
+                        acknowledged_at=scheduled_at,
+                    ),
                 }
             )
 
@@ -5803,6 +5850,15 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         default=False,
         help="Create queued ArchiveJob rows (otherwise dry-run only).",
+    )
+    p_schedule_annual.add_argument(
+        "--ack-storage-policy",
+        action="store_true",
+        default=False,
+        help=(
+            "Required with --apply: confirms annual storage budget, large-media "
+            "policy, and replay requirements were reviewed."
+        ),
     )
     p_schedule_annual.set_defaults(func=cmd_schedule_annual)
 

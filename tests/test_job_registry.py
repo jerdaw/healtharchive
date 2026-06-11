@@ -11,8 +11,11 @@ from ha_backend.db import Base, get_engine, get_session
 from ha_backend.job_registry import (
     CIHR_SCOPE_EXCLUDE_RX,
     CIHR_SCOPE_INCLUDE_RX,
+    DOCUMENT_BINARY_EXTENSIONS,
     HC_CANADA_CA_SCOPE_EXCLUDE_RX,
     HC_CANADA_CA_SCOPE_INCLUDE_RX,
+    LARGE_MEDIA_BLOCK_RULE_RX,
+    LARGE_MEDIA_EXTENSIONS,
     PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
     PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
     SOURCE_JOB_CONFIGS,
@@ -115,6 +118,8 @@ def test_get_config_for_source_known_sources() -> None:
         CIHR_SCOPE_INCLUDE_RX,
         "--scopeExcludeRx",
         CIHR_SCOPE_EXCLUDE_RX,
+        "--blockRules",
+        LARGE_MEDIA_BLOCK_RULE_RX,
     ]
     assert cihr_cfg.default_execution_policy == {
         "capture_backend": "browsertrix",
@@ -188,6 +193,8 @@ def test_reconcile_scope_passthrough_args_normalizes_cihr_scope() -> None:
         CIHR_SCOPE_INCLUDE_RX,
         "--scopeExcludeRx",
         CIHR_SCOPE_EXCLUDE_RX,
+        "--blockRules",
+        LARGE_MEDIA_BLOCK_RULE_RX,
         "--limit",
         "10",
     ]
@@ -205,6 +212,10 @@ def test_cihr_scope_filters_exclude_query_variants_and_media_frontier() -> None:
     assert exclude_rx.search("https://cihr-irsc.gc.ca/asl-video/sample.mp4")
     assert exclude_rx.search("https://cihr-irsc.gc.ca/e/asl-video/demo.html")
     assert exclude_rx.search("https://cihr-irsc.gc.ca/files/report.pdf")
+    for ext in LARGE_MEDIA_EXTENSIONS:
+        assert exclude_rx.search(f"https://cihr-irsc.gc.ca/media/example.{ext}")
+    for ext in DOCUMENT_BINARY_EXTENSIONS:
+        assert exclude_rx.search(f"https://cihr-irsc.gc.ca/files/example.{ext}")
 
 
 def test_reconcile_scope_passthrough_args_removes_legacy_managed_chrome_arg() -> None:
@@ -231,6 +242,8 @@ def test_reconcile_scope_passthrough_args_removes_legacy_managed_chrome_arg() ->
         PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
         "--scopeExcludeRx",
         PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+        "--blockRules",
+        LARGE_MEDIA_BLOCK_RULE_RX,
         "--extraChromeArgs",
         "--disable-quic",
     ]
@@ -358,12 +371,20 @@ def test_canada_ca_scope_regexes_match_expected_urls() -> None:
     assert hc_exclude_rx.match(
         "https://www.canada.ca/en/health-canada/services/example.zip?download=1"
     )
+    for ext in LARGE_MEDIA_EXTENSIONS:
+        assert hc_exclude_rx.match(
+            f"https://www.canada.ca/en/health-canada/services/media/example.{ext}"
+        )
     assert not hc_exclude_rx.match(
         "https://www.canada.ca/en/health-canada/services/drugs-health-products.html"
     )
     assert phac_exclude_rx.match(
         "https://www.canada.ca/en/public-health/services/publications/example.docx"
     )
+    for ext in LARGE_MEDIA_EXTENSIONS:
+        assert phac_exclude_rx.match(
+            f"https://www.canada.ca/en/public-health/services/media/example.{ext}"
+        )
     assert not phac_exclude_rx.match(
         "https://www.canada.ca/en/public-health/services/diseases/measles.html"
     )

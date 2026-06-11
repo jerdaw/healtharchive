@@ -184,10 +184,13 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Policy target: preserve HTML, documents, and normal page assets needed for
     replay; exclude or cap large video/audio captures unless explicitly
     required for the archive purpose.
-  - Current guardrail: managed source profiles already include CIHR query
-    variant suppression and large-media/top-level binary exclusions; the
-    remaining work is to make the storage-budget review a hard annual
-    scheduling gate.
+  - Current guardrail: managed source profiles include CIHR query-variant
+    suppression, shared large-media URL block rules, and top-level binary/media
+    exclusions; `schedule-annual --apply` also requires an explicit storage
+    policy acknowledgement and persists that policy in each annual job config.
+  - Remaining work: replace the acknowledgement-only gate with a concrete
+    source/year storage estimate, capacity target, and documented approval
+    record before jobs are queued.
   - Done when: new annual jobs cannot be queued without a documented storage
     budget, media policy, and operator acknowledgement when the estimate
     exceeds the current capacity target.

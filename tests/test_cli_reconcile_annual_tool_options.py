@@ -10,6 +10,7 @@ from ha_backend.db import Base, get_engine, get_session
 from ha_backend.job_registry import (
     CIHR_SCOPE_EXCLUDE_RX,
     CIHR_SCOPE_INCLUDE_RX,
+    LARGE_MEDIA_BLOCK_RULE_RX,
     PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
     PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
     SOURCE_JOB_CONFIGS,
@@ -330,6 +331,8 @@ def test_reconcile_annual_tool_options_applies_canonical_scope_filters_for_phac(
             PHAC_CANADA_CA_SCOPE_INCLUDE_RX,
             "--scopeExcludeRx",
             PHAC_CANADA_CA_SCOPE_EXCLUDE_RX,
+            "--blockRules",
+            LARGE_MEDIA_BLOCK_RULE_RX,
             "--extraChromeArgs",
             "--disable-quic",
             "--customFlag",
@@ -385,6 +388,8 @@ def test_reconcile_annual_tool_options_applies_canonical_scope_filters_for_cihr(
             CIHR_SCOPE_INCLUDE_RX,
             "--scopeExcludeRx",
             CIHR_SCOPE_EXCLUDE_RX,
+            "--blockRules",
+            LARGE_MEDIA_BLOCK_RULE_RX,
             "--customFlag",
             "value",
         ]
