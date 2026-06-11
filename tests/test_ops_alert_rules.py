@@ -23,6 +23,14 @@ def _extract_alert_block(text: str, alert_name: str) -> str:
     return match.group("body")
 
 
+def _assert_pushover_notify(body: str) -> None:
+    assert re.search(r"^\s*notify:\s*pushover\s*$", body, re.MULTILINE)
+
+
+def _assert_no_pushover_notify(body: str) -> None:
+    assert not re.search(r"^\s*notify:\s*pushover\s*$", body, re.MULTILINE)
+
+
 def test_alert_rule_names_are_unique() -> None:
     text = _rules_text()
 
@@ -58,6 +66,16 @@ def test_crawl_rate_alerts_removed_in_favor_of_dashboard_signals() -> None:
     assert "HealthArchiveCrawlNewPhaseChurn" not in names
 
 
+def test_backend_scrape_down_is_dashboard_only_with_external_uptime_paging() -> None:
+    text = _rules_text()
+    body = _extract_alert_block(text, "HealthArchiveBackendScrapeDown")
+
+    assert 'up{job="healtharchive_backend"} == 0' in body
+    assert re.search(r"^\s*for:\s*60m\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*critical\s*$", body, re.MULTILINE)
+    _assert_no_pushover_notify(body)
+
+
 def test_storage_hotpath_apply_failed_persistent_alert_semantics() -> None:
     text = _rules_text()
     body = _extract_alert_block(text, "HealthArchiveStorageHotpathApplyFailedPersistent")
@@ -70,7 +88,8 @@ def test_storage_hotpath_apply_failed_persistent_alert_semantics() -> None:
         in body
     )
     assert re.search(r"^\s*for:\s*30m\s*$", body, re.MULTILINE)
-    assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*critical\s*$", body, re.MULTILINE)
+    _assert_pushover_notify(body)
 
 
 def test_root_disk_and_backup_cache_alerts_exist() -> None:
@@ -87,12 +106,16 @@ def test_root_disk_and_backup_cache_alerts_exist() -> None:
 
     assert 'node_filesystem_avail_bytes{mountpoint="/"' in root_critical
     assert ")) > 88" in root_critical
-    assert re.search(r"^\s*for:\s*10m\s*$", root_critical, re.MULTILINE)
+    assert re.search(r"^\s*for:\s*30m\s*$", root_critical, re.MULTILINE)
     assert re.search(r"^\s*severity:\s*critical\s*$", root_critical, re.MULTILINE)
+    _assert_pushover_notify(root_critical)
 
     assert "healtharchive_db_backup_local_bytes > 8589934592" in backup_cache
     assert re.search(r"^\s*for:\s*30m\s*$", backup_cache, re.MULTILINE)
     assert "healtharchive_db_backup_last_success == 0" in backup_failed
+    assert re.search(r"^\s*for:\s*24h\s*$", backup_failed, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*critical\s*$", backup_failed, re.MULTILINE)
+    _assert_pushover_notify(backup_failed)
 
 
 def test_docker_runtime_and_frontend_cache_alerts_exist() -> None:
@@ -122,11 +145,14 @@ def test_search_error_alert_aggregates_process_local_metrics() -> None:
     body = _extract_alert_block(text, "HealthArchiveSearchErrorsSustained")
 
     assert "sum by (job, instance)" in body
-    assert 'healtharchive_search_errors_by_type{type=~"server|timeout|unknown"}[15m]' in body
-    assert "increase(healtharchive_search_requests_total[15m])" in body
+    assert 'healtharchive_search_errors_by_type{type=~"server|timeout|unknown"}[60m]' in body
+    assert "increase(healtharchive_search_requests_total[60m])" in body
+    assert ">= 50" in body
+    assert ">= 500" in body
     assert "increase(healtharchive_search_errors_total[15m])" not in body
-    assert re.search(r"^\s*for:\s*10m\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*for:\s*30m\s*$", body, re.MULTILINE)
     assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
+    _assert_no_pushover_notify(body)
 
 
 def test_idle_transaction_alert_catches_pool_exhaustion_precursor() -> None:
@@ -136,7 +162,8 @@ def test_idle_transaction_alert_catches_pool_exhaustion_precursor() -> None:
     assert 'pg_stat_activity_count{datname="healtharchive",state="idle in transaction"}' in body
     assert "> 20" in body
     assert re.search(r"^\s*for:\s*10m\s*$", body, re.MULTILINE)
-    assert re.search(r"^\s*severity:\s*critical\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
+    _assert_no_pushover_notify(body)
 
 
 def test_annual_output_dir_not_writable_alert_semantics() -> None:
@@ -192,8 +219,9 @@ def test_worker_down_alert_is_automation_aware() -> None:
     assert "healtharchive_worker_auto_start_last_run_timestamp_seconds" in body
     assert "healtharchive_worker_auto_start_deploy_lock_present == 0" in body
     assert "absent(healtharchive_worker_auto_start_enabled)" in body
-    assert re.search(r"^\s*for:\s*20m\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*for:\s*60m\s*$", body, re.MULTILINE)
     assert re.search(r"^\s*severity:\s*critical\s*$", body, re.MULTILINE)
+    _assert_pushover_notify(body)
 
 
 def test_crawl_output_dir_unreadable_excludes_errno_107() -> None:
@@ -202,7 +230,37 @@ def test_crawl_output_dir_unreadable_excludes_errno_107() -> None:
 
     assert "healtharchive_crawl_running_job_output_dir_ok == 0" in body
     assert "healtharchive_crawl_running_job_output_dir_errno != 107" in body
-    assert re.search(r"^\s*for:\s*2m\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*for:\s*30m\s*$", body, re.MULTILINE)
+    _assert_pushover_notify(body)
+
+
+def test_pushover_pages_are_explicit_and_warnings_do_not_page() -> None:
+    text = _rules_text()
+    expected_pushover = {
+        "HealthArchiveDiskUsageCritical",
+        "HealthArchiveRootDiskUsageCritical",
+        "HealthArchiveDbBackupFailed",
+        "HealthArchiveWorkerDownWhileJobsPending",
+        "HealthArchiveCrawlOutputDirUnreadable",
+        "HealthArchiveStorageBoxMountDown",
+        "HealthArchiveStorageHotpathStaleUnrecovered",
+        "HealthArchiveStorageHotpathApplyFailedPersistent",
+        "HealthArchiveTieringHotPathUnreadable",
+        "HealthArchiveWarcTieringFailed",
+        "HealthArchiveAnnualCampaignSentinelFailed",
+        "HealthArchiveAnnualCampaignSentinelMissing",
+    }
+
+    found_pushover: set[str] = set()
+    for match in re.finditer(r"(?m)^\s*-\s*alert:\s*(\S+)\s*$", text):
+        name = match.group(1)
+        body = _extract_alert_block(text, name)
+        if re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE):
+            _assert_no_pushover_notify(body)
+        if re.search(r"^\s*notify:\s*pushover\s*$", body, re.MULTILINE):
+            found_pushover.add(name)
+
+    assert found_pushover == expected_pushover
 
 
 def test_watchdog_metrics_freshness_alerts_exist() -> None:

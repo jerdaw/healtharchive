@@ -1,6 +1,6 @@
 # Decision: Reduce Crawl Alert Fatigue with Severity-Aware Routing and Threshold Tuning (2026-02-19)
 
-Status: accepted
+Status: superseded by `2026-06-11-solo-operator-alert-paging-policy.md`
 
 ## Context
 

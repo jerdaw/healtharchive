@@ -9,16 +9,20 @@ def _script_text() -> str:
     return script_path.read_text(encoding="utf-8")
 
 
-def test_alertmanager_routing_uses_severity_aware_receivers() -> None:
+def test_alertmanager_routing_pages_only_explicit_pushover_alerts() -> None:
     text = _script_text()
 
-    assert "receiver: healtharchive-webhook-noncritical" in text
-    assert '- severity="critical"' in text
-    assert "receiver: healtharchive-webhook-critical" in text
+    assert "receiver: healtharchive-null" in text
+    assert '- notify="pushover"' in text
+    assert "receiver: healtharchive-webhook-pushover" in text
+    assert '- severity="critical"' not in text
     assert "repeat_interval: 24h" in text
-    assert "repeat_interval: 6h" in text
-    assert "send_resolved: true" in text
+    assert "group_wait: 2m" in text
+    assert "group_interval: 30m" in text
+    assert "send_resolved: true" not in text
     assert "send_resolved: false" in text
+    assert "healtharchive-webhook-noncritical" not in text
+    assert "healtharchive-webhook-critical" not in text
 
 
 def test_alertmanager_unit_detection_dry_run_fallback_exists() -> None:

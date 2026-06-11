@@ -3,24 +3,24 @@ groups:
     rules:
       - alert: HealthArchiveBackendScrapeDown
         expr: up{job="healtharchive_backend"} == 0
-        for: 5m
+        for: 60m
         labels:
           severity: critical
           service: healtharchive
         annotations:
           summary: "HealthArchive backend metrics scrape is down"
-          description: "Prometheus cannot scrape /metrics from the backend for 5m. Check healtharchive-api.service and admin token config."
+          description: "Prometheus cannot scrape /metrics from the backend for 60m. This is a dashboard signal; external uptime monitoring is the paging authority for public availability."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/core/incident-response.md"
 
       - alert: HealthArchiveDbIdleTransactionsHigh
         expr: sum(pg_stat_activity_count{datname="healtharchive",state="idle in transaction"}) > 20
         for: 10m
         labels:
-          severity: critical
+          severity: warning
           service: healtharchive
         annotations:
           summary: "HealthArchive has too many idle DB transactions"
-          description: "More than 20 HealthArchive PostgreSQL sessions have been idle in transaction for 10m. This can exhaust the API SQLAlchemy pool and make /api/health and /metrics time out. Check public export/search traffic, recent API logs, and pg_stat_activity."
+          description: "More than 20 HealthArchive PostgreSQL sessions have been idle in transaction for 10m. This is a dashboard warning; public availability paging is handled by the external uptime monitor."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/monitoring-and-alerting.md"
 
       - alert: HealthArchiveDiskUsageHigh
@@ -53,9 +53,10 @@ groups:
         expr: |
           (100 - (node_filesystem_avail_bytes{mountpoint="__MOUNTPOINT__",fstype!~"tmpfs|overlay"} /
           node_filesystem_size_bytes{mountpoint="__MOUNTPOINT__",fstype!~"tmpfs|overlay"} * 100)) > 92
-        for: 10m
+        for: 30m
         labels:
           severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
           summary: "Disk usage > 92% on __MOUNTPOINT__"
@@ -66,9 +67,10 @@ groups:
         expr: |
           (100 - (node_filesystem_avail_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} /
           node_filesystem_size_bytes{mountpoint="/",fstype!~"tmpfs|overlay"} * 100)) > 88
-        for: 10m
+        for: 30m
         labels:
           severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
           summary: "Root disk usage > 88%"
@@ -88,13 +90,14 @@ groups:
 
       - alert: HealthArchiveDbBackupFailed
         expr: healtharchive_db_backup_last_success == 0
-        for: 30m
+        for: 24h
         labels:
-          severity: warning
+          severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
-          summary: "DB backup job failing"
-          description: "The repo-managed DB backup textfile metric reports the latest run failed. Check healtharchive-db-backup.service logs, Storage Box mount health, and root disk headroom."
+          summary: "DB backup job failing persistently"
+          description: "The repo-managed DB backup textfile metric reports the latest run failed for 24h. This is sustained enough to require operator attention."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/deployment/production-single-vps.md"
 
       - alert: HealthArchiveDockerRuntimeMetricsStale
@@ -145,22 +148,22 @@ groups:
         expr: |
           (
             sum by (job, instance) (
-              increase(healtharchive_search_errors_by_type{type=~"server|timeout|unknown"}[15m])
-            ) >= 3
+              increase(healtharchive_search_errors_by_type{type=~"server|timeout|unknown"}[60m])
+            ) >= 50
           )
           and
           (
             sum by (job, instance) (
-              increase(healtharchive_search_requests_total[15m])
-            ) >= 50
+              increase(healtharchive_search_requests_total[60m])
+            ) >= 500
           )
-        for: 10m
+        for: 30m
         labels:
           severity: warning
           service: healtharchive
         annotations:
           summary: "Sustained /api/search errors"
-          description: "At least 3 server/timeout/unknown search errors over 15m with meaningful traffic (>=50 requests). Investigate recent deploys, DB health, and logs."
+          description: "At least 50 server/timeout/unknown search errors over 60m with meaningful traffic (>=500 requests). This is dashboard-only; public availability paging is handled by the external uptime monitor."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/core/incident-response.md"
 
       - alert: HealthArchiveJobFailuresIncreased
@@ -204,22 +207,24 @@ groups:
             or healtharchive_worker_auto_start_enabled == 0
             or absent(healtharchive_worker_auto_start_enabled)
           )
-        for: 20m
+        for: 60m
         labels:
           severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
           summary: "Worker is down while crawl jobs are pending"
-          description: "There are pending crawl jobs (queued/retryable) and Storage Box appears readable, but healtharchive-worker.service is not active. When worker auto-start automation is enabled, this alert waits for repeated watchdog runs and suppresses while the deploy lock is active. Check worker logs, recent deploy activity, and watchdog state/metrics."
+          description: "There are pending crawl jobs (queued/retryable) and Storage Box appears readable, but healtharchive-worker.service has not been active for 60m. When worker auto-start automation is enabled, this alert waits for repeated watchdog runs and suppresses while the deploy lock is active."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
 
       - alert: HealthArchiveCrawlOutputDirUnreadable
         expr: |
           healtharchive_crawl_running_job_output_dir_ok == 0
           and healtharchive_crawl_running_job_output_dir_errno != 107
-        for: 2m
+        for: 30m
         labels:
           severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
           summary: "Running job output dir unreadable"
@@ -400,9 +405,10 @@ groups:
     rules:
       - alert: HealthArchiveStorageBoxMountDown
         expr: healtharchive_storagebox_mount_ok == 0
-        for: 2m
+        for: 60m
         labels:
           severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
           summary: "Storage Box mount is down (cold WARC tier unavailable)"
@@ -413,9 +419,10 @@ groups:
         expr: |
           healtharchive_storage_hotpath_auto_recover_enabled == 1
           and healtharchive_storage_hotpath_auto_recover_detected_targets > 0
-        for: 10m
+        for: 60m
         labels:
           severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
           summary: "Storage hot path stale/unrecovered (Errno 107 likely)"
@@ -430,7 +437,8 @@ groups:
           and (time() - healtharchive_storage_hotpath_auto_recover_last_apply_timestamp_seconds) > 86400
         for: 30m
         labels:
-          severity: warning
+          severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
           summary: "Storage hot-path auto-recover apply failed for >24h"
@@ -439,9 +447,10 @@ groups:
 
       - alert: HealthArchiveTieringHotPathUnreadable
         expr: healtharchive_tiering_hot_path_ok == 0
-        for: 2m
+        for: 60m
         labels:
           severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
           summary: "Tiering hot path unreadable (stale sshfs mount?)"
@@ -450,9 +459,10 @@ groups:
 
       - alert: HealthArchiveWarcTieringFailed
         expr: healtharchive_systemd_unit_failed{unit="healtharchive-warc-tiering.service"} == 1
-        for: 1m
+        for: 60m
         labels:
-          severity: warning
+          severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
           summary: "WARC tiering bind mounts failed"
@@ -478,9 +488,10 @@ groups:
           and (time() - healtharchive_annual_campaign_sentinel_last_run_timestamp_seconds) < 7200
           and on() month() == 1
           and on() day_of_month() == 1
-        for: 2m
+        for: 60m
         labels:
           severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
           summary: "Annual campaign sentinel failed (preflight/scheduling/tiering)"
@@ -502,6 +513,7 @@ groups:
         for: 1h
         labels:
           severity: critical
+          notify: pushover
           service: healtharchive
         annotations:
           summary: "Annual campaign sentinel did not run"

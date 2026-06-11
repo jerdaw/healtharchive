@@ -15,7 +15,9 @@ What this does (when run with --apply):
 - Configures Alertmanager to bind loopback only (127.0.0.1:9093)
 - Reads a single operator notification channel from:
     /etc/healtharchive/observability/alertmanager_webhook_url
-  and writes an Alertmanager config that routes all alerts to that receiver.
+  and writes an Alertmanager config that routes only alerts labeled
+  notify="pushover" to that receiver. Other alerts remain visible in
+  Prometheus/Alertmanager/Grafana without push delivery.
 - Installs HealthArchive alert rules into Prometheus:
     /etc/prometheus/rules/healtharchive-alerts.yml
   by copying the repo template and substituting __MOUNTPOINT__ (default: /).
@@ -52,7 +54,7 @@ Options:
 Verify:
   - Prometheus rules load: curl -s http://127.0.0.1:9090/api/v1/rules | head
   - Alertmanager up: curl -s http://127.0.0.1:9093/-/ready
-  - Test delivery with amtool (if installed): amtool alert add TestAlert severity=warning
+  - Test delivery with amtool (if installed): amtool alert add TestAlert severity=critical notify=pushover
 EOF
 }
 
@@ -213,9 +215,10 @@ global:
   resolve_timeout: 5m
 
 route:
-  # Default receiver is tuned for non-critical alerts (warning/info):
-  # lower-notification pressure, no resolved events.
-  receiver: healtharchive-webhook-noncritical
+  # Default receiver is intentionally quiet. Alerts remain visible in
+  # Prometheus/Alertmanager/Grafana unless a rule explicitly opts into paging
+  # with notify="pushover".
+  receiver: healtharchive-null
   group_by: ["alertname", "source", "job_id"]
   group_wait: 60s
   group_interval: 15m
@@ -230,14 +233,15 @@ route:
       group_wait: 0s
       group_interval: 1m
       repeat_interval: 1h
-    # Critical alerts stay high-urgency and include resolved notifications.
+    # Pushover is reserved for action-required alerts. Severity alone must not
+    # page the solo operator.
     - matchers:
-        - severity="critical"
-      receiver: healtharchive-webhook-critical
+        - notify="pushover"
+      receiver: healtharchive-webhook-pushover
       group_by: ["alertname", "source", "job_id"]
-      group_wait: 15s
-      group_interval: 5m
-      repeat_interval: 6h
+      group_wait: 2m
+      group_interval: 30m
+      repeat_interval: 24h
 
 inhibit_rules:
   - source_matchers:
@@ -253,11 +257,7 @@ inhibit_rules:
 
 receivers:
   - name: healtharchive-null
-  - name: healtharchive-webhook-critical
-    webhook_configs:
-      - url: ${webhook_url}
-        send_resolved: true
-  - name: healtharchive-webhook-noncritical
+  - name: healtharchive-webhook-pushover
     webhook_configs:
       - url: ${webhook_url}
         send_resolved: false

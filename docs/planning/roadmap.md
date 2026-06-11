@@ -296,6 +296,12 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Current focus: validate dashboard thresholds/visual cues and only promote a signal back into Alertmanager if it becomes clearly actionable.
   - Related docs: `../operations/monitoring-and-alerting.md`; private
     run-specific guidance in the private operations workspace.
+- Evaluate a low-noise alert digest for dashboard-only warnings.
+  - Context: the solo-operator paging policy keeps warning-level conditions out
+    of Pushover by default, but some trends may still deserve periodic review.
+  - Done when: either a daily/weekly digest exists for dashboard-only warning
+    summaries, or the operator explicitly decides that Grafana/Prometheus review
+    is sufficient without a digest.
 - Consider whether a separate staging backend is worth it (increases ops surface; only do if it buys real safety).
   - See: `../deployment/environments-and-configuration.md`
 

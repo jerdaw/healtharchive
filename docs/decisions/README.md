@@ -57,6 +57,7 @@ If a decision changes later, create a new decision record and mark the old one a
 
 ## Decision records
 
+- `2026-06-11-solo-operator-alert-paging-policy.md`
 - `2026-05-26-frontend-cache-externalization-and-docker-runtime-metrics.md`
 - `2026-05-24-db-backup-retention-and-nas-ingest.md`
 - `2026-04-28-annual-editions-and-sharded-crawl-convergence.md`
