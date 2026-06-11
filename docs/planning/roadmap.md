@@ -176,35 +176,27 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Done when: the private operations record captures the selected role for
     operator-owned cold storage, the restore path has been tested, and the
     public roadmap/user-facing docs avoid private network and host details.
-- Annual crawl storage budget gate.
-  - Scope: add a pre-run storage review for each source/year covering estimated
-    WARC growth, allowed content types, large-media caps, query-parameter
-    normalization, replay requirements, and source-specific hot-retention
-    limits.
-  - Policy target: preserve HTML, documents, and normal page assets needed for
-    replay; exclude or cap large video/audio captures unless explicitly
-    required for the archive purpose.
-  - Current guardrail: managed source profiles include CIHR query-variant
-    suppression, shared large-media URL block rules, and top-level binary/media
-    exclusions; `schedule-annual --apply` also requires an explicit storage
-    policy acknowledgement and persists that policy in each annual job config.
-  - Remaining work: replace the acknowledgement-only gate with a concrete
-    source/year storage estimate, capacity target, and documented approval
-    record before jobs are queued.
-  - Done when: new annual jobs cannot be queued without a documented storage
-    budget, media policy, and operator acknowledgement when the estimate
-    exceeds the current capacity target.
-- Productized compacted WARC promotion and original-retention lifecycle.
-  - Context: the 2026 CIHR WARC set was manually compacted, promoted, replay
-    reindexed, smoke-tested, and cleaned up after validation. The reusable path
-    should not depend on ad hoc file operations.
-  - Scope: after a staged WARC compaction passes parse/replay validation,
-    promote compacted WARCs through a maintenance-window procedure, rebuild any
-    replay indexes that depend on WARC byte offsets, verify search/replay, and
-    retain or offload originals only for an agreed safety window.
-  - Done when: the CLI/runbook path can promote a compacted WARC set without
-    ad hoc file operations, records provenance for the replaced originals, and
-    updates private capacity ledgers after the safety window closes.
+- Annual storage budget estimate calibration.
+  - Implemented guardrail: `schedule-annual --apply` now requires both
+    `--ack-storage-policy` and `--storage-budget-file`; the JSON budget must
+    include source/year WARC estimates, capacity targets, large-media policy,
+    replay requirement, and approval timestamp for every selected source.
+  - Remaining work: maintain the detailed estimate inputs, host capacity
+    tables, and approval notes in the private operations workspace before each
+    annual campaign; tune future estimates using observed WARC growth.
+  - Done when: two consecutive annual/quarterly planning cycles have private
+    budget records that match observed storage outcomes closely enough to
+    support reliable capacity planning.
+- Post-promotion original-retention and capacity-ledger discipline.
+  - Implemented guardrail: `promote-compacted-warcs` validates staged compaction
+    artifacts, promotes compacted WARCs with a rollback directory, and records
+    provenance; it intentionally requires replay reindex acknowledgement.
+  - Remaining work: keep the private capacity ledger updated after each
+    promotion and decide whether pre-promotion originals are deleted, offloaded,
+    or retained after the validation window.
+  - Done when: each compaction promotion has a private retention decision,
+    capacity ledger update, replay validation result, and rollback cleanup or
+    offload record.
 
 ### Crawling & indexing reliability (backend)
 

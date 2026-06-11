@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import sys
 from io import StringIO
 from pathlib import Path
@@ -41,6 +42,34 @@ def _run_cli(args_list: list[str]) -> str:
     return stdout.getvalue()
 
 
+def _write_storage_budget(tmp_path: Path, *, year: int = 2027) -> Path:
+    path = tmp_path / "annual-storage-budget.json"
+    path.write_text(
+        json.dumps(
+            {
+                "version": 1,
+                "campaign_year": year,
+                "sources": {
+                    source: {
+                        "estimated_warc_gib": estimate,
+                        "capacity_target_gib": 250,
+                        "large_media_policy": "exclude_or_cap_unless_explicitly_required",
+                        "replay_requirement": "rebuild_replay_indexes_after_warc_replacement",
+                        "approval": {
+                            "reviewed_at_utc": f"{year - 1}-12-15T00:00:00Z",
+                            "note": "test budget",
+                        },
+                    }
+                    for source, estimate in {"hc": 60, "phac": 60, "cihr": 140}.items()
+                },
+            }
+        )
+        + "\n",
+        encoding="utf-8",
+    )
+    return path
+
+
 def test_schedule_annual_apply_requires_storage_policy_ack(tmp_path, monkeypatch) -> None:
     _init_test_db(tmp_path, monkeypatch)
     monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(tmp_path / "jobs"))
@@ -50,6 +79,22 @@ def test_schedule_annual_apply_requires_storage_policy_ack(tmp_path, monkeypatch
 
     with pytest.raises(SystemExit) as exc:
         _run_cli(["schedule-annual", "--year", "2027", "--apply"])
+
+    assert exc.value.code == 1
+
+    with get_session() as session:
+        assert session.query(ArchiveJob).count() == 0
+
+
+def test_schedule_annual_apply_requires_storage_budget_file(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    monkeypatch.setenv("HEALTHARCHIVE_ARCHIVE_ROOT", str(tmp_path / "jobs"))
+
+    with get_session() as session:
+        seed_sources(session)
+
+    with pytest.raises(SystemExit) as exc:
+        _run_cli(["schedule-annual", "--year", "2027", "--apply", "--ack-storage-policy"])
 
     assert exc.value.code == 1
 
@@ -78,7 +123,18 @@ def test_schedule_annual_apply_creates_jobs_ordered_and_labeled(tmp_path, monkey
     with get_session() as session:
         seed_sources(session)
 
-    _run_cli(["schedule-annual", "--year", "2027", "--apply", "--ack-storage-policy"])
+    budget_path = _write_storage_budget(tmp_path)
+    _run_cli(
+        [
+            "schedule-annual",
+            "--year",
+            "2027",
+            "--apply",
+            "--ack-storage-policy",
+            "--storage-budget-file",
+            str(budget_path),
+        ]
+    )
 
     with get_session() as session:
         jobs = session.query(ArchiveJob).order_by(ArchiveJob.id).all()
@@ -111,6 +167,8 @@ def test_schedule_annual_apply_creates_jobs_ordered_and_labeled(tmp_path, monkey
             storage_policy = cfg.get("annual_storage_policy")
             assert storage_policy is not None
             assert storage_policy["operator_acknowledged"] is True
+            assert storage_policy["storage_budget"]["estimated_warc_gib"] > 0
+            assert storage_policy["storage_budget"]["capacity_target_gib"] == 250
             assert storage_policy["large_media_policy"] == (
                 "exclude_or_cap_unless_explicitly_required"
             )
@@ -134,8 +192,18 @@ def test_schedule_annual_apply_is_idempotent(tmp_path, monkeypatch) -> None:
     with get_session() as session:
         seed_sources(session)
 
-    _run_cli(["schedule-annual", "--year", "2027", "--apply", "--ack-storage-policy"])
-    _run_cli(["schedule-annual", "--year", "2027", "--apply", "--ack-storage-policy"])
+    budget_path = _write_storage_budget(tmp_path)
+    base_args = [
+        "schedule-annual",
+        "--year",
+        "2027",
+        "--apply",
+        "--ack-storage-policy",
+        "--storage-budget-file",
+        str(budget_path),
+    ]
+    _run_cli(base_args)
+    _run_cli(base_args)
 
     with get_session() as session:
         assert session.query(ArchiveJob).count() == 3
@@ -153,7 +221,18 @@ def test_schedule_annual_skips_source_with_active_job(tmp_path, monkeypatch) -> 
     with get_session() as session:
         create_job_for_source("hc", session=session)
 
-    _run_cli(["schedule-annual", "--year", "2027", "--apply", "--ack-storage-policy"])
+    budget_path = _write_storage_budget(tmp_path)
+    _run_cli(
+        [
+            "schedule-annual",
+            "--year",
+            "2027",
+            "--apply",
+            "--ack-storage-policy",
+            "--storage-budget-file",
+            str(budget_path),
+        ]
+    )
 
     with get_session() as session:
         jobs = session.query(ArchiveJob).order_by(ArchiveJob.id).all()
@@ -174,6 +253,7 @@ def test_schedule_annual_respects_max_create_per_run(tmp_path, monkeypatch) -> N
     with get_session() as session:
         seed_sources(session)
 
+    budget_path = _write_storage_budget(tmp_path)
     _run_cli(
         [
             "schedule-annual",
@@ -181,6 +261,8 @@ def test_schedule_annual_respects_max_create_per_run(tmp_path, monkeypatch) -> N
             "2027",
             "--apply",
             "--ack-storage-policy",
+            "--storage-budget-file",
+            str(budget_path),
             "--max-create-per-run",
             "1",
         ]

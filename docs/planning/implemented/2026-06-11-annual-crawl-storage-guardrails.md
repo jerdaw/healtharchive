@@ -48,3 +48,6 @@ review.
 The basic guardrail is implemented. The roadmap still tracks a richer annual
 storage-budget gate that requires a concrete source/year size estimate,
 capacity target, and documented approval record before jobs are queued.
+
+Follow-up: the repo-side budget-file gate was implemented in
+`2026-06-11-storage-budget-and-warc-promotion-hardening.md`.

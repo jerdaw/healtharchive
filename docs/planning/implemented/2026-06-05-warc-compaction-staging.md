@@ -36,3 +36,6 @@ workflow.
 No follow-up roadmap item is required for the staging command itself. Any future
 production replacement workflow should be planned separately because this command
 intentionally stops at staging.
+
+Follow-up: the repo-side promotion command was implemented in
+`2026-06-11-storage-budget-and-warc-promotion-hardening.md`.

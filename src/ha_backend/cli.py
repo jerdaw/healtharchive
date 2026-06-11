@@ -24,6 +24,7 @@ See also:
 
 import argparse
 import json
+import os
 import re
 import subprocess  # nosec: B404 - controlled CLI invocation of external tool
 import sys
@@ -64,6 +65,7 @@ from .worker import run_worker_loop
 SYSTEM_STATUS_CHECK_TIMEOUT_SEC = 5  # Timeout for systemctl and findmnt checks
 ANNUAL_SOURCES_ORDERED = ("hc", "phac", "cihr")
 ANNUAL_STORAGE_POLICY_VERSION = "2026-06-11"
+ANNUAL_STORAGE_BUDGET_VERSION = 1
 
 
 def _utc_timestamp(dt: datetime) -> str:
@@ -71,9 +73,12 @@ def _utc_timestamp(dt: datetime) -> str:
 
 
 def _annual_storage_policy_config(
-    *, source_code: str, acknowledged_at: datetime
+    *,
+    source_code: str,
+    acknowledged_at: datetime,
+    storage_budget: dict[str, object] | None = None,
 ) -> dict[str, object]:
-    return {
+    payload: dict[str, object] = {
         "version": ANNUAL_STORAGE_POLICY_VERSION,
         "source_code": source_code,
         "operator_acknowledged": True,
@@ -88,6 +93,122 @@ def _annual_storage_policy_config(
         "document_binary_extensions": list(DOCUMENT_BINARY_EXTENSIONS),
         "replay_requirement": "rebuild_replay_indexes_after_warc_replacement",
     }
+    if storage_budget is not None:
+        payload["storage_budget"] = storage_budget
+    return payload
+
+
+def _load_annual_storage_budget(
+    path: Path,
+    *,
+    year: int,
+    sources: Sequence[str],
+) -> dict[str, dict[str, object]]:
+    """
+    Load and validate the public-safe annual source/year storage budget file.
+
+    The file is expected to be maintained in private operations material. The
+    scheduler only persists the per-source budget values into job config; it
+    does not need to know private host paths or capacity ledgers.
+    """
+
+    try:
+        raw = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        print(f"ERROR: Storage budget file not found: {path}", file=sys.stderr)
+        sys.exit(1)
+    except json.JSONDecodeError as exc:
+        print(f"ERROR: Storage budget file is not valid JSON: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    if not isinstance(raw, dict):
+        print("ERROR: Storage budget file root must be a JSON object.", file=sys.stderr)
+        sys.exit(1)
+
+    version = raw.get("version")
+    if version != ANNUAL_STORAGE_BUDGET_VERSION:
+        print(
+            f"ERROR: Storage budget file version must be {ANNUAL_STORAGE_BUDGET_VERSION}.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    campaign_year = raw.get("campaign_year")
+    if campaign_year != year:
+        print(
+            f"ERROR: Storage budget campaign_year={campaign_year!r} does not match --year {year}.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    source_budgets = raw.get("sources")
+    if not isinstance(source_budgets, dict):
+        print("ERROR: Storage budget file must include a sources object.", file=sys.stderr)
+        sys.exit(1)
+
+    required_policy = "exclude_or_cap_unless_explicitly_required"
+    required_replay = "rebuild_replay_indexes_after_warc_replacement"
+    budgets: dict[str, dict[str, object]] = {}
+    for source_code in sources:
+        budget = source_budgets.get(source_code)
+        if not isinstance(budget, dict):
+            print(
+                f"ERROR: Storage budget is missing required source {source_code!r}.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        estimated_gib = budget.get("estimated_warc_gib")
+        capacity_target_gib = budget.get("capacity_target_gib")
+        try:
+            estimated_float = float(estimated_gib)  # type: ignore[arg-type]
+            target_float = float(capacity_target_gib)  # type: ignore[arg-type]
+        except (TypeError, ValueError):
+            print(
+                f"ERROR: Storage budget for {source_code} must include numeric "
+                "estimated_warc_gib and capacity_target_gib.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        if estimated_float <= 0 or target_float <= 0:
+            print(
+                f"ERROR: Storage budget for {source_code} must use positive GiB estimates.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if estimated_float > target_float:
+            print(
+                f"ERROR: Storage budget for {source_code} estimates {estimated_float:g} GiB, "
+                f"above its capacity target {target_float:g} GiB.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        if budget.get("large_media_policy") != required_policy:
+            print(
+                f"ERROR: Storage budget for {source_code} must set large_media_policy={required_policy!r}.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        if budget.get("replay_requirement") != required_replay:
+            print(
+                f"ERROR: Storage budget for {source_code} must set replay_requirement={required_replay!r}.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        approval = budget.get("approval")
+        if not isinstance(approval, dict) or not str(approval.get("reviewed_at_utc") or "").strip():
+            print(
+                f"ERROR: Storage budget for {source_code} must include approval.reviewed_at_utc.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+
+        budgets[source_code] = dict(budget)
+
+    return budgets
 
 
 # === Command implementations ===
@@ -1015,6 +1136,22 @@ def cmd_schedule_annual(args: argparse.Namespace) -> None:
     requested_set = set(normalized_requested)
     sources_in_order = [s for s in annual_sources_ordered if s in requested_set]
 
+    storage_budget_file = getattr(args, "storage_budget_file", None)
+    storage_budgets: dict[str, dict[str, object]] = {}
+    if storage_budget_file:
+        storage_budgets = _load_annual_storage_budget(
+            Path(storage_budget_file).expanduser(),
+            year=year,
+            sources=sources_in_order,
+        )
+    elif apply_mode:
+        print(
+            "ERROR: --apply requires --storage-budget-file with a source/year storage "
+            "estimate, capacity target, media policy, replay requirement, and approval record.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     max_create_per_run = getattr(args, "max_create_per_run", None)
     if max_create_per_run is None:
         max_create_per_run = len(sources_in_order)
@@ -1051,6 +1188,7 @@ def cmd_schedule_annual(args: argparse.Namespace) -> None:
         "Storage policy: "
         + ("acknowledged" if storage_policy_acknowledged else "review required before --apply")
     )
+    print(f"Storage budget: {'loaded' if storage_budgets else 'required before --apply'}")
     print(f"Archive root:    {tool_cfg.archive_root}")
     print("")
 
@@ -1149,6 +1287,7 @@ def cmd_schedule_annual(args: argparse.Namespace) -> None:
                     "annual_storage_policy": _annual_storage_policy_config(
                         source_code=source_code,
                         acknowledged_at=scheduled_at,
+                        storage_budget=storage_budgets.get(source_code),
                     ),
                 }
             )
@@ -4536,6 +4675,274 @@ def cmd_compact_warcs(args: argparse.Namespace) -> None:
         print("Dry-run only. Re-run with --apply to write compacted WARCs to a staging directory.")
 
 
+def _safe_relative_path(value: object, *, label: str) -> Path:
+    raw = str(value or "").strip()
+    if not raw:
+        raise ValueError(f"{label} is missing")
+    rel = Path(raw)
+    if rel.is_absolute() or ".." in rel.parts:
+        raise ValueError(f"{label} must be a relative path without '..': {raw!r}")
+    return rel
+
+
+def _load_json_file(path: Path, *, label: str) -> dict[str, object]:
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise ValueError(f"{label} not found: {path}") from None
+    except json.JSONDecodeError as exc:
+        raise ValueError(f"{label} is invalid JSON: {exc}") from exc
+    if not isinstance(payload, dict):
+        raise ValueError(f"{label} must be a JSON object: {path}")
+    return payload
+
+
+def _write_json_file(path: Path, payload: dict[str, object]) -> None:
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp_path = path.with_suffix(path.suffix + ".tmp")
+    tmp_path.write_text(json.dumps(payload, indent=2, sort_keys=True) + "\n", encoding="utf-8")
+    os.replace(tmp_path, path)
+
+
+def cmd_promote_compacted_warcs(args: argparse.Namespace) -> None:
+    """
+    Promote a staged compacted WARC set to a job's live stable warcs/ directory.
+
+    This command intentionally stops before replay reindexing and original
+    cleanup. Promotion changes WARC byte offsets, so operators must run
+    replay-index-job and replay/search smoke checks before deleting the rollback
+    copy.
+    """
+    from datetime import datetime, timezone
+
+    from .archive_storage import (
+        WARC_MANIFEST_FILENAME,
+        get_job_provenance_dir,
+        get_job_warcs_dir,
+    )
+    from .models import ArchiveJob as ORMArchiveJob
+
+    job_id = int(args.id)
+    apply_mode = bool(args.apply)
+    confirm_replay = bool(args.confirm_replay_reindex_required)
+    staging_dir = Path(args.staging_dir).expanduser().resolve()
+
+    if apply_mode and not confirm_replay:
+        print(
+            "ERROR: --apply requires --confirm-replay-reindex-required. "
+            "Promotion changes WARC byte offsets; replay indexes must be rebuilt after promotion.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
+    with get_session() as session:
+        job = session.get(ORMArchiveJob, job_id)
+        if job is None:
+            print(f"ERROR: Job {job_id} not found.", file=sys.stderr)
+            sys.exit(1)
+        if job.status != "indexed":
+            print(
+                f"ERROR: Refusing to promote WARCs for job {job_id} with status={job.status!r}; expected 'indexed'.",
+                file=sys.stderr,
+            )
+            sys.exit(1)
+        output_dir = Path(job.output_dir).resolve()
+
+    live_warcs_dir = get_job_warcs_dir(output_dir).resolve()
+    manifest_path = staging_dir / WARC_MANIFEST_FILENAME
+    report_path = staging_dir / "compaction-report.json"
+
+    errors: list[str] = []
+    manifest: dict[str, object] = {}
+    report: dict[str, object] = {}
+    entries: list[dict[str, object]] = []
+    staged_warcs: list[tuple[Path, Path, int]] = []
+
+    if not output_dir.is_dir():
+        errors.append(f"Output directory is missing: {output_dir}")
+    if not live_warcs_dir.is_dir():
+        errors.append(f"Live WARCs directory is missing: {live_warcs_dir}")
+    if not staging_dir.is_dir():
+        errors.append(f"Staging directory is missing: {staging_dir}")
+
+    if not errors:
+        try:
+            manifest = _load_json_file(manifest_path, label="Replacement manifest")
+            report = _load_json_file(report_path, label="Compaction report")
+        except ValueError as exc:
+            errors.append(str(exc))
+
+    if not errors:
+        if manifest.get("compaction_profile") != "replay-no-large-media":
+            errors.append("Replacement manifest has an unexpected or missing compaction_profile.")
+        if (
+            str(manifest.get("output_dir") or "")
+            and Path(str(manifest["output_dir"])).resolve() != output_dir
+        ):
+            errors.append(
+                f"Replacement manifest output_dir does not match job output_dir: {manifest.get('output_dir')}"
+            )
+
+        if report.get("dryRun") is not False:
+            errors.append("Compaction report must come from apply mode (dryRun=false).")
+        if report.get("jobId") != job_id:
+            errors.append(f"Compaction report jobId does not match --id {job_id}.")
+        if report.get("requiredRecordsMissing") not in ([], None):
+            errors.append("Compaction report contains requiredRecordsMissing entries.")
+        if report.get("requiredRecordsFound") != report.get("requiredRecordsTotal"):
+            errors.append("Compaction report did not find all required snapshot records.")
+
+        raw_entries = manifest.get("entries")
+        if not isinstance(raw_entries, list) or not raw_entries:
+            errors.append("Replacement manifest must contain at least one entry.")
+        else:
+            entries = [dict(entry) for entry in raw_entries if isinstance(entry, dict)]
+            if len(entries) != len(raw_entries):
+                errors.append("Replacement manifest entries must all be objects.")
+
+    if not errors:
+        expected_report_files = report.get("files")
+        if isinstance(expected_report_files, list) and len(expected_report_files) != len(entries):
+            errors.append(
+                f"Compaction report files count ({len(expected_report_files)}) does not match manifest entries ({len(entries)})."
+            )
+
+        seen_names: set[str] = set()
+        for entry in entries:
+            try:
+                rel = _safe_relative_path(entry.get("stable_name"), label="stable_name")
+            except ValueError as exc:
+                errors.append(str(exc))
+                continue
+            stable_name = rel.as_posix()
+            if stable_name in seen_names:
+                errors.append(f"Duplicate stable_name in replacement manifest: {stable_name}")
+                continue
+            seen_names.add(stable_name)
+
+            staged_path = staging_dir / rel
+            live_path = live_warcs_dir / rel
+            if not staged_path.is_file():
+                errors.append(f"Staged WARC is missing: {staged_path}")
+                continue
+            actual_size = staged_path.stat().st_size
+            expected_size = entry.get("size_bytes")
+            if not isinstance(expected_size, int) or expected_size <= 0:
+                errors.append(f"Manifest entry has invalid size_bytes for {stable_name}.")
+            elif actual_size != expected_size:
+                errors.append(
+                    f"Staged WARC size mismatch for {stable_name}: manifest={expected_size} actual={actual_size}"
+                )
+            if not live_path.is_file():
+                errors.append(f"Live WARC being replaced is missing: {live_path}")
+            staged_warcs.append((staged_path, rel, actual_size))
+
+    rollback_dir = (
+        Path(args.rollback_dir).expanduser().resolve()
+        if args.rollback_dir
+        else output_dir
+        / f"warcs_original_precompact_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    )
+    promoted_tmp_dir = (
+        output_dir / f".warcs_promote_{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}"
+    )
+
+    if rollback_dir.exists():
+        errors.append(f"Rollback directory already exists: {rollback_dir}")
+    if promoted_tmp_dir.exists():
+        errors.append(f"Promotion temp directory already exists: {promoted_tmp_dir}")
+    if not errors and apply_mode:
+        try:
+            if staging_dir.stat().st_dev != output_dir.stat().st_dev:
+                errors.append(
+                    "Staging directory and output directory are on different filesystems; "
+                    "refusing to copy large WARC files implicitly."
+                )
+        except OSError as exc:
+            errors.append(f"Could not compare staging/output filesystems: {exc}")
+
+    original_size_value = report.get("originalSizeBytes")
+    compacted_size_value = report.get("compactedSizeBytes")
+    original_bytes = original_size_value if isinstance(original_size_value, int) else 0
+    compacted_bytes = compacted_size_value if isinstance(compacted_size_value, int) else 0
+
+    print("Promote compacted WARCs")
+    print("-----------------------")
+    print(f"Job ID:          {job_id}")
+    print(f"Mode:            {'APPLY' if apply_mode else 'DRY-RUN'}")
+    print(f"Output dir:      {output_dir}")
+    print(f"Live WARCs:      {live_warcs_dir}")
+    print(f"Staging dir:     {staging_dir}")
+    print(f"Rollback dir:    {rollback_dir}")
+    print(f"Staged WARCs:    {len(staged_warcs)}")
+    if original_bytes:
+        print(f"Original bytes:  {_format_gib(original_bytes)}")
+    if compacted_bytes:
+        print(f"Compacted bytes: {_format_gib(compacted_bytes)}")
+        print(f"Estimated saved: {_format_gib(original_bytes - compacted_bytes)}")
+    print("")
+
+    if errors:
+        print("Validation failed:", file=sys.stderr)
+        for error in errors:
+            print(f"- {error}", file=sys.stderr)
+        sys.exit(1)
+
+    if not apply_mode:
+        print("Validation passed.")
+        print("Dry-run only. Re-run with --apply --confirm-replay-reindex-required to promote.")
+        return
+
+    promoted_tmp_dir.mkdir(parents=True)
+    try:
+        for staged_path, rel, _size in staged_warcs:
+            dest = promoted_tmp_dir / rel
+            dest.parent.mkdir(parents=True, exist_ok=True)
+            staged_path.rename(dest)
+        manifest_path.rename(promoted_tmp_dir / WARC_MANIFEST_FILENAME)
+
+        live_warcs_dir.rename(rollback_dir)
+        try:
+            promoted_tmp_dir.rename(live_warcs_dir)
+        except Exception:
+            rollback_dir.rename(live_warcs_dir)
+            raise
+    except Exception as exc:
+        print(f"ERROR: Promotion failed: {exc}", file=sys.stderr)
+        print(f"Promotion temp dir: {promoted_tmp_dir}", file=sys.stderr)
+        print(f"Rollback dir:       {rollback_dir}", file=sys.stderr)
+        sys.exit(1)
+
+    provenance_dir = get_job_provenance_dir(output_dir)
+    promotion_record = {
+        "version": 1,
+        "jobId": job_id,
+        "promotedAtUtc": datetime.now(timezone.utc).replace(microsecond=0).isoformat(),
+        "stagingDir": str(staging_dir),
+        "liveWarcsDir": str(live_warcs_dir),
+        "rollbackDir": str(rollback_dir),
+        "warcCount": len(staged_warcs),
+        "originalSizeBytes": original_bytes,
+        "compactedSizeBytes": compacted_bytes,
+        "replayReindexRequired": True,
+        "compactionReportPath": str(report_path),
+    }
+    record_path = (
+        provenance_dir
+        / f"warc-promotion-{datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%SZ')}.json"
+    )
+    _write_json_file(record_path, promotion_record)
+
+    print("Promotion complete.")
+    print(f"Rollback copy:      {rollback_dir}")
+    print(f"Promotion record:   {record_path}")
+    print("")
+    print("Next required operator steps:")
+    print(f"  healtharchive replay-index-job --id {job_id}")
+    print("  run replay/search smoke checks")
+    print("  delete or offload rollback copy only after validation passes")
+
+
 def cmd_replay_index_job(args: argparse.Namespace) -> None:
     """
     Create or refresh a pywb replay collection for an existing ArchiveJob.
@@ -5860,6 +6267,13 @@ def build_parser() -> argparse.ArgumentParser:
             "policy, and replay requirements were reviewed."
         ),
     )
+    p_schedule_annual.add_argument(
+        "--storage-budget-file",
+        help=(
+            "Required with --apply: JSON file containing source/year storage "
+            "estimates, capacity targets, media policy, replay requirement, and approval."
+        ),
+    )
     p_schedule_annual.set_defaults(func=cmd_schedule_annual)
 
     # annual-status
@@ -6675,6 +7089,46 @@ def build_parser() -> argparse.ArgumentParser:
         help="Only compact the first N discovered WARCs (debugging/sampling).",
     )
     p_compact_warcs.set_defaults(func=cmd_compact_warcs)
+
+    # promote-compacted-warcs
+    p_promote_warcs = subparsers.add_parser(
+        "promote-compacted-warcs",
+        help=(
+            "Promote staged compacted WARCs into a job's live warcs/ directory. "
+            "Dry-run by default; apply creates a rollback directory and requires replay reindex acknowledgement."
+        ),
+    )
+    p_promote_warcs.add_argument(
+        "--id",
+        type=int,
+        required=True,
+        help="ArchiveJob ID whose staged compacted WARCs should be promoted.",
+    )
+    p_promote_warcs.add_argument(
+        "--staging-dir",
+        required=True,
+        help="Staging directory produced by compact-warcs --apply.",
+    )
+    p_promote_warcs.add_argument(
+        "--rollback-dir",
+        help=(
+            "Optional rollback directory for the current live warcs/. Defaults to "
+            "<output_dir>/warcs_original_precompact_<timestamp>."
+        ),
+    )
+    p_promote_warcs.add_argument(
+        "--apply",
+        action="store_true",
+        default=False,
+        help="Promote staged WARCs. Default is validation-only dry-run.",
+    )
+    p_promote_warcs.add_argument(
+        "--confirm-replay-reindex-required",
+        action="store_true",
+        default=False,
+        help="Required with --apply: confirms replay indexes will be rebuilt after promotion.",
+    )
+    p_promote_warcs.set_defaults(func=cmd_promote_compacted_warcs)
 
     # replay-index-job
     p_replay_index = subparsers.add_parser(

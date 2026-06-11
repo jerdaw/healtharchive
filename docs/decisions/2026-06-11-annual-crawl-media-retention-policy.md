@@ -65,8 +65,9 @@ future years without quietly trading away replay reliability.
   capture unless explicitly required.
 - Large-media block rules should not become broad document block rules;
   document capture policy remains part of each source/year scope review.
-- `schedule-annual --apply` should require operator acknowledgement that the
-  annual storage budget, media policy, and replay requirements were reviewed.
+- `schedule-annual --apply` should require both operator acknowledgement and a
+  structured source/year storage budget file covering media policy, replay
+  requirements, capacity target, and approval timestamp.
 - Tests should cover query-variant suppression and large-media exclusions for
   managed annual sources.
 - Post-crawl storage reports should compare actual WARC size against the
@@ -79,5 +80,6 @@ future years without quietly trading away replay reliability.
 - Related code: `src/ha_backend/job_registry.py`
 - Related tests: `tests/test_job_registry.py`,
   `tests/test_cli_schedule_annual.py`
-- Related CLI: `healtharchive compact-warcs`
+- Related CLI: `healtharchive compact-warcs`,
+  `healtharchive promote-compacted-warcs`, `healtharchive schedule-annual`
 - Related planning: `docs/planning/roadmap.md`

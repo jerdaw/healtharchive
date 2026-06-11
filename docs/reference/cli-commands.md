@@ -29,7 +29,7 @@ healtharchive --help
 | **Job Management** | `create-job`, `run-db-job`, `index-job`, `reconcile-completed-indexing`, `register-job-dir` |
 | **Direct Execution** | `run-job` |
 | **Inspection** | `list-jobs`, `show-job` |
-| **Maintenance** | `retry-job`, `reset-retry-count`, `cleanup-job`, `reset-crawl-state`, `compact-warcs`, `replay-index-job` |
+| **Maintenance** | `retry-job`, `reset-retry-count`, `cleanup-job`, `reset-crawl-state`, `compact-warcs`, `promote-compacted-warcs`, `replay-index-job` |
 | **Annual Campaign** | `schedule-annual`, `annual-status`, `salvage-annual-edition`, `plan-annual-shards`, `annual-edition-report`, `accept-annual-shard-gap`, `reconcile-annual-tool-options` |
 | **Seeding** | `seed-sources` |
 | **Worker** | `start-worker` |
@@ -567,6 +567,49 @@ healtharchive compact-warcs --id JOB_ID --apply --staging-dir <path>
 
 ---
 
+### promote-compacted-warcs
+
+Validate and promote a staged compacted WARC set into the job's live stable
+`warcs/` directory. The command is dry-run by default and never deletes the
+pre-promotion originals; apply mode renames the current live `warcs/` directory
+to a timestamped rollback directory, promotes the staged compacted WARCs, and
+writes a provenance record.
+
+**Usage**:
+```bash
+healtharchive promote-compacted-warcs --id JOB_ID --staging-dir <path>
+healtharchive promote-compacted-warcs --id JOB_ID --staging-dir <path> \
+  --apply --confirm-replay-reindex-required
+```
+
+**Arguments**:
+- `--id` (required) - Indexed job ID whose compacted WARCs should be promoted
+- `--staging-dir` (required) - Directory produced by `compact-warcs --apply`
+- `--rollback-dir` (optional) - Destination for the current live `warcs/`
+- `--apply` (optional) - Perform the promotion; default is validation-only
+- `--confirm-replay-reindex-required` (required with `--apply`) - Confirms the
+  operator will rebuild replay indexes after promotion
+
+**What it validates**:
+1. The job exists and is `indexed`.
+2. The staging directory has `manifest.json` and `compaction-report.json`.
+3. The compaction report is from apply mode and found all required snapshot
+   records.
+4. Every manifest entry has a staged WARC file with the expected size.
+5. Every replacement has a corresponding live WARC file.
+6. Apply mode refuses cross-filesystem promotion so large WARC files are not
+   copied implicitly.
+
+**Operational note**:
+- Run `replay-index-job --id JOB_ID` after promotion and verify replay/search
+  before deleting or offloading the rollback directory.
+
+**Exit codes**:
+- `0` - Validation or promotion completed
+- `1` - Validation failed or apply mode was missing required acknowledgement
+
+---
+
 ### replay-index-job
 
 Create/refresh pywb collection index for a job.
@@ -640,7 +683,8 @@ Plan or enqueue Jan 01 (UTC) annual campaign jobs for `hc`, `phac`, and `cihr`.
 **Usage**:
 ```bash
 healtharchive schedule-annual --year YEAR [--sources hc phac cihr]
-healtharchive schedule-annual --year YEAR --apply --ack-storage-policy
+healtharchive schedule-annual --year YEAR --apply --ack-storage-policy \
+  --storage-budget-file <path>
 ```
 
 **Examples**:
@@ -649,14 +693,16 @@ healtharchive schedule-annual --year YEAR --apply --ack-storage-policy
 healtharchive schedule-annual --year 2026
 
 # Actually create jobs
-healtharchive schedule-annual --year 2026 --apply --ack-storage-policy
+healtharchive schedule-annual --year 2026 --apply --ack-storage-policy \
+  --storage-budget-file annual-storage-budget-2026.json
 ```
 
 **Notes**:
 - Dry-run by default
-- `--apply` requires `--ack-storage-policy`, confirming that annual storage
-  budget, large-media policy, and replay requirements were reviewed before jobs
-  are queued.
+- `--apply` requires both `--ack-storage-policy` and `--storage-budget-file`.
+  The budget file must include a source/year WARC estimate, capacity target,
+  large-media policy, replay requirement, and approval timestamp for every
+  selected source.
 - Annual job configs persist an `annual_storage_policy` block for provenance.
 - Idempotent for annual campaign metadata/name matches
 - Refuses to enqueue when a source already has an active non-indexed job
@@ -668,6 +714,30 @@ healtharchive schedule-annual --year 2026 --apply --ack-storage-policy
   document URLs that historically caused crawl timeouts. That is a separate
   throughput safeguard from large-media blocking and should be reviewed during
   the source/year storage-policy acknowledgement.
+
+**Storage budget file shape**:
+```json
+{
+  "version": 1,
+  "campaign_year": 2027,
+  "sources": {
+    "hc": {
+      "estimated_warc_gib": 60,
+      "capacity_target_gib": 250,
+      "large_media_policy": "exclude_or_cap_unless_explicitly_required",
+      "replay_requirement": "rebuild_replay_indexes_after_warc_replacement",
+      "approval": {
+        "reviewed_at_utc": "2026-12-15T00:00:00Z",
+        "note": "Public-safe note or private reference"
+      }
+    }
+  }
+}
+```
+
+The private operations record may contain detailed estimate inputs, host
+capacity tables, and approval notes. The budget file consumed by this CLI
+should avoid private host paths and secrets.
 
 ### annual-status
 

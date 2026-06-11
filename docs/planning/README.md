@@ -97,6 +97,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Storage budget and WARC promotion hardening:
+  `implemented/2026-06-11-storage-budget-and-warc-promotion-hardening.md`
 - Annual crawl storage guardrails:
   `implemented/2026-06-11-annual-crawl-storage-guardrails.md`
 - WARC compaction staging: `implemented/2026-06-05-warc-compaction-staging.md`

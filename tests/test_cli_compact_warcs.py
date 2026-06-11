@@ -6,6 +6,7 @@ from datetime import datetime, timezone
 from io import StringIO
 from pathlib import Path
 
+import pytest
 from warcio.archiveiterator import ArchiveIterator
 from warcio.statusandheaders import StatusAndHeaders
 from warcio.warcwriter import WARCWriter
@@ -215,3 +216,120 @@ def test_compact_warcs_refuses_to_drop_snapshot_referenced_record(tmp_path, monk
         assert exc.code == 1
     else:  # pragma: no cover - defensive test failure path
         raise AssertionError("compact-warcs should refuse to drop a referenced record")
+
+
+def test_promote_compacted_warcs_dry_run_validates_without_replacing(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    job_id, warc_path, _html_record_id, _video_id = _seed_indexed_job_with_html_and_video(tmp_path)
+    staging_dir = tmp_path / "staged-compact"
+
+    _run_cli(
+        [
+            "compact-warcs",
+            "--id",
+            str(job_id),
+            "--apply",
+            "--staging-dir",
+            str(staging_dir),
+        ]
+    )
+
+    output = _run_cli(
+        ["promote-compacted-warcs", "--id", str(job_id), "--staging-dir", str(staging_dir)]
+    )
+
+    assert "Mode:            DRY-RUN" in output
+    assert "Validation passed." in output
+    assert warc_path.is_file()
+    assert (staging_dir / "warc-000001.warc.gz").is_file()
+
+
+def test_promote_compacted_warcs_apply_requires_replay_reindex_ack(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    job_id, _warc_path, _html_record_id, _video_id = _seed_indexed_job_with_html_and_video(tmp_path)
+    staging_dir = tmp_path / "staged-compact"
+
+    _run_cli(
+        [
+            "compact-warcs",
+            "--id",
+            str(job_id),
+            "--apply",
+            "--staging-dir",
+            str(staging_dir),
+        ]
+    )
+
+    parser = cli_module.build_parser()
+    parsed = parser.parse_args(
+        [
+            "promote-compacted-warcs",
+            "--id",
+            str(job_id),
+            "--staging-dir",
+            str(staging_dir),
+            "--apply",
+        ]
+    )
+    with pytest.raises(SystemExit) as exc:
+        parsed.func(parsed)
+
+    assert exc.value.code == 1
+
+
+def test_promote_compacted_warcs_apply_swaps_live_warcs_and_keeps_rollback(
+    tmp_path, monkeypatch
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    job_id, warc_path, html_record_id, _video_id = _seed_indexed_job_with_html_and_video(tmp_path)
+    output_dir = warc_path.parent.parent
+    staging_dir = tmp_path / "staged-compact"
+    rollback_dir = output_dir / "warcs_original_precompact_test"
+
+    _run_cli(
+        [
+            "compact-warcs",
+            "--id",
+            str(job_id),
+            "--apply",
+            "--staging-dir",
+            str(staging_dir),
+        ]
+    )
+    staged_size = (staging_dir / "warc-000001.warc.gz").stat().st_size
+
+    output = _run_cli(
+        [
+            "promote-compacted-warcs",
+            "--id",
+            str(job_id),
+            "--staging-dir",
+            str(staging_dir),
+            "--rollback-dir",
+            str(rollback_dir),
+            "--apply",
+            "--confirm-replay-reindex-required",
+        ]
+    )
+
+    assert "Promotion complete." in output
+    assert rollback_dir.is_dir()
+    assert (rollback_dir / "warc-000001.warc.gz").is_file()
+    assert warc_path.is_file()
+    assert warc_path.stat().st_size == staged_size
+    assert not (staging_dir / "warc-000001.warc.gz").exists()
+    assert (output_dir / "warcs" / "manifest.json").is_file()
+
+    response_types = []
+    html_ids = []
+    with warc_path.open("rb") as fh:
+        for record in ArchiveIterator(fh):
+            if record.rec_type != "response":
+                continue
+            ctype = record.http_headers.get_header("Content-Type") or ""
+            response_types.append(ctype.split(";", 1)[0].lower())
+            html_ids.append(record.rec_headers.get_header("WARC-Record-ID"))
+
+    assert response_types == ["text/html"]
+    assert html_record_id in html_ids
+    assert list((output_dir / "provenance").glob("warc-promotion-*.json"))
