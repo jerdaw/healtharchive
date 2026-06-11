@@ -143,7 +143,7 @@ def _normalize_tree(root: Tag, in_pre: bool = False) -> List[str]:
 def normalize_html_for_diff(html: str) -> DiffDocument:
     soup = BeautifulSoup(html, "html.parser")
     _strip_noise(soup, strip_chrome=True)
-    root = soup.find("main") or soup.find(attrs={"role": "main"}) or soup.body or soup
+    root = soup.find("main") or soup.find(role="main") or soup.body or soup
     if isinstance(root, NavigableString):
         root = root.parent or soup
     assert isinstance(root, Tag)

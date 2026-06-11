@@ -118,7 +118,7 @@ def _clean_soup_for_extraction(soup: BeautifulSoup) -> None:
 
     # Remove elements with boilerplate ARIA roles.
     for role in _BOILERPLATE_ARIA_ROLES:
-        for tag in soup.find_all(attrs={"role": role}):
+        for tag in soup.find_all(role=role):
             tag.decompose()
 
 
@@ -133,7 +133,7 @@ def _find_content_root(soup: BeautifulSoup) -> Tag | BeautifulSoup:
     4. Fall back to soup itself
     """
     # Prefer <main> or [role=main].
-    main = soup.find("main") or soup.find(attrs={"role": "main"})
+    main = soup.find("main") or soup.find(role="main")
     if isinstance(main, Tag):
         text = main.get_text(separator=" ", strip=True)
         if len(text) >= 100:
