@@ -402,13 +402,17 @@ Completed items were removed from this backlog and archived in:
        quota is constrained.
      - Scope: review workflow triggers, concurrency, artifact retention,
        frontend install/build cost, and manual-dispatch lanes so routine docs
-       or backend-only changes do not burn unnecessary CI minutes.
+       or backend-only changes do not burn unnecessary CI minutes. Include a
+       documented local-tooling path for optional commit-hook parity tools
+       such as secret scanning and repository hook runners, or document which
+       checks are CI-only when those tools are not installed locally.
      - Guardrail: do not move browser automation into the default local gate;
        keep browser/Playwright-style checks in GitHub CI or explicit debugging
        sessions.
      - Done when: `docs/development/testing-guidelines.md`, PR guidance, and
        workflow triggers describe the free-tier posture, and the required
-       branch checks still protect deployable code.
+       branch checks still protect deployable code without leaving local
+       validation gaps ambiguous.
 
 ### Documentation and operations maturity
 
