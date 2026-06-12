@@ -703,6 +703,12 @@ healtharchive schedule-annual --year 2026 --apply --ack-storage-policy \
   The budget file must include a source/year WARC estimate, capacity target,
   large-media policy, replay requirement, and approval timestamp for every
   selected source.
+- `--storage-budget-file` is a GiB capacity-planning envelope for the
+  already-approved storage available to the campaign. It is not a spending
+  approval. If a deployment has a zero-new-spend policy, the private operations
+  record should say that no additional paid storage is approved, and operators
+  should reduce scope/content or skip the campaign when projections no longer
+  fit inside already-paid capacity.
 - Annual job configs persist an `annual_storage_policy` block for provenance.
 - Idempotent for annual campaign metadata/name matches
 - Refuses to enqueue when a source already has an active non-indexed job
@@ -737,7 +743,9 @@ healtharchive schedule-annual --year 2026 --apply --ack-storage-policy \
 
 The private operations record may contain detailed estimate inputs, host
 capacity tables, and approval notes. The budget file consumed by this CLI
-should avoid private host paths and secrets.
+should avoid private host paths and secrets. Financial approvals remain outside
+the CLI contract; the scheduler only validates that positive per-source WARC
+estimates fit within the stated capacity targets.
 
 ### annual-status
 

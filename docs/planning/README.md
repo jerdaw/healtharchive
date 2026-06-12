@@ -35,7 +35,16 @@ Treat the following as the current "what's next" order across roadmap docs:
 
 Some plans are "implemented in repo" but still require a short, operator-run maintenance step on the VPS.
 
-Current known items: none.
+Current known items:
+
+- Zero-new-spend storage/baseline wrap-up retrospective:
+  - Timing: run about 24 hours after the production deploy and cache/baseline
+    maintenance window.
+  - Check: API health, Prometheus active alerts, Alertmanager active alerts,
+    replay smoke metrics for HC/PHAC/CIHR, and recent API logs for idle
+    transaction or usage-metric errors.
+  - Close when: no related alerts remain active and any private operations
+    notes/baseline records match the deployed state.
 
 Recently closed items:
 

@@ -14,6 +14,12 @@ describe retention intent and user-facing consequences, while private capacity
 tables, host wiring, and operator storage locations stay outside this
 repository.
 
+The current financial posture is no additional infrastructure or storage spend
+for annual crawls. Storage budget files are capacity-planning envelopes for
+already-approved capacity, not spending approvals. If projected WARC output no
+longer fits that capacity, the operator should reduce source scope/content or
+skip the campaign until a separate human decision changes the financial policy.
+
 ## Decision
 
 - Preserve HTML pages, in-scope documents, and normal page-rendering assets by
@@ -68,6 +74,8 @@ future years without quietly trading away replay reliability.
 - `schedule-annual --apply` should require both operator acknowledgement and a
   structured source/year storage budget file covering media policy, replay
   requirements, capacity target, and approval timestamp.
+- Private source/year storage budget records should document the zero-new-spend
+  decision separately from positive GiB capacity estimates.
 - Tests should cover query-variant suppression and large-media exclusions for
   managed annual sources.
 - Post-crawl storage reports should compare actual WARC size against the

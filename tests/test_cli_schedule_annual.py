@@ -49,6 +49,10 @@ def _write_storage_budget(tmp_path: Path, *, year: int = 2027) -> Path:
             {
                 "version": 1,
                 "campaign_year": year,
+                "financial_policy": {
+                    "additional_spend_cad": 0,
+                    "new_paid_storage_approved": False,
+                },
                 "sources": {
                     source: {
                         "estimated_warc_gib": estimate,
@@ -58,6 +62,11 @@ def _write_storage_budget(tmp_path: Path, *, year: int = 2027) -> Path:
                         "approval": {
                             "reviewed_at_utc": f"{year - 1}-12-15T00:00:00Z",
                             "note": "test budget",
+                        },
+                        "financial_policy": {
+                            "additional_spend_cad": 0,
+                            "new_paid_storage_approved": False,
+                            "already_paid_capacity_only": True,
                         },
                     }
                     for source, estimate in {"hc": 60, "phac": 60, "cihr": 140}.items()
@@ -169,6 +178,11 @@ def test_schedule_annual_apply_creates_jobs_ordered_and_labeled(tmp_path, monkey
             assert storage_policy["operator_acknowledged"] is True
             assert storage_policy["storage_budget"]["estimated_warc_gib"] > 0
             assert storage_policy["storage_budget"]["capacity_target_gib"] == 250
+            assert storage_policy["storage_budget"]["financial_policy"] == {
+                "additional_spend_cad": 0,
+                "new_paid_storage_approved": False,
+                "already_paid_capacity_only": True,
+            }
             assert storage_policy["large_media_policy"] == (
                 "exclude_or_cap_unless_explicitly_required"
             )

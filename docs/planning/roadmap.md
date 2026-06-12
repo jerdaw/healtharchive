@@ -151,7 +151,9 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 - Annual WARC capacity and storage-tier decision before the next campaign.
   - Context: the 2026 annual crawl showed that stable WARC storage can be
     dominated by accidentally retained large media, and that future annual
-    campaigns need an explicit storage budget before they are queued.
+    campaigns need an explicit storage budget before they are queued. Current
+    financial policy is no additional spend; the storage budget is a capacity
+    envelope for already-paid storage, not approval to buy more.
   - Scope:
     - define hot replay, warm archival, and cold/offsite backup tiers
     - compare hosted archival storage against operator-owned cold storage for
@@ -162,10 +164,10 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     - keep detailed capacity tables, host wiring, and private storage locations
       in the private operations workspace
   - Done when: the operator has chosen and documented one capacity path
-    (larger private archival storage tier, cold offload with replay impact
-    documented, or source/year hot-retention limits), the private operations
-    record reflects the chosen path, and public docs describe only the
-    user-facing retention policy before any new annual jobs are queued.
+    (cold offload with replay impact documented, source/year hot-retention
+    limits, or a separately approved paid-capacity change), the private
+    operations record reflects the chosen path, and public docs describe only
+    the user-facing retention policy before any new annual jobs are queued.
 - Operator-owned cold storage evaluation.
   - Scope: decide whether operator-owned storage should be used for cold WARC
     backups, pre-compaction originals, staged compaction outputs, disaster
@@ -181,6 +183,9 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     `--ack-storage-policy` and `--storage-budget-file`; the JSON budget must
     include source/year WARC estimates, capacity targets, large-media policy,
     replay requirement, and approval timestamp for every selected source.
+  - Current policy record: a private 2027 storage-budget record exists with
+    positive per-source GiB capacity estimates and a zero-additional-spend
+    policy note.
   - Remaining work: maintain the detailed estimate inputs, host capacity
     tables, and approval notes in the private operations workspace before each
     annual campaign; tune future estimates using observed WARC growth.
@@ -405,6 +410,18 @@ Completed items were removed from this backlog and archived in:
        workflow triggers describe the free-tier posture, and the required
        branch checks still protect deployable code without leaving local
        validation gaps ambiguous.
+25d. **Clean up historical secret-scan noise if full-history scans become a gate** (S: 1-2h)
+     - Context: staged secret scanning is part of local commit hygiene, while
+       full-history scans can surface old placeholder examples or generated
+       local-cache artifacts that need careful review instead of blanket
+       suppression.
+     - Scope: review any future `gitleaks detect` findings, remove or rewrite
+       true false positives where possible, and use a narrow documented
+       baseline only when preserving historical context is more appropriate
+       than history surgery.
+     - Done when: the chosen full-history scan posture is documented and either
+       runs clean or has a reviewed baseline that does not suppress real
+       secrets.
 
 ### Documentation and operations maturity
 
