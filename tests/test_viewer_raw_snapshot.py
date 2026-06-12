@@ -5,10 +5,12 @@ from io import BytesIO
 from pathlib import Path
 
 from fastapi.testclient import TestClient
+from sqlalchemy.orm import object_session
 from warcio.warcwriter import WARCWriter
 
 from archive_tool.playwright_warc_backend import run_playwright_warc_capture
 from ha_backend import db as db_module
+from ha_backend.api import routes_public
 from ha_backend.db import Base, get_engine, get_session
 from ha_backend.indexing.pipeline import index_job
 from ha_backend.indexing.viewer import find_record_for_snapshot
@@ -128,6 +130,64 @@ def test_raw_snapshot_route_serves_html(tmp_path, monkeypatch) -> None:
         snapshot_id = snap.id
 
     resp = client.get(f"/api/snapshots/raw/{snapshot_id}")
+    assert resp.status_code == 200
+    assert "Hello from WARC" in resp.text
+
+
+def test_raw_snapshot_releases_read_transaction_before_warc_lookup(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    warc_dir = tmp_path / "warcs"
+    warc_file = warc_dir / "test.warc.gz"
+    url = "https://example.org/page"
+    html_body = "<html><body><h1>Hello from WARC</h1></body></html>"
+    record_id = _write_test_warc(warc_file, url, html_body)
+
+    with get_session() as session:
+        src = Source(
+            code="test",
+            name="Test Source",
+            base_url="https://example.org",
+            description="Test",
+            enabled=True,
+        )
+        session.add(src)
+        session.flush()
+
+        snap = Snapshot(
+            job_id=None,
+            source_id=src.id,
+            url=url,
+            normalized_url_group=url,
+            capture_timestamp=datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc),
+            mime_type="text/html",
+            status_code=200,
+            title="Test Page",
+            snippet="Snippet",
+            language="en",
+            warc_path=str(warc_file),
+            warc_record_id=record_id,
+        )
+        session.add(snap)
+        session.flush()
+        snapshot_id = snap.id
+
+    original_find_record = routes_public.find_record_for_snapshot
+
+    def assert_transaction_released(snapshot: Snapshot):
+        session = object_session(snapshot)
+        assert session is not None
+        assert not session.in_transaction()
+        return original_find_record(snapshot)
+
+    monkeypatch.setattr(
+        routes_public,
+        "find_record_for_snapshot",
+        assert_transaction_released,
+    )
+
+    resp = client.get(f"/api/snapshots/raw/{snapshot_id}")
+
     assert resp.status_code == 200
     assert "Hello from WARC" in resp.text
 

@@ -3983,6 +3983,11 @@ def get_snapshot_raw(
             detail="Underlying WARC file for this snapshot is missing",
         )
 
+    # Release the read transaction before scanning WARC files. Some WARCs are
+    # large enough that keeping the request transaction open during replay can
+    # trip the database idle-in-transaction timeout before usage metrics write.
+    db.commit()
+
     record = find_record_for_snapshot(snap)
     if record is None:
         raise HTTPException(
