@@ -1627,10 +1627,13 @@ Design:
 The API route:
 
 - Validates that `Snapshot` and its `warc_path` exist.
-- Calls `find_record_for_snapshot(snapshot)`:
+- Copies the snapshot fields needed for replay and closes the request-scoped
+  database session before any WARC scan or large HTML rewrite.
+- For large WARCs, redirects to the indexed replay URL before opening the WARC.
+- For small WARCs, calls `find_record_for_snapshot_fields(...)`:
   - Returns an `ArchiveRecord` or `None`.
-- Decodes `record.body_bytes` as UTF‑8 with replacement.
-- Writes `HTMLResponse(content=html, media_type="text/html")`.
+  - Decodes `record.body_bytes` as UTF‑8 with replacement.
+  - Writes `HTMLResponse(content=html, media_type="text/html")`.
 
 This is used by the Next.js frontend for the embedded snapshot viewer.
 
