@@ -201,6 +201,72 @@ def test_raw_snapshot_releases_read_transaction_before_warc_lookup(tmp_path, mon
     assert "Hello from WARC" in resp.text
 
 
+def test_raw_snapshot_large_warc_redirects_to_replay(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+    monkeypatch.setenv("HEALTHARCHIVE_REPLAY_BASE_URL", "https://replay.example.test")
+    monkeypatch.setenv(
+        "HEALTHARCHIVE_REPLAY_COLLECTIONS_DIR",
+        str(tmp_path / "missing-replay-collections"),
+    )
+    monkeypatch.setattr(routes_public, "_RAW_SNAPSHOT_MAX_DIRECT_WARC_BYTES", 1)
+
+    warc_dir = tmp_path / "warcs"
+    warc_file = warc_dir / "test.warc.gz"
+    url = "https://example.org/page"
+    html_body = "<html><body><h1>Hello from WARC</h1></body></html>"
+    record_id = _write_test_warc(warc_file, url, html_body)
+
+    with get_session() as session:
+        src = Source(
+            code="test",
+            name="Test Source",
+            base_url="https://example.org",
+            description="Test",
+            enabled=True,
+        )
+        session.add(src)
+        session.flush()
+
+        job = ArchiveJob(
+            source_id=src.id,
+            name="test-job",
+            output_dir=str(tmp_path / "job-output"),
+            status="indexed",
+        )
+        session.add(job)
+        session.flush()
+
+        snap = Snapshot(
+            job_id=job.id,
+            source_id=src.id,
+            url=url,
+            normalized_url_group=url,
+            capture_timestamp=datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc),
+            mime_type="text/html",
+            status_code=200,
+            title="Test Page",
+            snippet="Snippet",
+            language="en",
+            warc_path=str(warc_file),
+            warc_record_id=record_id,
+        )
+        session.add(snap)
+        session.flush()
+        snapshot_id = snap.id
+        job_id = job.id
+
+    def fail_warc_lookup(**_kwargs):
+        raise AssertionError("large raw snapshot should redirect before WARC lookup")
+
+    monkeypatch.setattr(routes_public, "find_record_for_snapshot_fields", fail_warc_lookup)
+
+    resp = client.get(f"/api/snapshots/raw/{snapshot_id}", follow_redirects=False)
+
+    assert resp.status_code == 307
+    assert resp.headers["location"].startswith(f"https://replay.example.test/job-{job_id}/")
+    assert f"#ha_snapshot={snapshot_id}" in resp.headers["location"]
+
+
 def test_find_record_for_snapshot_prefers_exact_record_id_without_url_fallback(tmp_path) -> None:
     warc_file = tmp_path / "warcs" / "multi.warc.gz"
     url = "https://example.org/page"

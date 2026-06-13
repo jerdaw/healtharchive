@@ -15,7 +15,13 @@ from typing import Any, Dict, Iterable, Iterator, List, Optional, Sequence
 from urllib.parse import urlencode, urlsplit, urlunsplit
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, Response
-from fastapi.responses import FileResponse, HTMLResponse, JSONResponse, StreamingResponse
+from fastapi.responses import (
+    FileResponse,
+    HTMLResponse,
+    JSONResponse,
+    RedirectResponse,
+    StreamingResponse,
+)
 from sqlalchemy import String, and_, case, cast, func, inspect, literal, or_, text
 from sqlalchemy.orm import Session, joinedload, load_only
 
@@ -173,6 +179,10 @@ _PG_TRGM_EXISTS_LOCK = Lock()
 # verification (e.g., backup restore checks). These should not surface in
 # public browsing/search UI.
 _PUBLIC_EXCLUDED_SOURCE_CODES = {"test"}
+
+# Raw snapshot extraction walks gzip-compressed WARCs sequentially. Large
+# production WARCs should use the pywb replay index instead of API-side scans.
+_RAW_SNAPSHOT_MAX_DIRECT_WARC_BYTES = 64 * 1024 * 1024
 
 _COMPARE_LIVE_SEMAPHORE = BoundedSemaphore(get_compare_live_max_concurrency())
 
@@ -3948,7 +3958,7 @@ def get_snapshot_raw(
     request: Request,
     snapshot_id: int,
     db: Session = Depends(get_db),
-) -> HTMLResponse:
+) -> Response:
     """
     Serve raw HTML content for a snapshot by reading the underlying WARC record.
     """
@@ -4046,6 +4056,15 @@ def get_snapshot_raw(
                 compare_snapshot_id = int(latest[0])
     if compare_snapshot_id is None and is_html_mime_type(snap_mime_type):
         compare_snapshot_id = snap_id
+
+    if warc_path.stat().st_size > _RAW_SNAPSHOT_MAX_DIRECT_WARC_BYTES:
+        close_request_db_session(request, commit=False)
+        if replay_url:
+            return RedirectResponse(replay_url, status_code=307)
+        raise HTTPException(
+            status_code=503,
+            detail="Raw snapshot extraction is unavailable for this large WARC; use replay.",
+        )
 
     # No database access is needed after this point. Close the request-scoped
     # session before scanning large WARC files or rewriting large HTML bodies.
