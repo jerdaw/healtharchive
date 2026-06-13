@@ -41,7 +41,8 @@ from ha_backend.config import (
     get_usage_metrics_enabled,
     get_usage_metrics_window_days,
 )
-from ha_backend.indexing.viewer import find_record_for_snapshot
+from ha_backend.db import get_session
+from ha_backend.indexing.viewer import find_record_for_snapshot_fields
 from ha_backend.live_compare import (
     LiveCompareError,
     LiveCompareTooLarge,
@@ -125,7 +126,7 @@ from ha_backend.usage_metrics import (
     record_usage_event,
 )
 
-from .deps import get_request_db_session
+from .deps import close_request_db_session, get_request_db_session
 from .schemas import (
     AnnualEditionCoverageSchema,
     ArchiveStatsSchema,
@@ -3944,6 +3945,7 @@ def get_snapshot_detail(
 
 @router.get("/snapshots/raw/{snapshot_id}", response_class=HTMLResponse)
 def get_snapshot_raw(
+    request: Request,
     snapshot_id: int,
     db: Session = Depends(get_db),
 ) -> HTMLResponse:
@@ -3976,46 +3978,34 @@ def get_snapshot_raw(
     if not snap.warc_path:
         raise HTTPException(status_code=404, detail="No WARC path associated with this snapshot")
 
-    warc_path = Path(snap.warc_path)
+    snap_id = int(snap.id)
+    snap_job_id = int(snap.job_id) if snap.job_id is not None else None
+    snap_source_id = int(snap.source_id) if snap.source_id is not None else None
+    snap_url = snap.url
+    snap_capture_timestamp = snap.capture_timestamp
+    snap_mime_type = snap.mime_type
+    snap_title = snap.title
+    snap_warc_path = snap.warc_path
+    snap_warc_record_id = snap.warc_record_id
+
+    warc_path = Path(snap_warc_path)
     if not warc_path.is_file():
         raise HTTPException(
             status_code=404,
             detail="Underlying WARC file for this snapshot is missing",
         )
 
-    # Release the read transaction before scanning WARC files. Some WARCs are
-    # large enough that keeping the request transaction open during replay can
-    # trip the database idle-in-transaction timeout before usage metrics write.
-    db.commit()
-
-    record = find_record_for_snapshot(snap)
-    if record is None:
-        raise HTTPException(
-            status_code=404,
-            detail="Could not locate corresponding record in the WARC file",
-        )
-
-    record_usage_event(db, EVENT_SNAPSHOT_RAW)
-
-    try:
-        html_body = record.body_bytes.decode("utf-8", errors="replace")
-    except Exception:
-        raise HTTPException(
-            status_code=500,
-            detail="Failed to decode archived HTML content",
-        )
-
     site_base = get_public_site_base_url()
-    replay_url = _build_browse_url(snap.job_id, snap.url, snap.capture_timestamp, snap.id)
-    snapshot_details_url = f"{site_base}/snapshot/{snap.id}"
-    back_url = snapshot_details_url if snap.id else f"{site_base}/"
+    replay_url = _build_browse_url(snap_job_id, snap_url, snap_capture_timestamp, snap_id)
+    snapshot_details_url = f"{site_base}/snapshot/{snap_id}"
+    back_url = snapshot_details_url if snap_id else f"{site_base}/"
     snapshot_history_url = f"{snapshot_details_url}?view=details"
-    snapshot_json_url = f"/api/snapshot/{snap.id}"
+    snapshot_json_url = f"/api/snapshot/{snap_id}"
 
     capture_date = (
-        snap.capture_timestamp.date().isoformat()
-        if isinstance(snap.capture_timestamp, datetime)
-        else str(snap.capture_timestamp)
+        snap_capture_timestamp.date().isoformat()
+        if isinstance(snap_capture_timestamp, datetime)
+        else str(snap_capture_timestamp)
     )
 
     def _compact_url(value: str) -> str:
@@ -4036,12 +4026,12 @@ def get_snapshot_raw(
         return re.sub(r"^https?://", "", cleaned, flags=re.IGNORECASE)
 
     compare_snapshot_id: Optional[int] = None
-    if is_html_mime_type(snap.mime_type):
-        group = normalize_url_for_grouping(snap.url)
-        if group and snap.source_id:
+    if is_html_mime_type(snap_mime_type):
+        group = normalize_url_for_grouping(snap_url)
+        if group and snap_source_id:
             latest = (
                 db.query(Snapshot.id)
-                .filter(Snapshot.source_id == snap.source_id)
+                .filter(Snapshot.source_id == snap_source_id)
                 .filter(Snapshot.normalized_url_group == group)
                 .filter(
                     or_(
@@ -4054,8 +4044,34 @@ def get_snapshot_raw(
             )
             if latest:
                 compare_snapshot_id = int(latest[0])
-    if compare_snapshot_id is None and is_html_mime_type(snap.mime_type):
-        compare_snapshot_id = snap.id
+    if compare_snapshot_id is None and is_html_mime_type(snap_mime_type):
+        compare_snapshot_id = snap_id
+
+    # No database access is needed after this point. Close the request-scoped
+    # session before scanning large WARC files or rewriting large HTML bodies.
+    close_request_db_session(request, commit=False)
+
+    record = find_record_for_snapshot_fields(
+        warc_path=snap_warc_path,
+        warc_record_id=snap_warc_record_id,
+        url=snap_url,
+    )
+    if record is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Could not locate corresponding record in the WARC file",
+        )
+
+    try:
+        html_body = record.body_bytes.decode("utf-8", errors="replace")
+    except Exception:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to decode archived HTML content",
+        )
+
+    with get_session() as usage_db:
+        record_usage_event(usage_db, EVENT_SNAPSHOT_RAW)
 
     compare_url = (
         f"{site_base}/compare-live?to={compare_snapshot_id}&run=1" if compare_snapshot_id else None
@@ -4063,11 +4079,11 @@ def get_snapshot_raw(
     cite_url = f"{site_base}/cite"
 
     report_params = []
-    if snap.id:
-        report_params.append(("snapshot", str(snap.id)))
-        report_params.append(("page", f"/snapshot/{snap.id}"))
-    if snap.url:
-        report_params.append(("url", snap.url))
+    if snap_id:
+        report_params.append(("snapshot", str(snap_id)))
+        report_params.append(("page", f"/snapshot/{snap_id}"))
+    if snap_url:
+        report_params.append(("url", snap_url))
     report_query = urlencode(report_params) if report_params else ""
     report_url = f"{site_base}/report?{report_query}" if report_query else f"{site_base}/report"
 
@@ -4095,10 +4111,10 @@ def get_snapshot_raw(
     )
     action_links_html = "".join(action_links)
 
-    title_html = html.escape(snap.title or "Raw HTML")
+    title_html = html.escape(snap_title or "Raw HTML")
     date_html = html.escape(capture_date or "")
-    url_text_html = html.escape(_compact_url(snap.url) or snap.url or "")
-    url_href_html = html.escape(snap.url or "", quote=True)
+    url_text_html = html.escape(_compact_url(snap_url) or snap_url or "")
+    url_href_html = html.escape(snap_url or "", quote=True)
 
     banner = f"""
 <style id="ha-replay-banner-css">

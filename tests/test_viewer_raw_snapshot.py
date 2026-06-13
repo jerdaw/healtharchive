@@ -5,7 +5,6 @@ from io import BytesIO
 from pathlib import Path
 
 from fastapi.testclient import TestClient
-from sqlalchemy.orm import object_session
 from warcio.warcwriter import WARCWriter
 
 from archive_tool.playwright_warc_backend import run_playwright_warc_capture
@@ -172,18 +171,28 @@ def test_raw_snapshot_releases_read_transaction_before_warc_lookup(tmp_path, mon
         session.flush()
         snapshot_id = snap.id
 
-    original_find_record = routes_public.find_record_for_snapshot
+    original_close_request_db_session = routes_public.close_request_db_session
+    original_find_record = routes_public.find_record_for_snapshot_fields
+    closed_before_warc_lookup = False
 
-    def assert_transaction_released(snapshot: Snapshot):
-        session = object_session(snapshot)
-        assert session is not None
-        assert not session.in_transaction()
-        return original_find_record(snapshot)
+    def track_close_request_db_session(request, *, commit: bool) -> None:
+        nonlocal closed_before_warc_lookup
+        original_close_request_db_session(request, commit=commit)
+        closed_before_warc_lookup = True
+
+    def assert_session_closed_before_warc_lookup(**kwargs):
+        assert closed_before_warc_lookup is True
+        return original_find_record(**kwargs)
 
     monkeypatch.setattr(
         routes_public,
-        "find_record_for_snapshot",
-        assert_transaction_released,
+        "close_request_db_session",
+        track_close_request_db_session,
+    )
+    monkeypatch.setattr(
+        routes_public,
+        "find_record_for_snapshot_fields",
+        assert_session_closed_before_warc_lookup,
     )
 
     resp = client.get(f"/api/snapshots/raw/{snapshot_id}")
