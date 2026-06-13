@@ -278,6 +278,20 @@ Keep this list short; prefer linking to the canonical doc that explains the item
       production `reconcile-completed-indexing`
     - ensure operators can distinguish healthy CPU-bound parsing from a stale
       DB transaction without ad hoc `/proc` and `pg_stat_activity` archaeology
+- Raw snapshot large-WARC direct lookup design.
+  - Context: large compressed WARCs can take longer than an API request budget
+    to scan sequentially. Production now redirects large
+    `/api/snapshots/raw/{id}` requests to pywb replay, which is the correct
+    near-term behavior because pywb has a replay index.
+  - Remaining work:
+    - evaluate adding WARC byte offsets or CDX-derived lookup metadata to
+      `Snapshot` rows during indexing
+    - decide whether direct raw HTML access for large WARCs is worth the schema
+      and migration complexity, given that replay already covers the public
+      browsing use case
+    - if adopted, update indexing, compaction promotion, replay reindex
+      runbooks, and raw snapshot tests so direct lookup remains valid after
+      WARC replacement
 
 ### Search/API performance (backend)
 

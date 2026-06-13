@@ -878,9 +878,14 @@ HTML for a snapshot from its WARC.
 
 Design:
 
-- Either:
-  - Use `warc_record_id` to seek directly to a known record, or
-  - Fallback to scanning `warc_path` for the first matching URL + timestamp.
+- For small WARCs:
+  - Prefer `warc_record_id` while scanning the WARC for the matching response.
+  - Fallback to scanning `warc_path` for the first matching URL.
+- For large WARCs:
+  - Redirect to the indexed replay service instead of scanning compressed WARC
+    bytes inside the API worker.
+  - This keeps the public API responsive and avoids tying up worker processes
+    on slow sequential reads.
 
 The API route:
 
@@ -1061,10 +1066,13 @@ Public Pydantic models:
 - `GET /api/snapshots/raw/{id}`:
 
   - Validates `Snapshot` exists and `warc_path` points to an existing file.
-  - Uses `find_record_for_snapshot(snapshot)` to get a WARC record.
-  - Returns an HTML page via `HTMLResponse` that includes the reconstructed archived HTML
-    plus a lightweight HealthArchive top bar (navigation links + disclaimer) so it can be
-    viewed standalone.
+  - Returns direct HTML for small WARCs by using
+    `find_record_for_snapshot(snapshot)` to get a WARC record.
+  - Redirects to pywb replay for large WARCs where direct API-side WARC scans
+    would be too slow.
+  - Direct HTML responses include the reconstructed archived HTML plus a
+    lightweight HealthArchive top bar (navigation links + disclaimer) so they
+    can be viewed standalone.
 
 ### 8.3 Admin auth (`deps.py`)
 

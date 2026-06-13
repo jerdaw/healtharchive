@@ -7,7 +7,7 @@ from dataclasses import dataclass
 from typing import Any
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlsplit, urlunsplit
-from urllib.request import Request, urlopen
+from urllib.request import HTTPRedirectHandler, Request, build_opener, urlopen
 
 
 @dataclass(frozen=True)
@@ -49,6 +49,7 @@ def _http_request(
     headers: dict[str, str] | None = None,
     json_body: dict[str, Any] | None = None,
     read_limit_bytes: int = 64 * 1024,
+    follow_redirects: bool = True,
 ) -> HttpResponse:
     data = None
     hdrs = {"User-Agent": "healtharchive-verify-public-surface/1.0"}
@@ -61,7 +62,9 @@ def _http_request(
 
     req = Request(url, data=data, method=method, headers=hdrs)
     try:
-        with urlopen(req, timeout=timeout_s) as resp:
+        opener = None if follow_redirects else build_opener(_NoRedirectHandler)
+        open_func = urlopen if opener is None else opener.open
+        with open_func(req, timeout=timeout_s) as resp:
             status = int(getattr(resp, "status", 200))
             resp_headers = {k: v for k, v in resp.headers.items()}
             body = resp.read(read_limit_bytes) if read_limit_bytes else resp.read()
@@ -80,6 +83,11 @@ def _http_request(
         )
     except (TimeoutError, URLError) as exc:
         return HttpResponse(status=0, headers={}, body=b"", error=f"{type(exc).__name__}: {exc}")
+
+
+class _NoRedirectHandler(HTTPRedirectHandler):
+    def redirect_request(self, req, fp, code, msg, headers, newurl):  # type: ignore[no-untyped-def]
+        return None
 
 
 def _http_json(url: str, *, timeout_s: float) -> tuple[HttpResponse, Any]:
@@ -456,19 +464,36 @@ def main(argv: list[str] | None = None) -> int:
                 timeout_s=raw_timeout_s,
                 method="GET",
                 read_limit_bytes=128 * 1024,
+                follow_redirects=False,
             )
             content_type = (
                 raw.headers.get("Content-Type") or raw.headers.get("content-type") or ""
             ).lower()
-            if raw.status != 200 or (
-                "text/html" not in content_type and "application/xhtml" not in content_type
+            location = raw.headers.get("Location") or raw.headers.get("location") or ""
+            if raw.status == 200 and (
+                "text/html" in content_type or "application/xhtml" in content_type
             ):
+                _ok(f"raw snapshot status=200 url={raw_url}")
+            elif raw.status in {301, 302, 303, 307, 308} and location:
+                if browse_url and location != browse_url:
+                    _fail(
+                        f"raw snapshot redirect target mismatch status={raw.status} "
+                        f"location={location!r} browseUrl={browse_url!r} url={raw_url}"
+                    )
+                    failures += 1
+                elif not browse_url:
+                    _fail(
+                        f"raw snapshot redirect status={raw.status} without browseUrl "
+                        f"location={location!r} url={raw_url}"
+                    )
+                    failures += 1
+                else:
+                    _ok(f"raw snapshot redirect status={raw.status} location={location}")
+            else:
                 _fail(
                     f"raw snapshot {_format_http_failure(raw)} content-type={content_type!r} url={raw_url}"
                 )
                 failures += 1
-            else:
-                _ok(f"raw snapshot status=200 url={raw_url}")
 
         if browse_url and not args.skip_replay:
             replay = _http_request(

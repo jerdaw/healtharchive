@@ -35,7 +35,7 @@ HealthArchive provides a RESTful JSON API for searching and retrieving archived 
 | `GET /api/sources` | List archived sources | No |
 | `GET /api/search` | Search snapshots | No |
 | `GET /api/snapshot/{id}` | Get snapshot metadata | No |
-| `GET /api/snapshots/raw/{id}` | View archived HTML | No |
+| `GET /api/snapshots/raw/{id}` | View archived HTML, or redirect to replay for large WARCs | No |
 
 ### Admin Endpoints
 
@@ -172,6 +172,9 @@ Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline' 'unsafe-
 - Allows inline scripts/styles (required for archived HTML)
 - Allows external resources (images, fonts, media)
 - Still blocks dangerous features (object/embed tags)
+- Large WARC-backed snapshots may return an HTTP redirect to the indexed replay
+  service instead of direct HTML. Consumers that embed raw snapshots should
+  allow normal redirects.
 
 **Why this matters for API consumers**:
 - CSP headers are informational for JSON API consumers (your code isn't affected)
@@ -467,11 +470,16 @@ curl "https://api.healtharchive.ca/api/snapshot/12345"
 curl "https://api.healtharchive.ca/api/snapshots/raw/12345"
 ```
 
-**Response**: HTML page with HealthArchive header banner
+**Response**: Either an HTML page with a HealthArchive header banner, or an
+HTTP redirect to the indexed replay service when serving the snapshot directly
+would require scanning a large compressed WARC.
 
-**In browser**: Visit `https://api.healtharchive.ca/api/snapshots/raw/12345` to see rendered page
+**In browser**: Visit `https://api.healtharchive.ca/api/snapshots/raw/12345` to see the rendered page or follow the replay redirect.
 
-**Note**: This is the archived content exactly as it was captured, plus a small HealthArchive navigation bar.
+**Note**: Direct HTML responses contain the archived content exactly as it was
+captured, plus a small HealthArchive navigation bar. Redirect responses point
+to the replay service for the same snapshot and are used to avoid slow
+API-side scans of large compressed WARCs.
 
 ---
 
