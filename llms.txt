@@ -1615,9 +1615,14 @@ HTML for a snapshot from its WARC.
 
 Design:
 
-- Either:
-  - Use `warc_record_id` to seek directly to a known record, or
-  - Fallback to scanning `warc_path` for the first matching URL + timestamp.
+- For small WARCs:
+  - Prefer `warc_record_id` while scanning the WARC for the matching response.
+  - Fallback to scanning `warc_path` for the first matching URL.
+- For large WARCs:
+  - Redirect to the indexed replay service instead of scanning compressed WARC
+    bytes inside the API worker.
+  - This keeps the public API responsive and avoids tying up worker processes
+    on slow sequential reads.
 
 The API route:
 
@@ -1798,10 +1803,13 @@ Public Pydantic models:
 - `GET /api/snapshots/raw/{id}`:
 
   - Validates `Snapshot` exists and `warc_path` points to an existing file.
-  - Uses `find_record_for_snapshot(snapshot)` to get a WARC record.
-  - Returns an HTML page via `HTMLResponse` that includes the reconstructed archived HTML
-    plus a lightweight HealthArchive top bar (navigation links + disclaimer) so it can be
-    viewed standalone.
+  - Returns direct HTML for small WARCs by using
+    `find_record_for_snapshot(snapshot)` to get a WARC record.
+  - Redirects to pywb replay for large WARCs where direct API-side WARC scans
+    would be too slow.
+  - Direct HTML responses include the reconstructed archived HTML plus a
+    lightweight HealthArchive top bar (navigation links + disclaimer) so they
+    can be viewed standalone.
 
 ### 8.3 Admin auth (`deps.py`)
 
@@ -2213,7 +2221,7 @@ HealthArchive provides a RESTful JSON API for searching and retrieving archived 
 | `GET /api/sources` | List archived sources | No |
 | `GET /api/search` | Search snapshots | No |
 | `GET /api/snapshot/{id}` | Get snapshot metadata | No |
-| `GET /api/snapshots/raw/{id}` | View archived HTML | No |
+| `GET /api/snapshots/raw/{id}` | View archived HTML, or redirect to replay for large WARCs | No |
 
 ### Admin Endpoints
 
@@ -2350,6 +2358,9 @@ Content-Security-Policy: default-src 'none'; script-src 'unsafe-inline' 'unsafe-
 - Allows inline scripts/styles (required for archived HTML)
 - Allows external resources (images, fonts, media)
 - Still blocks dangerous features (object/embed tags)
+- Large WARC-backed snapshots may return an HTTP redirect to the indexed replay
+  service instead of direct HTML. Consumers that embed raw snapshots should
+  allow normal redirects.
 
 **Why this matters for API consumers**:
 - CSP headers are informational for JSON API consumers (your code isn't affected)
@@ -2645,11 +2656,16 @@ curl "https://api.healtharchive.ca/api/snapshot/12345"
 curl "https://api.healtharchive.ca/api/snapshots/raw/12345"
 ```
 
-**Response**: HTML page with HealthArchive header banner
+**Response**: Either an HTML page with a HealthArchive header banner, or an
+HTTP redirect to the indexed replay service when serving the snapshot directly
+would require scanning a large compressed WARC.
 
-**In browser**: Visit `https://api.healtharchive.ca/api/snapshots/raw/12345` to see rendered page
+**In browser**: Visit `https://api.healtharchive.ca/api/snapshots/raw/12345` to see the rendered page or follow the replay redirect.
 
-**Note**: This is the archived content exactly as it was captured, plus a small HealthArchive navigation bar.
+**Note**: Direct HTML responses contain the archived content exactly as it was
+captured, plus a small HealthArchive navigation bar. Redirect responses point
+to the replay service for the same snapshot and are used to avoid slow
+API-side scans of large compressed WARCs.
 
 ---
 
