@@ -43,6 +43,10 @@ Current known items:
   - Check: API health, Prometheus active alerts, Alertmanager active alerts,
     replay smoke metrics for HC/PHAC/CIHR, and recent API logs for idle
     transaction or usage-metric errors.
+  - Current status: checks bounded to the current API service lifetime are
+    clean, and the known large raw-snapshot path redirects quickly to replay.
+    Keep the item open until the broad 24-hour journal window no longer
+    includes pre-fix log entries.
   - Close when: no related alerts remain active and any private operations
     notes/baseline records match the deployed state.
 
