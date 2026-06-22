@@ -93,6 +93,7 @@ security:
 	$(BANDIT) -r src/ha_backend -q -c pyproject.toml
 
 audit:
+	$(PYTHON_RUN) -m pip install --upgrade pip
 	$(PIP_AUDIT) --ignore-vuln CVE-2026-4539  # pygments, no fix available
 
 audit-ci:
@@ -123,6 +124,8 @@ docs-build-strict:
 	$(MKDOCS) build --strict
 
 docs-refs:
+	PYTHONPATH=src $(PYTHON_RUN) scripts/export_openapi.py
+	$(PYTHON_RUN) scripts/generate_llms_txt.py
 	$(PYTHON_RUN) scripts/check_docs_references.py
 
 docs-coverage:

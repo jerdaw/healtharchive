@@ -144,6 +144,7 @@ def test_private_runtime_artifacts_are_not_tracked_in_public_docs() -> None:
     assert not any(unit_dir.glob("*.timer"))
     assert not (repo_root / "docs" / "deployment" / ("prome" + "theus-alerts-crawl.yml")).exists()
     assert not (repo_root / "docs" / "deployment" / "pywb" / "config.yaml").exists()
+    assert not (repo_root / "docs" / "deployment" / "pywb" / "sitecustomize.py").exists()
     assert not (repo_root / "docs" / "operations" / "production-baseline-policy.toml").exists()
 
 

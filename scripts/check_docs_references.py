@@ -172,6 +172,7 @@ def _should_check_code_token(token: str, docs_root: Path | None) -> bool:
 
     repo_prefixes = (
         "docs/",
+        "frontend/",
         "scripts/",
         "src/",
         "tests/",
@@ -202,7 +203,9 @@ def _resolve_target_path(
         return (repo_root / token[2:]).resolve()
 
     docs_root = repo_root / "docs"
-    if token.startswith(("docs/", "scripts/", "src/", "tests/", ".github/", "alembic/")):
+    if token.startswith(
+        ("docs/", "frontend/", "scripts/", "src/", "tests/", ".github/", "alembic/")
+    ):
         return (repo_root / token).resolve()
 
     if docs_root.exists() and file_path.is_relative_to(docs_root):
