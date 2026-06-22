@@ -5,7 +5,7 @@ import json
 import logging
 import os
 import stat
-import subprocess  # nosec: B404 - expected for running archive_tool
+import subprocess  # nosec B404
 import sys
 from contextlib import contextmanager
 from dataclasses import dataclass
@@ -397,10 +397,10 @@ class RuntimeArchiveJob:
                 # Stream directly to this terminal.
                 # Command and arguments are derived from configuration and job
                 # metadata, not raw end-user input.
-                result = subprocess.run(cmd, text=True)  # nosec: B603
+                result = subprocess.run(cmd, text=True)  # nosec B603
             else:
                 # Capture output (not used yet, but ready for future log piping).
-                result = subprocess.run(  # nosec: B603
+                result = subprocess.run(  # nosec B603
                     cmd,
                     capture_output=True,
                     text=True,

@@ -13,12 +13,3 @@ Public scope:
 - Keep host topology, private access paths, service-unit definitions, credential
   locations, alert routes, exact commands, and restoration steps out of tracked
   public documentation.
-
-## Browser Storage Boundary
-
-The frontend may use browser local storage for non-sensitive display
-preferences, such as theme selection and compare/diff highlighting options.
-Do not store account identifiers, credentials, health records, submitted archive
-content, operator notes, or production secrets in browser local storage,
-session storage, or cookies unless a future reviewed design explicitly changes
-this boundary.

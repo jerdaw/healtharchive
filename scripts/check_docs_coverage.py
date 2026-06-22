@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import fnmatch
 import re
 import subprocess
 import sys
@@ -32,29 +33,74 @@ def _load_mkdocs_config(repo_root: Path) -> dict[str, Any]:
         raise FileNotFoundError(f"Missing mkdocs.yml at {mkdocs_path}")
 
     try:
-        import yaml  # type: ignore
+        import yaml
     except Exception as e:  # pragma: no cover
         raise RuntimeError(
             "PyYAML is required to parse mkdocs.yml. Install dev dependencies (mkdocs)."
         ) from e
 
-    class _IgnoreTagsLoader(yaml.SafeLoader):  # type: ignore[name-defined]
+    class _IgnoreTagsLoader(yaml.SafeLoader):
         pass
 
     def _construct_undefined(loader: Any, node: Any) -> Any:
         # MkDocs configs sometimes contain PyYAML-specific tags (e.g. `!!python/name:...`)
         # that are irrelevant for this script. Treat unknown-tag nodes as plain YAML.
-        if hasattr(yaml, "ScalarNode") and isinstance(node, yaml.ScalarNode):  # type: ignore[attr-defined]
+        if hasattr(yaml, "ScalarNode") and isinstance(node, yaml.ScalarNode):
             return loader.construct_scalar(node)
-        if hasattr(yaml, "SequenceNode") and isinstance(node, yaml.SequenceNode):  # type: ignore[attr-defined]
+        if hasattr(yaml, "SequenceNode") and isinstance(node, yaml.SequenceNode):
             return loader.construct_sequence(node)
-        if hasattr(yaml, "MappingNode") and isinstance(node, yaml.MappingNode):  # type: ignore[attr-defined]
+        if hasattr(yaml, "MappingNode") and isinstance(node, yaml.MappingNode):
             return loader.construct_mapping(node)
         return None
 
     _IgnoreTagsLoader.add_constructor(None, _construct_undefined)  # type: ignore[arg-type]
 
     return yaml.load(mkdocs_path.read_text(), Loader=_IgnoreTagsLoader)
+
+
+def _load_exclude_docs_patterns(cfg: dict[str, Any]) -> list[str]:
+    raw = cfg.get("exclude_docs")
+    if raw is None:
+        return []
+
+    if isinstance(raw, str):
+        candidates = raw.splitlines()
+    elif isinstance(raw, list):
+        candidates = [str(item) for item in raw]
+    else:
+        candidates = [str(raw)]
+
+    patterns: list[str] = []
+    for candidate in candidates:
+        pattern = candidate.strip()
+        if pattern and not pattern.startswith("#"):
+            patterns.append(pattern.lstrip("./"))
+    return patterns
+
+
+def _matches_exclude_pattern(rel_path: str, pattern: str) -> bool:
+    pattern = pattern.strip().lstrip("./")
+    if not pattern:
+        return False
+
+    if pattern.endswith("/**"):
+        prefix = pattern[:-3].rstrip("/")
+        return rel_path == prefix or rel_path.startswith(f"{prefix}/")
+
+    if pattern.endswith("/"):
+        prefix = pattern.rstrip("/")
+        return rel_path == prefix or rel_path.startswith(f"{prefix}/")
+
+    return fnmatch.fnmatchcase(rel_path, pattern)
+
+
+def _is_excluded_doc(path: Path, *, docs_root: Path, patterns: Iterable[str]) -> bool:
+    try:
+        rel_path = path.resolve().relative_to(docs_root).as_posix()
+    except Exception:
+        return False
+
+    return any(_matches_exclude_pattern(rel_path, pattern) for pattern in patterns)
 
 
 def _git_ls_files_md(repo_root: Path) -> list[Path]:
@@ -294,6 +340,7 @@ def main() -> int:
     cfg = _load_mkdocs_config(repo_root)
     docs_dir = cfg.get("docs_dir") or "docs"
     docs_root = (repo_root / docs_dir).resolve()
+    exclude_patterns = _load_exclude_docs_patterns(cfg)
 
     all_md = [
         p
@@ -301,6 +348,7 @@ def main() -> int:
         if p.is_file()
         and p.suffix.lower() in (".md", ".mdx")
         and (docs_root in p.parents or p == docs_root)
+        and not _is_excluded_doc(p, docs_root=docs_root, patterns=exclude_patterns)
     ]
 
     seed_rel_paths = list(_iter_nav_paths(cfg.get("nav")))

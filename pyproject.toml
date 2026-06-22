@@ -14,7 +14,7 @@ dependencies = [
   "warcio>=1.8.1",
   "beautifulsoup4>=4.12",
   "fastapi>=0.135.3",
-  "starlette>=1.0.1",  # PYSEC-2026-161 fix
+  "starlette>=1.3.1",  # CVE-2026-54282/CVE-2026-54283 fixes
   "uvicorn[standard]>=0.30",
   "httpx>=0.28.1",
   "idna>=3.15",  # CVE-2026-45409 fix
@@ -35,6 +35,7 @@ dev = [
   "bandit",
   "pip-audit",
   "pre-commit",
+  "msgpack>=1.2.1",  # GHSA-6v7p-g79w-8964 fix via audit tooling
   "requests>=2.33.0",  # CVE-2026-25645 fix
 ]
 docs = [
@@ -77,6 +78,7 @@ ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = [".", "src"]
 python_files = "test_*.py"
 python_classes = "Test*"
 python_functions = "test_*"

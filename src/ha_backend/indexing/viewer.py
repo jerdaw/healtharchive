@@ -71,7 +71,7 @@ def _load_matching_html_record(
                     warc_record_id=warc_record_id,
                     warc_path=warc_path,
                 )
-            except Exception:  # nosec: B112 - broad exception to skip bad records
+            except Exception:  # nosec B112
                 continue
 
     return None

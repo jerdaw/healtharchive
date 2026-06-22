@@ -860,7 +860,7 @@ The generated artifacts are:
 - `target-ledger.jsonl`
 - `capture-manifest.jsonl`
 - `coverage-report.json`
-- `coverage-report.md`
+- Markdown coverage report
 
 ### accept-annual-shard-gap
 

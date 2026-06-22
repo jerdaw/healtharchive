@@ -1562,7 +1562,7 @@ Given `--output-dir /data/archive` and `--name example`, you’ll see:
 ./run_archive.py \
   --seeds https://www.canada.ca/en/public-health.html \
   --name phac-2025 \
-  --output-dir /mnt/nasd/archives/phac \
+  --output-dir /tmp/healtharchive/phac \
   --initial-workers 4 \
   --enable-monitoring \
   --enable-adaptive-workers \
@@ -1624,7 +1624,7 @@ If you already have `<name>.zim` and want to re-crawl from scratch (ignoring old
 ./run_archive.py \
   --seeds ... \
   --name phac-2025 \
-  --output-dir /mnt/nasd/archives/phac \
+  --output-dir /tmp/healtharchive/phac \
   --overwrite \
   ...
 ```

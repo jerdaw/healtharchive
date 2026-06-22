@@ -134,7 +134,7 @@ def _scope_exclusions_from_jobs(jobs: list[ArchiveJob]) -> list[str]:
     for job in jobs:
         args = list((job.config or {}).get("zimit_passthrough_args") or [])
         for i, token in enumerate(args):
-            if token == "--scopeExcludeRx" and i + 1 < len(args):
+            if token == "--scopeExcludeRx" and i + 1 < len(args):  # nosec B105
                 value = str(args[i + 1])
                 if value and value not in exclusions:
                     exclusions.append(value)
