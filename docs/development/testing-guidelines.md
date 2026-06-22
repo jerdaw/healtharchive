@@ -21,6 +21,9 @@ Notes:
 
 - `make backend-ci` runs the same fast backend gate as `make ci`, including `make test-fast`.
 - `make test-all` runs the full test suite.
+- `make prepush` includes `scripts/ci-api-health-local.sh`, which picks an
+  available loopback port by default. Use `API_PORT`, `API_HOST`, or
+  `PYTHON_BIN` only when debugging a local environment issue.
 - Browser automation suites (for example Playwright in related repos) should run in CI by default; only run them locally when you explicitly need interactive debugging.
 
 ### GitHub Actions quota-constrained periods

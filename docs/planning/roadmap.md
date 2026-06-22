@@ -436,6 +436,16 @@ Completed items were removed from this backlog and archived in:
      - Done when: the chosen full-history scan posture is documented and either
        runs clean or has a reviewed baseline that does not suppress real
        secrets.
+25e. **Track the frontend OpenAPI generator audit path until an upstream-safe fix exists** (S: 1-2h)
+     - Current evidence: `npm audit --omit=dev --json` on 2026-06-22 still
+       reports the remaining `js-yaml` advisory path through
+       `openapi-typescript` / `@redocly/openapi-core`. Direct local overrides
+       to `js-yaml@5` or `@redocly/openapi-core@2` broke the generator stack,
+       so they should not be applied as blind audit fixes.
+     - Next action: watch for a compatible `openapi-typescript`/Redocly update,
+       then update through the normal human-authored dependency workflow and
+       run `make contract-sync`, `make frontend-ci`, and
+       `npm audit --omit=dev --json`.
 
 ### Documentation and operations maturity
 
