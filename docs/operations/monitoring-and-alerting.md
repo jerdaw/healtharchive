@@ -21,7 +21,8 @@ Monitoring signals are separated by operator impact:
 - **Warning:** a sustained condition worth reviewing during normal maintenance;
   warnings do not page by default.
 - **Action-required page:** a sustained, actionable condition that needs human
-  attention. These alerts must opt in explicitly to Pushover delivery.
+  attention. These alerts must opt in explicitly to private notification
+  delivery.
 
 Transient availability flaps, short-lived search errors, internal scrape
 failures, and resolved events should remain in monitoring history without

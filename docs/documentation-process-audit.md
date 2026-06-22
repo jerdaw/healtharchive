@@ -1,243 +1,52 @@
-# Documentation process audit (2026-01-09)
-
-Scope: HealthArchive project documentation processes and subprocesses across:
-
-- `healtharchive` (ops, runbooks, incident notes, canonical internal docs)
-- the frontend app in `healtharchive/frontend/` (public policy/reporting surfaces, UX copy, changelog)
-- `healtharchive-datasets` (dataset release documentation and integrity posture)
-- the older “workspace of sibling repos” convention used in a local sync directory
-
-Goal: assess whether the documentation system is well-designed, maintainable, and aligned with modern best practices (docs-as-code + operational excellence), and identify concrete upgrades.
-
----
-
-## Executive summary
-
-Overall: the project’s documentation system is already unusually strong for its size. It is structured around a clear “docs-as-code” posture, high-signal operational procedures, and drift-resistant separation of backlog vs implementation plans vs canonical docs.
-
-Key strengths (high confidence):
-
-- **Drift prevention by design**: single canonical sources + pointer docs, and explicit backlog/plan/canonical separation (`docs/planning/**` vs `docs/**`).
-- **Operations maturity**: production runbook, playbooks, cadence checklists, monitoring/CI setup guidance, and safety posture are explicit and actionable.
-- **Incident management**: severity rubric + incident template + operator response playbook + at least one real incident note showing good practice.
-- **Public vs private boundaries**: explicit contracts for privacy-preserving usage metrics, issue-report retention, and non-public admin/metrics access.
-- **Reproducibility**: dataset release integrity rules (checksums + manifest invariants) documented and operationalized.
-
-Primary remaining gaps (fixable, low risk):
-
-- **Templates / consistency**: you had strong examples, but no standard templates for new runbooks/playbooks, and changelog updates were not documented as an SOP.
-- **Lifecycle + review cadence**: docs avoided duplication well, but “how we keep docs correct over time” could be more explicit (lightweight review + deprecation pattern).
-- **Public communication integration**: incident notes were solid, but the “when do we update `/changelog` and/or `/status`?” expectation wasn’t explicit enough.
-
----
-
-## Inventory of documentation “process surfaces”
-
-This is the set of documents that define *how* documentation is produced, maintained, and used (not every domain-specific doc).
-
-### Governance / doc architecture
-
-- Canonical documentation policy and source-of-truth rules:
-  - `docs/documentation-guidelines.md`
-- Index structure (discoverability):
-  - `docs/README.md`
-  - `docs/operations/README.md`
-  - `docs/operations/playbooks/README.md`
-  - `docs/planning/README.md`
-  - `docs/frontend/README.md`
-
-### Planning / change management
-
-- Backlog and implementation plan workflow:
-  - `docs/roadmap-process.md`
-  - `docs/planning/roadmap.md`
-  - `docs/planning/implemented/`
-
-### Incidents and post-incident learning
-
-- Incident SOP and artifacts:
-  - `docs/operations/incidents/README.md`
-  - `docs/_templates/incident-template.md`
-  - `docs/operations/incidents/severity.md`
-  - `docs/operations/playbooks/core/incident-response.md`
-
-### Operations and reliability subprocesses (repeatable routines)
-
-- Cadence and routines:
-  - `docs/operations/ops-cadence-checklist.md`
-- Monitoring/CI and deploy gating:
-  - `docs/operations/monitoring-and-ci-checklist.md`
-  - `docs/operations/playbooks/core/deploy-and-verify.md`
-  - `docs/operations/baseline-drift.md`
-- Backup/restore validation:
-  - `docs/operations/restore-test-procedure.md`
-  - `docs/_templates/restore-test-log-template.md`
-- Data handling and privacy posture:
-  - `docs/operations/data-handling-retention.md`
-  - `docs/operations/observability-and-private-stats.md`
-
-### Public-facing reporting surfaces (documentation for users)
-
-- Changelog content lives in code, but is effectively “public documentation”:
-  - https://github.com/jerdaw/healtharchive/blob/main/frontend/src/content/changelog.ts
-  - (process) https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/changelog-process.md
-- Status/impact pages are public reporting surfaces (operational transparency):
-  - https://github.com/jerdaw/healtharchive/blob/main/frontend/src/app/%5Blocale%5D/status/page.tsx
-  - https://github.com/jerdaw/healtharchive/blob/main/frontend/src/app/%5Blocale%5D/impact/page.tsx
-
-### Release + reproducibility subprocesses
-
-- Dataset releases and integrity expectations:
-  - https://github.com/jerdaw/healtharchive-datasets/blob/main/README.md
-  - `docs/operations/export-integrity-contract.md`
-  - `docs/operations/dataset-release-runbook.md`
-
----
-
-## Evaluation against modern best practices
-
-This section uses a simple “Green / Yellow / Red” maturity signal.
-
-### 1) Discoverability & information architecture — Green
-
-Evidence:
-
-- Dedicated indices exist for backend docs, ops docs, playbooks, and roadmaps.
-- File naming is descriptive and stable (runbook, checklist, playbook).
-- Cross-repo “canonical doc” pointers exist (env wiring, partner kit, data dictionary).
-
-Residual risks:
-
-- Some “project-level” navigation still relies on GitHub blob links for in-tree frontend code/docs that live outside MkDocs navigation.
-
-### 2) Single source of truth / drift control — Green
-
-Evidence:
-
-- Explicit canonical sources + pointer strategy.
-- Explicit separation:
-  - backlog (`planning/roadmap.md`)
-  - active plans (`docs/planning/*.md`)
-  - canonical docs (deployment/ops/dev)
-
-Residual risks:
-
-- Any duplicated non-git copies (e.g., ops roadmap) are inherently drift-prone; currently mitigated by explicit “keep synced” guidance.
-
-### 3) Operational excellence (runbooks, playbooks, verification) — Green
-
-Evidence:
-
-- Production runbook is explicit about topology, security posture, and setup steps:
-  - `docs/deployment/production-single-vps.md`
-- Deploy is treated as a verified procedure with a defined gate (“green main” + VPS verification).
-- Baseline drift is operationalized as policy+observed+diff.
-- Restore tests and dataset verification have explicit SOPs and templates.
-
-Residual risks:
-
-- As more workflows accumulate, templates become important to prevent playbooks/runbooks diverging in structure/quality.
-
-### 4) Incident response & learning system — Green (with small upgrades)
-
-Evidence:
-
-- Incident notes have a clear SOP, a severity rubric, and a good template.
-- The template includes: impact, detection, timeline, root cause, recovery, verification, action items.
-- The repo has at least one high-quality real incident note, with follow-ups tied to a roadmap.
-
-Residual risks:
-
-- Public communication expectations (status/changelog) were implicit; now explicit guidance exists, but you may still want to decide a project stance:
-  - “We always publish a public-safe note for sev0/sev1” vs “only when it changes user expectations”.
-
-### 5) Public transparency & user-facing documentation — Yellow
-
-Evidence:
-
-- The site includes `/governance`, `/terms`, `/privacy`, `/changelog`, `/report`, `/status`, `/impact`.
-- Copy inventory and disclaimer matrices exist to keep safety posture coherent.
-
-Gaps:
-
-- The changelog is a core public accountability surface, but without an explicit SOP it risks becoming stale or inconsistent (especially across EN/FR).
-
-### 6) Security + privacy documentation posture — Green
-
-Evidence:
-
-- Clear “no secrets in git” posture across docs.
-- Admin/metrics are explicitly private-only; tailnet access model is documented.
-- Data retention and PHI risk are explicitly addressed for issue reports and logs.
-
-Residual risks:
-
-- If the project ever adds more operators, formalize “who has access to what” and credential rotation as explicit operator subprocesses.
-
-### 7) Reproducibility and research integrity — Green
-
-Evidence:
-
-- Export endpoints have defined ordering/pagination invariants.
-- Dataset releases are immutable objects with checksum verification and manifest invariants.
-- Corrections are expected to be documented rather than silently rewriting history.
-
----
-
-## Improvements implemented in this audit (2026-01-09)
-
-These are low-risk upgrades that make doc creation and maintenance more consistent:
-
-- Docs reference sanity checks (broken links/path refs):
-  - Backend: `scripts/check_docs_references.py` (wired into `Makefile`)
-  - Frontend: `frontend/scripts/check-doc-references.mjs` (wired into `frontend/package.json`)
-  - Datasets: https://github.com/jerdaw/healtharchive-datasets/blob/main/scripts/check_docs_references.py (wired into `Makefile`)
-- Standardized templates:
-  - `docs/_templates/runbook-template.md`
-  - `docs/_templates/playbook-template.md`
-- Decision records mechanism:
-  - `docs/decisions/README.md`
-  - `docs/_templates/decision-template.md`
-- Clearer doc taxonomy, quality bar, and lifecycle guidance:
-  - `docs/documentation-guidelines.md`
-- Public changelog SOP (source of truth, format, localization rules):
-  - https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/changelog-process.md
-- Stronger “incident → public-safe note” expectation (optional but recommended for sev0/sev1):
-  - `docs/operations/incidents/README.md`
-  - `docs/_templates/incident-template.md`
-  - `docs/operations/incidents/severity.md`
-  - `docs/operations/ops-cadence-checklist.md`
-- Process nudges in PR templates:
-  - `.github/pull_request_template.md`
-
----
-
-## Recommendations (next steps)
-
-### P0 (high value, low effort)
-
-- Decide an explicit **public incident disclosure posture**:
-  - Option A: always add a public-safe `/changelog` entry for sev0/sev1 incidents.
-  - Option B: only add a public-safe entry when it changes user expectations (outage, integrity risk, policy change).
-- Make doc maintenance part of normal ops:
-  - During the quarterly cadence, skim the production runbook + incident response playbook and fix drift discovered during real operations.
-
-### P1 (medium value, moderate effort)
-
-- (Implemented) Docs link/path sanity checks + decision records are now in place.
-
-### P2 (later / if team grows)
-
-- If/when there are multiple regular committers:
-  - switch to PR-only merges (branch protection required checks),
-  - introduce CODEOWNERS for high-risk areas (deployment/ops/policy pages),
-  - require review for public-policy copy changes.
-
----
-
-## “Top notch” principles to keep
-
-- Prefer stable, scripted entrypoints over fragile shell snippets.
-- Keep internal docs public-safe by default (assume they may be shared).
-- Separate “what exists and how to operate it” from “how we got here” (planning/implemented plans).
-- Treat verification as first-class: every operational procedure should define what “done” means.
+# Documentation Process Audit
+
+Status: historical audit, rewritten as a public-safe current-state summary.
+
+The original 2026-01-09 audit reviewed the project documentation system across
+the backend, frontend, datasets, and local workspace conventions. Since then,
+the public/private documentation boundary has tightened: production deployment
+details and operator-only runbooks now live outside tracked public docs.
+
+## Current Documentation Model
+
+- `mkdocs.yml` is the current public docs-site navigation source of truth.
+- `docs/documentation-guidelines.md` defines the documentation policy,
+  lifecycle, and public/private boundary.
+- `docs/planning/roadmap.md` tracks not-yet-implemented work.
+- `docs/planning/implemented/` preserves historical implementation plans.
+- `frontend/docs/` owns frontend development and bilingual/i18n guidance.
+- `docs/deployment/**` and `docs/operations/**` are public-safe summaries or
+  boundary stubs where the real procedure is environment-specific.
+
+## Maintenance Checks
+
+Use these checks when changing docs:
+
+```bash
+make docs-refs
+make docs-coverage-strict
+make docs-build-strict
+```
+
+`make docs-refs` regenerates generated public artifacts before checking local
+references. `make docs-coverage-strict` follows the MkDocs nav and reachable
+links while respecting `exclude_docs` entries in `mkdocs.yml`.
+
+## Durable Principles
+
+- Keep canonical content in one place and link to it from pointers.
+- Keep public docs useful for users, researchers, and local contributors.
+- Keep environment-specific operational procedures in the private operations
+  workspace.
+- Treat generated public artifacts, including `docs/openapi.json` and
+  `docs/llms.txt`, as public-safe outputs.
+- Add templates and nav entries when new docs introduce repeatable workflows.
+
+## Remaining Maintenance Opportunities
+
+- Continue retiring or rewriting stale excluded docs when they no longer match
+  the current public docs model.
+- Keep dependency, audit, and pre-commit versions aligned across `pyproject.toml`,
+  `requirements.txt`, and pre-commit configs.
+- Keep frontend root planning notes organized so durable plans live under the
+  documented planning structure.
