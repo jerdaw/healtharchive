@@ -102,7 +102,7 @@ def iter_html_records(warc_path: Path) -> Iterator[ArchiveRecord]:
                     warc_record_id=warc_record_id,
                     warc_path=warc_path,
                 )
-            except Exception:  # nosec: B112 - broad exception to skip bad records
+            except Exception:  # nosec B112
                 # For robustness, skip any individual record that fails parsing.
                 continue
 

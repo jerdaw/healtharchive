@@ -26,7 +26,7 @@ import argparse
 import json
 import os
 import re
-import subprocess  # nosec: B404 - controlled CLI invocation of external tool
+import subprocess  # nosec B404
 import sys
 from datetime import datetime, timezone
 from pathlib import Path
@@ -240,7 +240,7 @@ def cmd_check_archive_tool(args: argparse.Namespace) -> None:
 
     # We intentionally call the configured command; default is 'archive-tool'.
     # Command and arguments are controlled by configuration, not end-user input.
-    result = subprocess.run(  # nosec: B603 - subprocess is used for a CLI helper
+    result = subprocess.run(  # nosec B603
         [cfg.archive_tool_cmd, "--help"],
         capture_output=True,
         text=True,
@@ -5016,7 +5016,7 @@ def cmd_replay_index_job(args: argparse.Namespace) -> None:
     indexes_dir = collection_root / "indexes"
 
     def run_docker(args_list: list[str]) -> None:
-        result = subprocess.run(  # nosec: B603 - operator-controlled CLI invocation
+        result = subprocess.run(  # nosec B603
             args_list,
             text=True,
             capture_output=True,
@@ -5397,7 +5397,7 @@ def cmd_replay_generate_previews(args: argparse.Namespace) -> None:
             continue
 
         print(f"- {source.sourceCode}: generating {filename}...")
-        result = subprocess.run(  # nosec: B603 - operator-controlled docker invocation
+        result = subprocess.run(  # nosec B603
             docker_cmd,
             text=True,
             capture_output=True,
