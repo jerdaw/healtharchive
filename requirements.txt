@@ -11,4 +11,4 @@ idna>=3.15
 slowapi>=0.1.9
 
 # Test-only dependencies (install via extras or manually in dev)
-pytest>=8.0
+pytest>=9.1.1
