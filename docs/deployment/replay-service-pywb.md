@@ -13,3 +13,7 @@ Public scope:
 - Keep host topology, private access paths, service-unit definitions, credential
   locations, alert routes, exact commands, and restoration steps out of tracked
   public documentation.
+- The public replay response should keep the replay-compatible
+  `Content-Security-Policy` `frame-ancestors` directive and the shared
+  host-managed browser hardening headers: `Strict-Transport-Security`,
+  `X-Content-Type-Options`, `Referrer-Policy`, and `Permissions-Policy`.

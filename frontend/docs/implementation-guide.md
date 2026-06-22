@@ -129,11 +129,13 @@ npm run check
   - `X-Content-Type-Options: nosniff`
   - `X-Frame-Options: SAMEORIGIN`
   - `Permissions-Policy: geolocation=(), microphone=(), camera=()`
-- A `Content-Security-Policy-Report-Only` header is also set to help tune a
-  CSP without breaking users. This is the **current production posture** for the
-  frontend: there is no enforcing `Content-Security-Policy` header yet, and no
-  separate CSP report collector is configured. The policy:
-  - Restricts scripts and styles to `self` (with inline styles allowed).
+- An enforcing `Content-Security-Policy` header is also set. There is no
+  separate CSP report collector configured, so rollout verification relies on
+  header inspection, browser console checks, and functional smoke checks. The
+  policy:
+  - Restricts scripts and styles to `self` while allowing inline scripts/styles
+    needed by the current Next.js bootstrap, JSON-LD metadata, and styling
+    stack. A nonce-based CSP is the next tightening step.
   - Restricts `connect-src` to the frontend itself plus
     `https://api.healtharchive.ca`.
   - Restricts `frame-src` to the frontend itself plus

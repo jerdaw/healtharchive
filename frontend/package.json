@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "diff": "^8.0.4",
-    "next": "16.2.4",
+    "next": "^16.2.9",
     "react": "^19.2.5",
     "react-dom": "19.2.5"
   },
@@ -35,19 +35,21 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^9.39.4",
-    "eslint-config-next": "^16.2.4",
+    "eslint-config-next": "^16.2.9",
     "eslint-plugin-react": "^7.37.5",
     "jsdom": "^29",
     "openapi-typescript": "^7.13.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.8.3",
     "prettier-plugin-tailwindcss": "^0.7.2",
+    "postcss": "8.5.15",
     "tailwindcss": "^4",
-    "typescript": "^6.0.3",
+    "typescript": "5.9.3",
     "vitest": "^4",
     "vitest-axe": "^0.1.0"
   },
   "overrides": {
-    "eslint-plugin-react": "^7.37.5"
+    "eslint-plugin-react": "^7.37.5",
+    "postcss": "8.5.15"
   }
 }

@@ -1,7 +1,7 @@
 import nextConfig from "../next.config";
 
 describe("frontend security headers", () => {
-  it("keeps CSP in report-only mode and includes the current API/replay allowlist", async () => {
+  it("sets enforcing CSP and includes the current API/replay allowlist", async () => {
     expect(nextConfig.headers).toBeTypeOf("function");
 
     const rules = await nextConfig.headers?.();
@@ -18,13 +18,14 @@ describe("frontend security headers", () => {
     expect(byKey.get("X-Frame-Options")).toBe("SAMEORIGIN");
     expect(byKey.get("Permissions-Policy")).toBe("geolocation=(), microphone=(), camera=()");
 
-    const csp = byKey.get("Content-Security-Policy-Report-Only");
+    const csp = byKey.get("Content-Security-Policy");
     expect(csp).toBeDefined();
+    expect(csp).toContain("script-src 'self' 'unsafe-inline';");
     expect(csp).toContain("connect-src 'self' https://api.healtharchive.ca;");
     expect(csp).toContain(
       "frame-src 'self' https://api.healtharchive.ca https://replay.healtharchive.ca;",
     );
 
-    expect(byKey.has("Content-Security-Policy")).toBe(false);
+    expect(byKey.has("Content-Security-Policy-Report-Only")).toBe(false);
   });
 });

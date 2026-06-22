@@ -33,7 +33,7 @@ Use a local SQLite DB and archive root so you never touch production paths:
 ```bash
 export HEALTHARCHIVE_DATABASE_URL=sqlite:///$(pwd)/.dev-healtharchive.db
 export HEALTHARCHIVE_ARCHIVE_ROOT=$(pwd)/.dev-archive-root
-export HEALTHARCHIVE_ADMIN_TOKEN=localdev-admin  # optional but recommended
+export HEALTHARCHIVE_ADMIN_TOKEN="$(openssl rand -hex 24)"  # optional but recommended
 # Optional: set CORS origins if your frontend runs on a non-default host
 # (defaults already include http://localhost:3000 and https://healtharchive.ca)
 # export HEALTHARCHIVE_CORS_ORIGINS=http://localhost:3000
@@ -131,10 +131,10 @@ curl http://localhost:8001/api/admin/jobs
 
 Admin routes are open (dev mode).
 
-With `HEALTHARCHIVE_ADMIN_TOKEN=localdev-admin` set when starting uvicorn:
+With `HEALTHARCHIVE_ADMIN_TOKEN` set when starting uvicorn:
 
 ```bash
-curl -H "Authorization: Bearer localdev-admin" \
+curl -H "Authorization: Bearer ${HEALTHARCHIVE_ADMIN_TOKEN:?set-local-token}" \
   http://localhost:8001/api/admin/jobs
 ```
 
@@ -144,7 +144,7 @@ Confirms admin auth + simple bearer token protection.
 
 In local development it is acceptable to either leave
 `HEALTHARCHIVE_ADMIN_TOKEN` unset (open admin endpoints) or to use a simple
-token like `localdev-admin` as shown above.
+throwaway token exported in your shell as shown above.
 
 In staging and production you should **always** set a strong, random admin
 token and treat it as a secret:
@@ -652,7 +652,7 @@ Goal: validate Prometheus‑style metrics.
 With uvicorn running:
 
 ```bash
-curl -H "Authorization: Bearer localdev-admin" \
+curl -H "Authorization: Bearer ${HEALTHARCHIVE_ADMIN_TOKEN:?set-local-token}" \
   http://localhost:8001/metrics | head
 ```
 

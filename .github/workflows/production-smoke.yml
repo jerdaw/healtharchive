@@ -15,6 +15,8 @@ jobs:
         run: |
           curl -sSI https://healtharchive.ca > apex.headers
           grep -Eq '^HTTP/.* 200' apex.headers
+          grep -Eqi '^content-security-policy:' apex.headers
+          ! grep -Eqi '^content-security-policy-report-only:' apex.headers
 
       - name: Verify www redirect
         run: |
@@ -39,3 +41,8 @@ jobs:
         run: |
           curl -sSI https://replay.healtharchive.ca > replay.headers
           grep -Eq '^HTTP/.* 200' replay.headers
+          grep -Eqi '^content-security-policy:.*frame-ancestors' replay.headers
+          grep -Eqi '^strict-transport-security:' replay.headers
+          grep -Eqi '^x-content-type-options: nosniff' replay.headers
+          grep -Eqi '^referrer-policy: strict-origin-when-cross-origin' replay.headers
+          grep -Eqi '^permissions-policy:' replay.headers

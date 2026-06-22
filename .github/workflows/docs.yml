@@ -21,13 +21,13 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout backend
-        uses: actions/checkout@v6
+        uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
         with:
           path: healtharchive
           fetch-depth: 0
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: "3.11"
 
@@ -58,7 +58,7 @@ jobs:
         run: make docs-coverage
 
       - name: Lychee Link Checker
-        uses: lycheeverse/lychee-action@v2
+        uses: lycheeverse/lychee-action@8646ba30535128ac92d33dfc9133794bfdd9b411
         with:
           args: --verbose --no-progress --exclude-mail "healtharchive/site/**/*.html"
           fail: false # Set to true if you want to block on dead links
@@ -70,10 +70,12 @@ jobs:
         run: |
           set -euo pipefail
 
-          repo_url="https://x-access-token:${GH_TOKEN}@github.com/${GITHUB_REPOSITORY}.git"
+          repo_url="https://github.com/${GITHUB_REPOSITORY}.git"
+          auth_header="$(printf 'x-access-token:%s' "${GH_TOKEN}" | base64 | tr -d '\n')"
           publish_dir="$(mktemp -d)"
 
-          if git clone --branch gh-pages --single-branch "${repo_url}" "${publish_dir}" >/dev/null 2>&1; then
+          if git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth_header}" \
+            clone --branch gh-pages --single-branch "${repo_url}" "${publish_dir}" >/dev/null 2>&1; then
             :
           else
             git init "${publish_dir}" >/dev/null 2>&1
@@ -94,4 +96,6 @@ jobs:
           fi
 
           git -C "${publish_dir}" commit -m "docs: publish ${GITHUB_SHA}"
-          git -C "${publish_dir}" push "${repo_url}" gh-pages:gh-pages
+          git -C "${publish_dir}" \
+            -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth_header}" \
+            push "${repo_url}" gh-pages:gh-pages

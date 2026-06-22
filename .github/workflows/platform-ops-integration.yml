@@ -20,10 +20,10 @@ jobs:
     env:
       CHECKOUT_ID: healtharchive/healtharchive
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@df4cb1c069e1874edd31b4311f1884172cec0e10
 
       - name: Set up Python
-        uses: actions/setup-python@v6
+        uses: actions/setup-python@a309ff8b426b58ec0e2a45f0f869d46889d02405
         with:
           python-version: "3.11"
 
@@ -53,13 +53,14 @@ jobs:
           PLATFORM_OPS_READONLY_TOKEN: ${{ secrets.PLATFORM_OPS_READONLY_TOKEN }}
         run: |
           set -euo pipefail
+          clone_url="https://github.com/jerdaw/platform-ops.git"
           if [ -n "${PLATFORM_OPS_READONLY_TOKEN}" ]; then
-            clone_url="https://x-access-token:${PLATFORM_OPS_READONLY_TOKEN}@github.com/jerdaw/platform-ops.git"
+            auth_header="$(printf 'x-access-token:%s' "${PLATFORM_OPS_READONLY_TOKEN}" | base64 | tr -d '\n')"
+            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic ${auth_header}" \
+              clone --depth 1 --branch main "${clone_url}" "${RUNNER_TEMP}/platform-ops"
           else
-            clone_url="https://github.com/jerdaw/platform-ops.git"
+            git clone --depth 1 --branch main "${clone_url}" "${RUNNER_TEMP}/platform-ops"
           fi
-
-          git clone --depth 1 --branch main "${clone_url}" "${RUNNER_TEMP}/platform-ops"
 
       - name: Assemble temp repos root
         if: ${{ hashFiles(format('{0}.yaml', 'platform-ops-contract')) != '' }}

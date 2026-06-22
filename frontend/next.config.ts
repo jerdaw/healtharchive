@@ -6,7 +6,7 @@ const workspaceRoot = dirname(fileURLToPath(import.meta.url));
 
 const csp = [
   "default-src 'self';",
-  "script-src 'self';",
+  "script-src 'self' 'unsafe-inline';",
   "style-src 'self' 'unsafe-inline';",
   "img-src 'self' data: https:;",
   "font-src 'self' data:;",
@@ -26,9 +26,7 @@ const securityHeaders = [
     value: "geolocation=(), microphone=(), camera=()",
   },
   {
-    // Start in report-only mode so we can tune the policy safely
-    // without breaking users if we missed an allowed origin.
-    key: "Content-Security-Policy-Report-Only",
+    key: "Content-Security-Policy",
     value: csp,
   },
 ];

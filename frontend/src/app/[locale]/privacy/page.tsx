@@ -55,7 +55,12 @@ function PrivacyEnglishContent() {
           </li>
           <li>
             The site stores a local theme preference in your browser so the light/dark theme
-            persists between visits.
+            persists between visits. Some display controls may also use browser local storage for
+            non-sensitive preferences such as compare/diff highlighting.
+          </li>
+          <li>
+            If you contact the project team by email or through a report/contact form, we use those
+            communications only to investigate, respond, and operate the service.
           </li>
         </ul>
       </section>
@@ -135,6 +140,10 @@ export default async function PrivacyPage({ params }: { params: Promise<{ locale
               sauvegarde peuvent persister jusqu’à 14 jours après une suppression ou une rédaction.
             </li>
             <li>Préférence locale de thème (clair/sombre) stockée dans votre navigateur.</li>
+            <li>
+              Certains contrôles d’affichage peuvent utiliser le stockage local du navigateur pour
+              des préférences non sensibles.
+            </li>
             <li>
               Aucun compte utilisateur, aucun traqueur publicitaire et aucune information médicale
               personnelle.

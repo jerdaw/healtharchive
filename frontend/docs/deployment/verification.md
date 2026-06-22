@@ -56,14 +56,14 @@ sudo docker inspect healtharchive-frontend \
 
 ---
 
-## 2. Verify frontend security headers & CSP (report-only)
+## 2. Verify frontend security headers & CSP
 
 Current posture note:
 
-- Production currently sends `Content-Security-Policy-Report-Only`, not an
-  enforcing `Content-Security-Policy` header.
-- No dedicated CSP report collector is configured yet, so header inspection and
-  browser console warnings are the practical verification signals today.
+- Production should send an enforcing `Content-Security-Policy` header.
+- No dedicated CSP report collector is configured yet, so header inspection,
+  browser console errors, and functional smoke checks are the practical
+  verification signals today.
 
 Do these checks on the production frontend:
 
@@ -79,15 +79,18 @@ In Chrome or Firefox DevTools:
    - `X-Content-Type-Options: nosniff`
    - `X-Frame-Options: SAMEORIGIN`
    - `Permissions-Policy: geolocation=(), microphone=(), camera=()`
-   - `Content-Security-Policy-Report-Only: ...` with a value containing:
+   - `Content-Security-Policy: ...` with a value containing:
+     - `script-src 'self' 'unsafe-inline';`
      - `connect-src 'self' https://api.healtharchive.ca;`
      - `frame-src 'self' https://api.healtharchive.ca https://replay.healtharchive.ca;`
-   - No enforcing `Content-Security-Policy` header on the same response.
+   - No `Content-Security-Policy-Report-Only` header on the same response.
 
-5. Check the **Console** tab for `Content-Security-Policy-Report-Only` warnings.
-   Some warnings are expected while the CSP is report-only and being tuned.
-   Because there is no separate report collector yet, these warnings are part of
-   the current tuning loop.
+5. Check the **Console** tab for `Content-Security-Policy` errors. Any blocking
+   errors on the primary archive, browse, search, report-issue, or replay flows
+   should block deployment until either the policy or source behavior is fixed.
+   The current enforced policy allows inline scripts for Next.js bootstrap and
+   JSON-LD compatibility; a nonce-based CSP can tighten this in a later
+   hardening pass.
 
 ---
 
