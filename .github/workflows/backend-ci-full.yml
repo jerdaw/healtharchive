@@ -1,8 +1,7 @@
 name: Backend CI (Full)
 
 on:
-  schedule:
-    - cron: "17 3 * * *"
+  # Critical-only mode: full CI remains manual to avoid scheduled repo-noise.
   workflow_dispatch: {}
 
 concurrency:

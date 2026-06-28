@@ -233,15 +233,24 @@ route:
       group_wait: 0s
       group_interval: 1m
       repeat_interval: 1h
-    # Pushover is reserved for action-required alerts. Severity alone must not
-    # page the solo operator.
+    # Pushover is reserved for P0/P1 action-required alerts. Severity alone
+    # must not page the solo operator.
     - matchers:
         - notify="pushover"
+        - notification_tier="P0"
       receiver: healtharchive-webhook-pushover
       group_by: ["alertname", "source", "job_id"]
       group_wait: 2m
       group_interval: 30m
       repeat_interval: 24h
+    - matchers:
+        - notify="pushover"
+        - notification_tier="P1"
+      receiver: healtharchive-webhook-pushover
+      group_by: ["alertname", "source", "job_id"]
+      group_wait: 10m
+      group_interval: 6h
+      repeat_interval: 72h
 
 inhibit_rules:
   - source_matchers:
@@ -260,7 +269,7 @@ receivers:
   - name: healtharchive-webhook-pushover
     webhook_configs:
       - url: ${webhook_url}
-        send_resolved: false
+        send_resolved: true
 EOF
 
   am_user="$(systemctl show -p User --value "${AM_UNIT}" 2>/dev/null || true)"

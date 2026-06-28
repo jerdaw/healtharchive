@@ -22,12 +22,17 @@ Monitoring signals are separated by operator impact:
   warnings do not page by default.
 - **Action-required page:** a sustained, actionable condition that needs human
   attention. These alerts must opt in explicitly to private notification
-  delivery.
+  delivery and carry a critical notification tier.
 
 Transient availability flaps, short-lived search errors, internal scrape
 failures, and resolved events should remain in monitoring history without
 becoming push notifications. External uptime monitoring owns public
 availability paging when it is configured with a sustained-delay threshold.
+
+In critical-only mode, only `P0` and `P1` operational alerts may interrupt the
+operator. Degraded freshness, crawler/source warnings, and routine recoveries
+stay visible in dashboards and logs unless they become storage, backup,
+data-loss, security, privacy, or sustained public-outage signals.
 
 Specific monitoring implementation details, collector paths, alert-routing
 configuration, credentials, and incident-response procedures are intentionally
