@@ -157,6 +157,7 @@ def index_job(job_id: int) -> int:
             # Discover WARC files for this job.
             warc_paths = discover_warcs_for_job(job)
             job.warc_file_count = len(warc_paths)
+            logger.info("Indexing job %s phase=discover warcs=%d", job_id, len(warc_paths))
 
             if not warc_paths:
                 logger.warning("No WARC files discovered for job %s in %s", job_id, output_dir)
@@ -206,6 +207,12 @@ def index_job(job_id: int) -> int:
                 level=verify_level,
                 max_decompressed_bytes=max_decompressed_bytes,
                 max_records=max_records,
+            )
+            logger.info(
+                "Indexing job %s phase=verify level=%s warcs=%d",
+                job_id,
+                verify_level,
+                len(warc_paths),
             )
             verify_report = verify_warcs(warc_paths, options=verify_options)
             if verify_report.warcs_failed:
@@ -257,7 +264,15 @@ def index_job(job_id: int) -> int:
 
             n_snapshots = 0
 
-            for warc_path in warc_paths:
+            total_warcs = len(warc_paths)
+            for warc_index, warc_path in enumerate(warc_paths, start=1):
+                logger.info(
+                    "Indexing job %s phase=read_warc current=%d total=%d warc=%s",
+                    job_id,
+                    warc_index,
+                    total_warcs,
+                    warc_path.name,
+                )
                 for rec in iter_html_records(warc_path):
                     try:
                         # Decode bytes to text; prefer UTF-8 with replacement for robustness.

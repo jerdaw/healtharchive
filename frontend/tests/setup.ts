@@ -5,6 +5,11 @@ import * as matchers from "vitest-axe/matchers";
 // Extend expect with accessibility matchers
 expect.extend(matchers);
 
+Object.defineProperty(HTMLCanvasElement.prototype, "getContext", {
+  configurable: true,
+  value: vi.fn(() => null),
+});
+
 // Mock next/font/google
 vi.mock("next/font/google", () => ({
   Libre_Baskerville: vi.fn(() => ({

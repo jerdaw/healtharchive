@@ -1462,6 +1462,27 @@ def test_search_pagination_custom_and_out_of_range(tmp_path, monkeypatch) -> Non
     assert data_page3["results"] == []
 
 
+def test_search_pagination_accepts_documented_boundaries(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_search_data()
+
+    resp_min = client.get("/api/search", params={"page": 1, "pageSize": 1})
+    assert resp_min.status_code == 200
+    data_min = resp_min.json()
+    assert data_min["page"] == 1
+    assert data_min["pageSize"] == 1
+    assert data_min["total"] == 3
+    assert len(data_min["results"]) == 1
+
+    resp_max = client.get("/api/search", params={"page": 1, "pageSize": 100})
+    assert resp_max.status_code == 200
+    data_max = resp_max.json()
+    assert data_max["page"] == 1
+    assert data_max["pageSize"] == 100
+    assert data_max["total"] == 3
+    assert len(data_max["results"]) == 3
+
+
 def test_search_invalid_page_and_page_size(tmp_path, monkeypatch) -> None:
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_search_data()

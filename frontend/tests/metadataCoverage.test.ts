@@ -30,4 +30,16 @@ describe("metadata coverage", () => {
     expect(pages.length).toBeGreaterThan(0);
     expect(missing).toEqual([]);
   });
+
+  it("uses the shared metadata helper for every locale page", () => {
+    const root = join(process.cwd(), "src", "app", "[locale]");
+    const pages = collectPageFiles(root);
+    const missing = pages.filter((file) => {
+      const contents = readFileSync(file, "utf8");
+      return !/buildPageMetadata\s*\(/.test(contents);
+    });
+
+    expect(pages.length).toBeGreaterThan(0);
+    expect(missing).toEqual([]);
+  });
 });

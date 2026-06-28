@@ -358,7 +358,35 @@ class TestDiscoverAllWarcsForJob:
 
         assert result.source == "mixed"
         assert result.count == 2
+        assert result.warc_paths == sorted(result.warc_paths)
         assert result.source_counts == {"stable": 1, "temp": 1}
+
+    def test_hardlinked_temp_copy_is_deduped_in_favor_of_stable_warc(self, tmp_path: Path):
+        """Prefers stable WARC when temp and stable paths share the same file identity."""
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        stable_warc = warcs_dir / "warc-000001.warc.gz"
+        stable_warc.write_bytes(b"same bytes")
+
+        temp_dir = output_dir / ".tmp12345"
+        collections_dir = temp_dir / "collections" / "crawl-1" / "archive"
+        collections_dir.mkdir(parents=True)
+        temp_warc = collections_dir / "rec-001.warc.gz"
+        os.link(stable_warc, temp_warc)
+
+        (output_dir / ".archive_state.json").write_text(
+            json.dumps({"temp_dirs_host_paths": [str(temp_dir)], "current_workers": 2}),
+            encoding="utf-8",
+        )
+
+        job = _create_job_mock(output_dir)
+        result = discover_all_warcs_for_job(job, allow_fallback=True)
+
+        assert result.source == "stable"
+        assert result.count == 1
+        assert result.warc_paths == [stable_warc.resolve()]
+        assert result.source_counts == {"stable": 1}
 
     def test_manifest_dedupes_copied_stable_warc_from_temp_source(self, tmp_path: Path):
         """Prefers stable WARC when manifest says a temp source was already copied."""

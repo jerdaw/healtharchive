@@ -385,7 +385,9 @@ Completed items were removed from this backlog and archived in:
 
 3. **Add a code of conduct to all repos** (S: 1h)
 4. **Add LICENSE to datasets repo** (S: 30m) — confirmed still missing as of 2026-03-25
-5. **Add GitHub issue and PR templates across repos** (S: 2-3h) — confirmed not yet present
+5. **Add GitHub issue and PR templates across repos** (S: 2-3h) -
+   this monorepo has PR guidance; issue templates and remaining repo coverage
+   are still not confirmed.
 7. **Add changelog/release tags to backend and frontend** (M: 1 day)
 
 ### Reliability, security, and CI
@@ -424,6 +426,11 @@ Completed items were removed from this backlog and archived in:
        workflow triggers describe the free-tier posture, and the required
        branch checks still protect deployable code without leaving local
        validation gaps ambiguous.
+     - 2026-06-28 partial status: testing guidelines and PR guidance now
+       document change-scope local gates, docs-only validation, API-contract
+       validation, secret-scan hygiene, and the local Playwright posture.
+       Remaining work is workflow trigger, concurrency, artifact-retention,
+       and manual-dispatch review.
 25d. **Clean up historical secret-scan noise if full-history scans become a gate** (S: 1-2h)
      - Context: staged secret scanning is part of local commit hygiene, while
        full-history scans can surface old placeholder examples or generated
@@ -478,6 +485,9 @@ Completed items were removed from this backlog and archived in:
        operator procedures, external/adoption playbooks are boundary stubs, and
        tests enforce exact public-boundary tombstones plus a public-safe
        non-stub allowlist.
+     - 2026-06-28 status: public monitoring summary wording and generated LLM
+       context tests were tightened during the autonomous maintenance queue.
+       Broader operator-only asset separation remains in scope here.
      - Scope: keep the public documentation boundary enforced, and only retain
        generalized templates or application-contract files in public Git when
        they use explicit placeholders.
@@ -485,16 +495,6 @@ Completed items were removed from this backlog and archived in:
        no longer expose private host paths or operational continuity details, while
        any remaining operational templates have explicit public-safe placeholders
        and tests that describe their contract.
-34d. **Restore generated documentation reference checks to a clean pass** (S: 1-2h)
-     - Context: the 2026-06-05 maintenance pass confirmed
-       `scripts/check_docs_references.py` still reports pre-existing missing
-       generated/reference artifacts for the OpenAPI JSON export, generated
-       llms text, and coverage report links.
-     - Scope: decide whether each artifact should be generated in the local
-       docs workflow, checked in as a public-safe placeholder, or excluded from
-       strict reference validation when it is intentionally ephemeral.
-     - Done when: `scripts/check_docs_references.py` passes locally without
-       weakening the public/private documentation boundary.
 
 ### Frontend quality and public communication
 

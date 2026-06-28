@@ -7,6 +7,7 @@ from io import StringIO
 from pathlib import Path
 from typing import Iterator
 
+import pytest
 from sqlalchemy.orm import Session
 
 from archive_tool.state import CrawlState
@@ -29,7 +30,7 @@ def _init_test_db(tmp_path: Path, monkeypatch) -> None:
     Base.metadata.create_all(engine)
 
 
-def _seed_indexed_job(tmp_path: Path) -> int:
+def _seed_indexed_job(tmp_path: Path, *, status: str = "indexed") -> int:
     """
     Create a single Source and an indexed ArchiveJob with a temp dir and state.
     """
@@ -59,7 +60,7 @@ def _seed_indexed_job(tmp_path: Path) -> int:
             source_id=src.id,
             name="job-cleanup",
             output_dir=str(output_dir),
-            status="indexed",
+            status=status,
             cleanup_status="none",
         )
         session.add(job)
@@ -102,6 +103,46 @@ def test_cleanup_job_temp_mode_removes_temp_and_state(tmp_path, monkeypatch) -> 
     assert not state_path.exists()
 
 
+def test_cleanup_job_temp_mode_preserves_stable_warc_and_zim_artifacts(
+    tmp_path, monkeypatch
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    job_id = _seed_indexed_job(tmp_path)
+
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        output_dir = Path(job.output_dir)
+        stable_warcs_dir = output_dir / "warcs"
+        stable_warcs_dir.mkdir()
+        stable_warc = stable_warcs_dir / "stable.warc.gz"
+        stable_warc.write_bytes(b"stable warc bytes")
+        zim_file = output_dir / "job-cleanup.zim"
+        zim_file.write_bytes(b"zim bytes")
+
+    parser = cli_module.build_parser()
+    args = parser.parse_args(["cleanup-job", "--id", str(job_id)])
+    args.func(args)
+
+    assert stable_warc.read_bytes() == b"stable warc bytes"
+    assert zim_file.read_bytes() == b"zim bytes"
+
+
+def test_cleanup_job_allows_index_failed_status(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    job_id = _seed_indexed_job(tmp_path, status="index_failed")
+
+    parser = cli_module.build_parser()
+    args = parser.parse_args(["cleanup-job", "--id", str(job_id)])
+    args.func(args)
+
+    with get_session() as session:
+        job = session.get(ArchiveJob, job_id)
+        assert job is not None
+        assert job.cleanup_status == "temp_cleaned"
+        assert job.cleaned_at is not None
+
+
 def test_cleanup_job_filesystem_cleanup_runs_outside_db_session(tmp_path, monkeypatch) -> None:
     _init_test_db(tmp_path, monkeypatch)
     job_id = _seed_indexed_job(tmp_path)
@@ -131,7 +172,8 @@ def test_cleanup_job_filesystem_cleanup_runs_outside_db_session(tmp_path, monkey
     assert active_sessions == 0
 
 
-def test_cleanup_job_rejects_non_indexed_status(tmp_path, monkeypatch) -> None:
+@pytest.mark.parametrize("status", ["queued", "running", "retryable", "completed", "failed"])
+def test_cleanup_job_rejects_unsafe_statuses(status: str, tmp_path, monkeypatch) -> None:
     _init_test_db(tmp_path, monkeypatch)
 
     with get_session() as session:
@@ -147,9 +189,9 @@ def test_cleanup_job_rejects_non_indexed_status(tmp_path, monkeypatch) -> None:
 
         job = ArchiveJob(
             source_id=src.id,
-            name="job-running",
-            output_dir=str(tmp_path / "job-running"),
-            status="running",
+            name=f"job-{status}",
+            output_dir=str(tmp_path / f"job-{status}"),
+            status=status,
         )
         session.add(job)
         session.flush()
@@ -174,7 +216,7 @@ def test_cleanup_job_rejects_non_indexed_status(tmp_path, monkeypatch) -> None:
     with get_session() as session:
         loaded_job = session.get(ArchiveJob, job_id)
         assert loaded_job is not None
-        assert loaded_job.status == "running"
+        assert loaded_job.status == status
         assert loaded_job.cleanup_status == "none"
 
 

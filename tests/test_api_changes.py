@@ -151,6 +151,43 @@ def test_changes_feed_and_compare(tmp_path, monkeypatch) -> None:
     assert timeline_body["snapshots"][1]["compareFromSnapshotId"] == ids["snap_a"]
 
 
+def test_changes_pagination_accepts_documented_boundaries(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HEALTHARCHIVE_CHANGE_TRACKING_ENABLED", "1")
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_change_data()
+
+    resp_min = client.get("/api/changes", params={"page": 1, "pageSize": 1})
+    assert resp_min.status_code == 200
+    data_min = resp_min.json()
+    assert data_min["page"] == 1
+    assert data_min["pageSize"] == 1
+    assert data_min["total"] == 1
+    assert len(data_min["results"]) == 1
+
+    resp_max = client.get("/api/changes", params={"page": 1, "pageSize": 100})
+    assert resp_max.status_code == 200
+    data_max = resp_max.json()
+    assert data_max["page"] == 1
+    assert data_max["pageSize"] == 100
+    assert data_max["total"] == 1
+    assert len(data_max["results"]) == 1
+
+
+def test_changes_rejects_invalid_pagination_bounds(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HEALTHARCHIVE_CHANGE_TRACKING_ENABLED", "1")
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_change_data()
+
+    resp_page0 = client.get("/api/changes", params={"page": 0})
+    assert resp_page0.status_code == 422
+
+    resp_page_size0 = client.get("/api/changes", params={"pageSize": 0})
+    assert resp_page_size0.status_code == 422
+
+    resp_page_size101 = client.get("/api/changes", params={"pageSize": 101})
+    assert resp_page_size101.status_code == 422
+
+
 def test_changes_rss_escapes_xml(tmp_path, monkeypatch) -> None:
     monkeypatch.setenv("HEALTHARCHIVE_CHANGE_TRACKING_ENABLED", "1")
     client = _init_test_app(tmp_path, monkeypatch)

@@ -3,6 +3,7 @@ from __future__ import annotations
 from datetime import datetime, timezone
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 
 from ha_backend import db as db_module
@@ -180,6 +181,19 @@ def test_admin_jobs_require_token_when_configured(tmp_path, monkeypatch) -> None
     assert resp.status_code == 200
 
 
+@pytest.mark.parametrize("path", ["/api/admin/jobs", "/metrics"])
+def test_admin_surfaces_accept_x_admin_token_when_configured(
+    path: str, tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setenv("HEALTHARCHIVE_ADMIN_TOKEN", "test-token")
+    monkeypatch.delenv("HEALTHARCHIVE_ENV", raising=False)
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_basic_data()
+
+    resp = client.get(path, headers={"X-Admin-Token": "test-token"})
+    assert resp.status_code == 200
+
+
 def test_admin_job_detail_and_status_counts(tmp_path, monkeypatch) -> None:
     monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
     monkeypatch.delenv("HEALTHARCHIVE_ENV", raising=False)
@@ -344,3 +358,18 @@ def test_admin_requires_token_when_env_is_production(tmp_path, monkeypatch) -> N
     assert resp.status_code == 500
     body = resp.json()
     assert body["detail"] == "Admin token not configured for this environment"
+
+
+@pytest.mark.parametrize("env", ["production", "staging"])
+@pytest.mark.parametrize("path", ["/api/admin/jobs", "/metrics"])
+def test_admin_surfaces_fail_closed_when_env_requires_token(
+    env: str, path: str, tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setenv("HEALTHARCHIVE_ENV", env)
+    monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_basic_data()
+
+    resp = client.get(path)
+    assert resp.status_code == 500
+    assert resp.json()["detail"] == "Admin token not configured for this environment"

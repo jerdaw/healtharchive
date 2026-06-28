@@ -18,14 +18,23 @@ describe("frontend security headers", () => {
     expect(byKey.get("X-Frame-Options")).toBe("SAMEORIGIN");
     expect(byKey.get("Permissions-Policy")).toBe("geolocation=(), microphone=(), camera=()");
 
+    expect(headers.filter((header) => header.key === "Content-Security-Policy")).toHaveLength(1);
+    expect(byKey.has("Content-Security-Policy-Report-Only")).toBe(false);
+
     const csp = byKey.get("Content-Security-Policy");
     expect(csp).toBeDefined();
+    expect(csp).toContain("default-src 'self';");
     expect(csp).toContain("script-src 'self' 'unsafe-inline';");
     expect(csp).toContain("connect-src 'self' https://api.healtharchive.ca;");
     expect(csp).toContain(
       "frame-src 'self' https://api.healtharchive.ca https://replay.healtharchive.ca;",
     );
+    expect(csp).toContain("frame-ancestors 'self';");
+    expect(csp).toContain("base-uri 'self';");
+    expect(csp).toContain("form-action 'self';");
 
-    expect(byKey.has("Content-Security-Policy-Report-Only")).toBe(false);
+    expect(csp).not.toContain("*");
+    expect(csp).not.toContain("/api/admin");
+    expect(csp).not.toContain("/metrics");
   });
 });

@@ -90,6 +90,42 @@ def _write_multi_record_warc(warc_path: Path, records: list[tuple[str, str]]) ->
     return record_ids
 
 
+def _seed_raw_snapshot(
+    *,
+    url: str,
+    warc_path: str,
+    warc_record_id: str | None,
+) -> int:
+    with get_session() as session:
+        src = Source(
+            code="test",
+            name="Test Source",
+            base_url="https://example.org",
+            description="Test",
+            enabled=True,
+        )
+        session.add(src)
+        session.flush()
+
+        snap = Snapshot(
+            job_id=None,
+            source_id=src.id,
+            url=url,
+            normalized_url_group=url,
+            capture_timestamp=datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc),
+            mime_type="text/html",
+            status_code=200,
+            title="Test Page",
+            snippet="Snippet",
+            language="en",
+            warc_path=warc_path,
+            warc_record_id=warc_record_id,
+        )
+        session.add(snap)
+        session.flush()
+        return int(snap.id)
+
+
 def test_raw_snapshot_route_serves_html(tmp_path, monkeypatch) -> None:
     client = _init_test_app(tmp_path, monkeypatch)
 
@@ -300,6 +336,32 @@ def test_find_record_for_snapshot_prefers_exact_record_id_without_url_fallback(t
     assert "Target Body" in record.body_bytes.decode("utf-8", errors="replace")
 
 
+def test_raw_snapshot_not_found_returns_404_without_path_details(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    resp = client.get("/api/snapshots/raw/999999")
+
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Snapshot not found"
+    assert str(tmp_path) not in resp.text
+    assert ".warc" not in resp.text
+
+
+def test_raw_snapshot_without_warc_path_returns_404(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+    snapshot_id = _seed_raw_snapshot(
+        url="https://example.org/no-warc-path",
+        warc_path="",
+        warc_record_id=None,
+    )
+
+    resp = client.get(f"/api/snapshots/raw/{snapshot_id}")
+
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "No WARC path associated with this snapshot"
+    assert str(tmp_path) not in resp.text
+
+
 def test_raw_snapshot_missing_warc_returns_404(tmp_path, monkeypatch) -> None:
     """
     When the underlying WARC file is missing, the viewer should return 404
@@ -343,6 +405,33 @@ def test_raw_snapshot_missing_warc_returns_404(tmp_path, monkeypatch) -> None:
     assert resp.status_code == 404
     body = resp.json()
     assert "Underlying WARC file" in body["detail"]
+    assert str(missing_warc) not in resp.text
+    assert missing_warc.name not in resp.text
+
+
+def test_raw_snapshot_unmatched_record_returns_404_without_path_details(
+    tmp_path, monkeypatch
+) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    warc_file = tmp_path / "warcs" / "test.warc.gz"
+    _write_test_warc(
+        warc_file,
+        "https://example.org/archived",
+        "<html><body><h1>Archived page</h1></body></html>",
+    )
+    snapshot_id = _seed_raw_snapshot(
+        url="https://example.org/not-in-warc",
+        warc_path=str(warc_file),
+        warc_record_id="missing-record-id",
+    )
+
+    resp = client.get(f"/api/snapshots/raw/{snapshot_id}")
+
+    assert resp.status_code == 404
+    assert resp.json()["detail"] == "Could not locate corresponding record in the WARC file"
+    assert str(warc_file) not in resp.text
+    assert warc_file.name not in resp.text
 
 
 def test_playwright_warc_capture_indexes_and_replays_canonical_final_url(

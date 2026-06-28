@@ -142,6 +142,10 @@ Available templates:
   include only public-safe overview, architecture, API, local development, and
   contribution docs; do not include agent instructions, private ops runbooks,
   deployment inventories, or active planning notes.
+- `docs/openapi.json` and `docs/llms.txt` are generated, git-ignored local
+  outputs. Regenerate them through `make docs-refs`, `make docs-build`, or
+  `make docs-serve`; do not hand-edit or commit them. If either output is
+  wrong, update the API schema, source docs, or generator script that feeds it.
 - If you sync your workspace via Syncthing, treat `.stignore` as "sync ignore" (like `.gitignore`) and ensure it excludes build artifacts and machine-local dev artifacts (e.g., `.venv/`, `node_modules/`, `.dev-archive-root/`). Secrets may sync via Syncthing, but must remain git-ignored.
 
 ## Documentation framework (Diátaxis)

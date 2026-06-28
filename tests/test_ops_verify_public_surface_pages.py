@@ -221,3 +221,79 @@ def test_verify_public_surface_accepts_raw_snapshot_replay_redirect(monkeypatch,
     output = capsys.readouterr().out
     assert exit_code == 0
     assert "OK   raw snapshot redirect status=307 location=https://replay.example/" in output
+
+
+def test_verify_public_surface_allows_local_empty_index_and_disabled_optional_features(
+    monkeypatch, capsys
+) -> None:
+    module = _load_script_module()
+    calls: list[str] = []
+
+    def response(
+        status: int,
+        body: dict[str, Any] | list[Any] | str,
+        content_type: str = "application/json",
+    ):
+        if isinstance(body, str):
+            raw = body.encode("utf-8")
+        else:
+            import json
+
+            raw = json.dumps(body).encode("utf-8")
+        return module.HttpResponse(status=status, headers={"Content-Type": content_type}, body=raw)
+
+    def fake_http_request(
+        url: str,
+        *,
+        timeout_s: float,
+        method: str = "GET",
+        headers: dict[str, str] | None = None,
+        json_body: dict[str, Any] | None = None,
+        read_limit_bytes: int = 64 * 1024,
+        follow_redirects: bool = True,
+    ):
+        del timeout_s, method, headers, json_body, read_limit_bytes, follow_redirects
+        calls.append(url)
+        if url.endswith("/api/health"):
+            return response(200, {"status": "ok"})
+        if url.endswith("/api/stats"):
+            return response(200, {"snapshotsTotal": 0})
+        if url.endswith("/api/sources"):
+            return response(200, [])
+        if url.endswith("/api/exports"):
+            return response(200, {"enabled": False})
+        if url.endswith("/api/search?pageSize=1"):
+            return response(200, {"results": [], "total": 0, "page": 1, "pageSize": 1})
+        if url.endswith("/api/usage"):
+            return response(200, {"enabled": False, "windowDays": 30})
+        if url.endswith("/api/changes?pageSize=1"):
+            return response(200, {"enabled": False, "total": 0, "page": 1, "pageSize": 1})
+        raise AssertionError(f"unexpected URL: {url}")
+
+    monkeypatch.setattr(module, "_http_request", fake_http_request)
+
+    exit_code = module.main(
+        [
+            "--api-base",
+            "http://127.0.0.1:8001",
+            "--frontend-base",
+            "http://127.0.0.1:3000",
+            "--allow-empty-index",
+            "--allow-usage-disabled",
+            "--allow-exports-disabled",
+            "--allow-changes-disabled",
+            "--skip-frontend",
+            "--skip-replay",
+        ]
+    )
+
+    output = capsys.readouterr().out
+    assert exit_code == 0
+    assert "OK   api sources status=200 count=0 (allowed for empty index)" in output
+    assert "OK   api exports manifest enabled=false (allowed)" in output
+    assert "OK   api search returned no results (allowed)" in output
+    assert "OK   no snapshot id available (allowed for empty index)" in output
+    assert "OK   api usage enabled=false (allowed)" in output
+    assert "OK   api changes enabled=false (allowed)" in output
+    assert "All checks passed." in output
+    assert all("127.0.0.1:3000" not in url for url in calls)

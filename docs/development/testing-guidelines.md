@@ -26,6 +26,25 @@ Notes:
   `PYTHON_BIN` only when debugging a local environment issue.
 - Browser automation suites (for example Playwright in related repos) should run in CI by default; only run them locally when you explicitly need interactive debugging.
 
+## Change-scope local gates
+
+Use the narrowest gate that matches the files you changed while iterating, then
+run `make prepush` before pushing when the change spans backend/frontend
+contracts or user-visible workflows.
+
+| Change scope | Local validation | CI/workflow parity |
+| --- | --- | --- |
+| Backend-only code or backend tests | `make backend-ci` | `.github/workflows/backend-ci.yml` fast backend gate |
+| Frontend-only code, UI tests, or frontend docs/build inputs | `make contract-check` and `make frontend-ci` | `.github/workflows/frontend-ci.yml` contract + frontend jobs |
+| Docs-only changes | `make docs-refs` and `make docs-coverage-strict`; add `make docs-build` for nav or rendered-page changes | `.github/workflows/docs.yml` docs build plus advisory docs reference/coverage checks |
+| Backend/frontend API contract changes | `make contract-sync`, `make contract-check`, and `make integration-e2e` | Backend and frontend CI plus integrated smoke |
+| Broad pre-push readiness | `make prepush`; use `make check-full` before deploys or stricter review | Local parity gate plus optional full backend suite |
+
+Docs reference checks regenerate `docs/openapi.json` and `docs/llms.txt` as
+git-ignored public artifacts before validating links and references. Treat
+`make docs-refs` as the narrow docs-reference integrity check; use
+`make docs-build` when you also need to verify the rendered MkDocs site.
+
 ### GitHub Actions quota-constrained periods
 
 When the GitHub Actions free-tier quota is constrained, keep local validation
@@ -60,6 +79,15 @@ pull requests, and manual runs from the same checkout.
 - One test: `pytest -k some_keyword`
 - Lint + format: `ruff check .` and `ruff format --check .`
 - Type-check: `mypy src tests`
+
+### Known local warning
+
+The current FastAPI/Starlette test stack emits a
+`StarletteDeprecationWarning` about using `httpx` with `starlette.testclient`
+when API tests import `TestClient`. This is an upstream dependency transition,
+not a failing project check. Do not silence it broadly, downgrade dependencies,
+or rewrite the API test harness solely for the warning; revisit when the
+project intentionally adopts the supported TestClient/httpx replacement.
 
 ## Writing tests
 

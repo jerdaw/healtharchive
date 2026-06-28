@@ -26,6 +26,8 @@ const FORBIDDEN = new RegExp(
     .join("|"),
   "i",
 );
+const FORBIDDEN_BROWSER_ENDPOINTS = [/\/api\/admin(?:\/|["'`?]|$)/, /\/metrics(?:["'`?]|$)/];
+const GENERATED_API_CONTRACT = join("src", "lib", "api-contract.generated.ts");
 
 function collectFiles(entryPath: string): string[] {
   const stats = statSync(entryPath);
@@ -54,6 +56,22 @@ describe("content policy", () => {
       }
       const content = readFileSync(file, "utf8");
       return FORBIDDEN.test(content);
+    });
+
+    expect(violations).toEqual([]);
+  });
+
+  it("does not call admin or observability endpoints from browser source", () => {
+    const repoRoot = process.cwd();
+    const files = collectFiles(join(repoRoot, "src")).filter((file) => {
+      if (file.endsWith(GENERATED_API_CONTRACT)) return false;
+
+      const extensionMatch = file.match(/\.[^.]+$/);
+      return extensionMatch ? TEXT_EXTENSIONS.has(extensionMatch[0]) : true;
+    });
+    const violations = files.filter((file) => {
+      const content = readFileSync(file, "utf8");
+      return FORBIDDEN_BROWSER_ENDPOINTS.some((pattern) => pattern.test(content));
     });
 
     expect(violations).toEqual([]);

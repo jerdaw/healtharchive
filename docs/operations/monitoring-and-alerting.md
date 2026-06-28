@@ -30,9 +30,10 @@ becoming push notifications. External uptime monitoring owns public
 availability paging when it is configured with a sustained-delay threshold.
 
 In critical-only mode, only `P0` and `P1` operational alerts may interrupt the
-operator. Degraded freshness, crawler/source warnings, and routine recoveries
-stay visible in dashboards and logs unless they become storage, backup,
-data-loss, security, privacy, or sustained public-outage signals.
+operator. Degraded freshness, crawler/source warnings, and routine remediation
+events stay visible in dashboards and logs unless they become storage,
+data-continuity, data-loss, security, privacy, or sustained public-outage
+signals.
 
 Specific monitoring implementation details, collector paths, alert-routing
 configuration, credentials, and incident-response procedures are intentionally

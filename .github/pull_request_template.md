@@ -2,6 +2,7 @@
 
 - [ ] If backend code or backend tests changed, ran `make backend-ci`
 - [ ] If frontend code or frontend docs/build inputs changed, ran `make contract-check` and `make frontend-ci`
+- [ ] If docs-only files changed, ran `make docs-refs` and `make docs-coverage-strict` (plus `make docs-build` for nav/rendered-page changes)
 - [ ] If a backend/frontend interaction changed, ran `make integration-e2e`
 - [ ] Updated/added tests if needed
 - [ ] Updated docs/runbooks/playbooks if behavior or ops changed

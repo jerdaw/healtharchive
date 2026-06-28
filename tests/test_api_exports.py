@@ -4,6 +4,7 @@ import csv
 import json
 from datetime import datetime, timezone
 from pathlib import Path
+from typing import Any
 
 from fastapi import Response
 from fastapi.testclient import TestClient
@@ -116,6 +117,10 @@ def _seed_export_data() -> dict[str, int]:
         return {"snapshot_id": snap_b.id, "change_id": change.id}
 
 
+def _jsonl_rows(text: str) -> list[dict[str, Any]]:
+    return [json.loads(line) for line in text.splitlines() if line.strip()]
+
+
 def test_exports_manifest(tmp_path, monkeypatch) -> None:
     client = _init_test_app(tmp_path, monkeypatch)
 
@@ -151,9 +156,9 @@ def test_snapshot_exports_jsonl(tmp_path, monkeypatch) -> None:
     assert resp.headers["content-type"].startswith("application/x-ndjson")
     assert "content-encoding" not in resp.headers
 
-    lines = [line for line in resp.text.strip().splitlines() if line.strip()]
-    assert len(lines) >= 1
-    row = json.loads(lines[0])
+    rows = _jsonl_rows(resp.text)
+    assert len(rows) >= 1
+    row = rows[0]
 
     assert "snapshot_id" in row
     assert "snapshot_url" in row
@@ -189,13 +194,103 @@ def test_change_exports_jsonl(tmp_path, monkeypatch) -> None:
     assert resp.status_code == 200
     assert resp.headers["content-type"].startswith("application/x-ndjson")
 
-    lines = [line for line in resp.text.strip().splitlines() if line.strip()]
-    assert len(lines) >= 1
-    row = json.loads(lines[0])
+    rows = _jsonl_rows(resp.text)
+    assert len(rows) >= 1
+    row = rows[0]
 
     assert "change_id" in row
     assert "compare_url" in row
     assert row["compare_url"].startswith("https://healtharchive.ca/compare?")
+
+
+def test_change_exports_csv(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_export_data()
+
+    resp = client.get(
+        "/api/exports/changes",
+        params={"format": "csv", "compressed": "false", "limit": 5},
+    )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/csv")
+
+    reader = csv.DictReader(resp.text.splitlines())
+    rows = list(reader)
+    assert rows
+    assert "change_id" in rows[0]
+    assert "compare_url" in rows[0]
+
+
+def test_snapshot_exports_empty_dataset_jsonl(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    resp = client.get(
+        "/api/exports/snapshots",
+        params={"format": "jsonl", "compressed": "false", "limit": 5},
+    )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("application/x-ndjson")
+    assert resp.text == ""
+
+
+def test_change_exports_empty_dataset_csv(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    resp = client.get(
+        "/api/exports/changes",
+        params={"format": "csv", "compressed": "false", "limit": 5},
+    )
+    assert resp.status_code == 200
+    assert resp.headers["content-type"].startswith("text/csv")
+
+    rows = list(csv.DictReader(resp.text.splitlines()))
+    assert rows == []
+    assert "change_id" in resp.text.splitlines()[0]
+
+
+def test_exports_source_filter_and_unknown_source(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_export_data()
+
+    for path, id_field in (
+        ("/api/exports/snapshots", "snapshot_id"),
+        ("/api/exports/changes", "change_id"),
+    ):
+        resp = client.get(
+            path,
+            params={"format": "jsonl", "compressed": "false", "source": "HC", "limit": 5},
+        )
+        assert resp.status_code == 200
+        assert resp.headers["content-type"].startswith("application/x-ndjson")
+        rows = _jsonl_rows(resp.text)
+        assert rows
+        assert all(row["source_code"] == "hc" for row in rows)
+        assert all(id_field in row for row in rows)
+
+        missing = client.get(path, params={"format": "jsonl", "source": "missing"})
+        assert missing.status_code == 404
+        assert missing.json()["detail"] == "Source not found"
+
+
+def test_exports_limit_bounds(tmp_path, monkeypatch) -> None:
+    monkeypatch.setenv("HEALTHARCHIVE_EXPORTS_MAX_LIMIT", "1")
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_export_data()
+
+    for path in ("/api/exports/snapshots", "/api/exports/changes"):
+        valid = client.get(
+            path,
+            params={"format": "jsonl", "compressed": "false", "limit": 1},
+        )
+        assert valid.status_code == 200
+        assert len(_jsonl_rows(valid.text)) == 1
+
+        too_low = client.get(path, params={"format": "jsonl", "limit": 0})
+        assert too_low.status_code == 422
+
+        too_high = client.get(path, params={"format": "jsonl", "limit": 2})
+        assert too_high.status_code == 422
+        assert too_high.json()["detail"] == "limit must be <= 1"
 
 
 def test_snapshot_export_materializes_rows_before_streaming(tmp_path, monkeypatch) -> None:
@@ -250,8 +345,10 @@ def test_exports_invalid_format(tmp_path, monkeypatch) -> None:
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_export_data()
 
-    resp = client.get("/api/exports/snapshots", params={"format": "xlsx"})
-    assert resp.status_code == 422
+    for path in ("/api/exports/snapshots", "/api/exports/changes"):
+        resp = client.get(path, params={"format": "xlsx"})
+        assert resp.status_code == 422
+        assert resp.json()["detail"] == "Unsupported export format; use jsonl or csv."
 
 
 def test_snapshot_exports_head_returns_download_headers(tmp_path, monkeypatch) -> None:

@@ -110,6 +110,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Autonomous overnight maintenance queue:
+  `implemented/2026-06-28-autonomous-overnight-work-plan.md`
 - Storage budget and WARC promotion hardening:
   `implemented/2026-06-11-storage-budget-and-warc-promotion-hardening.md`
 - Annual crawl storage guardrails:

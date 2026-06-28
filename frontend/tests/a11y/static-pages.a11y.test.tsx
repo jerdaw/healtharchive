@@ -6,6 +6,13 @@ import MethodsPage from "@/app/[locale]/methods/page";
 import ContactPage from "@/app/[locale]/contact/page";
 import ResearchersPage from "@/app/[locale]/researchers/page";
 
+vi.mock("next/link", () => ({
+  __esModule: true,
+  default: ({ children, href }: { children: React.ReactNode; href: string }) => (
+    <a href={href}>{children}</a>
+  ),
+}));
+
 describe("Static pages accessibility", () => {
   beforeEach(() => {
     vi.clearAllMocks();

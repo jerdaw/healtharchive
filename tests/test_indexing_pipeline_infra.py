@@ -151,3 +151,74 @@ def test_index_job_logs_unknown_page_group_count_for_negative_rowcount(
     assert rc == 0
     assert "Rebuilt unknown page group(s) (deleted 0) for job" in caplog.text
     assert "Rebuilt -2 page group(s)" not in caplog.text
+
+
+def test_index_job_logs_discovery_verification_and_per_warc_progress(
+    tmp_path, monkeypatch, caplog
+) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    output_dir = tmp_path / "job-output"
+    output_dir.mkdir()
+    first_warc = output_dir / "first.warc.gz"
+    second_warc = output_dir / "second.warc.gz"
+
+    with get_session() as session:
+        source = Source(
+            code="hc",
+            name="Health Canada",
+            base_url="https://www.canada.ca/en/health-canada.html",
+            description="HC",
+            enabled=True,
+        )
+        session.add(source)
+        session.flush()
+
+        job = ArchiveJob(
+            source_id=source.id,
+            name="indexing-progress",
+            output_dir=str(output_dir),
+            status="completed",
+        )
+        session.add(job)
+        session.flush()
+        job_id = job.id
+
+    monkeypatch.setattr(
+        "ha_backend.indexing.pipeline._ensure_stable_warcs_available",
+        lambda *_args, **_kwargs: None,
+    )
+    monkeypatch.setattr(
+        "ha_backend.indexing.pipeline.discover_warcs_for_job",
+        lambda _job: [first_warc, second_warc],
+    )
+    monkeypatch.setattr(
+        "ha_backend.indexing.pipeline.verify_warcs",
+        lambda *_args, **_kwargs: SimpleNamespace(warcs_failed=0, failures=[], warcs_checked=2),
+    )
+    monkeypatch.setattr("ha_backend.indexing.pipeline.iter_html_records", lambda _path: iter(()))
+    monkeypatch.setattr(
+        "ha_backend.indexing.pipeline.compute_job_storage_stats",
+        lambda **_kwargs: SimpleNamespace(
+            warc_bytes_total=0,
+            output_bytes_total=0,
+            tmp_bytes_total=0,
+            tmp_non_warc_bytes_total=0,
+            scanned_at=datetime(2026, 4, 23, 8, 17, tzinfo=timezone.utc),
+        ),
+    )
+
+    caplog.set_level("INFO", logger="healtharchive.indexing")
+
+    rc = index_job(job_id)
+
+    assert rc == 0
+    assert f"Indexing job {job_id} phase=discover warcs=2" in caplog.text
+    assert f"Indexing job {job_id} phase=verify level=0 warcs=2" in caplog.text
+    assert (
+        f"Indexing job {job_id} phase=read_warc current=1 total=2 warc=first.warc.gz" in caplog.text
+    )
+    assert (
+        f"Indexing job {job_id} phase=read_warc current=2 total=2 warc=second.warc.gz"
+        in caplog.text
+    )
