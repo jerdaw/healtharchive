@@ -90,15 +90,26 @@ class TestVpsTieringMetrics:
                     out_file,
                     "--manifest",
                     str(manifest),
-                    "--storagebox-mount",
-                    str(tmp_path / "storagebox"),
+                    "--cold-archive-root",
+                    str(tmp_path / "cold-archive"),
                 ]
             )
 
             assert ret == 0
             assert (tmp_path / out_file).exists()
             content = (tmp_path / out_file).read_text()
-            assert "healtharchive_storagebox_mount_ok 1" in content
+            assert "healtharchive_cold_archive_root_ok 1" in content
+            assert "healtharchive_storagebox_mount_ok" not in content
+            assert "Storage Box" not in content
+
+    def test_shell_script_uses_generic_cold_archive_metrics(self):
+        shell_script = repo_root / "scripts" / "vps-tiering-metrics-textfile.sh"
+        text = shell_script.read_text(encoding="utf-8")
+
+        assert "healtharchive_cold_archive_root_ok" in text
+        assert "healtharchive_storagebox_mount_ok" not in text
+        assert "Storage Box" not in text
+        assert "/srv/healtharchive/storagebox" not in text
 
 
 import stat  # noqa: E402

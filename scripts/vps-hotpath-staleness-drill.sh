@@ -22,7 +22,7 @@ Usage (on the VPS):
 
 Options:
   --simulate-broken-path PATH   Optional. If set, runs watchdog in dry-run simulation mode.
-  --out-root DIR                Evidence out root (default: /srv/healtharchive/ops/observability/hotpath-staleness)
+  --out-root DIR                Evidence out root (default: /srv/healtharchive/ops/observability/archive-cache-staleness)
   --since-minutes N             Journal window for bundles (default: 240)
   --year YEAR                   Campaign year for `vps-crawl-status.sh` (default: current UTC year)
   --note TEXT                   Optional note for the TSV log (no secrets)
@@ -37,7 +37,7 @@ EOF
 }
 
 SIMULATE_BROKEN_PATH=""
-OUT_ROOT="/srv/healtharchive/ops/observability/hotpath-staleness"
+OUT_ROOT="/srv/healtharchive/ops/observability/archive-cache-staleness"
 SINCE_MINUTES="240"
 YEAR="$(date -u +%Y)"
 NOTE=""
@@ -156,7 +156,7 @@ PRE_BUNDLE="$(capture_bundle "drill-pre")"
 echo "OK: pre_bundle=${PRE_BUNDLE}"
 echo ""
 
-drill_work_dir="$(mktemp -d /tmp/healtharchive-hotpath-staleness-drill.XXXXXX)"
+drill_work_dir="$(mktemp -d /tmp/healtharchive-archive-cache-staleness-drill.XXXXXX)"
 trap 'rm -rf "${drill_work_dir}"' EXIT
 
   if [[ -n "${SIMULATE_BROKEN_PATH}" ]]; then
@@ -169,10 +169,10 @@ trap 'rm -rf "${drill_work_dir}"' EXIT
     /opt/healtharchive/.venv/bin/python3 /opt/healtharchive/scripts/vps-storage-hotpath-auto-recover.py \
       --confirm-runs 1 \
       --min-failure-age-seconds 0 \
-      --state-file /tmp/healtharchive-storage-hotpath-drill.state.json \
-      --lock-file /tmp/healtharchive-storage-hotpath-drill.lock \
+      --state-file /tmp/healtharchive-archive-cache-drill.state.json \
+      --lock-file /tmp/healtharchive-archive-cache-drill.lock \
       --textfile-out-dir /tmp \
-      --textfile-out-file healtharchive_storage_hotpath_auto_recover.drill.prom \
+      --textfile-out-file healtharchive_archive_cache_auto_recover.drill.prom \
       --simulate-broken-path '${SIMULATE_BROKEN_PATH}'" 2>&1 | tee "${drill_out}"
   rc="${PIPESTATUS[0]}"
   set -e

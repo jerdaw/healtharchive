@@ -145,8 +145,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument(
         "--campaign-archive-root",
-        default="/srv/healtharchive/storagebox/jobs",
-        help="Expected campaign output root (default: /srv/healtharchive/storagebox/jobs).",
+        default=os.environ.get(
+            "HEALTHARCHIVE_CAMPAIGN_ARCHIVE_ROOT",
+            "/srv/healtharchive/cold-archive/jobs",
+        ),
+        help=(
+            "Expected campaign output root (default: HEALTHARCHIVE_CAMPAIGN_ARCHIVE_ROOT "
+            "or /srv/healtharchive/cold-archive/jobs)."
+        ),
     )
     p.add_argument(
         "--metrics-file",

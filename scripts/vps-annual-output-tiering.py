@@ -30,12 +30,12 @@ def _get_mountinfo_for_target(path: Path) -> dict[str, str] | None:
     """
     Return the exact /proc/self/mountinfo record for `path`, or None.
 
-    `findmnt` formats bind mounts from sshfs subdirectories as fuse.sshfs
-    mounts whose SOURCE can look like a direct remote submount. mountinfo keeps
+    `findmnt` can format bind mounts from remote subdirectories as mounts
+    whose SOURCE looks like a direct remote submount. mountinfo keeps
     the filesystem root for that mount, which lets us distinguish:
 
-    - expected: Storage Box base mount root `/` plus hot bind root `/jobs/...`
-    - unexpected: independent direct sshfs mount root `/`
+    - expected: cold archive base mount root `/` plus hot bind root `/jobs/...`
+    - unexpected: independent direct remote mount root `/`
     """
     target = str(path)
     try:
@@ -161,14 +161,14 @@ def _probe_readable_dir(path: Path) -> tuple[int, int]:
     return 1, -1
 
 
-def _require_storagebox_mounted(storagebox_mount: Path) -> None:
-    if not _is_exact_mountpoint(storagebox_mount):
-        raise RuntimeError(f"Storage Box is not mounted at: {storagebox_mount}")
+def _require_cold_archive_mounted(cold_archive_root: Path) -> None:
+    if not _is_exact_mountpoint(cold_archive_root):
+        raise RuntimeError(f"Cold archive root is not mounted at: {cold_archive_root}")
     # Also ensure it's readable.
     try:
-        os.listdir(storagebox_mount)
+        os.listdir(cold_archive_root)
     except OSError as e:
-        raise RuntimeError(f"Storage Box mount is not readable: {storagebox_mount} ({e})") from e
+        raise RuntimeError(f"Cold archive root is not readable: {cold_archive_root} ({e})") from e
 
 
 def _cold_path_for_output_dir(
@@ -187,47 +187,47 @@ def _cold_path_for_output_dir(
     return cold_root / rel
 
 
-def _expected_mountinfo_root(cold_dir: Path, storagebox_mount: Path) -> str:
+def _expected_mountinfo_root(cold_dir: Path, cold_archive_root: Path) -> str:
     cold = Path(str(cold_dir)).absolute()
-    storage = Path(str(storagebox_mount)).absolute()
+    archive = Path(str(cold_archive_root)).absolute()
     try:
-        rel = cold.relative_to(storage)
+        rel = cold.relative_to(archive)
     except ValueError as e:
-        raise ValueError(f"cold_dir is not under storagebox_mount: {cold} (mount={storage})") from e
+        raise ValueError(f"cold_dir is not under cold_archive_root: {cold} (root={archive})") from e
     rel_posix = rel.as_posix()
     if rel_posix == ".":
         rel_posix = ""
-    storage_info = _get_mountinfo_for_target(storage)
-    storage_root = str(storage_info.get("root") or "/") if storage_info else "/"
-    return posixpath.normpath(posixpath.join(storage_root, rel_posix))
+    archive_info = _get_mountinfo_for_target(archive)
+    archive_root = str(archive_info.get("root") or "/") if archive_info else "/"
+    return posixpath.normpath(posixpath.join(archive_root, rel_posix))
 
 
-def _is_expected_storagebox_bind_mount(
+def _is_expected_cold_archive_bind_mount(
     *,
     output_dir: Path,
     cold_dir: Path,
-    storagebox_mount: Path,
+    cold_archive_root: Path,
 ) -> bool:
     """
     Return True when `output_dir` is the expected view of `cold_dir`.
 
-    For sshfs-backed bind mounts, `findmnt` may still report fstype=fuse.sshfs
-    and omit a `bind` option. The reliable signal is in mountinfo: the hot
-    mount must share the same filesystem as the Storage Box base mount and its
-    mount root must be the cold path relative to that base mount.
+    For remote-backed bind mounts, `findmnt` may omit a `bind` option. The
+    reliable signal is in mountinfo: the hot mount must share the same
+    filesystem as the cold archive base mount and its mount root must be the
+    cold path relative to that base mount.
     """
-    storage_info = _get_mountinfo_for_target(storagebox_mount)
+    archive_info = _get_mountinfo_for_target(cold_archive_root)
     hot_info = _get_mountinfo_for_target(output_dir)
-    if not storage_info or not hot_info:
+    if not archive_info or not hot_info:
         return False
-    if hot_info.get("major_minor") != storage_info.get("major_minor"):
+    if hot_info.get("major_minor") != archive_info.get("major_minor"):
         return False
-    if hot_info.get("fstype") != storage_info.get("fstype"):
+    if hot_info.get("fstype") != archive_info.get("fstype"):
         return False
-    if hot_info.get("source") != storage_info.get("source"):
+    if hot_info.get("source") != archive_info.get("source"):
         return False
     try:
-        expected_root = _expected_mountinfo_root(cold_dir, storagebox_mount)
+        expected_root = _expected_mountinfo_root(cold_dir, cold_archive_root)
     except ValueError:
         return False
     return posixpath.normpath(str(hot_info.get("root") or "/")) == expected_root
@@ -371,8 +371,8 @@ def _parse_dt(s: str) -> datetime:
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description=(
-            "Ensure annual campaign job output directories are bind-mounted onto the Storage Box tier "
-            "so crawls write to cold storage while DB paths remain stable."
+            "Ensure annual campaign job output directories are bind-mounted onto the cold archive tier "
+            "so crawls write through stable DB paths while bytes live on the configured cold tier."
         )
     )
     p.add_argument(
@@ -394,13 +394,24 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument(
         "--campaign-archive-root",
-        default="/srv/healtharchive/storagebox/jobs",
-        help="Cold tier root (default: /srv/healtharchive/storagebox/jobs).",
+        default=os.environ.get(
+            "HEALTHARCHIVE_CAMPAIGN_ARCHIVE_ROOT",
+            "/srv/healtharchive/cold-archive/jobs",
+        ),
+        help=(
+            "Campaign cold tier jobs root (default: HEALTHARCHIVE_CAMPAIGN_ARCHIVE_ROOT "
+            "or /srv/healtharchive/cold-archive/jobs)."
+        ),
     )
     p.add_argument(
-        "--storagebox-mount",
-        default="/srv/healtharchive/storagebox",
-        help="Storage Box mountpoint on the VPS (default: /srv/healtharchive/storagebox).",
+        "--cold-archive-root",
+        default=os.environ.get(
+            "HEALTHARCHIVE_COLD_ARCHIVE_ROOT", "/srv/healtharchive/cold-archive"
+        ),
+        help=(
+            "Mounted cold archive root on the VPS (default: HEALTHARCHIVE_COLD_ARCHIVE_ROOT "
+            "or /srv/healtharchive/cold-archive)."
+        ),
     )
     p.add_argument(
         "--created-after",
@@ -458,7 +469,7 @@ def main(argv: list[str] | None = None) -> int:
 
     archive_root = Path(str(args.archive_root))
     campaign_archive_root = Path(str(args.campaign_archive_root))
-    storagebox_mount = Path(str(args.storagebox_mount))
+    cold_archive_root = Path(str(args.cold_archive_root))
     created_after = _parse_dt(str(args.created_after)) if args.created_after else None
     created_before = _parse_dt(str(args.created_before)) if args.created_before else None
     if created_after is not None and created_before is not None and created_before < created_after:
@@ -470,7 +481,7 @@ def main(argv: list[str] | None = None) -> int:
         return 2
 
     try:
-        _require_storagebox_mounted(storagebox_mount)
+        _require_cold_archive_mounted(cold_archive_root)
     except Exception as e:
         print(f"ERROR: {e}", file=sys.stderr)
         return 1
@@ -508,10 +519,10 @@ def main(argv: list[str] | None = None) -> int:
             if item.output_dir_ok == 1:
                 opts = str(item.mount_options or "")
                 is_bind = "bind" in {o.strip().lower() for o in opts.split(",") if o.strip()}
-                if is_bind or _is_expected_storagebox_bind_mount(
+                if is_bind or _is_expected_cold_archive_bind_mount(
                     output_dir=item.output_dir,
                     cold_dir=item.cold_dir,
-                    storagebox_mount=storagebox_mount,
+                    cold_archive_root=cold_archive_root,
                 ):
                     print(
                         f"OK   job={item.job_id} {item.source_code} {item.job_name} (already mounted)"

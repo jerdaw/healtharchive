@@ -8,9 +8,9 @@ HealthArchive VPS helper: apply persistent WARC tiering bind mounts.
 This script reads a bind-mount manifest and ensures canonical "hot" paths under:
   /srv/healtharchive/jobs/**
 are bind-mounted to "cold" paths under:
-  /srv/healtharchive/storagebox/jobs/**
+  /srv/healtharchive/cold-archive/jobs/**
 
-This keeps DB snapshot WARC paths stable while storing bytes on the Storage Box.
+This keeps DB snapshot WARC paths stable while storing bytes on the cold archive tier.
 
 Safe-by-default: dry-run unless you pass --apply.
 
@@ -30,7 +30,7 @@ Options:
   --apply             Actually mount (otherwise print planned actions)
   --repair-stale-mounts If a mountpoint is stale (Errno 107), attempt a targeted unmount and retry
   --manifest FILE     Manifest path (default: /etc/healtharchive/warc-tiering.binds)
-  --storagebox-mount DIR Storage Box mountpoint (default: /srv/healtharchive/storagebox)
+  --cold-archive-root DIR Mounted cold archive root (default: /srv/healtharchive/cold-archive)
   -h, --help          Show this help
 EOF
 }
@@ -38,7 +38,7 @@ EOF
 APPLY="false"
 REPAIR_STALE_MOUNTS="false"
 MANIFEST="/etc/healtharchive/warc-tiering.binds"
-STORAGEBOX_MOUNT="/srv/healtharchive/storagebox"
+COLD_ARCHIVE_ROOT="/srv/healtharchive/cold-archive"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -54,8 +54,8 @@ while [[ $# -gt 0 ]]; do
       MANIFEST="$2"
       shift 2
       ;;
-    --storagebox-mount)
-      STORAGEBOX_MOUNT="$2"
+    --cold-archive-root)
+      COLD_ARCHIVE_ROOT="$2"
       shift 2
       ;;
     -h|--help)
@@ -108,7 +108,7 @@ probe_readable_dir() {
   err="$(ls -la "${path}" 2>&1 || true)"
   if is_transport_endpoint_error "${err}"; then
     echo "ERROR: path is mounted but unreadable (stale mountpoint; Errno 107): ${path}" >&2
-    echo "Hint: follow docs/operations/playbooks/storagebox-sshfs-stale-mount-recovery.md" >&2
+    echo "Hint: repair or remount the cold archive root, then retry this helper." >&2
     echo "      or run: sudo umount -l ${path}" >&2
     return 107
   fi
@@ -161,21 +161,21 @@ if [[ ! -f "${MANIFEST}" ]]; then
   exit 1
 fi
 
-if ! is_mounted "${STORAGEBOX_MOUNT}"; then
-  echo "ERROR: Storage Box mount is not active: ${STORAGEBOX_MOUNT}" >&2
-  echo "Hint: start healtharchive-storagebox-sshfs.service (or mount manually) before applying bind mounts." >&2
+if ! is_mounted "${COLD_ARCHIVE_ROOT}"; then
+  echo "ERROR: cold archive root is not active: ${COLD_ARCHIVE_ROOT}" >&2
+  echo "Hint: start the cold archive mount unit (or mount manually) before applying bind mounts." >&2
   exit 1
 fi
-if ! probe_readable_dir "${STORAGEBOX_MOUNT}"; then
-  echo "ERROR: Storage Box mount is not readable: ${STORAGEBOX_MOUNT}" >&2
-  echo "Hint: try: sudo systemctl restart healtharchive-storagebox-sshfs.service" >&2
+if ! probe_readable_dir "${COLD_ARCHIVE_ROOT}"; then
+  echo "ERROR: cold archive root is not readable: ${COLD_ARCHIVE_ROOT}" >&2
+  echo "Hint: repair or restart the cold archive mount unit, then retry." >&2
   exit 1
 fi
 
 echo "HealthArchive WARC tiering bind mounts"
 echo "-------------------------------------"
 echo "manifest=${MANIFEST}"
-echo "storagebox_mount=${STORAGEBOX_MOUNT}"
+echo "cold_archive_root=${COLD_ARCHIVE_ROOT}"
 echo "apply=${APPLY}"
 echo ""
 
@@ -202,8 +202,7 @@ while IFS= read -r line || [[ -n "${line}" ]]; do
     err="$(ls -ld "${cold}" 2>&1 || true)"
     if is_transport_endpoint_error "${err}"; then
       echo "ERROR: cold path is unreadable (stale mountpoint; Errno 107): ${cold}" >&2
-      echo "Hint: Storage Box mount or the cold path is stale; restart the mount service:" >&2
-      echo "      sudo systemctl restart healtharchive-storagebox-sshfs.service" >&2
+      echo "Hint: cold archive root or the cold path is stale; repair the mount unit." >&2
       echo "Then re-run this script." >&2
     elif is_permission_denied_error "${err}"; then
       echo "ERROR: cannot access cold path (permission denied): ${cold}" >&2

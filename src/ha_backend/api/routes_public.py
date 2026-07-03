@@ -3792,13 +3792,16 @@ def resolve_replay_url(
         return ReplayResolveSchema(found=False)
 
     snap_id, resolved_url, capture_ts, _status, mime_type = best
+    browse_url = _build_browse_url(jobId, resolved_url, capture_ts, snap_id)
+    if not browse_url:
+        return ReplayResolveSchema(found=False)
 
     return ReplayResolveSchema(
         found=True,
         snapshotId=snap_id,
         captureTimestamp=_format_capture_timestamp(capture_ts),
         resolvedUrl=resolved_url,
-        browseUrl=_build_browse_url(jobId, resolved_url, capture_ts, snap_id),
+        browseUrl=browse_url,
         mimeType=mime_type,
     )
 
@@ -3998,15 +4001,18 @@ def get_snapshot_raw(
     snap_warc_path = snap.warc_path
     snap_warc_record_id = snap.warc_record_id
 
+    replay_url = _build_browse_url(snap_job_id, snap_url, snap_capture_timestamp, snap_id)
     warc_path = Path(snap_warc_path)
     if not warc_path.is_file():
+        if replay_url:
+            close_request_db_session(request, commit=False)
+            return RedirectResponse(replay_url, status_code=307)
         raise HTTPException(
             status_code=404,
             detail="Underlying WARC file for this snapshot is missing",
         )
 
     site_base = get_public_site_base_url()
-    replay_url = _build_browse_url(snap_job_id, snap_url, snap_capture_timestamp, snap_id)
     snapshot_details_url = f"{site_base}/snapshot/{snap_id}"
     back_url = snapshot_details_url if snap_id else f"{site_base}/"
     snapshot_history_url = f"{snapshot_details_url}?view=details"
@@ -4363,30 +4369,9 @@ def get_snapshot_raw(
     </div>
     <div class="ha-replay-right">
       {action_links_html}
-      <span class="ha-replay-divider" aria-hidden="true"></span>
-      <button type="button" class="ha-replay-hide" id="ha-replay-hide" aria-label="Hide this banner">Hide</button>
     </div>
   </div>
 </div>
-<script>
-  (function () {{
-    try {{
-      var STORAGE_KEY = "haReplayBannerDismissed";
-      if (localStorage.getItem(STORAGE_KEY) === "1") {{
-        var el = document.getElementById("ha-replay-banner");
-        if (el && el.parentNode) el.parentNode.removeChild(el);
-        return;
-      }}
-      var hideBtn = document.getElementById("ha-replay-hide");
-      if (!hideBtn) return;
-      hideBtn.addEventListener("click", function () {{
-        try {{ localStorage.setItem(STORAGE_KEY, "1"); }} catch (e) {{}}
-        var el = document.getElementById("ha-replay-banner");
-        if (el && el.parentNode) el.parentNode.removeChild(el);
-      }});
-    }} catch (e) {{}}
-  }})();
-</script>
 """
 
     # Try to inject after the first <body ...> tag to avoid breaking <head> content.

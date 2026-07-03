@@ -328,29 +328,31 @@ def cmd_status(args: argparse.Namespace) -> None:
         except OSError as e:
             print(f"  {path}: \033[31merror ({e})\033[0m")
 
-    # 3. Storage Box mount
-    print("\n[Storage Box]")
-    storagebox_path = "/srv/healtharchive/storagebox"
+    # 3. Cold archive mount
+    print("\n[Cold Archive]")
+    cold_archive_path = os.environ.get(
+        "HEALTHARCHIVE_COLD_ARCHIVE_ROOT", "/srv/healtharchive/cold-archive"
+    )
     try:
         result = subprocess.run(
-            ["findmnt", "-T", storagebox_path, "-o", "FSTYPE", "-n"],
+            ["findmnt", "-T", cold_archive_path, "-o", "FSTYPE", "-n"],
             capture_output=True,
             text=True,
             timeout=SYSTEM_STATUS_CHECK_TIMEOUT_SEC,
         )
-        if result.returncode == 0 and "sshfs" in result.stdout.lower():
+        if result.returncode == 0:
             # Try to read it
             try:
-                os.listdir(storagebox_path)
-                print(f"  {storagebox_path}: \033[32mmounted and readable\033[0m")
+                os.listdir(cold_archive_path)
+                print(f"  {cold_archive_path}: \033[32mmounted and readable\033[0m")
             except OSError as e:
                 print(
-                    f"  {storagebox_path}: \033[31mmounted but unreadable (Errno {e.errno})\033[0m"
+                    f"  {cold_archive_path}: \033[31mmounted but unreadable (Errno {e.errno})\033[0m"
                 )
         else:
-            print(f"  {storagebox_path}: \033[31mnot mounted\033[0m")
+            print(f"  {cold_archive_path}: \033[31mnot mounted\033[0m")
     except Exception as e:
-        print(f"  {storagebox_path}: \033[33munable to check ({e})\033[0m")
+        print(f"  {cold_archive_path}: \033[33munable to check ({e})\033[0m")
 
     # 4. Job counts by status
     print("\n[Jobs]")
@@ -411,7 +413,7 @@ def cmd_status(args: argparse.Namespace) -> None:
     print("\n[Automation]")
     sentinel_files = [
         ("Worker auto-start", "/etc/healtharchive/worker-auto-start-enabled"),
-        ("Mount recovery", "/etc/healtharchive/storage-hotpath-auto-recover-enabled"),
+        ("Archive cache recovery", "/etc/healtharchive/archive-cache-auto-recover-enabled"),
     ]
     for name, path in sentinel_files:
         exists = os.path.exists(path)
@@ -486,11 +488,14 @@ def cmd_watchdog_status(args: argparse.Namespace) -> None:
             pass
         return 0, "UNKNOWN"
 
-    def _probe_storagebox() -> str:
-        """Check if Storage Box mount is readable."""
-        storagebox_path = "/srv/healtharchive/storagebox"
+    def _probe_cold_archive() -> str:
+        """Check if the configured cold archive root is readable."""
+        cold_archive_path = os.environ.get(
+            "HEALTHARCHIVE_COLD_ARCHIVE_ROOT",
+            "/srv/healtharchive/cold-archive",
+        )
         try:
-            os.listdir(storagebox_path)
+            os.listdir(cold_archive_path)
             return "OK (readable)"
         except OSError as e:
             return f"Error (Errno {e.errno})"
@@ -498,7 +503,7 @@ def cmd_watchdog_status(args: argparse.Namespace) -> None:
             return "UNKNOWN"
 
     def _count_stale_mounts(state: dict) -> int:
-        """Count currently detected stale targets from storage hotpath state."""
+        """Count currently detected stale targets from archive cache state."""
         observations = state.get("observations", {})
         if not isinstance(observations, dict):
             return 0
@@ -508,14 +513,14 @@ def cmd_watchdog_status(args: argparse.Namespace) -> None:
 
     # Load watchdog state files
     crawl_state_path = Path("/srv/healtharchive/ops/watchdog/crawl-auto-recover.json")
-    storage_state_path = Path("/srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json")
+    storage_state_path = Path("/srv/healtharchive/ops/watchdog/archive-cache-auto-recover.json")
 
     crawl_state = _load_json(crawl_state_path)
     storage_state = _load_json(storage_state_path)
 
     # Check sentinel files
     crawl_sentinel = Path("/etc/healtharchive/crawl-auto-recover-enabled")
-    storage_sentinel = Path("/etc/healtharchive/storage-hotpath-auto-recover-enabled")
+    storage_sentinel = Path("/etc/healtharchive/archive-cache-auto-recover-enabled")
     cleanup_config = Path("/opt/healtharchive/ops/automation/cleanup-automation.toml")
 
     crawl_enabled = crawl_sentinel.is_file()
@@ -555,8 +560,8 @@ def cmd_watchdog_status(args: argparse.Namespace) -> None:
             print(f"  Recent:      {len(recent_recoveries)} in last 24h")
     print()
 
-    # Storage Hot-Path Recovery
-    print("[Storage Hot-Path Recovery]")
+    # Archive Cache Recovery
+    print("[Archive Cache Recovery]")
     print(
         f"  Enabled:     {'Yes (sentinel present)' if storage_enabled else 'No (sentinel missing)'}"
     )
@@ -603,9 +608,9 @@ def cmd_watchdog_status(args: argparse.Namespace) -> None:
     )
     print(f"  Disk usage:  {disk_color}{disk_pct}% [{disk_status}]\033[0m")
 
-    storagebox_status = _probe_storagebox()
-    sb_color = "\033[32m" if storagebox_status.startswith("OK") else "\033[31m"
-    print(f"  Base sshfs:  {sb_color}{storagebox_status}\033[0m")
+    cold_archive_status = _probe_cold_archive()
+    archive_color = "\033[32m" if cold_archive_status.startswith("OK") else "\033[31m"
+    print(f"  Cold archive:{archive_color}{cold_archive_status}\033[0m")
 
     if stale_count > 0:
         print(f"  Stale mounts: \033[31m{stale_count} detected\033[0m")
@@ -638,7 +643,7 @@ def cmd_watchdog_status(args: argparse.Namespace) -> None:
     if not crawl_enabled:
         recommendations.append("Consider enabling crawl auto-recovery (create sentinel file)")
     if not storage_enabled:
-        recommendations.append("Consider enabling storage hotpath recovery (create sentinel file)")
+        recommendations.append("Consider enabling archive cache recovery (create sentinel file)")
 
     if recommendations:
         print("[Recommendations]")

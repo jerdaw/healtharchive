@@ -14,10 +14,11 @@ from ha_backend.db import Base, get_engine, get_session
 from ha_backend.models import ArchiveJob, Source
 from ha_backend.seeds import seed_sources
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def _load_script_module(script_filename: str, module_name: str) -> ModuleType:
-    repo_root = Path(__file__).resolve().parents[1]
-    script_path = repo_root / "scripts" / script_filename
+    script_path = REPO_ROOT / "scripts" / script_filename
     spec = importlib.util.spec_from_file_location(module_name, script_path)
     assert spec is not None
     assert spec.loader is not None
@@ -40,13 +41,28 @@ def _init_test_db(tmp_path: Path, monkeypatch, name: str) -> None:
 
 
 def _assert_prom_contains_last_healthy(prom: str) -> None:
-    assert "healtharchive_storage_hotpath_auto_recover_last_healthy_timestamp_seconds" in prom
+    assert "healtharchive_archive_cache_auto_recover_last_healthy_timestamp_seconds" in prom
+
+
+def test_archive_cache_auto_recover_uses_generic_cold_archive_contract() -> None:
+    script = REPO_ROOT / "scripts" / "vps-storage-hotpath-auto-recover.py"
+    text = script.read_text(encoding="utf-8")
+
+    assert "--cold-archive-root" in text
+    assert "--cold-archive-unit" in text
+    assert "healtharchive_archive_cache_auto_recover" in text
+    assert "archive-cache-auto-recover" in text
+    assert "healtharchive_storage_hotpath_auto_recover" not in text
+    assert "--storagebox-mount" not in text
+    assert "Storage Box" not in text
+    assert "storagebox" not in text
+    assert "sshfs" not in text
 
 
 def test_deploy_lock_probe_works_when_lock_file_is_readonly(tmp_path, monkeypatch) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_lock_probe_readonly",
+        module_name="ha_test_vps_archive_cache_auto_recover_lock_probe_readonly",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_lock_probe_readonly.db")
 
@@ -68,14 +84,14 @@ def test_storage_hotpath_watchdog_with_active_deploy_lock_records_detection_but_
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_deploy_lock_active",
+        module_name="ha_test_vps_archive_cache_auto_recover_deploy_lock_active",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_deploy_lock_active.db")
 
     jobs_root = tmp_path / "jobs"
     output_dir = jobs_root / "hc" / "jobdir"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     with get_session() as session:
         seed_sources(session)
@@ -96,7 +112,7 @@ def test_storage_hotpath_watchdog_with_active_deploy_lock_records_detection_but_
     def fake_probe(path: Path) -> tuple[int, int]:
         if str(path) == str(output_dir):
             return 0, 107
-        if str(path) == str(storagebox_mount):
+        if str(path) == str(cold_archive_root):
             return 1, -1
         return 1, -1
 
@@ -119,8 +135,8 @@ def test_storage_hotpath_watchdog_with_active_deploy_lock_records_detection_but_
                 "--apply",
                 "--jobs-root",
                 str(jobs_root),
-                "--storagebox-mount",
-                str(storagebox_mount),
+                "--cold-archive-root",
+                str(cold_archive_root),
                 "--state-file",
                 str(state_file),
                 "--lock-file",
@@ -146,21 +162,21 @@ def test_storage_hotpath_watchdog_with_active_deploy_lock_records_detection_but_
     assert "Planned actions (dry-run):" in captured.out
 
     prom = (out_dir / "hotpath.prom").read_text(encoding="utf-8")
-    assert "healtharchive_storage_hotpath_auto_recover_detected_targets 1" in prom
-    assert "healtharchive_storage_hotpath_auto_recover_deploy_lock_active 1" in prom
+    assert "healtharchive_archive_cache_auto_recover_detected_targets 1" in prom
+    assert "healtharchive_archive_cache_auto_recover_deploy_lock_active 1" in prom
 
 
 def test_storage_hotpath_watchdog_requires_confirm_runs(tmp_path, monkeypatch, capsys) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_confirm",
+        module_name="ha_test_vps_archive_cache_auto_recover_confirm",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_confirm.db")
 
     jobs_root = tmp_path / "jobs"
     output_dir = jobs_root / "hc" / "jobdir"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     with get_session() as session:
         seed_sources(session)
@@ -196,8 +212,8 @@ def test_storage_hotpath_watchdog_requires_confirm_runs(tmp_path, monkeypatch, c
         [
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--state-file",
             str(state_file),
             "--lock-file",
@@ -223,8 +239,8 @@ def test_storage_hotpath_watchdog_requires_confirm_runs(tmp_path, monkeypatch, c
         [
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--state-file",
             str(state_file),
             "--lock-file",
@@ -247,8 +263,8 @@ def test_storage_hotpath_watchdog_requires_confirm_runs(tmp_path, monkeypatch, c
     assert "Planned actions (dry-run):" in captured2.out
 
     prom = (out_dir / "hotpath.prom").read_text(encoding="utf-8")
-    assert "healtharchive_storage_hotpath_auto_recover_metrics_ok 1" in prom
-    assert "healtharchive_storage_hotpath_auto_recover_detected_targets 1" in prom
+    assert "healtharchive_archive_cache_auto_recover_metrics_ok 1" in prom
+    assert "healtharchive_archive_cache_auto_recover_detected_targets 1" in prom
 
 
 def test_storage_hotpath_watchdog_apply_stops_and_restarts_worker_when_active(
@@ -256,14 +272,14 @@ def test_storage_hotpath_watchdog_apply_stops_and_restarts_worker_when_active(
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_apply_active",
+        module_name="ha_test_vps_archive_cache_auto_recover_apply_active",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_apply_active.db")
 
     jobs_root = tmp_path / "jobs"
     output_dir = jobs_root / "hc" / "jobdir"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     with get_session() as session:
         seed_sources(session)
@@ -308,7 +324,7 @@ def test_storage_hotpath_watchdog_apply_stops_and_restarts_worker_when_active(
         s = str(path)
         if s == str(output_dir):
             return (1, -1) if repaired["ok"] else (0, 107)
-        if s == str(storagebox_mount):
+        if s == str(cold_archive_root):
             return 1, -1
         return 1, -1
 
@@ -326,8 +342,8 @@ def test_storage_hotpath_watchdog_apply_stops_and_restarts_worker_when_active(
             "--apply",
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--manifest",
             str(manifest),
             "--state-file",
@@ -368,7 +384,7 @@ def test_storage_hotpath_watchdog_apply_stops_and_restarts_worker_when_active(
     assert any(c.startswith("systemctl start healtharchive-worker.service") for c in flattened)
 
     prom = (out_dir / "hotpath.prom").read_text(encoding="utf-8")
-    assert "healtharchive_storage_hotpath_auto_recover_last_apply_ok 1" in prom
+    assert "healtharchive_archive_cache_auto_recover_last_apply_ok 1" in prom
     _assert_prom_contains_last_healthy(prom)
 
 
@@ -377,14 +393,14 @@ def test_storage_hotpath_watchdog_starts_worker_even_if_annual_tiering_fails_whe
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_annual_fail_ok",
+        module_name="ha_test_vps_archive_cache_auto_recover_annual_fail_ok",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_annual_fail_ok.db")
 
     jobs_root = tmp_path / "jobs"
     output_dir = jobs_root / "hc" / "jobdir"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     with get_session() as session:
         seed_sources(session)
@@ -432,7 +448,7 @@ def test_storage_hotpath_watchdog_starts_worker_even_if_annual_tiering_fails_whe
         s = str(path)
         if s == str(output_dir):
             return (1, -1) if repaired["ok"] else (0, 107)
-        if s == str(storagebox_mount):
+        if s == str(cold_archive_root):
             return 1, -1
         return 1, -1
 
@@ -450,8 +466,8 @@ def test_storage_hotpath_watchdog_starts_worker_even_if_annual_tiering_fails_whe
             "--apply",
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--manifest",
             str(manifest),
             "--state-file",
@@ -483,7 +499,7 @@ def test_storage_hotpath_watchdog_starts_worker_even_if_annual_tiering_fails_whe
     assert any(c.startswith("systemctl start healtharchive-worker.service") for c in flattened)
 
     prom = (out_dir / "hotpath.prom").read_text(encoding="utf-8")
-    assert "healtharchive_storage_hotpath_auto_recover_last_apply_ok 1" in prom
+    assert "healtharchive_archive_cache_auto_recover_last_apply_ok 1" in prom
 
 
 def test_storage_hotpath_watchdog_apply_does_not_start_worker_if_inactive(
@@ -491,14 +507,14 @@ def test_storage_hotpath_watchdog_apply_does_not_start_worker_if_inactive(
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_apply_inactive",
+        module_name="ha_test_vps_archive_cache_auto_recover_apply_inactive",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_apply_inactive.db")
 
     jobs_root = tmp_path / "jobs"
     output_dir = jobs_root / "hc" / "jobdir"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     with get_session() as session:
         seed_sources(session)
@@ -543,7 +559,7 @@ def test_storage_hotpath_watchdog_apply_does_not_start_worker_if_inactive(
         s = str(path)
         if s == str(output_dir):
             return (1, -1) if repaired["ok"] else (0, 107)
-        if s == str(storagebox_mount):
+        if s == str(cold_archive_root):
             return 1, -1
         return 1, -1
 
@@ -561,8 +577,8 @@ def test_storage_hotpath_watchdog_apply_does_not_start_worker_if_inactive(
             "--apply",
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--manifest",
             str(manifest),
             "--state-file",
@@ -599,13 +615,13 @@ def test_storage_hotpath_watchdog_repairs_next_job_output_dir_without_stopping_w
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_next_jobs",
+        module_name="ha_test_vps_archive_cache_auto_recover_next_jobs",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_next_jobs.db")
 
     jobs_root = tmp_path / "jobs"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     hc_out = jobs_root / "hc" / "hc-jobdir"
     phac_out = jobs_root / "phac" / "phac-jobdir"
@@ -670,7 +686,7 @@ def test_storage_hotpath_watchdog_repairs_next_job_output_dir_without_stopping_w
             return 1, -1
         if s == str(phac_out):
             return (1, -1) if repaired["ok"] else (0, 107)
-        if s == str(storagebox_mount):
+        if s == str(cold_archive_root):
             return 1, -1
         return 1, -1
 
@@ -688,8 +704,8 @@ def test_storage_hotpath_watchdog_repairs_next_job_output_dir_without_stopping_w
             "--apply",
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--manifest",
             str(manifest),
             "--state-file",
@@ -735,7 +751,7 @@ def test_storage_hotpath_watchdog_repairs_next_job_output_dir_without_stopping_w
     assert not any("--allow-repair-running-jobs" in c for c in annual_calls)
 
     prom = (out_dir / "hotpath.prom").read_text(encoding="utf-8")
-    assert "healtharchive_storage_hotpath_auto_recover_last_apply_ok 1" in prom
+    assert "healtharchive_archive_cache_auto_recover_last_apply_ok 1" in prom
 
 
 def test_storage_hotpath_watchdog_simulate_broken_path_dry_run_drill(
@@ -743,14 +759,14 @@ def test_storage_hotpath_watchdog_simulate_broken_path_dry_run_drill(
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_simulate",
+        module_name="ha_test_vps_archive_cache_auto_recover_simulate",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_simulate.db")
 
     jobs_root = tmp_path / "jobs"
     output_dir = jobs_root / "hc" / "jobdir"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     with get_session() as session:
         seed_sources(session)
@@ -787,8 +803,8 @@ def test_storage_hotpath_watchdog_simulate_broken_path_dry_run_drill(
         [
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--manifest",
             str(manifest),
             "--state-file",
@@ -818,7 +834,7 @@ def test_storage_hotpath_watchdog_simulate_broken_path_dry_run_drill(
     assert "Planned actions (dry-run):" in captured.out
 
     prom = (out_dir / "hotpath.prom").read_text(encoding="utf-8")
-    assert "healtharchive_storage_hotpath_auto_recover_detected_targets 1" in prom
+    assert "healtharchive_archive_cache_auto_recover_detected_targets 1" in prom
     _assert_prom_contains_last_healthy(prom)
 
     # Safety: simulation should never be allowed in apply mode.
@@ -827,8 +843,8 @@ def test_storage_hotpath_watchdog_simulate_broken_path_dry_run_drill(
             "--apply",
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--manifest",
             str(manifest),
             "--state-file",
@@ -853,14 +869,14 @@ def test_storage_hotpath_watchdog_running_job_errno107_with_missing_mount_info_i
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_missing_mount_running",
+        module_name="ha_test_vps_archive_cache_auto_recover_missing_mount_running",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_missing_mount_running.db")
 
     jobs_root = tmp_path / "jobs"
     output_dir = jobs_root / "hc" / "jobdir"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     with get_session() as session:
         seed_sources(session)
@@ -902,7 +918,7 @@ def test_storage_hotpath_watchdog_running_job_errno107_with_missing_mount_info_i
         s = str(path)
         if s == str(output_dir):
             return (1, -1) if repaired["ok"] else (0, 107)
-        if s == str(storagebox_mount):
+        if s == str(cold_archive_root):
             return 1, -1
         return 1, -1
 
@@ -920,8 +936,8 @@ def test_storage_hotpath_watchdog_running_job_errno107_with_missing_mount_info_i
             "--apply",
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--manifest",
             str(manifest),
             "--state-file",
@@ -952,7 +968,7 @@ def test_storage_hotpath_watchdog_running_job_errno107_with_missing_mount_info_i
     assert any(c.startswith("umount ") and str(output_dir) in c for c in flattened)
 
     prom = (out_dir / "hotpath.prom").read_text(encoding="utf-8")
-    assert "healtharchive_storage_hotpath_auto_recover_last_apply_ok 1" in prom
+    assert "healtharchive_archive_cache_auto_recover_last_apply_ok 1" in prom
 
 
 def test_storage_hotpath_watchdog_next_job_errno107_with_missing_mount_info_is_recoverable(
@@ -960,13 +976,13 @@ def test_storage_hotpath_watchdog_next_job_errno107_with_missing_mount_info_is_r
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_missing_mount_next_job",
+        module_name="ha_test_vps_archive_cache_auto_recover_missing_mount_next_job",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_missing_mount_next.db")
 
     jobs_root = tmp_path / "jobs"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     hc_out = jobs_root / "hc" / "hc-jobdir"
     phac_out = jobs_root / "phac" / "phac-jobdir"
@@ -1024,7 +1040,7 @@ def test_storage_hotpath_watchdog_next_job_errno107_with_missing_mount_info_is_r
             return 1, -1
         if s == str(phac_out):
             return (1, -1) if repaired["ok"] else (0, 107)
-        if s == str(storagebox_mount):
+        if s == str(cold_archive_root):
             return 1, -1
         return 1, -1
 
@@ -1042,8 +1058,8 @@ def test_storage_hotpath_watchdog_next_job_errno107_with_missing_mount_info_is_r
             "--apply",
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--manifest",
             str(manifest),
             "--state-file",
@@ -1083,14 +1099,14 @@ def test_storage_hotpath_watchdog_dry_run_apply_parity_for_same_stale_target(
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_dry_run_apply_parity",
+        module_name="ha_test_vps_archive_cache_auto_recover_dry_run_apply_parity",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_dry_run_apply_parity.db")
 
     jobs_root = tmp_path / "jobs"
     output_dir = jobs_root / "hc" / "jobdir"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     with get_session() as session:
         seed_sources(session)
@@ -1132,7 +1148,7 @@ def test_storage_hotpath_watchdog_dry_run_apply_parity_for_same_stale_target(
         s = str(path)
         if s == str(output_dir):
             return (1, -1) if repaired["ok"] else (0, 107)
-        if s == str(storagebox_mount):
+        if s == str(cold_archive_root):
             return 1, -1
         return 1, -1
 
@@ -1149,8 +1165,8 @@ def test_storage_hotpath_watchdog_dry_run_apply_parity_for_same_stale_target(
         [
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--manifest",
             str(manifest),
             "--state-file",
@@ -1179,8 +1195,8 @@ def test_storage_hotpath_watchdog_dry_run_apply_parity_for_same_stale_target(
             "--apply",
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--manifest",
             str(manifest),
             "--state-file",
@@ -1214,14 +1230,14 @@ def test_storage_hotpath_watchdog_apply_sets_last_apply_ok_zero_when_mount_stays
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_apply_postcheck_failure",
+        module_name="ha_test_vps_archive_cache_auto_recover_apply_postcheck_failure",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_apply_postcheck_failure.db")
 
     jobs_root = tmp_path / "jobs"
     output_dir = jobs_root / "hc" / "jobdir"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     with get_session() as session:
         seed_sources(session)
@@ -1261,7 +1277,7 @@ def test_storage_hotpath_watchdog_apply_sets_last_apply_ok_zero_when_mount_stays
         if s == str(output_dir):
             # Remains stale even after attempted recovery.
             return 0, 107
-        if s == str(storagebox_mount):
+        if s == str(cold_archive_root):
             return 1, -1
         return 1, -1
 
@@ -1279,8 +1295,8 @@ def test_storage_hotpath_watchdog_apply_sets_last_apply_ok_zero_when_mount_stays
             "--apply",
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--manifest",
             str(manifest),
             "--state-file",
@@ -1314,7 +1330,7 @@ def test_storage_hotpath_watchdog_apply_sets_last_apply_ok_zero_when_mount_stays
     assert any("mountpoint not restored" in str(e) for e in errors)
 
     prom = (out_dir / "hotpath.prom").read_text(encoding="utf-8")
-    assert "healtharchive_storage_hotpath_auto_recover_last_apply_ok 0" in prom
+    assert "healtharchive_archive_cache_auto_recover_last_apply_ok 0" in prom
 
 
 def test_storage_hotpath_watchdog_reconciles_failed_tiering_unit_when_no_stale_targets(
@@ -1322,13 +1338,13 @@ def test_storage_hotpath_watchdog_reconciles_failed_tiering_unit_when_no_stale_t
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_reconcile_tiering_unit",
+        module_name="ha_test_vps_archive_cache_auto_recover_reconcile_tiering_unit",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_reconcile_tiering_unit.db")
 
     jobs_root = tmp_path / "jobs"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     calls: list[list[str]] = []
 
@@ -1352,8 +1368,8 @@ def test_storage_hotpath_watchdog_reconciles_failed_tiering_unit_when_no_stale_t
             "--apply",
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--state-file",
             str(state_file),
             "--lock-file",
@@ -1381,13 +1397,13 @@ def test_storage_hotpath_watchdog_does_not_reconcile_failed_tiering_unit_when_st
 ) -> None:
     mod = _load_script_module(
         "vps-storage-hotpath-auto-recover.py",
-        module_name="ha_test_vps_storage_hotpath_auto_recover_reconcile_tiering_unit_skip_storage",
+        module_name="ha_test_vps_archive_cache_auto_recover_reconcile_tiering_unit_skip_storage",
     )
     _init_test_db(tmp_path, monkeypatch, "hotpath_reconcile_tiering_unit_skip_storage.db")
 
     jobs_root = tmp_path / "jobs"
-    storagebox_mount = tmp_path / "storagebox"
-    storagebox_mount.mkdir(parents=True)
+    cold_archive_root = tmp_path / "storagebox"
+    cold_archive_root.mkdir(parents=True)
 
     calls: list[list[str]] = []
 
@@ -1397,7 +1413,7 @@ def test_storage_hotpath_watchdog_does_not_reconcile_failed_tiering_unit_when_st
         return subprocess.CompletedProcess(cmd, 0, stdout="", stderr="")
 
     def fake_probe(path: Path) -> tuple[int, int]:
-        if str(path) == str(storagebox_mount):
+        if str(path) == str(cold_archive_root):
             return 0, 107
         return 1, -1
 
@@ -1416,8 +1432,8 @@ def test_storage_hotpath_watchdog_does_not_reconcile_failed_tiering_unit_when_st
             "--apply",
             "--jobs-root",
             str(jobs_root),
-            "--storagebox-mount",
-            str(storagebox_mount),
+            "--cold-archive-root",
+            str(cold_archive_root),
             "--state-file",
             str(state_file),
             "--lock-file",

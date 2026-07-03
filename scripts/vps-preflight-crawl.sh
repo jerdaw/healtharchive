@@ -51,6 +51,7 @@ EOF
 
 YEAR=""
 CAMPAIGN_ARCHIVE_ROOT=""
+COLD_ARCHIVE_ROOT="${HEALTHARCHIVE_COLD_ARCHIVE_ROOT:-/srv/healtharchive/cold-archive}"
 ENV_FILE="/etc/healtharchive/backend.env"
 API_BASE="http://127.0.0.1:8001"
 PUBLIC_API_BASE="https://api.healtharchive.ca"
@@ -91,7 +92,7 @@ while [[ $# -gt 0 ]]; do
       ;;
     --campaign-archive-root)
       if [[ $# -lt 2 ]]; then
-        echo "ERROR: --campaign-archive-root requires a directory path argument (e.g. --campaign-archive-root /srv/healtharchive/storagebox/jobs)" >&2
+        echo "ERROR: --campaign-archive-root requires a directory path argument (e.g. --campaign-archive-root /srv/healtharchive/cold-archive/jobs)" >&2
         usage >&2
         exit 2
       fi
@@ -214,10 +215,10 @@ if [[ -n "${CAMPAIGN_ARCHIVE_ROOT}" && ! -e "${CAMPAIGN_ARCHIVE_ROOT}" ]]; then
   exit 2
 fi
 
-if [[ -n "${CAMPAIGN_ARCHIVE_ROOT}" && "${CAMPAIGN_ARCHIVE_ROOT}" == /srv/healtharchive/storagebox/* ]]; then
-  if ! is_mounted "/srv/healtharchive/storagebox"; then
-    echo "ERROR: --campaign-archive-root points at Storage Box but /srv/healtharchive/storagebox is not mounted" >&2
-    echo "Hint: mount the Storage Box (sshfs) first, then re-run preflight." >&2
+if [[ -n "${CAMPAIGN_ARCHIVE_ROOT}" && "${CAMPAIGN_ARCHIVE_ROOT}" == "${COLD_ARCHIVE_ROOT}"/* ]]; then
+  if ! is_mounted "${COLD_ARCHIVE_ROOT}"; then
+    echo "ERROR: --campaign-archive-root points at the cold archive but ${COLD_ARCHIVE_ROOT} is not mounted" >&2
+    echo "Hint: mount the configured cold archive root first, then re-run preflight." >&2
     exit 2
   fi
 fi
@@ -856,17 +857,17 @@ disk_check_one "/" "rootfs"
 inode_check_one "/" "rootfs"
 
 # Determine the filesystem that will hold the upcoming campaign outputs.
-# In a tiered setup (small local SSD + Storage Box), HEALTHARCHIVE_ARCHIVE_ROOT may
+# In a tiered setup (small local SSD + cold archive), HEALTHARCHIVE_ARCHIVE_ROOT may
 # still point at /srv/healtharchive/jobs even though most bytes live on a nested
 # mount. For campaign forecasting we want the *actual* tier that new jobs will land on.
 campaign_root="${CAMPAIGN_ARCHIVE_ROOT}"
 if [[ -z "${campaign_root}" ]]; then
-  # Auto-detect: prefer Storage Box tier if present.
-  if [[ -d "/srv/healtharchive/storagebox/jobs" ]] && is_mounted "/srv/healtharchive/storagebox"; then
-    campaign_root="/srv/healtharchive/storagebox/jobs"
+  # Auto-detect: prefer the configured cold archive tier if present.
+  if [[ -d "${COLD_ARCHIVE_ROOT}/jobs" ]] && is_mounted "${COLD_ARCHIVE_ROOT}"; then
+    campaign_root="${COLD_ARCHIVE_ROOT}/jobs"
   else
-    if [[ -d "/srv/healtharchive/storagebox/jobs" ]] && ! is_mounted "/srv/healtharchive/storagebox"; then
-      warn "storagebox dir exists but is not mounted; campaign forecast will use ${HEALTHARCHIVE_ARCHIVE_ROOT:-/srv/healtharchive/jobs}"
+    if [[ -d "${COLD_ARCHIVE_ROOT}/jobs" ]] && ! is_mounted "${COLD_ARCHIVE_ROOT}"; then
+      warn "cold archive jobs dir exists but root is not mounted; campaign forecast will use ${HEALTHARCHIVE_ARCHIVE_ROOT:-/srv/healtharchive/jobs}"
     fi
     campaign_root="${HEALTHARCHIVE_ARCHIVE_ROOT:-/srv/healtharchive/jobs}"
   fi
@@ -876,7 +877,8 @@ write_file "01-storage-tier.txt" "$(cat <<TIER
 timestamp_utc=${timestamp}
 campaign_archive_root=${campaign_root}
 healtharchive_archive_root=${HEALTHARCHIVE_ARCHIVE_ROOT:-}
-storagebox_mounted=$([[ -d "/srv/healtharchive/storagebox" ]] && is_mounted "/srv/healtharchive/storagebox" && echo true || echo false)
+cold_archive_root=${COLD_ARCHIVE_ROOT}
+cold_archive_mounted=$([[ -d "${COLD_ARCHIVE_ROOT}" ]] && is_mounted "${COLD_ARCHIVE_ROOT}" && echo true || echo false)
 TIER
 )"
 

@@ -51,6 +51,8 @@ RUN_ID=""
 BASE_URL="http://127.0.0.1:8001"
 ENV_FILE=""
 ALLOW_EXISTING="false"
+COLD_ARCHIVE_ROOT="${HEALTHARCHIVE_COLD_ARCHIVE_ROOT:-/srv/healtharchive/cold-archive}"
+COLD_ARCHIVE_BACKUP_MIRROR_DIR="${HEALTHARCHIVE_BACKUP_MIRROR_DIR:-${HEALTHARCHIVE_COLD_ARCHIVE_BACKUP_MIRROR_DIR:-${COLD_ARCHIVE_ROOT%/}/backups/db}}"
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
@@ -359,8 +361,8 @@ fi
   if [[ -d /srv/healtharchive/backups ]]; then
     find /srv/healtharchive/backups -maxdepth 1 -type f -printf 'local_dump\t%TY-%Tm-%Td\t%s\t%p\n' | sort
   fi
-  if [[ -d /srv/healtharchive/storagebox/backups/db ]]; then
-    find /srv/healtharchive/storagebox/backups/db -maxdepth 1 -type f -printf 'storagebox_dump\t%TY-%Tm-%Td\t%s\t%p\n' | sort
+  if [[ -d "${COLD_ARCHIVE_BACKUP_MIRROR_DIR}" ]]; then
+    find "${COLD_ARCHIVE_BACKUP_MIRROR_DIR}" -maxdepth 1 -type f -printf 'cold_archive_dump\t%TY-%Tm-%Td\t%s\t%p\n' | sort
   fi
   curl -fsS http://127.0.0.1:9100/metrics 2>/dev/null \
     | grep '^healtharchive_db_backup_' \
@@ -368,8 +370,8 @@ fi
 } >"${BACKUP_CHAIN_TSV}" || true
 if grep -q '^metric.*healtharchive_db_backup_last_success 1' "${BACKUP_CHAIN_TSV}" \
   && grep -q '^local_dump' "${BACKUP_CHAIN_TSV}" \
-  && grep -q '^storagebox_dump' "${BACKUP_CHAIN_TSV}"; then
-  record_gate "backup_chain" "pass" "backup-chain.tsv" "local and Storage Box backup evidence present"
+  && grep -q '^cold_archive_dump' "${BACKUP_CHAIN_TSV}"; then
+  record_gate "backup_chain" "pass" "backup-chain.tsv" "local and cold archive backup evidence present"
 else
   record_gate "backup_chain" "fail" "backup-chain.tsv" "backup chain evidence incomplete or latest success missing"
 fi
@@ -392,7 +394,7 @@ else
   record_gate "timer_posture" "fail" "timers.txt" "no healtharchive timers captured"
 fi
 
-if append_shell_section "disk headroom" "df -h /; df -h /srv/healtharchive/storagebox 2>/dev/null || true"; then
+if append_shell_section "disk headroom" "df -h /; df -h '${COLD_ARCHIVE_ROOT}' 2>/dev/null || true"; then
   record_gate "disk_headroom" "pass" "production-validation.log" "disk headroom captured"
 else
   record_gate "disk_headroom" "fail" "production-validation.log" "disk headroom capture failed"

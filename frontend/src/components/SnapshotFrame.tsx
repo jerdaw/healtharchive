@@ -140,6 +140,10 @@ function SnapshotFrameInner({
     return () => window.removeEventListener("message", handler);
   }, [expectedOrigin]);
 
+  const sandbox = src.includes("/api/snapshots/raw/")
+    ? ""
+    : "allow-same-origin allow-scripts allow-forms";
+
   return (
     <div className="relative h-full w-full">
       {status === "error" ? (
@@ -192,7 +196,7 @@ function SnapshotFrameInner({
           ref={iframeRef}
           src={src}
           title={title}
-          sandbox="allow-same-origin allow-scripts allow-forms"
+          sandbox={sandbox}
           className={iframeClasses}
           style={maxHeightPx != null ? { maxHeight: `${maxHeightPx}px` } : undefined}
           onLoad={() => setStatus("loaded")}

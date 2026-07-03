@@ -835,6 +835,64 @@ def test_replay_resolve_endpoint_falls_back_to_url_group_match(tmp_path, monkeyp
     )
 
 
+def test_replay_resolve_endpoint_returns_not_found_when_collection_missing(
+    tmp_path, monkeypatch
+) -> None:
+    monkeypatch.setenv("HEALTHARCHIVE_REPLAY_BASE_URL", "https://replay.healtharchive.ca")
+    collections_dir = tmp_path / "replay-collections"
+    collections_dir.mkdir(parents=True, exist_ok=True)
+    monkeypatch.setenv("HEALTHARCHIVE_REPLAY_COLLECTIONS_DIR", str(collections_dir))
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    with get_session() as session:
+        src = Source(code="hc", name="Health Canada", enabled=True)
+        session.add(src)
+        session.flush()
+
+        job = ArchiveJob(
+            source_id=src.id,
+            name="legacy-hc",
+            output_dir="/srv/healtharchive/jobs/imports/legacy-hc",
+            status="indexed",
+        )
+        session.add(job)
+        session.flush()
+
+        ts = datetime(2025, 4, 21, 12, 50, 48, tzinfo=timezone.utc)
+        snapshot = Snapshot(
+            job_id=job.id,
+            source_id=src.id,
+            url="https://www.canada.ca/en/health-canada.html",
+            normalized_url_group="https://www.canada.ca/en/health-canada.html",
+            capture_timestamp=ts,
+            mime_type="text/html",
+            status_code=200,
+            title="Health Canada",
+            snippet="HC home",
+            language="en",
+            warc_path="/warcs/hc-home.warc.gz",
+            warc_record_id="hc-home",
+        )
+        session.add(snapshot)
+        session.flush()
+
+        job_id = job.id
+
+    resp = client.get(
+        "/api/replay/resolve",
+        params={
+            "jobId": job_id,
+            "url": "https://www.canada.ca/en/health-canada.html",
+        },
+    )
+
+    assert resp.status_code == 200
+    body = resp.json()
+    assert body["found"] is False
+    assert body["browseUrl"] is None
+    assert "replay-collections" not in resp.text
+
+
 def test_source_editions_endpoint_returns_404_for_missing_source(tmp_path, monkeypatch) -> None:
     client = _init_test_app(tmp_path, monkeypatch)
     resp = client.get("/api/sources/does-not-exist/editions")

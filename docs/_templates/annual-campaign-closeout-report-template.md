@@ -129,7 +129,7 @@ _May be partly prefilled from closeout evidence by
 decisions require review._
 
 - Latest local dump:
-- Latest Storage Box mirror:
+- Latest cold archive mirror:
 - Latest NASD replicated dump:
 - Restore-test status:
 - Retention or cleanup decisions:

@@ -95,13 +95,13 @@ def test_backend_scrape_down_is_dashboard_only_with_external_uptime_paging() -> 
 
 def test_storage_hotpath_apply_failed_persistent_alert_semantics() -> None:
     text = _rules_text()
-    body = _extract_alert_block(text, "HealthArchiveStorageHotpathApplyFailedPersistent")
+    body = _extract_alert_block(text, "HealthArchiveArchiveCacheApplyFailedPersistent")
 
-    assert "healtharchive_storage_hotpath_auto_recover_enabled == 1" in body
-    assert "healtharchive_storage_hotpath_auto_recover_apply_total > 0" in body
-    assert "healtharchive_storage_hotpath_auto_recover_last_apply_ok == 0" in body
+    assert "healtharchive_archive_cache_auto_recover_enabled == 1" in body
+    assert "healtharchive_archive_cache_auto_recover_apply_total > 0" in body
+    assert "healtharchive_archive_cache_auto_recover_last_apply_ok == 0" in body
     assert (
-        "(time() - healtharchive_storage_hotpath_auto_recover_last_apply_timestamp_seconds) > 86400"
+        "(time() - healtharchive_archive_cache_auto_recover_last_apply_timestamp_seconds) > 86400"
         in body
     )
     assert re.search(r"^\s*for:\s*30m\s*$", body, re.MULTILINE)
@@ -263,9 +263,9 @@ def test_pushover_pages_are_explicit_and_warnings_do_not_page() -> None:
         "HealthArchiveDiskUsageCritical",
         "HealthArchiveRootDiskUsageCritical",
         "HealthArchiveDbBackupFailed",
-        "HealthArchiveStorageBoxMountDown",
-        "HealthArchiveStorageHotpathStaleUnrecovered",
-        "HealthArchiveStorageHotpathApplyFailedPersistent",
+        "HealthArchiveColdArchiveMountDown",
+        "HealthArchiveArchiveCacheStaleUnrecovered",
+        "HealthArchiveArchiveCacheApplyFailedPersistent",
         "HealthArchiveTieringHotPathUnreadable",
         "HealthArchiveWarcTieringFailed",
         "HealthArchiveAnnualCampaignSentinelFailed",
@@ -291,9 +291,9 @@ def test_busy_mode_critical_page_windows_are_extended() -> None:
         "HealthArchiveDiskUsageCritical": "30m",
         "HealthArchiveRootDiskUsageCritical": "30m",
         "HealthArchiveDbBackupFailed": "24h",
-        "HealthArchiveStorageBoxMountDown": "6h",
-        "HealthArchiveStorageHotpathStaleUnrecovered": "6h",
-        "HealthArchiveStorageHotpathApplyFailedPersistent": "30m",
+        "HealthArchiveColdArchiveMountDown": "6h",
+        "HealthArchiveArchiveCacheStaleUnrecovered": "6h",
+        "HealthArchiveArchiveCacheApplyFailedPersistent": "30m",
         "HealthArchiveTieringHotPathUnreadable": "6h",
         "HealthArchiveWarcTieringFailed": "6h",
         "HealthArchiveAnnualCampaignSentinelFailed": "12h",

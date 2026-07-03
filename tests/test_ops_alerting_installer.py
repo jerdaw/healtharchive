@@ -42,6 +42,6 @@ def test_alertmanager_groups_by_crawl_identity_and_has_inhibit_rules() -> None:
 
     assert 'group_by: ["alertname", "source", "job_id"]' in text
     assert "inhibit_rules:" in text
-    assert 'alertname="HealthArchiveStorageBoxMountDown"' in text
-    assert 'alertname="HealthArchiveStorageHotpathStaleUnrecovered"' in text
+    assert 'alertname="HealthArchiveColdArchiveMountDown"' in text
+    assert 'alertname="HealthArchiveArchiveCacheStaleUnrecovered"' in text
     assert 'equal: ["service"]' in text

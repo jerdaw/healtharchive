@@ -128,13 +128,16 @@ def test_vps_tiering_metrics_textfile_reports_errno_for_hot_path(tmp_path, monke
             "tiering.prom",
             "--manifest",
             str(manifest_path),
-            "--storagebox-mount",
-            str(tmp_path / "storagebox"),
+            "--cold-archive-root",
+            str(tmp_path / "cold-archive"),
         ]
     )
     assert rc == 0
 
     prom = (out_dir / "tiering.prom").read_text(encoding="utf-8")
+    assert "healtharchive_cold_archive_root_ok 0" in prom
+    assert "healtharchive_storagebox_mount_ok" not in prom
+    assert "Storage Box" not in prom
     assert "healtharchive_tiering_manifest_ok 1" in prom
     assert f'healtharchive_tiering_hot_path_ok{{hot="{hot_path}"}} 0' in prom
     assert f'healtharchive_tiering_hot_path_errno{{hot="{hot_path}"}} 107' in prom

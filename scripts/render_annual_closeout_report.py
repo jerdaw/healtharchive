@@ -30,7 +30,7 @@ SECRET_PATTERNS = [
 @dataclass(frozen=True)
 class BackupSnapshot:
     local_dump: str
-    storagebox_dump: str
+    cold_archive_dump: str
 
 
 def _load_json(path: Path) -> dict[str, Any]:
@@ -237,10 +237,10 @@ def _parse_backup_snapshot(evidence_dir: Path, summary: dict[str, Any]) -> Backu
     local = [
         row for row in backup_rows if isinstance(row, dict) and row.get("scope") == "local_dump"
     ]
-    storagebox = [
+    cold_archive = [
         row
         for row in backup_rows
-        if isinstance(row, dict) and row.get("scope") == "storagebox_dump"
+        if isinstance(row, dict) and row.get("scope") == "cold_archive_dump"
     ]
 
     def latest(rows: list[dict[str, Any]]) -> str:
@@ -253,7 +253,7 @@ def _parse_backup_snapshot(evidence_dir: Path, summary: dict[str, Any]) -> Backu
             path=_fmt(row.get("path_or_metric")),
         )
 
-    return BackupSnapshot(local_dump=latest(local), storagebox_dump=latest(storagebox))
+    return BackupSnapshot(local_dump=latest(local), cold_archive_dump=latest(cold_archive))
 
 
 def _source_notes(summary: dict[str, Any]) -> str:
@@ -356,7 +356,7 @@ def render_report(
             "_Partly generated from backup-chain.tsv. NASD and restore-test fields require review._",
             "",
             f"- Latest local dump: {backup.local_dump}",
-            f"- Latest Storage Box mirror: {backup.storagebox_dump}",
+            f"- Latest cold archive mirror: {backup.cold_archive_dump}",
             "- Latest NASD replicated dump: review required: paste NASD follow-up result",
             "- Restore-test status: review required",
             "- Retention or cleanup decisions: review required",

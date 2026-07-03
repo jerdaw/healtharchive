@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2034,SC2046
 set -euo pipefail
 
 usage() {
@@ -26,7 +27,7 @@ Options:
   --require-coverage-guardrails  Fail if coverage guardrails timer isn't enabled
   --require-replay-smoke         Fail if replay smoke timer isn't enabled
   --require-cleanup-automation   Fail if cleanup automation timer isn't enabled
-  --require-storage-hotpath-auto-recover Fail if storage hot-path auto-recover timer isn't enabled
+  --require-archive-cache-auto-recover Fail if archive-cache auto-recover timer isn't enabled
   --require-worker-auto-start    Fail if worker auto-start timer isn't enabled
   --require-drift-auto-reconcile Fail if drift auto-reconcile watchdog timer isn't enabled
   --allow-missing-worker-override Do not fail if worker override isn't present
@@ -49,7 +50,7 @@ REQUIRE_COVERAGE_GUARDRAILS="false"
 REQUIRE_REPLAY_SMOKE="false"
 REQUIRE_CLEANUP_AUTOMATION="false"
 REQUIRE_PUBLIC_VERIFY="false"
-REQUIRE_STORAGE_HOTPATH_AUTO_RECOVER="false"
+REQUIRE_ARCHIVE_CACHE_AUTO_RECOVER="false"
 REQUIRE_WORKER_AUTO_START="false"
 REQUIRE_DRIFT_AUTO_RECONCILE="false"
 ALLOW_MISSING_WORKER_OVERRIDE="false"
@@ -104,8 +105,8 @@ while [[ $# -gt 0 ]]; do
       REQUIRE_PUBLIC_VERIFY="true"
       shift 1
       ;;
-    --require-storage-hotpath-auto-recover)
-      REQUIRE_STORAGE_HOTPATH_AUTO_RECOVER="true"
+    --require-archive-cache-auto-recover)
+      REQUIRE_ARCHIVE_CACHE_AUTO_RECOVER="true"
       shift 1
       ;;
     --require-worker-auto-start)
@@ -139,7 +140,6 @@ while [[ $# -gt 0 ]]; do
       ;;
     *)
       echo "ERROR: Unknown argument: $1" >&2
-      usage >&2
       exit 2
       ;;
   esac
@@ -383,7 +383,7 @@ expected_timer_specs=(
   "healtharchive-frontend-cache-maintenance.timer|frontend-cache-maintenance-enabled|false|"
   "healtharchive-public-surface-verify.timer|public-verify-enabled|false|REQUIRE_PUBLIC_VERIFY"
   "healtharchive-replay-smoke.timer|replay-smoke-enabled|false|REQUIRE_REPLAY_SMOKE"
-  "healtharchive-storage-hotpath-auto-recover.timer|storage-hotpath-auto-recover-enabled|false|REQUIRE_STORAGE_HOTPATH_AUTO_RECOVER"
+  "healtharchive-archive-cache-auto-recover.timer|archive-cache-auto-recover-enabled|false|REQUIRE_ARCHIVE_CACHE_AUTO_RECOVER"
   "healtharchive-storage-watchdog-burnin-snapshot.timer|storage-watchdog-burnin-enabled|false|"
   "healtharchive-tiering-metrics.timer||false|"
   "healtharchive-worker-auto-start.timer|worker-auto-start-enabled|false|REQUIRE_WORKER_AUTO_START"

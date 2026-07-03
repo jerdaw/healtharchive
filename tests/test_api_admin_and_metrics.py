@@ -94,6 +94,12 @@ def _seed_basic_data() -> None:
         session.add(snap)
 
 
+def _allow_dev_admin_without_token(monkeypatch) -> None:
+    monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
+    monkeypatch.delenv("HEALTHARCHIVE_ENV", raising=False)
+    monkeypatch.setenv("HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN", "true")
+
+
 def _seed_annual_edition() -> int:
     with get_session() as session:
         src = session.query(Source).filter(Source.code == "hc").one()
@@ -142,10 +148,22 @@ def _seed_annual_edition() -> int:
         return int(edition.id)
 
 
-def test_admin_jobs_open_when_no_token(tmp_path, monkeypatch) -> None:
-    # Ensure admin token is not set.
+def test_admin_jobs_fail_closed_when_no_token_by_default(tmp_path, monkeypatch) -> None:
     monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
     monkeypatch.delenv("HEALTHARCHIVE_ENV", raising=False)
+    monkeypatch.delenv("HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN", raising=False)
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_basic_data()
+
+    resp = client.get("/api/admin/jobs")
+    assert resp.status_code == 500
+    assert resp.json()["detail"] == "Admin token not configured for this environment"
+
+
+def test_admin_jobs_open_without_token_only_with_explicit_dev_override(
+    tmp_path, monkeypatch
+) -> None:
+    _allow_dev_admin_without_token(monkeypatch)
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_basic_data()
 
@@ -195,8 +213,7 @@ def test_admin_surfaces_accept_x_admin_token_when_configured(
 
 
 def test_admin_job_detail_and_status_counts(tmp_path, monkeypatch) -> None:
-    monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
-    monkeypatch.delenv("HEALTHARCHIVE_ENV", raising=False)
+    _allow_dev_admin_without_token(monkeypatch)
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_basic_data()
 
@@ -229,8 +246,7 @@ def test_admin_job_detail_and_status_counts(tmp_path, monkeypatch) -> None:
 
 
 def test_admin_job_snapshots_endpoint(tmp_path, monkeypatch) -> None:
-    monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
-    monkeypatch.delenv("HEALTHARCHIVE_ENV", raising=False)
+    _allow_dev_admin_without_token(monkeypatch)
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_basic_data()
 
@@ -244,8 +260,7 @@ def test_admin_job_snapshots_endpoint(tmp_path, monkeypatch) -> None:
 
 
 def test_admin_annual_edition_exposes_artifacts_and_shards(tmp_path, monkeypatch) -> None:
-    monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
-    monkeypatch.delenv("HEALTHARCHIVE_ENV", raising=False)
+    _allow_dev_admin_without_token(monkeypatch)
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_basic_data()
     edition_id = _seed_annual_edition()
@@ -278,8 +293,7 @@ def test_metrics_require_token_when_configured(tmp_path, monkeypatch) -> None:
 
 
 def test_metrics_content_includes_basic_counters(tmp_path, monkeypatch) -> None:
-    monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
-    monkeypatch.delenv("HEALTHARCHIVE_ENV", raising=False)
+    _allow_dev_admin_without_token(monkeypatch)
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_basic_data()
 
@@ -301,8 +315,7 @@ def test_metrics_include_cleanup_status_labels(tmp_path, monkeypatch) -> None:
     /metrics should emit cleanup_status breakdown when jobs exist with
     different cleanup_status values.
     """
-    monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
-    monkeypatch.delenv("HEALTHARCHIVE_ENV", raising=False)
+    _allow_dev_admin_without_token(monkeypatch)
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_basic_data()
 
@@ -326,8 +339,7 @@ def test_metrics_include_page_totals_and_per_source(tmp_path, monkeypatch) -> No
     /metrics should emit global and per-source page counters based on
     ArchiveJob.pages_* fields.
     """
-    monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)
-    monkeypatch.delenv("HEALTHARCHIVE_ENV", raising=False)
+    _allow_dev_admin_without_token(monkeypatch)
     client = _init_test_app(tmp_path, monkeypatch)
     _seed_basic_data()
 

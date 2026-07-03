@@ -248,8 +248,8 @@ def _write_textfile_metrics(
     running_jobs: int,
     pending_jobs: int,
     reconciled_running_jobs: int,
-    storagebox_ok: int,
-    storagebox_errno: int,
+    archive_cache_ok: int,
+    archive_cache_errno: int,
     deploy_lock_present: int,
     start_attempts_total: int,
     start_success_total: int,
@@ -313,16 +313,16 @@ def _write_textfile_metrics(
     emit(f"healtharchive_worker_auto_start_reconciled_running_jobs {int(reconciled_running_jobs)}")
 
     emit(
-        "# HELP healtharchive_worker_auto_start_storagebox_mount_ok 1 if the Storage Box mount is readable (ls/stat works)."
+        "# HELP healtharchive_worker_auto_start_archive_cache_ok 1 if the archive cache root is readable."
     )
-    emit("# TYPE healtharchive_worker_auto_start_storagebox_mount_ok gauge")
-    emit(f"healtharchive_worker_auto_start_storagebox_mount_ok {int(storagebox_ok)}")
+    emit("# TYPE healtharchive_worker_auto_start_archive_cache_ok gauge")
+    emit(f"healtharchive_worker_auto_start_archive_cache_ok {int(archive_cache_ok)}")
 
     emit(
-        "# HELP healtharchive_worker_auto_start_storagebox_mount_errno Errno when Storage Box mount is unreadable, else -1."
+        "# HELP healtharchive_worker_auto_start_archive_cache_errno Errno when the archive cache root is unreadable, else -1."
     )
-    emit("# TYPE healtharchive_worker_auto_start_storagebox_mount_errno gauge")
-    emit(f"healtharchive_worker_auto_start_storagebox_mount_errno {int(storagebox_errno)}")
+    emit("# TYPE healtharchive_worker_auto_start_archive_cache_errno gauge")
+    emit(f"healtharchive_worker_auto_start_archive_cache_errno {int(archive_cache_errno)}")
 
     emit(
         "# HELP healtharchive_worker_auto_start_deploy_lock_present 1 if deploy lock appears active (held by another process)."
@@ -420,9 +420,9 @@ def main(argv: list[str] | None = None) -> int:
         help="Worker systemd unit name.",
     )
     p.add_argument(
-        "--storagebox-mount",
-        default="/srv/healtharchive/storagebox",
-        help="Storage Box mountpoint on the VPS.",
+        "--archive-cache-root",
+        default=os.environ.get("HEALTHARCHIVE_ARCHIVE_CACHE_ROOT", "/srv/healtharchive/jobs"),
+        help="Local archive cache root that active worker jobs write to.",
     )
     p.add_argument(
         "--deploy-lock-file",
@@ -498,8 +498,8 @@ def main(argv: list[str] | None = None) -> int:
                 running_jobs=0,
                 pending_jobs=0,
                 reconciled_running_jobs=0,
-                storagebox_ok=0,
-                storagebox_errno=0,
+                archive_cache_ok=0,
+                archive_cache_errno=0,
                 deploy_lock_present=0,
                 start_attempts_total=start_attempts_total,
                 start_success_total=start_success_total,
@@ -548,8 +548,8 @@ def main(argv: list[str] | None = None) -> int:
                 running_jobs=0,
                 pending_jobs=0,
                 reconciled_running_jobs=0,
-                storagebox_ok=0,
-                storagebox_errno=0,
+                archive_cache_ok=0,
+                archive_cache_errno=0,
                 deploy_lock_present=deploy_lock_present,
                 start_attempts_total=_state_int(state, "start_attempts_total"),
                 start_success_total=_state_int(state, "start_success_total"),
@@ -564,11 +564,12 @@ def main(argv: list[str] | None = None) -> int:
             pass
         return 0
 
-    # Storage Box gate.
-    storagebox_mount = Path(str(args.storagebox_mount))
-    storagebox_ok, storagebox_errno = _probe_readable_dir(storagebox_mount)
-    if storagebox_ok != 1:
-        reason = f"storagebox_unreadable_errno_{int(storagebox_errno)}"
+    # Local archive cache gate. The worker writes active jobs locally; cold
+    # archive reachability is handled by separate sync/restore workflows.
+    archive_cache_root = Path(str(args.archive_cache_root))
+    archive_cache_ok, archive_cache_errno = _probe_readable_dir(archive_cache_root)
+    if archive_cache_ok != 1:
+        reason = f"archive_cache_unreadable_errno_{int(archive_cache_errno)}"
         try:
             _write_textfile_metrics(
                 out_dir=Path(str(args.textfile_out_dir)),
@@ -579,8 +580,8 @@ def main(argv: list[str] | None = None) -> int:
                 running_jobs=0,
                 pending_jobs=0,
                 reconciled_running_jobs=0,
-                storagebox_ok=int(storagebox_ok),
-                storagebox_errno=int(storagebox_errno),
+                archive_cache_ok=int(archive_cache_ok),
+                archive_cache_errno=int(archive_cache_errno),
                 deploy_lock_present=deploy_lock_present,
                 start_attempts_total=_state_int(state, "start_attempts_total"),
                 start_success_total=_state_int(state, "start_success_total"),
@@ -633,8 +634,8 @@ def main(argv: list[str] | None = None) -> int:
                 running_jobs=0,
                 pending_jobs=0,
                 reconciled_running_jobs=0,
-                storagebox_ok=int(storagebox_ok),
-                storagebox_errno=int(storagebox_errno),
+                archive_cache_ok=int(archive_cache_ok),
+                archive_cache_errno=int(archive_cache_errno),
                 deploy_lock_present=deploy_lock_present,
                 start_attempts_total=_state_int(state, "start_attempts_total"),
                 start_success_total=_state_int(state, "start_success_total"),
@@ -761,8 +762,8 @@ def main(argv: list[str] | None = None) -> int:
             running_jobs=int(running_jobs),
             pending_jobs=int(pending_jobs),
             reconciled_running_jobs=int(reconciled_running_jobs),
-            storagebox_ok=int(storagebox_ok),
-            storagebox_errno=int(storagebox_errno),
+            archive_cache_ok=int(archive_cache_ok),
+            archive_cache_errno=int(archive_cache_errno),
             deploy_lock_present=deploy_lock_present,
             start_attempts_total=_state_int(state, "start_attempts_total"),
             start_success_total=_state_int(state, "start_success_total"),

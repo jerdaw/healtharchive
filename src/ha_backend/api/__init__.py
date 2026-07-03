@@ -158,9 +158,8 @@ async def security_headers_middleware(request: Request, call_next):
     headers.setdefault("X-Content-Type-Options", "nosniff")
     headers.setdefault("Referrer-Policy", "strict-origin-when-cross-origin")
 
-    # X-Frame-Options: Allow raw snapshot endpoint to be iframed by frontend
-    # The raw snapshot route is a controlled HTML replay endpoint and is
-    # additionally sandboxed on the frontend side.
+    # X-Frame-Options: Allow raw snapshot endpoint to be iframed by frontend.
+    # Raw snapshots are made inert with CSP and frontend iframe sandboxing.
     is_raw_snapshot = request.url.path.startswith("/api/snapshots/raw/")
     if not is_raw_snapshot:
         headers.setdefault("X-Frame-Options", "SAMEORIGIN")
@@ -174,20 +173,19 @@ async def security_headers_middleware(request: Request, call_next):
     # Content-Security-Policy: Prevent XSS and injection attacks
     if get_csp_enabled():
         if is_raw_snapshot:
-            # Archived HTML replay needs permissive CSP for inline scripts/styles
-            # and external resources (images, fonts, etc.)
             csp_policy = (
                 "default-src 'none'; "
-                "script-src 'unsafe-inline' 'unsafe-eval'; "
+                "sandbox; "
+                "script-src 'none'; "
                 "style-src 'unsafe-inline' *; "
                 "img-src * data: blob:; "
                 "font-src * data:; "
-                "connect-src *; "
                 "media-src *; "
                 "object-src 'none'; "
-                "frame-src *; "
-                "base-uri 'self'; "
-                "form-action 'self'"
+                "frame-src 'none'; "
+                "base-uri 'none'; "
+                "form-action 'none'; "
+                "connect-src 'none'"
             )
         else:
             # JSON API endpoints: very restrictive CSP

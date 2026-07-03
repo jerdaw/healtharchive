@@ -119,9 +119,16 @@ def main(argv: list[str] | None = None) -> int:
         help="Output filename under --out-dir.",
     )
     p.add_argument(
-        "--storagebox-mount",
-        default="/srv/healtharchive/storagebox",
-        help="Storage Box mountpoint.",
+        "--cold-archive-root",
+        default=os.environ.get(
+            "HEALTHARCHIVE_COLD_ARCHIVE_ROOT", "/srv/healtharchive/cold-archive"
+        ),
+        help="Cold archive root mountpoint or local restore/cache root.",
+    )
+    p.add_argument(
+        "--cold-archive-unit",
+        default=os.environ.get("HEALTHARCHIVE_COLD_ARCHIVE_UNIT", ""),
+        help="Optional systemd unit that manages the cold archive root.",
     )
     p.add_argument(
         "--manifest",
@@ -134,15 +141,16 @@ def main(argv: list[str] | None = None) -> int:
     out_dir = Path(str(args.out_dir))
     out_file = out_dir / str(args.out_file)
 
-    storagebox_mount = Path(str(args.storagebox_mount))
+    cold_archive_root = Path(str(args.cold_archive_root))
+    cold_archive_unit = str(args.cold_archive_unit).strip()
     manifest_path = Path(str(args.manifest))
 
-    storagebox_ok = 0
-    if _is_mountpoint(storagebox_mount):
-        ok, _errno = _probe_readable_dir(storagebox_mount)
-        storagebox_ok = ok
+    cold_archive_ok = 0
+    if _is_mountpoint(cold_archive_root):
+        ok, _errno = _probe_readable_dir(cold_archive_root)
+        cold_archive_ok = ok
 
-    storagebox_service_ok = _unit_ok("healtharchive-storagebox-sshfs.service")
+    cold_archive_unit_ok = _unit_ok(cold_archive_unit) if cold_archive_unit else None
     tiering_service_ok = _unit_ok("healtharchive-warc-tiering.service")
     tiering_service_failed = _unit_failed("healtharchive-warc-tiering.service")
 
@@ -152,20 +160,21 @@ def main(argv: list[str] | None = None) -> int:
 
     _emit(
         lines,
-        "# HELP healtharchive_storagebox_mount_ok 1 if Storage Box mount is present and readable.",
+        "# HELP healtharchive_cold_archive_root_ok 1 if the cold archive root is mounted and readable.",
     )
-    _emit(lines, "# TYPE healtharchive_storagebox_mount_ok gauge")
-    _emit(lines, f"healtharchive_storagebox_mount_ok {storagebox_ok}")
+    _emit(lines, "# TYPE healtharchive_cold_archive_root_ok gauge")
+    _emit(lines, f"healtharchive_cold_archive_root_ok {cold_archive_ok}")
 
     _emit(
         lines,
         "# HELP healtharchive_systemd_unit_ok 1 if the unit exists and is not failed (and active when applicable).",
     )
     _emit(lines, "# TYPE healtharchive_systemd_unit_ok gauge")
-    _emit(
-        lines,
-        f'healtharchive_systemd_unit_ok{{unit="healtharchive-storagebox-sshfs.service"}} {storagebox_service_ok}',
-    )
+    if cold_archive_unit_ok is not None:
+        _emit(
+            lines,
+            f'healtharchive_systemd_unit_ok{{unit="{cold_archive_unit}"}} {cold_archive_unit_ok}',
+        )
     _emit(
         lines,
         f'healtharchive_systemd_unit_ok{{unit="healtharchive-warc-tiering.service"}} {tiering_service_ok}',

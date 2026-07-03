@@ -274,9 +274,9 @@ def main(argv: list[str] | None = None) -> int:
         help="Worker systemd unit name (used only for metrics).",
     )
     parser.add_argument(
-        "--storagebox-mount",
-        default="/srv/healtharchive/storagebox",
-        help="Storage Box mountpoint on the VPS (used only for metrics).",
+        "--archive-cache-root",
+        default=os.environ.get("HEALTHARCHIVE_ARCHIVE_CACHE_ROOT", "/srv/healtharchive/jobs"),
+        help="Local archive cache root on the VPS (used only for metrics).",
     )
     parser.add_argument(
         "--infra-error-window-minutes",
@@ -429,8 +429,8 @@ def main(argv: list[str] | None = None) -> int:
         recent_infra_error_jobs = 0
 
     worker_active = _systemctl_is_active(str(args.worker_unit))
-    storagebox_ok, _storagebox_errno = _probe_readable_dir(Path(str(args.storagebox_mount)))
-    worker_should_be_running = 1 if (pending_crawl_jobs > 0 and storagebox_ok == 1) else 0
+    archive_cache_ok, _archive_cache_errno = _probe_readable_dir(Path(str(args.archive_cache_root)))
+    worker_should_be_running = 1 if (pending_crawl_jobs > 0 and archive_cache_ok == 1) else 0
 
     probe_identity = _resolve_user_identity(str(args.annual_writability_probe_user))
     probe_user_ok = 1 if probe_identity is not None else 0
@@ -480,7 +480,7 @@ def main(argv: list[str] | None = None) -> int:
 
     _emit(
         lines,
-        "# HELP healtharchive_worker_should_be_running 1 if there are pending crawl jobs and the Storage Box mount is readable.",
+        "# HELP healtharchive_worker_should_be_running 1 if there are pending crawl jobs and the local archive cache root is readable.",
     )
     _emit(lines, "# TYPE healtharchive_worker_should_be_running gauge")
     _emit(lines, f"healtharchive_worker_should_be_running {worker_should_be_running}")

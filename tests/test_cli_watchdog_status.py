@@ -65,7 +65,7 @@ def test_watchdog_status_command_basic_output(monkeypatch, tmp_path) -> None:
         "recoveries": {"global": ["2026-01-24T06:28:01+00:00"]},
         "observations": {},
     }
-    (watchdog_dir / "storage-hotpath-auto-recover.json").write_text(json.dumps(storage_state))
+    (watchdog_dir / "archive-cache-auto-recover.json").write_text(json.dumps(storage_state))
 
     # Mock sentinel files
     sentinel_dir = tmp_path / "etc" / "healtharchive"
@@ -106,7 +106,7 @@ def test_watchdog_status_command_basic_output(monkeypatch, tmp_path) -> None:
     # Verify key sections are present
     assert "HealthArchive Watchdog Status" in output
     assert "[Crawl Auto-Recovery]" in output
-    assert "[Storage Hot-Path Recovery]" in output
+    assert "[Archive Cache Recovery]" in output
     assert "[Disk Cleanup]" in output
     assert "[Current Health]" in output
 
@@ -132,7 +132,7 @@ def test_watchdog_status_handles_missing_files(monkeypatch, tmp_path) -> None:
 
     # Should still show all sections
     assert "[Crawl Auto-Recovery]" in output
-    assert "[Storage Hot-Path Recovery]" in output
+    assert "[Archive Cache Recovery]" in output
     assert "0 total recorded" in output
     assert "No (sentinel missing)" in output
 
@@ -164,7 +164,7 @@ def test_watchdog_status_shows_stale_mounts(monkeypatch, tmp_path) -> None:
         },
         "recoveries": {"global": []},
     }
-    (watchdog_dir / "storage-hotpath-auto-recover.json").write_text(json.dumps(storage_state))
+    (watchdog_dir / "archive-cache-auto-recover.json").write_text(json.dumps(storage_state))
 
     def mock_path(p):
         if p.startswith("/srv") or p.startswith("/etc") or p.startswith("/opt"):

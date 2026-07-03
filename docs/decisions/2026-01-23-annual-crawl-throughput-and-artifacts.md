@@ -1,11 +1,11 @@
 # Decision: Annual crawl throughput and WARC-first artifacts (2026-01-23)
 
-Status: accepted
+Status: accepted; storage-tier wording superseded by generic cold archive posture
 
 ## Context
 
 - HealthArchive’s annual campaign is **completeness-first** within explicit scope boundaries and **search-first** for readiness.
-- Production runs on a **single VPS** (Hetzner `cx33`: 4 vCPU / 8GB RAM / 80GB SSD) with optional StorageBox for cold storage.
+- Production runs with a bounded VPS live/cache layer and an environment-specific cold archive for retained large artifacts. The exact storage provider and topology are operational details, not part of the public application contract.
 - The backend indexes **WARCs** into `Snapshot` rows; it does not read `.zim` files. Building ZIMs during the campaign adds wall-clock time and failure surface without improving “search readiness”.
 - Large, browser-driven crawls (notably `canada.ca`) benefit from modest parallelism and a larger container `/dev/shm` to reduce timeouts/stalls and avoid restart churn.
 
@@ -17,6 +17,7 @@ Status: accepted
   - `tool_options.stall_timeout_minutes = 60` for `canada.ca` sources
 - Annual campaign jobs will default to **WARC-first artifacts**:
   - `tool_options.skip_final_build = True` to skip optional `.zim` generation during the campaign.
+- WARC-first artifacts remain **cache/cold-archive friendly**: active crawl and search artifacts stay on the VPS cache path needed for live operation, while retained large artifacts may move to a configured cold archive after indexing and verification.
 - Shared-host `canada.ca` sources will default to **querystring-averse scope rules** for content paths to reduce duplicate/trap-like expansions while preserving completeness within intended boundaries.
 
 ## Rationale
@@ -71,3 +72,4 @@ Rollback:
   - `docs/operations/monitoring-and-alerting.md`
 - Related prior decision:
   - `docs/decisions/2026-01-19-annual-crawl-resiliency-and-queue-order.md`
+  - `docs/decisions/2026-05-24-db-backup-retention-and-nas-ingest.md`

@@ -92,7 +92,7 @@ groups:
           service: healtharchive
         annotations:
           summary: "Local backup cache > 8 GiB"
-          description: "The short local DB backup cache is larger than expected. The repo-managed backup job should keep only a small local cache and mirror retained dumps to Storage Box; check healtharchive-db-backup.service and /srv/healtharchive/backups."
+          description: "The short local DB backup cache is larger than expected. The repo-managed backup job should keep only a small local cache and mirror retained dumps to the configured cold archive; check healtharchive-db-backup.service and /srv/healtharchive/backups."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/deployment/production-single-vps.md"
 
       - alert: HealthArchiveDbBackupFailed
@@ -229,8 +229,8 @@ groups:
           service: healtharchive
         annotations:
           summary: "Worker is down while crawl jobs are pending"
-          description: "There are pending crawl jobs (queued/retryable) and Storage Box appears readable, but healtharchive-worker.service has not been active for 6h. When worker auto-start automation is enabled, this alert waits for repeated watchdog runs and suppresses while the deploy lock is active. In critical-only mode this remains dashboard-only unless storage, backup, or data-loss signals also fire."
-          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
+          description: "There are pending crawl jobs (queued/retryable) and the archive cache appears readable, but healtharchive-worker.service has not been active for 6h. When worker auto-start automation is enabled, this alert waits for repeated watchdog runs and suppresses while the deploy lock is active. In critical-only mode this remains dashboard-only unless storage, backup, or data-loss signals also fire."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/validation/automation-maintenance.md"
 
       - alert: HealthArchiveCrawlOutputDirUnreadable
         expr: |
@@ -243,8 +243,8 @@ groups:
           service: healtharchive
         annotations:
           summary: "Running job output dir unreadable"
-          description: "A running crawl job has had an unreadable output_dir (non-Errno-107) for 6h: source={{ $labels.source }} job_id={{ $labels.job_id }}. Stale sshfs/FUSE mount cases (Errno 107) are escalated via the storage hot-path watchdog alerts; this rule remains dashboard-only in critical-only mode."
-          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
+          description: "A running crawl job has had an unreadable output_dir (non-Errno-107) for 6h: source={{ $labels.source }} job_id={{ $labels.job_id }}. Stale remote-backed mount cases (Errno 107) are escalated via the archive cache watchdog alerts; this rule remains dashboard-only in critical-only mode."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/warc-storage-tiering.md"
 
       - alert: HealthArchiveAnnualOutputDirNotWritable
         expr: |
@@ -258,7 +258,7 @@ groups:
           service: healtharchive
         annotations:
           summary: "Annual job output dir not writable (queued/retryable)"
-          description: "A queued/retryable annual job output_dir is not writable for a non-Errno-107 reason: source={{ $labels.source }} job_id={{ $labels.job_id }} status={{ $labels.status }} year={{ $labels.year }}. Errno 13 usually indicates permission drift; stale sshfs/FUSE mount cases (Errno 107) are escalated via storage watchdog alerts."
+          description: "A queued/retryable annual job output_dir is not writable for a non-Errno-107 reason: source={{ $labels.source }} job_id={{ $labels.job_id }} status={{ $labels.status }} year={{ $labels.year }}. Errno 13 usually indicates permission drift; stale remote-backed mount cases (Errno 107) are escalated via archive cache watchdog alerts."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/crawl/crawl-preflight.md"
 
       - alert: HealthArchiveCrawlStateFileParseFailed
@@ -356,8 +356,8 @@ groups:
           service: healtharchive
         annotations:
           summary: "High rate of infrastructure errors"
-          description: "Multiple jobs (>=3) have failed with infra_error in the last 10 minutes. This typically indicates Storage Box mount issues, network problems, or storage capacity issues. Check mount health and storage connectivity."
-          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
+          description: "Multiple jobs (>=3) have failed with infra_error in the last 10 minutes. This typically indicates archive cache/cold archive mount issues, network problems, or storage capacity issues. Check mount health and storage connectivity."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/warc-storage-tiering.md"
 
       - alert: HealthArchiveCrawlMetricsStale
         expr: (time() - healtharchive_crawl_metrics_timestamp_seconds) > 600
@@ -430,8 +430,8 @@ groups:
 
   - name: healtharchive.tiering
     rules:
-      - alert: HealthArchiveStorageBoxMountDown
-        expr: healtharchive_storagebox_mount_ok == 0
+      - alert: HealthArchiveColdArchiveMountDown
+        expr: healtharchive_cold_archive_root_ok == 0
         for: 6h
         labels:
           severity: critical
@@ -439,14 +439,14 @@ groups:
           notify: pushover
           service: healtharchive
         annotations:
-          summary: "Storage Box mount is down (cold WARC tier unavailable)"
-          description: "The Storage Box mount is missing or unreadable. Replay and/or crawls that rely on cold WARCs may fail. Check healtharchive-storagebox-sshfs.service and the sshfs mount."
+          summary: "Cold archive root is down (cold WARC tier unavailable)"
+          description: "The cold archive root is missing or unreadable. Replay and/or crawls that rely on cold WARCs may fail. Check the configured cold archive mount unit and mount health."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/warc-storage-tiering.md"
 
-      - alert: HealthArchiveStorageHotpathStaleUnrecovered
+      - alert: HealthArchiveArchiveCacheStaleUnrecovered
         expr: |
-          healtharchive_storage_hotpath_auto_recover_enabled == 1
-          and healtharchive_storage_hotpath_auto_recover_detected_targets > 0
+          healtharchive_archive_cache_auto_recover_enabled == 1
+          and healtharchive_archive_cache_auto_recover_detected_targets > 0
         for: 6h
         labels:
           severity: critical
@@ -454,16 +454,16 @@ groups:
           notify: pushover
           service: healtharchive
         annotations:
-          summary: "Storage hot path stale/unrecovered (Errno 107 likely)"
-          description: "The Storage Box hot-path auto-recover script is enabled but still detects stale/unreadable hot paths (Errno 107) after 6h. Check /srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json and consider manual unmount + tiering re-apply."
-          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
+          summary: "Archive cache path stale/unrecovered (Errno 107 likely)"
+          description: "The archive cache auto-recover script is enabled but still detects stale/unreadable hot paths (Errno 107) after 6h. Check /srv/healtharchive/ops/watchdog/archive-cache-auto-recover.json and consider manual unmount + tiering re-apply."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/warc-storage-tiering.md"
 
-      - alert: HealthArchiveStorageHotpathApplyFailedPersistent
+      - alert: HealthArchiveArchiveCacheApplyFailedPersistent
         expr: |
-          healtharchive_storage_hotpath_auto_recover_enabled == 1
-          and healtharchive_storage_hotpath_auto_recover_apply_total > 0
-          and healtharchive_storage_hotpath_auto_recover_last_apply_ok == 0
-          and (time() - healtharchive_storage_hotpath_auto_recover_last_apply_timestamp_seconds) > 86400
+          healtharchive_archive_cache_auto_recover_enabled == 1
+          and healtharchive_archive_cache_auto_recover_apply_total > 0
+          and healtharchive_archive_cache_auto_recover_last_apply_ok == 0
+          and (time() - healtharchive_archive_cache_auto_recover_last_apply_timestamp_seconds) > 86400
         for: 30m
         labels:
           severity: critical
@@ -471,9 +471,9 @@ groups:
           notify: pushover
           service: healtharchive
         annotations:
-          summary: "Storage hot-path auto-recover apply failed for >24h"
-          description: "The last apply-mode hot-path recovery failed and no successful apply has replaced it for over 24 hours. Check /srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json (last_apply_errors, last_apply_warnings), then run stale-mount recovery playbook steps."
-          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
+          summary: "Archive cache auto-recover apply failed for >24h"
+          description: "The last apply-mode archive cache recovery failed and no successful apply has replaced it for over 24 hours. Check /srv/healtharchive/ops/watchdog/archive-cache-auto-recover.json (last_apply_errors, last_apply_warnings), then run tiering recovery playbook steps."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/warc-storage-tiering.md"
 
       - alert: HealthArchiveTieringHotPathUnreadable
         expr: healtharchive_tiering_hot_path_ok == 0
@@ -484,9 +484,9 @@ groups:
           notify: pushover
           service: healtharchive
         annotations:
-          summary: "Tiering hot path unreadable (stale sshfs mount?)"
-          description: "A tiering hot path is unreadable: hot={{ $labels.hot }}. Check healtharchive_tiering_hot_path_errno (Errno 107 usually indicates a stale sshfs mount)."
-          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-recovery.md"
+          summary: "Tiering hot path unreadable (stale remote mount?)"
+          description: "A tiering hot path is unreadable: hot={{ $labels.hot }}. Check healtharchive_tiering_hot_path_errno (Errno 107 usually indicates a stale remote-backed mount)."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/warc-storage-tiering.md"
 
       - alert: HealthArchiveWarcTieringFailed
         expr: healtharchive_systemd_unit_failed{unit="healtharchive-warc-tiering.service"} == 1
@@ -529,7 +529,7 @@ groups:
           service: healtharchive
         annotations:
           summary: "Annual campaign sentinel failed (preflight/scheduling/tiering)"
-          description: "The annual campaign sentinel reported failure for 12h. This usually means campaign preflight failed, annual jobs were not scheduled, or annual output dirs were not tiered onto the Storage Box."
+          description: "The annual campaign sentinel reported failure for 12h. This usually means campaign preflight failed, annual jobs were not scheduled, or annual output dirs were not tiered onto the configured cold archive."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/crawl/annual-campaign.md"
 
       - alert: HealthArchiveAnnualCampaignSentinelMissing
@@ -643,4 +643,4 @@ groups:
         annotations:
           summary: "Drill: alert pipeline test"
           description: "This alert is intentionally triggered during operator drills to validate Prometheus→Alertmanager wiring. It should be routed to a null receiver by default."
-          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/storagebox-sshfs-stale-mount-drills.md"
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/storage/warc-storage-tiering.md"

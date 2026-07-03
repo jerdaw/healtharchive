@@ -49,9 +49,11 @@ def _isolate_process_env(monkeypatch: pytest.MonkeyPatch) -> None:
     change API/CLI behavior. If those leak into pytest runs, tests can fail
     depending on the host environment.
     """
-    # Force a non-production env so admin endpoints aren't "fail closed" when
-    # HEALTHARCHIVE_ADMIN_TOKEN is intentionally unset in tests.
+    # Force a non-production env and explicit dev-only admin override so tests
+    # that intentionally omit HEALTHARCHIVE_ADMIN_TOKEN do not depend on the
+    # host shell. Fail-closed tests delete this override locally.
     monkeypatch.setenv("HEALTHARCHIVE_ENV", "test")
+    monkeypatch.setenv("HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN", "true")
 
     # Clear deployment-sensitive toggles unless an individual test sets them.
     monkeypatch.delenv("HEALTHARCHIVE_ADMIN_TOKEN", raising=False)

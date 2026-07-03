@@ -10,6 +10,7 @@ from ha_backend.db import get_session_factory
 
 _REQUEST_DB_SESSION_ATTR = "_healtharchive_db_session"
 _REQUEST_DB_SESSION_CLOSED_ATTR = "_healtharchive_db_session_closed"
+DEV_ADMIN_NO_TOKEN_VALUES = {"1", "true", "yes"}
 
 
 def get_request_db_session(request: Request) -> Session:
@@ -51,11 +52,15 @@ def close_request_db_session(request: Request, *, commit: bool) -> None:
 def _get_expected_admin_token() -> Optional[str]:
     """
     Read the expected admin token from the environment.
-
-    If unset, admin endpoints are effectively open. This is convenient for
-    local development but should be configured in production.
     """
     return os.getenv("HEALTHARCHIVE_ADMIN_TOKEN")
+
+
+def _allow_dev_admin_without_token(env: str) -> bool:
+    if env not in {"development", "local", "test"}:
+        return False
+    raw = os.getenv("HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN", "")
+    return raw.strip().lower() in DEV_ADMIN_NO_TOKEN_VALUES
 
 
 async def require_admin(
@@ -67,26 +72,23 @@ async def require_admin(
     Dependency that enforces a simple token-based admin auth scheme.
 
     Behaviour:
-    - If HEALTHARCHIVE_ENV is "production" or "staging" and
-      HEALTHARCHIVE_ADMIN_TOKEN is unset, fail closed with HTTP 500.
-    - If HEALTHARCHIVE_ADMIN_TOKEN is unset in other environments, allow all
-      requests (dev mode).
+    - If HEALTHARCHIVE_ADMIN_TOKEN is unset, fail closed with HTTP 500.
+    - Unset-token local development access requires
+      HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true and a local/dev/test env.
     - If set, require the same token via either:
       * Authorization: Bearer <token>
       * X-Admin-Token: <token>
     """
     env = os.getenv("HEALTHARCHIVE_ENV", "development").lower()
     expected = _get_expected_admin_token()
-    if env in {"production", "staging"} and not expected:
-        # In non-dev environments, require an admin token to be configured.
+
+    if not expected:
+        if _allow_dev_admin_without_token(env):
+            return
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Admin token not configured for this environment",
         )
-
-    if not expected:
-        # No token configured: treat admin endpoints as open (dev mode).
-        return
 
     presented: Optional[str] = None
 

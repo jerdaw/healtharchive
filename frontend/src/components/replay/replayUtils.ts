@@ -114,3 +114,28 @@ export function buildReplayUrl(
   }
   return `${base}/job-${jobId}/${cleanedOriginalUrl}`;
 }
+
+export function buildReplayUrlForReadyEdition(
+  replayBase: string,
+  edition: ReplayEdition | null | undefined,
+  timestamp14: string | null,
+  originalUrl: string,
+): string | null {
+  if (!edition?.entryBrowseUrl) return null;
+  return buildReplayUrl(replayBase, edition.jobId, timestamp14, originalUrl);
+}
+
+export function sanitizeReplayTopUrl(value: unknown, replayOrigin: string): string | null {
+  if (typeof value !== "string") return null;
+  try {
+    const expectedOrigin = new URL(replayOrigin).origin;
+    const parsed = new URL(value, expectedOrigin);
+    if (parsed.origin !== expectedOrigin) return null;
+    if (parsed.protocol !== "https:" && parsed.protocol !== "http:") return null;
+    if (!/^\/job-\d+\//.test(parsed.pathname)) return null;
+    parsed.hash = "";
+    return parsed.toString();
+  } catch {
+    return null;
+  }
+}

@@ -7,18 +7,21 @@ HealthArchive VPS helper: create a PostgreSQL dump without filling root.
 
 Default behavior:
   - uses /srv/healtharchive/backups as a short local staging/cache directory
-  - requires the Storage Box mirror at /srv/healtharchive/storagebox/backups/db
-  - copies successful dumps to the mirror with rsync flags compatible with sshfs
+  - requires a configured cold backup mirror unless explicitly disabled
+  - copies successful dumps to the mirror with conservative rsync flags
   - prunes zero-byte local dumps and old local cache files
 
 Environment:
-  HEALTHARCHIVE_DATABASE_URL                 required via /etc/healtharchive/backend.env
-  HEALTHARCHIVE_BACKUP_LOCAL_DIR             default: /srv/healtharchive/backups
-  HEALTHARCHIVE_BACKUP_MIRROR_DIR            default: /srv/healtharchive/storagebox/backups/db
-  HEALTHARCHIVE_BACKUP_REQUIRE_MIRROR        default: 1
-  HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL default: 1
-  HEALTHARCHIVE_BACKUP_MIRROR_RETENTION_DAYS default: 30
-  HEALTHARCHIVE_BACKUP_MIN_ROOT_FREE_MB      default: 8192
+  HEALTHARCHIVE_DATABASE_URL                    required via /etc/healtharchive/backend.env
+  HEALTHARCHIVE_BACKUP_LOCAL_DIR                default: /srv/healtharchive/backups
+  HEALTHARCHIVE_BACKUP_COLD_MIRROR_DIR          required unless HEALTHARCHIVE_BACKUP_REQUIRE_MIRROR=0
+  HEALTHARCHIVE_BACKUP_COLD_MIRROR_ROOT         mount/readiness root for the cold mirror
+  HEALTHARCHIVE_BACKUP_MIRROR_DIR               legacy compatibility alias
+  HEALTHARCHIVE_BACKUP_MIRROR_ROOT              legacy compatibility alias
+  HEALTHARCHIVE_BACKUP_REQUIRE_MIRROR           default: 1
+  HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL    default: 1
+  HEALTHARCHIVE_BACKUP_MIRROR_RETENTION_DAYS    default: 30
+  HEALTHARCHIVE_BACKUP_MIN_ROOT_FREE_MB         default: 8192
 
 Usage:
   vps-db-backup.sh [--dry-run]
@@ -67,8 +70,11 @@ case "${PG_DUMP_DATABASE_URL}" in
 esac
 
 LOCAL_DIR="${HEALTHARCHIVE_BACKUP_LOCAL_DIR:-/srv/healtharchive/backups}"
-MIRROR_DIR="${HEALTHARCHIVE_BACKUP_MIRROR_DIR:-/srv/healtharchive/storagebox/backups/db}"
-MIRROR_ROOT="${HEALTHARCHIVE_BACKUP_MIRROR_ROOT:-/srv/healtharchive/storagebox}"
+MIRROR_DIR="${HEALTHARCHIVE_BACKUP_COLD_MIRROR_DIR:-${HEALTHARCHIVE_BACKUP_MIRROR_DIR:-}}"
+MIRROR_ROOT="${HEALTHARCHIVE_BACKUP_COLD_MIRROR_ROOT:-${HEALTHARCHIVE_BACKUP_MIRROR_ROOT:-}}"
+if [[ -z "${MIRROR_ROOT}" && -n "${MIRROR_DIR}" ]]; then
+  MIRROR_ROOT="${MIRROR_DIR}"
+fi
 REQUIRE_MIRROR="${HEALTHARCHIVE_BACKUP_REQUIRE_MIRROR:-1}"
 LOCAL_KEEP_SUCCESSFUL="${HEALTHARCHIVE_BACKUP_LOCAL_KEEP_SUCCESSFUL:-1}"
 MIRROR_RETENTION_DAYS="${HEALTHARCHIVE_BACKUP_MIRROR_RETENTION_DAYS:-30}"
@@ -139,6 +145,7 @@ prune_mirror_retention() {
 write_metrics() {
   local status="$1"
   local local_bytes mirror_bytes now metrics_dir metrics_path tmp_path latest_mtime
+  local find_roots=()
   metrics_dir="${NODE_EXPORTER_TEXTFILE_DIR:-/var/lib/node_exporter/textfile_collector}"
   metrics_path="${metrics_dir}/healtharchive_db_backup.prom"
   tmp_path="${metrics_path}.$$"
@@ -150,8 +157,16 @@ write_metrics() {
   fi
 
   local_bytes="$(du -sb "${LOCAL_DIR}" 2>/dev/null | awk '{print $1}' || printf '0')"
-  mirror_bytes="$(du -sb "${MIRROR_DIR}" 2>/dev/null | awk '{print $1}' || printf '0')"
-  latest_mtime="$(find "${LOCAL_DIR}" "${MIRROR_DIR}" -maxdepth 1 -type f -name 'healtharchive_*.dump' -size +0c -printf '%T@\n' 2>/dev/null | sort -nr | head -n 1 | cut -d. -f1)"
+  if [[ -n "${MIRROR_DIR}" ]]; then
+    mirror_bytes="$(du -sb "${MIRROR_DIR}" 2>/dev/null | awk '{print $1}' || printf '0')"
+  else
+    mirror_bytes="0"
+  fi
+  find_roots=("${LOCAL_DIR}")
+  if [[ -n "${MIRROR_DIR}" ]]; then
+    find_roots+=("${MIRROR_DIR}")
+  fi
+  latest_mtime="$(find "${find_roots[@]}" -maxdepth 1 -type f -name 'healtharchive_*.dump' -size +0c -printf '%T@\n' 2>/dev/null | sort -nr | head -n 1 | cut -d. -f1)"
   latest_mtime="${latest_mtime:-0}"
 
   mkdir -p "${metrics_dir}"
@@ -188,17 +203,22 @@ fail() {
 run install -d -m 2770 -o root -g healtharchive "${LOCAL_DIR}"
 run install -d -m 2770 -o root -g healtharchive "${LOCAL_DIR}/.tmp"
 
+if [[ "${REQUIRE_MIRROR}" == "1" && -z "${MIRROR_DIR}" ]]; then
+  fail "Required backup cold mirror is not configured. Set HEALTHARCHIVE_BACKUP_COLD_MIRROR_DIR and HEALTHARCHIVE_BACKUP_COLD_MIRROR_ROOT, or set HEALTHARCHIVE_BACKUP_REQUIRE_MIRROR=0 for local-only dry runs."
+fi
 if [[ "${REQUIRE_MIRROR}" == "1" ]]; then
   if ! mountpoint -q "${MIRROR_ROOT}"; then
-    fail "Required backup mirror root is not mounted: ${MIRROR_ROOT}"
+    fail "Required backup cold mirror root is not mounted."
   fi
 fi
-if [[ "${DRY_RUN}" == "true" ]]; then
+if [[ -n "${MIRROR_DIR}" && "${DRY_RUN}" == "true" ]]; then
   log "+ mkdir -p ${MIRROR_DIR}"
-else
+elif [[ -n "${MIRROR_DIR}" ]]; then
   mkdir -p "${MIRROR_DIR}"
   chmod 2770 "${MIRROR_DIR}" 2>/dev/null || true
   chgrp healtharchive "${MIRROR_DIR}" 2>/dev/null || true
+else
+  log "Backup cold mirror disabled; keeping local cache only."
 fi
 
 prune_zero_byte_local_dumps
@@ -230,14 +250,14 @@ else
   chgrp healtharchive "${final_dump}" || true
 fi
 
-if [[ -d "${MIRROR_DIR}" ]]; then
+if [[ -n "${MIRROR_DIR}" && -d "${MIRROR_DIR}" ]]; then
   log "Mirroring dump to ${MIRROR_DIR}"
   run rsync -rt --size-only --partial --inplace "${final_dump}" "${MIRROR_DIR}/" || {
     fail "Failed to mirror dump to ${MIRROR_DIR}."
   }
   prune_mirror_retention
 elif [[ "${REQUIRE_MIRROR}" == "1" ]]; then
-  fail "Required backup mirror dir is unavailable: ${MIRROR_DIR}"
+  fail "Required backup cold mirror dir is unavailable."
 fi
 
 prune_zero_byte_local_dumps

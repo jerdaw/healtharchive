@@ -144,10 +144,10 @@ def _write_fixture_evidence(tmp_path: Path) -> Path:
                 "path_or_metric": "/srv/healtharchive/backups/healtharchive_2026-05-27T033808Z.dump",
             },
             {
-                "scope": "storagebox_dump",
+                "scope": "cold_archive_dump",
                 "date": "2026-05-27",
                 "size_bytes": "1978095044",
-                "path_or_metric": "/srv/healtharchive/storagebox/backups/db/healtharchive_2026-05-27T033808Z.dump",
+                "path_or_metric": "/srv/healtharchive/cold-archive/backups/db/healtharchive_2026-05-27T033808Z.dump",
             },
         ],
     }
@@ -197,6 +197,9 @@ def test_render_annual_closeout_report_from_fixture(tmp_path: Path) -> None:
     assert "Ready for search: `yes`" in report
     assert "_Review required._ Complete one subsection per source before closure." in report
     assert "NASD output still requires operator review" in report
+    assert "Latest cold archive mirror:" in report
+    assert "Storage Box" not in report
+    assert "storagebox" not in report.lower()
     for heading in [
         "## Executive Summary",
         "## Campaign Results",

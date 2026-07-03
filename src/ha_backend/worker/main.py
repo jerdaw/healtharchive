@@ -308,7 +308,7 @@ def _is_on_root_device(path: Path) -> bool:
 
 def _tier_annual_job_if_needed(job: ArchiveJob) -> None:
     """
-    Automatically tier annual campaign jobs to storagebox before they start crawling.
+    Automatically tier annual campaign jobs to the cold archive before they start crawling.
 
     This prevents disk pressure from large annual jobs consuming local disk.
     Only tiers if the job is an annual campaign and not already tiered.
@@ -336,7 +336,7 @@ def _tier_annual_job_if_needed(job: ArchiveJob) -> None:
         return
 
     logger.info(
-        "Auto-tiering annual job %s (year=%s) to storagebox before crawl starts",
+        "Auto-tiering annual job %s (year=%s) to cold archive before crawl starts",
         job.id,
         campaign_year,
     )
@@ -379,7 +379,7 @@ def _tier_annual_job_if_needed(job: ArchiveJob) -> None:
                     "/dev/sda1 after auto-tiering completed successfully. This is a "
                     "configuration error - tiering script may have failed silently or "
                     "bind mounts are not set up correctly. Cannot proceed to avoid "
-                    "filling root disk. Check Storage Box mount and bind mounts."
+                    "filling root disk. Check cold archive mount and bind mounts."
                 )
 
             logger.info("Verified job %s output_dir is on non-root device after tiering", job.id)
@@ -493,7 +493,7 @@ def _process_single_job() -> bool:
             disk_percent,
         )
 
-        # Auto-tier annual jobs to storagebox before crawl starts (prevents disk pressure)
+        # Auto-tier annual jobs to cold archive before crawl starts (prevents disk pressure).
         _tier_annual_job_if_needed(job)
 
     # Run the crawl phase using the existing helper, which manages its own sessions.

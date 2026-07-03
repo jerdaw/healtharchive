@@ -84,15 +84,15 @@ def _evaluate(
     now_ts = int(now_utc.timestamp())
     since_utc = now_utc - timedelta(hours=window_hours)
 
-    enabled = int(metrics.get("healtharchive_storage_hotpath_auto_recover_enabled", 0))
-    metrics_ok = int(metrics.get("healtharchive_storage_hotpath_auto_recover_metrics_ok", 0))
+    enabled = int(metrics.get("healtharchive_archive_cache_auto_recover_enabled", 0))
+    metrics_ok = int(metrics.get("healtharchive_archive_cache_auto_recover_metrics_ok", 0))
     detected_targets = int(
-        metrics.get("healtharchive_storage_hotpath_auto_recover_detected_targets", 0)
+        metrics.get("healtharchive_archive_cache_auto_recover_detected_targets", 0)
     )
-    apply_total = int(metrics.get("healtharchive_storage_hotpath_auto_recover_apply_total", 0))
-    last_apply_ok = int(metrics.get("healtharchive_storage_hotpath_auto_recover_last_apply_ok", 0))
+    apply_total = int(metrics.get("healtharchive_archive_cache_auto_recover_apply_total", 0))
+    last_apply_ok = int(metrics.get("healtharchive_archive_cache_auto_recover_last_apply_ok", 0))
     last_apply_ts = int(
-        metrics.get("healtharchive_storage_hotpath_auto_recover_last_apply_timestamp_seconds", 0)
+        metrics.get("healtharchive_archive_cache_auto_recover_last_apply_timestamp_seconds", 0)
     )
 
     last_apply_age_seconds: int | None
@@ -122,7 +122,7 @@ def _evaluate(
     recommendations: list[str] = []
     if metrics_writer_unhealthy:
         recommendations.append(
-            "Check healtharchive-storage-hotpath-auto-recover service/timer and textfile collector writes."
+            "Check healtharchive-archive-cache-auto-recover service/timer and textfile collector writes."
         )
     if persistent_failed_apply:
         recommendations.append(
@@ -200,14 +200,14 @@ def main(argv: list[str] | None = None) -> int:
     )
     parser.add_argument(
         "--state-file",
-        default="/srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json",
+        default="/srv/healtharchive/ops/watchdog/archive-cache-auto-recover.json",
         help="Watchdog state JSON file path.",
     )
     parser.add_argument(
         "--metrics-file",
         default=(
             "/var/lib/node_exporter/textfile_collector/"
-            "healtharchive_storage_hotpath_auto_recover.prom"
+            "healtharchive_archive_cache_auto_recover.prom"
         ),
         help="Watchdog Prometheus textfile path.",
     )

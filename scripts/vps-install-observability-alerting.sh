@@ -254,12 +254,12 @@ route:
 
 inhibit_rules:
   - source_matchers:
-      - alertname="HealthArchiveStorageBoxMountDown"
+      - alertname="HealthArchiveColdArchiveMountDown"
     target_matchers:
-      - alertname=~"HealthArchiveStorageHotpathStaleUnrecovered|HealthArchiveTieringHotPathUnreadable|HealthArchiveWarcTieringFailed|HealthArchiveCrawlOutputDirUnreadable"
+      - alertname=~"HealthArchiveArchiveCacheStaleUnrecovered|HealthArchiveTieringHotPathUnreadable|HealthArchiveWarcTieringFailed|HealthArchiveCrawlOutputDirUnreadable"
     equal: ["service"]
   - source_matchers:
-      - alertname="HealthArchiveStorageHotpathStaleUnrecovered"
+      - alertname="HealthArchiveArchiveCacheStaleUnrecovered"
     target_matchers:
       - alertname=~"HealthArchiveInfraErrorsHigh|HealthArchiveTieringHotPathUnreadable|HealthArchiveCrawlOutputDirUnreadable"
     equal: ["service"]

@@ -53,7 +53,7 @@ def test_csp_header_on_json_endpoints(tmp_path, monkeypatch):
 
 
 def test_csp_header_on_raw_snapshot_endpoint(tmp_path, monkeypatch):
-    """Test that permissive CSP is applied to raw snapshot HTML replay."""
+    """Test that raw snapshot HTML replay blocks active content."""
     client = _init_test_app(tmp_path, monkeypatch)
 
     # Raw snapshot endpoint needs a snapshot ID, but we can test with a 404
@@ -63,10 +63,13 @@ def test_csp_header_on_raw_snapshot_endpoint(tmp_path, monkeypatch):
     # May be 404 (snapshot not found) but CSP should still be present
     assert "Content-Security-Policy" in response.headers
     csp = response.headers["Content-Security-Policy"]
-    # Should have permissive policy for archived HTML
-    assert "script-src 'unsafe-inline'" in csp
+    assert "default-src 'none'" in csp
+    assert "sandbox" in csp
+    assert "script-src 'none'" in csp
     assert "style-src 'unsafe-inline'" in csp
     assert "img-src * data:" in csp
+    assert "'unsafe-eval'" not in csp
+    assert "connect-src *" not in csp
 
 
 def test_hsts_header_present(tmp_path, monkeypatch):

@@ -571,24 +571,24 @@
       "id": 15,
       "targets": [
         {
-          "expr": "healtharchive_storage_hotpath_auto_recover_detected_targets",
+          "expr": "healtharchive_archive_cache_auto_recover_detected_targets",
           "refId": "A",
           "legendFormat": "detected_targets"
         },
         {
-          "expr": "healtharchive_storage_hotpath_auto_recover_apply_1h",
+          "expr": "healtharchive_archive_cache_auto_recover_apply_1h",
           "refId": "B",
           "legendFormat": "apply_1h"
         },
         {
-          "expr": "healtharchive_storage_hotpath_auto_recover_last_apply_ok",
+          "expr": "healtharchive_archive_cache_auto_recover_last_apply_ok",
           "refId": "C",
           "legendFormat": "last_apply_ok"
         }
       ],
-      "title": "Storage Hot-Path Auto-Recover (status/activity)",
+      "title": "Archive Cache Auto-Recover (status/activity)",
       "type": "timeseries",
-      "description": "Storage hot-path watchdog detection count and recent apply-mode recovery activity.",
+      "description": "Archive cache watchdog detection count and recent apply-mode recovery activity.",
       "options": {
         "legend": {
           "displayMode": "table",
@@ -613,9 +613,9 @@
       "id": 16,
       "targets": [
         {
-          "expr": "(time() - healtharchive_storage_hotpath_auto_recover_last_run_timestamp_seconds) / 60",
+          "expr": "(time() - healtharchive_archive_cache_auto_recover_last_run_timestamp_seconds) / 60",
           "refId": "A",
-          "legendFormat": "storage_hotpath_auto_recover"
+          "legendFormat": "archive_cache_auto_recover"
         },
         {
           "expr": "(time() - healtharchive_worker_auto_start_last_run_timestamp_seconds) / 60",
@@ -655,9 +655,9 @@
       "id": 17,
       "targets": [
         {
-          "expr": "healtharchive_storage_hotpath_auto_recover_enabled",
+          "expr": "healtharchive_archive_cache_auto_recover_enabled",
           "refId": "A",
-          "legendFormat": "storage_hotpath_auto_recover_enabled",
+          "legendFormat": "archive_cache_auto_recover_enabled",
           "instant": true
         },
         {

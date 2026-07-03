@@ -292,22 +292,22 @@ fi
 echo ""
 echo "[storage hot-path auto-recover watchdog]"
 if have_cmd systemctl; then
-  hotpath_timer="$(systemctl is-active healtharchive-storage-hotpath-auto-recover.timer 2>/dev/null || true)"
+  hotpath_timer="$(systemctl is-active healtharchive-archive-cache-auto-recover.timer 2>/dev/null || true)"
   if [[ "${hotpath_timer}" == "active" ]]; then
-    ok "healtharchive-storage-hotpath-auto-recover.timer active"
+    ok "healtharchive-archive-cache-auto-recover.timer active"
   else
-    warn "healtharchive-storage-hotpath-auto-recover.timer not active (is-active=${hotpath_timer})"
+    warn "healtharchive-archive-cache-auto-recover.timer not active (is-active=${hotpath_timer})"
   fi
-  if [[ -f /etc/healtharchive/storage-hotpath-auto-recover-enabled ]]; then
-    ok "sentinel present: /etc/healtharchive/storage-hotpath-auto-recover-enabled"
+  if [[ -f /etc/healtharchive/archive-cache-auto-recover-enabled ]]; then
+    ok "sentinel present: /etc/healtharchive/archive-cache-auto-recover-enabled"
   else
-    warn "sentinel missing: /etc/healtharchive/storage-hotpath-auto-recover-enabled"
+    warn "sentinel missing: /etc/healtharchive/archive-cache-auto-recover-enabled"
   fi
 else
   warn "systemctl not available; skipping watchdog timer check"
 fi
 
-HOTPATH_STATE_FILE="/srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json"
+HOTPATH_STATE_FILE="/srv/healtharchive/ops/watchdog/archive-cache-auto-recover.json"
 if [[ -f "${HOTPATH_STATE_FILE}" ]]; then
   ok "state file present: ${HOTPATH_STATE_FILE}"
   cat "${HOTPATH_STATE_FILE}" || true
@@ -317,7 +317,8 @@ fi
 
 echo ""
 echo "[disk]"
-df -h / /srv/healtharchive/jobs /srv/healtharchive/storagebox 2>/dev/null || true
+COLD_ARCHIVE_ROOT="${HEALTHARCHIVE_COLD_ARCHIVE_ROOT:-/srv/healtharchive/cold-archive}"
+df -h / /srv/healtharchive/jobs "${COLD_ARCHIVE_ROOT}" 2>/dev/null || true
 
 if [[ ${failures} -gt 0 ]]; then
   echo ""

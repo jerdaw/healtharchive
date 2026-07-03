@@ -6,6 +6,8 @@ set -euo pipefail
 
 OUT_DIR="/var/lib/node_exporter/textfile_collector"
 OUT_FILE="${OUT_DIR}/healtharchive_tiering.prom"
+COLD_ARCHIVE_ROOT="${HEALTHARCHIVE_COLD_ARCHIVE_ROOT:-/srv/healtharchive/cold-archive}"
+COLD_ARCHIVE_UNIT="${HEALTHARCHIVE_COLD_ARCHIVE_UNIT:-}"
 
 have_cmd() {
   command -v "$1" >/dev/null 2>&1
@@ -47,28 +49,32 @@ unit_failed() {
   [[ "${failed}" == "failed" ]] && echo 1 || echo 0
 }
 
-storagebox_ok=0
-if is_mounted "/srv/healtharchive/storagebox"; then
-  # Ensure the mount is readable (catches some auth/remote-path issues).
-  if ls -la "/srv/healtharchive/storagebox" >/dev/null 2>&1; then
-    storagebox_ok=1
+cold_archive_ok=0
+if is_mounted "${COLD_ARCHIVE_ROOT}"; then
+  # Ensure the root is readable (catches stale mount or permission issues).
+  if ls -la "${COLD_ARCHIVE_ROOT}" >/dev/null 2>&1; then
+    cold_archive_ok=1
   fi
 fi
 
-storagebox_service_ok="$(unit_ok healtharchive-storagebox-sshfs.service)"
+cold_archive_unit_lines=""
+if [[ -n "${COLD_ARCHIVE_UNIT}" ]]; then
+  cold_archive_unit_ok="$(unit_ok "${COLD_ARCHIVE_UNIT}")"
+  cold_archive_unit_lines="healtharchive_systemd_unit_ok{unit=\"${COLD_ARCHIVE_UNIT}\"} ${cold_archive_unit_ok}"
+fi
 tiering_service_ok="$(unit_ok healtharchive-warc-tiering.service)"
 tiering_service_failed="$(unit_failed healtharchive-warc-tiering.service)"
 
 mkdir -p "${OUT_DIR}"
 tmp="$(mktemp "${OUT_FILE}.XXXXXX")"
 cat >"${tmp}" <<EOF
-# HELP healtharchive_storagebox_mount_ok 1 if Storage Box mount is present and readable.
-# TYPE healtharchive_storagebox_mount_ok gauge
-healtharchive_storagebox_mount_ok ${storagebox_ok}
+# HELP healtharchive_cold_archive_root_ok 1 if the cold archive root is mounted and readable.
+# TYPE healtharchive_cold_archive_root_ok gauge
+healtharchive_cold_archive_root_ok ${cold_archive_ok}
 
 # HELP healtharchive_systemd_unit_ok 1 if the unit exists and is not failed (and active when applicable).
 # TYPE healtharchive_systemd_unit_ok gauge
-healtharchive_systemd_unit_ok{unit="healtharchive-storagebox-sshfs.service"} ${storagebox_service_ok}
+${cold_archive_unit_lines}
 healtharchive_systemd_unit_ok{unit="healtharchive-warc-tiering.service"} ${tiering_service_ok}
 
 # HELP healtharchive_systemd_unit_failed 1 if systemd reports the unit is failed.

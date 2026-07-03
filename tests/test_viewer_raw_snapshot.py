@@ -169,6 +169,27 @@ def test_raw_snapshot_route_serves_html(tmp_path, monkeypatch) -> None:
     assert "Hello from WARC" in resp.text
 
 
+def test_raw_snapshot_banner_does_not_inject_script(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    warc_file = tmp_path / "warcs" / "test.warc.gz"
+    url = "https://example.org/page"
+    html_body = "<html><body><h1>Hello from WARC</h1></body></html>"
+    record_id = _write_test_warc(warc_file, url, html_body)
+    snapshot_id = _seed_raw_snapshot(
+        url=url,
+        warc_path=str(warc_file),
+        warc_record_id=record_id,
+    )
+
+    resp = client.get(f"/api/snapshots/raw/{snapshot_id}")
+
+    assert resp.status_code == 200
+    assert "ha-replay-banner" in resp.text
+    assert "haReplayBannerDismissed" not in resp.text
+    assert "localStorage" not in resp.text
+
+
 def test_raw_snapshot_releases_read_transaction_before_warc_lookup(tmp_path, monkeypatch) -> None:
     client = _init_test_app(tmp_path, monkeypatch)
 
@@ -405,6 +426,67 @@ def test_raw_snapshot_missing_warc_returns_404(tmp_path, monkeypatch) -> None:
     assert resp.status_code == 404
     body = resp.json()
     assert "Underlying WARC file" in body["detail"]
+    assert str(missing_warc) not in resp.text
+    assert missing_warc.name not in resp.text
+
+
+def test_raw_snapshot_missing_direct_warc_redirects_to_replay_when_available(
+    tmp_path, monkeypatch
+) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+    monkeypatch.setenv("HEALTHARCHIVE_REPLAY_BASE_URL", "https://replay.example.test")
+    monkeypatch.setenv(
+        "HEALTHARCHIVE_REPLAY_COLLECTIONS_DIR",
+        str(tmp_path / "missing-replay-collections"),
+    )
+
+    missing_warc = tmp_path / "warcs" / "evicted-from-cache.warc.gz"
+    url = "https://example.org/evicted"
+
+    with get_session() as session:
+        src = Source(
+            code="test",
+            name="Test Source",
+            base_url="https://example.org",
+            description="Test",
+            enabled=True,
+        )
+        session.add(src)
+        session.flush()
+
+        job = ArchiveJob(
+            source_id=src.id,
+            name="test-job",
+            output_dir=str(tmp_path / "job-output"),
+            status="indexed",
+        )
+        session.add(job)
+        session.flush()
+
+        snap = Snapshot(
+            job_id=job.id,
+            source_id=src.id,
+            url=url,
+            normalized_url_group=url,
+            capture_timestamp=datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc),
+            mime_type="text/html",
+            status_code=200,
+            title="Evicted WARC Page",
+            snippet="Snapshot with evicted direct WARC",
+            language="en",
+            warc_path=str(missing_warc),
+            warc_record_id="missing-id",
+        )
+        session.add(snap)
+        session.flush()
+        snapshot_id = snap.id
+        job_id = job.id
+
+    resp = client.get(f"/api/snapshots/raw/{snapshot_id}", follow_redirects=False)
+
+    assert resp.status_code == 307
+    assert resp.headers["location"].startswith(f"https://replay.example.test/job-{job_id}/")
+    assert f"#ha_snapshot={snapshot_id}" in resp.headers["location"]
     assert str(missing_warc) not in resp.text
     assert missing_warc.name not in resp.text
 

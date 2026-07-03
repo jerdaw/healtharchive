@@ -46,12 +46,12 @@ def test_burnin_report_flags_persistent_failed_apply(tmp_path: Path, capsys) -> 
     metrics_file.write_text(
         "\n".join(
             [
-                "healtharchive_storage_hotpath_auto_recover_enabled 1",
-                "healtharchive_storage_hotpath_auto_recover_metrics_ok 1",
-                "healtharchive_storage_hotpath_auto_recover_detected_targets 0",
-                "healtharchive_storage_hotpath_auto_recover_apply_total 2",
-                "healtharchive_storage_hotpath_auto_recover_last_apply_ok 0",
-                "healtharchive_storage_hotpath_auto_recover_last_apply_timestamp_seconds 1738540800",
+                "healtharchive_archive_cache_auto_recover_enabled 1",
+                "healtharchive_archive_cache_auto_recover_metrics_ok 1",
+                "healtharchive_archive_cache_auto_recover_detected_targets 0",
+                "healtharchive_archive_cache_auto_recover_apply_total 2",
+                "healtharchive_archive_cache_auto_recover_last_apply_ok 0",
+                "healtharchive_archive_cache_auto_recover_last_apply_timestamp_seconds 1738540800",
                 "",
             ]
         ),
@@ -92,12 +92,12 @@ def test_burnin_report_is_ok_without_apply_attempts(tmp_path: Path, capsys) -> N
     metrics_file.write_text(
         "\n".join(
             [
-                "healtharchive_storage_hotpath_auto_recover_enabled 1",
-                "healtharchive_storage_hotpath_auto_recover_metrics_ok 1",
-                "healtharchive_storage_hotpath_auto_recover_detected_targets 0",
-                "healtharchive_storage_hotpath_auto_recover_apply_total 0",
-                "healtharchive_storage_hotpath_auto_recover_last_apply_ok 0",
-                "healtharchive_storage_hotpath_auto_recover_last_apply_timestamp_seconds 0",
+                "healtharchive_archive_cache_auto_recover_enabled 1",
+                "healtharchive_archive_cache_auto_recover_metrics_ok 1",
+                "healtharchive_archive_cache_auto_recover_detected_targets 0",
+                "healtharchive_archive_cache_auto_recover_apply_total 0",
+                "healtharchive_archive_cache_auto_recover_last_apply_ok 0",
+                "healtharchive_archive_cache_auto_recover_last_apply_timestamp_seconds 0",
                 "",
             ]
         ),
@@ -133,12 +133,12 @@ def test_burnin_report_warns_when_detected_targets_nonzero(tmp_path: Path, capsy
     metrics_file.write_text(
         "\n".join(
             [
-                "healtharchive_storage_hotpath_auto_recover_enabled 1",
-                "healtharchive_storage_hotpath_auto_recover_metrics_ok 1",
-                "healtharchive_storage_hotpath_auto_recover_detected_targets 2",
-                "healtharchive_storage_hotpath_auto_recover_apply_total 1",
-                "healtharchive_storage_hotpath_auto_recover_last_apply_ok 1",
-                "healtharchive_storage_hotpath_auto_recover_last_apply_timestamp_seconds 1738799000",
+                "healtharchive_archive_cache_auto_recover_enabled 1",
+                "healtharchive_archive_cache_auto_recover_metrics_ok 1",
+                "healtharchive_archive_cache_auto_recover_detected_targets 2",
+                "healtharchive_archive_cache_auto_recover_apply_total 1",
+                "healtharchive_archive_cache_auto_recover_last_apply_ok 1",
+                "healtharchive_archive_cache_auto_recover_last_apply_timestamp_seconds 1738799000",
                 "",
             ]
         ),
@@ -178,12 +178,12 @@ def test_burnin_report_is_ok_when_recoveries_in_window_only(tmp_path: Path, caps
     metrics_file.write_text(
         "\n".join(
             [
-                "healtharchive_storage_hotpath_auto_recover_enabled 1",
-                "healtharchive_storage_hotpath_auto_recover_metrics_ok 1",
-                "healtharchive_storage_hotpath_auto_recover_detected_targets 0",
-                "healtharchive_storage_hotpath_auto_recover_apply_total 2",
-                "healtharchive_storage_hotpath_auto_recover_last_apply_ok 1",
-                "healtharchive_storage_hotpath_auto_recover_last_apply_timestamp_seconds 1738540800",
+                "healtharchive_archive_cache_auto_recover_enabled 1",
+                "healtharchive_archive_cache_auto_recover_metrics_ok 1",
+                "healtharchive_archive_cache_auto_recover_detected_targets 0",
+                "healtharchive_archive_cache_auto_recover_apply_total 2",
+                "healtharchive_archive_cache_auto_recover_last_apply_ok 1",
+                "healtharchive_archive_cache_auto_recover_last_apply_timestamp_seconds 1738540800",
                 "",
             ]
         ),

@@ -107,14 +107,13 @@ def test_status_command_disk_usage_shown(monkeypatch, tmp_path) -> None:
     assert "used" in output or "free" in output
 
 
-def test_status_command_handles_storage_box_check(monkeypatch, tmp_path) -> None:
-    """Test that Storage Box mount check handles missing mount gracefully."""
+def test_status_command_handles_cold_archive_check(monkeypatch, tmp_path) -> None:
+    """Test that cold archive mount check handles missing mount gracefully."""
     _init_test_db(tmp_path, monkeypatch)
 
-    # Mock a non-existent storage box path
-    monkeypatch.setenv("HEALTHARCHIVE_STORAGEBOX_PATH", "/nonexistent/storagebox")
+    monkeypatch.setenv("HEALTHARCHIVE_COLD_ARCHIVE_ROOT", "/nonexistent/cold-archive")
 
     output = _run_cli(["status"])
 
     # Should still complete without crashing
-    assert "[Storage Box]" in output
+    assert "[Cold Archive]" in output

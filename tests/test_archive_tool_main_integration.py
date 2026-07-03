@@ -16,6 +16,7 @@ Docker operations are mocked to allow testing without real containers.
 from __future__ import annotations
 
 import io
+import socket
 import subprocess
 import sys
 from pathlib import Path
@@ -27,6 +28,7 @@ import pytest
 import yaml
 
 import archive_tool.docker_runner as docker_runner_mod
+import archive_tool.http_warc_backend as http_warc_backend
 import archive_tool.main as archive_main
 import archive_tool.utils as utils_mod
 from archive_tool.state import CrawlState
@@ -1231,6 +1233,7 @@ extraChromeArgs:
 
         def fake_subprocess_run(cmd, capture_output, text, timeout, check):
             assert "curl" in cmd[0]
+            assert "--location" not in cmd
             header_path = Path(cmd[cmd.index("--dump-header") + 1])
             body_path = Path(cmd[cmd.index("--output") + 1])
             header_path.write_text(
@@ -1285,6 +1288,313 @@ extraChromeArgs:
             "Curl fetch succeeded for https://example.org/ on attempt 1/2 with status 200."
             in log_text
         )
+
+    def test_http_warc_backend_follows_valid_same_scope_redirect(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        clean_stop_event,
+    ):
+        out_dir = tmp_path / "http-warc-redirect-ok"
+        out_dir.mkdir()
+
+        pages = {
+            "https://example.org/": httpx.Response(
+                302,
+                headers={"location": "/landing"},
+                request=httpx.Request("GET", "https://example.org/"),
+            ),
+            "https://example.org/landing": httpx.Response(
+                200,
+                headers={"content-type": "text/html; charset=utf-8"},
+                content=b"<html><body>Landing</body></html>",
+                request=httpx.Request("GET", "https://example.org/landing"),
+            ),
+        }
+        requested: list[str] = []
+
+        class FakeClient:
+            def __init__(self, *args, **kwargs):
+                assert kwargs.get("follow_redirects") is False
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def get(self, url):
+                requested.append(url)
+                return pages[url]
+
+        def fake_getaddrinfo(host, port, *args, **kwargs):
+            del port, args, kwargs
+            assert host.rstrip(".").lower() == "example.org"
+            return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0))]
+
+        monkeypatch.setattr(
+            "archive_tool.http_warc_backend.httpx.Client",
+            FakeClient,
+        )
+        monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "archive-tool",
+                "--seeds",
+                "https://example.org/",
+                "--name",
+                "example-http-warc-redirect-ok",
+                "--output-dir",
+                str(out_dir),
+                "--capture-backend",
+                "http_warc",
+                "--resume-policy",
+                "fresh_only",
+                "--auto-reset-poisoned-state",
+                "--skip-final-build",
+                "--scopeIncludeRx",
+                r"^https://example\.org/",
+            ],
+        )
+
+        archive_main.main()
+
+        warc_path = out_dir / "warcs" / "warc-000001.warc.gz"
+        assert warc_path.is_file()
+        assert requested == ["https://example.org/", "https://example.org/landing"]
+        urls = [rec.url for rec in iter_html_records(warc_path)]
+        assert urls == ["https://example.org/landing"]
+
+    def test_http_warc_backend_rejects_off_scope_redirect(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        clean_stop_event,
+    ):
+        out_dir = tmp_path / "http-warc-redirect-blocked"
+        out_dir.mkdir()
+
+        pages = {
+            "https://example.org/": httpx.Response(
+                302,
+                headers={"location": "http://127.0.0.1/admin"},
+                request=httpx.Request("GET", "https://example.org/"),
+            ),
+        }
+        requested: list[str] = []
+
+        class FakeClient:
+            def __init__(self, *args, **kwargs):
+                assert kwargs.get("follow_redirects") is False
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def get(self, url):
+                requested.append(url)
+                return pages[url]
+
+        monkeypatch.setattr(
+            "archive_tool.http_warc_backend.httpx.Client",
+            FakeClient,
+        )
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "archive-tool",
+                "--seeds",
+                "https://example.org/",
+                "--name",
+                "example-http-warc-redirect-blocked",
+                "--output-dir",
+                str(out_dir),
+                "--capture-backend",
+                "http_warc",
+                "--resume-policy",
+                "fresh_only",
+                "--auto-reset-poisoned-state",
+                "--skip-final-build",
+                "--scopeIncludeRx",
+                r"^https://example\.org/",
+            ],
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            archive_main.main()
+
+        assert exc_info.value.code == 1
+        assert requested == ["https://example.org/"]
+        warc_path = out_dir / "warcs" / "warc-000001.warc.gz"
+        assert warc_path.is_file()
+        assert [rec.url for rec in iter_html_records(warc_path)] == []
+        log_text = sorted(out_dir.glob("archive_http_warc_capture_*.combined.log"))[-1].read_text(
+            encoding="utf-8"
+        )
+        assert "redirect" in log_text.lower()
+
+    def test_http_warc_backend_rejects_redirect_to_private_dns_name(
+        self,
+        tmp_path: Path,
+        monkeypatch,
+        clean_stop_event,
+    ):
+        out_dir = tmp_path / "http-warc-redirect-private-dns-blocked"
+        out_dir.mkdir()
+
+        pages = {
+            "https://example.org/": httpx.Response(
+                302,
+                headers={"location": "http://internal.example/admin"},
+                request=httpx.Request("GET", "https://example.org/"),
+            ),
+            "http://internal.example/admin": httpx.Response(
+                200,
+                headers={"content-type": "text/html; charset=utf-8"},
+                content=b"<html><body>Internal</body></html>",
+                request=httpx.Request("GET", "http://internal.example/admin"),
+            ),
+        }
+        requested: list[str] = []
+
+        class FakeClient:
+            def __init__(self, *args, **kwargs):
+                assert kwargs.get("follow_redirects") is False
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def get(self, url):
+                requested.append(url)
+                return pages[url]
+
+        def fake_getaddrinfo(host, port, *args, **kwargs):
+            del port, args, kwargs
+            normalized = host.rstrip(".").lower()
+            if normalized == "example.org":
+                return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0))]
+            if normalized == "internal.example":
+                return [(socket.AF_INET, socket.SOCK_STREAM, 6, "", ("10.0.0.5", 0))]
+            raise socket.gaierror(f"unexpected host: {host}")
+
+        monkeypatch.setattr(
+            "archive_tool.http_warc_backend.httpx.Client",
+            FakeClient,
+        )
+        monkeypatch.setattr(socket, "getaddrinfo", fake_getaddrinfo)
+        monkeypatch.setattr(
+            sys,
+            "argv",
+            [
+                "archive-tool",
+                "--seeds",
+                "https://example.org/",
+                "--name",
+                "example-http-warc-redirect-private-dns-blocked",
+                "--output-dir",
+                str(out_dir),
+                "--capture-backend",
+                "http_warc",
+                "--resume-policy",
+                "fresh_only",
+                "--auto-reset-poisoned-state",
+                "--skip-final-build",
+                "--scopeIncludeRx",
+                r"^https?://",
+            ],
+        )
+
+        with pytest.raises(SystemExit) as exc_info:
+            archive_main.main()
+
+        assert exc_info.value.code == 1
+        assert requested == ["https://example.org/"]
+        warc_path = out_dir / "warcs" / "warc-000001.warc.gz"
+        assert warc_path.is_file()
+        assert [rec.url for rec in iter_html_records(warc_path)] == []
+
+    def test_http_warc_curl_follows_validated_redirects_without_consuming_retries(
+        self,
+        monkeypatch,
+    ):
+        fetched_urls: list[str] = []
+
+        class Sink:
+            def __init__(self):
+                self.lines: list[str] = []
+
+            def emit(self, line: str) -> None:
+                self.lines.append(line)
+
+        def fake_subprocess_run(cmd, capture_output, text, timeout, check):
+            del capture_output, text, timeout, check
+            assert "--location" not in cmd
+            url = cmd[-1]
+            fetched_urls.append(url)
+            header_path = Path(cmd[cmd.index("--dump-header") + 1])
+            body_path = Path(cmd[cmd.index("--output") + 1])
+
+            if url == "https://example.org/":
+                header_path.write_text(
+                    "HTTP/1.1 302 Found\r\nLocation: /step2\r\n\r\n",
+                    encoding="iso-8859-1",
+                )
+                body_path.write_bytes(b"")
+                status = 302
+            elif url == "https://example.org/step2":
+                header_path.write_text(
+                    "HTTP/1.1 302 Found\r\nLocation: /final\r\n\r\n",
+                    encoding="iso-8859-1",
+                )
+                body_path.write_bytes(b"")
+                status = 302
+            elif url == "https://example.org/final":
+                header_path.write_text(
+                    "HTTP/1.1 200 OK\r\nContent-Type: text/html; charset=utf-8\r\n\r\n",
+                    encoding="iso-8859-1",
+                )
+                body_path.write_bytes(b"<html><body>Final</body></html>")
+                status = 200
+            else:
+                raise AssertionError(f"unexpected curl URL: {url}")
+
+            return subprocess.CompletedProcess(cmd, 0, stdout=f"{status}\n{url}\n", stderr="")
+
+        monkeypatch.setattr("archive_tool.http_warc_backend.subprocess.run", fake_subprocess_run)
+        monkeypatch.setattr(
+            socket,
+            "getaddrinfo",
+            lambda host, port, *args, **kwargs: [
+                (socket.AF_INET, socket.SOCK_STREAM, 6, "", ("93.184.216.34", 0))
+            ],
+        )
+
+        response = http_warc_backend._curl_fetch_with_retries(
+            sink=Sink(),
+            url="https://example.org/",
+            scope=http_warc_backend.ScopeRules(include_rx=None, exclude_rx=None),
+            user_agent="test-agent",
+            connect_timeout_seconds=1.0,
+            read_timeout_seconds=1.0,
+            retry_backoff_seconds=0.0,
+            max_attempts=2,
+        )
+
+        assert response.status_code == 200
+        assert str(response.request.url) == "https://example.org/final"
+        assert fetched_urls == [
+            "https://example.org/",
+            "https://example.org/step2",
+            "https://example.org/final",
+        ]
 
     def test_fresh_only_browsertrix_promotes_inline_to_playwright_warc_after_budget(
         self,

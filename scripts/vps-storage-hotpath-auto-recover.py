@@ -249,14 +249,14 @@ def _log_stale_mount_diagnostics(
     job_id: int | None,
     mount_info: dict,
     *,
-    storagebox_mount: Path,
+    cold_archive_root: Path,
 ) -> None:
     """
     Log diagnostic information when a stale mount is detected.
 
     Helps investigate root cause by capturing:
-    - Base Storage Box mount health
-    - Mount type (bind mount vs direct sshfs)
+    - Base cold archive mount health
+    - Mount type (bind mount vs direct remote mount)
     - Network connectivity hints
     - Filesystem state
     """
@@ -264,20 +264,20 @@ def _log_stale_mount_diagnostics(
     if job_id is not None:
         print(f"  Job ID: {job_id}", file=sys.stderr)
 
-    # Check base Storage Box mount
-    storagebox_ok, storagebox_errno = _probe_readable_dir(storagebox_mount)
-    if storagebox_ok == 1:
-        print("  Base sshfs: OK (readable)", file=sys.stderr)
+    # Check base cold archive mount.
+    cold_archive_ok, cold_archive_errno = _probe_readable_dir(cold_archive_root)
+    if cold_archive_ok == 1:
+        print("  Base cold archive: OK (readable)", file=sys.stderr)
     else:
-        print(f"  Base sshfs: FAILED (errno={storagebox_errno})", file=sys.stderr)
+        print(f"  Base cold archive: FAILED (errno={cold_archive_errno})", file=sys.stderr)
 
     # Analyze mount type
     fstype = mount_info.get("fstype", "unknown")
     source = mount_info.get("source", "unknown")
     target = mount_info.get("target", "unknown")
 
-    if "fuse.sshfs" in fstype:
-        mount_type = "direct sshfs mount"
+    if str(fstype).startswith("fuse."):
+        mount_type = "direct remote FUSE mount"
     elif source and ":" not in source:
         mount_type = "bind mount (from local path)"
     else:
@@ -288,9 +288,9 @@ def _log_stale_mount_diagnostics(
     print(f"  Mount target: {target}", file=sys.stderr)
     print(f"  Filesystem type: {fstype}", file=sys.stderr)
 
-    # Check if path is under storagebox (indicates bind mount relationship)
-    if str(storagebox_mount) in str(path):
-        print("  Note: Path is under Storage Box mount (bind mount scenario)", file=sys.stderr)
+    # Check if path is under the cold archive root (indicates bind mount relationship).
+    if str(cold_archive_root) in str(path):
+        print("  Note: Path is under cold archive root (bind mount scenario)", file=sys.stderr)
 
     # Probe findmnt for more details
     try:
@@ -392,102 +392,100 @@ def _write_metrics(
 
     lines: list[str] = []
     lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_metrics_ok 1 if the hot-path auto-recover script ran to completion."
+        "# HELP healtharchive_archive_cache_auto_recover_metrics_ok 1 if the hot-path auto-recover script ran to completion."
     )
-    lines.append("# TYPE healtharchive_storage_hotpath_auto_recover_metrics_ok gauge")
-    lines.append(f"healtharchive_storage_hotpath_auto_recover_metrics_ok {int(metrics_ok)}")
+    lines.append("# TYPE healtharchive_archive_cache_auto_recover_metrics_ok gauge")
+    lines.append(f"healtharchive_archive_cache_auto_recover_metrics_ok {int(metrics_ok)}")
 
     lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_last_run_timestamp_seconds UNIX timestamp of the last watchdog run."
+        "# HELP healtharchive_archive_cache_auto_recover_last_run_timestamp_seconds UNIX timestamp of the last watchdog run."
     )
+    lines.append("# TYPE healtharchive_archive_cache_auto_recover_last_run_timestamp_seconds gauge")
     lines.append(
-        "# TYPE healtharchive_storage_hotpath_auto_recover_last_run_timestamp_seconds gauge"
-    )
-    lines.append(
-        f"healtharchive_storage_hotpath_auto_recover_last_run_timestamp_seconds {_dt_to_epoch_seconds(now_utc)}"
+        f"healtharchive_archive_cache_auto_recover_last_run_timestamp_seconds {_dt_to_epoch_seconds(now_utc)}"
     )
 
     last_healthy_epoch = int(state.get("last_healthy_epoch") or 0)
     lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_last_healthy_timestamp_seconds UNIX timestamp of the last run that observed no stale targets."
+        "# HELP healtharchive_archive_cache_auto_recover_last_healthy_timestamp_seconds UNIX timestamp of the last run that observed no stale targets."
     )
     lines.append(
-        "# TYPE healtharchive_storage_hotpath_auto_recover_last_healthy_timestamp_seconds gauge"
+        "# TYPE healtharchive_archive_cache_auto_recover_last_healthy_timestamp_seconds gauge"
     )
     lines.append(
-        f"healtharchive_storage_hotpath_auto_recover_last_healthy_timestamp_seconds {last_healthy_epoch}"
+        f"healtharchive_archive_cache_auto_recover_last_healthy_timestamp_seconds {last_healthy_epoch}"
     )
 
     lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_enabled 1 if the sentinel file exists (automation enabled)."
+        "# HELP healtharchive_archive_cache_auto_recover_enabled 1 if the sentinel file exists (automation enabled)."
     )
-    lines.append("# TYPE healtharchive_storage_hotpath_auto_recover_enabled gauge")
-    lines.append(f"healtharchive_storage_hotpath_auto_recover_enabled {enabled}")
+    lines.append("# TYPE healtharchive_archive_cache_auto_recover_enabled gauge")
+    lines.append(f"healtharchive_archive_cache_auto_recover_enabled {enabled}")
 
     lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_deploy_lock_active 1 if the deploy lock is currently held (apply actions suppressed)."
+        "# HELP healtharchive_archive_cache_auto_recover_deploy_lock_active 1 if the deploy lock is currently held (apply actions suppressed)."
     )
-    lines.append("# TYPE healtharchive_storage_hotpath_auto_recover_deploy_lock_active gauge")
+    lines.append("# TYPE healtharchive_archive_cache_auto_recover_deploy_lock_active gauge")
     lines.append(
-        f"healtharchive_storage_hotpath_auto_recover_deploy_lock_active {int(deploy_lock_active)}"
+        f"healtharchive_archive_cache_auto_recover_deploy_lock_active {int(deploy_lock_active)}"
     )
     lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_deploy_lock_age_seconds Age (mtime) of the deploy lock file, or -1 if missing/unreadable."
+        "# HELP healtharchive_archive_cache_auto_recover_deploy_lock_age_seconds Age (mtime) of the deploy lock file, or -1 if missing/unreadable."
     )
-    lines.append("# TYPE healtharchive_storage_hotpath_auto_recover_deploy_lock_age_seconds gauge")
+    lines.append("# TYPE healtharchive_archive_cache_auto_recover_deploy_lock_age_seconds gauge")
     if deploy_lock_age_seconds is None:
-        lines.append("healtharchive_storage_hotpath_auto_recover_deploy_lock_age_seconds -1")
+        lines.append("healtharchive_archive_cache_auto_recover_deploy_lock_age_seconds -1")
     else:
         lines.append(
-            "healtharchive_storage_hotpath_auto_recover_deploy_lock_age_seconds "
+            "healtharchive_archive_cache_auto_recover_deploy_lock_age_seconds "
             f"{int(deploy_lock_age_seconds)}"
         )
 
     lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_detected_targets Number of targets currently detected as stale/unreadable (Errno 107)."
+        "# HELP healtharchive_archive_cache_auto_recover_detected_targets Number of targets currently detected as stale/unreadable (Errno 107)."
     )
-    lines.append("# TYPE healtharchive_storage_hotpath_auto_recover_detected_targets gauge")
+    lines.append("# TYPE healtharchive_archive_cache_auto_recover_detected_targets gauge")
     lines.append(
-        f"healtharchive_storage_hotpath_auto_recover_detected_targets {int(detected_targets)}"
-    )
-
-    lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_last_apply_timestamp_seconds UNIX timestamp of the last apply-mode recovery attempt."
-    )
-    lines.append(
-        "# TYPE healtharchive_storage_hotpath_auto_recover_last_apply_timestamp_seconds gauge"
-    )
-    lines.append(
-        f"healtharchive_storage_hotpath_auto_recover_last_apply_timestamp_seconds {int(last_apply_epoch)}"
+        f"healtharchive_archive_cache_auto_recover_detected_targets {int(detected_targets)}"
     )
 
     lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_last_apply_ok 1 if the last apply-mode recovery attempt succeeded."
+        "# HELP healtharchive_archive_cache_auto_recover_last_apply_timestamp_seconds UNIX timestamp of the last apply-mode recovery attempt."
     )
-    lines.append("# TYPE healtharchive_storage_hotpath_auto_recover_last_apply_ok gauge")
-    lines.append(f"healtharchive_storage_hotpath_auto_recover_last_apply_ok {int(last_apply_ok)}")
+    lines.append(
+        "# TYPE healtharchive_archive_cache_auto_recover_last_apply_timestamp_seconds gauge"
+    )
+    lines.append(
+        f"healtharchive_archive_cache_auto_recover_last_apply_timestamp_seconds {int(last_apply_epoch)}"
+    )
 
     lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_apply_total Total number of apply-mode recovery attempts recorded."
+        "# HELP healtharchive_archive_cache_auto_recover_last_apply_ok 1 if the last apply-mode recovery attempt succeeded."
     )
-    lines.append("# TYPE healtharchive_storage_hotpath_auto_recover_apply_total counter")
-    lines.append(f"healtharchive_storage_hotpath_auto_recover_apply_total {len(global_items)}")
+    lines.append("# TYPE healtharchive_archive_cache_auto_recover_last_apply_ok gauge")
+    lines.append(f"healtharchive_archive_cache_auto_recover_last_apply_ok {int(last_apply_ok)}")
 
     lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_apply_24h Number of apply-mode recovery attempts in the last 24 hours."
+        "# HELP healtharchive_archive_cache_auto_recover_apply_total Total number of apply-mode recovery attempts recorded."
     )
-    lines.append("# TYPE healtharchive_storage_hotpath_auto_recover_apply_24h gauge")
+    lines.append("# TYPE healtharchive_archive_cache_auto_recover_apply_total counter")
+    lines.append(f"healtharchive_archive_cache_auto_recover_apply_total {len(global_items)}")
+
     lines.append(
-        "healtharchive_storage_hotpath_auto_recover_apply_24h "
+        "# HELP healtharchive_archive_cache_auto_recover_apply_24h Number of apply-mode recovery attempts in the last 24 hours."
+    )
+    lines.append("# TYPE healtharchive_archive_cache_auto_recover_apply_24h gauge")
+    lines.append(
+        "healtharchive_archive_cache_auto_recover_apply_24h "
         f"{_count_recent_timestamps(global_items, since_utc=now_utc - timedelta(days=1))}"
     )
 
     lines.append(
-        "# HELP healtharchive_storage_hotpath_auto_recover_apply_1h Number of apply-mode recovery attempts in the last hour."
+        "# HELP healtharchive_archive_cache_auto_recover_apply_1h Number of apply-mode recovery attempts in the last hour."
     )
-    lines.append("# TYPE healtharchive_storage_hotpath_auto_recover_apply_1h gauge")
+    lines.append("# TYPE healtharchive_archive_cache_auto_recover_apply_1h gauge")
     lines.append(
-        "healtharchive_storage_hotpath_auto_recover_apply_1h "
+        "healtharchive_archive_cache_auto_recover_apply_1h "
         f"{_count_recent_timestamps(global_items, since_utc=now_utc - timedelta(hours=1))}"
     )
 
@@ -500,7 +498,7 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(
         description=(
             "HealthArchive VPS helper: conservative auto-recovery for stale/unreadable "
-            "Storage Box / sshfs hot paths (Errno 107)."
+            "archive cache hot paths (Errno 107)."
         )
     )
     p.add_argument(
@@ -511,17 +509,17 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument(
         "--sentinel-file",
-        default="/etc/healtharchive/storage-hotpath-auto-recover-enabled",
+        default="/etc/healtharchive/archive-cache-auto-recover-enabled",
         help="Sentinel file that indicates automation is enabled (written by operator).",
     )
     p.add_argument(
         "--state-file",
-        default="/srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.json",
+        default="/srv/healtharchive/ops/watchdog/archive-cache-auto-recover.json",
         help="Where to store watchdog state/history.",
     )
     p.add_argument(
         "--lock-file",
-        default="/srv/healtharchive/ops/watchdog/storage-hotpath-auto-recover.lock",
+        default="/srv/healtharchive/ops/watchdog/archive-cache-auto-recover.lock",
         help="Lock file to prevent concurrent runs.",
     )
     p.add_argument(
@@ -530,9 +528,11 @@ def main(argv: list[str] | None = None) -> int:
         help="Safety guard: only unmount paths under this root.",
     )
     p.add_argument(
-        "--storagebox-mount",
-        default="/srv/healtharchive/storagebox",
-        help="Storage Box base mountpoint.",
+        "--cold-archive-root",
+        default=os.environ.get(
+            "HEALTHARCHIVE_COLD_ARCHIVE_ROOT", "/srv/healtharchive/cold-archive"
+        ),
+        help="Mounted cold archive root.",
     )
     p.add_argument(
         "--manifest",
@@ -595,13 +595,13 @@ def main(argv: list[str] | None = None) -> int:
         "--restart-wait-seconds",
         type=int,
         default=60,
-        help="Max seconds to wait for the Storage Box mount to become readable after restart.",
+        help="Max seconds to wait for the cold archive root to become readable after restart.",
     )
     p.add_argument(
         "--restart-probe-interval-seconds",
         type=int,
         default=5,
-        help="Seconds between Storage Box mount probes while waiting after restart.",
+        help="Seconds between cold archive root probes while waiting after restart.",
     )
     p.add_argument(
         "--recover-older-than-minutes",
@@ -615,9 +615,9 @@ def main(argv: list[str] | None = None) -> int:
         help="Worker systemd unit to stop/start during recovery.",
     )
     p.add_argument(
-        "--storagebox-unit",
-        default="healtharchive-storagebox-sshfs.service",
-        help="Storage Box mount systemd unit to restart if base mount is unhealthy.",
+        "--cold-archive-unit",
+        default=os.environ.get("HEALTHARCHIVE_COLD_ARCHIVE_UNIT", ""),
+        help="Optional cold archive mount systemd unit to restart if the base mount is unhealthy.",
     )
     p.add_argument(
         "--replay-unit",
@@ -673,7 +673,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     p.add_argument(
         "--textfile-out-file",
-        default="healtharchive_storage_hotpath_auto_recover.prom",
+        default="healtharchive_archive_cache_auto_recover.prom",
         help="Output filename under --textfile-out-dir.",
     )
     args = p.parse_args(argv)
@@ -700,7 +700,7 @@ def main(argv: list[str] | None = None) -> int:
     state = _load_state(state_path)
 
     jobs_root = Path(args.jobs_root).resolve()
-    storagebox_mount = Path(args.storagebox_mount)
+    cold_archive_root = Path(args.cold_archive_root)
     sentinel_file = Path(args.sentinel_file)
     manifest_path = Path(args.manifest)
 
@@ -824,7 +824,7 @@ def main(argv: list[str] | None = None) -> int:
             impacted_sources.add(job.source_code)
             # Log diagnostics for root cause investigation
             _log_stale_mount_diagnostics(
-                str(out_dir), job.job_id, mount_info, storagebox_mount=storagebox_mount
+                str(out_dir), job.job_id, mount_info, cold_archive_root=cold_archive_root
             )
 
     # Probe output dirs for the next queued/retryable jobs (secondary signal; prevents retry storms).
@@ -847,7 +847,7 @@ def main(argv: list[str] | None = None) -> int:
             }
             # Log diagnostics for next jobs too (helps understand scope of issue)
             _log_stale_mount_diagnostics(
-                str(out_dir), job.job_id, mount_info, storagebox_mount=storagebox_mount
+                str(out_dir), job.job_id, mount_info, cold_archive_root=cold_archive_root
             )
 
     # Probe manifest hot paths (secondary signal; catches imports/etc).
@@ -864,7 +864,7 @@ def main(argv: list[str] | None = None) -> int:
             }
             # Log diagnostics for tiering hot paths
             _log_stale_mount_diagnostics(
-                str(hot), None, mount_info, storagebox_mount=storagebox_mount
+                str(hot), None, mount_info, cold_archive_root=cold_archive_root
             )
 
     if simulate_broken_paths:
@@ -989,7 +989,7 @@ def main(argv: list[str] | None = None) -> int:
         # if stale targets are not currently eligible but the tiering oneshot unit
         # is stuck in failed state, reconcile it so warning alerts can self-clear.
         if tiering_unit_failed:
-            storage_ok, storage_errno = _probe_readable_dir(storagebox_mount)
+            cold_archive_ok, cold_archive_errno = _probe_readable_dir(cold_archive_root)
             mode_label = "DRY-RUN"
             if requested_apply and not apply_mode and deploy_lock_active == 1:
                 mode_label = "DRY-RUN (deploy lock active)"
@@ -999,10 +999,10 @@ def main(argv: list[str] | None = None) -> int:
             print(
                 f"{mode_label}: no stale targets eligible; tiering unit is failed: {tiering_unit}."
             )
-            if storage_ok != 1:
+            if cold_archive_ok != 1:
                 print(
-                    f"SKIP: not reconciling {tiering_unit}; base Storage Box mount is unreadable "
-                    f"(errno={storage_errno})."
+                    f"SKIP: not reconciling {tiering_unit}; cold archive root is unreadable "
+                    f"(errno={cold_archive_errno})."
                 )
                 return finish(0)
 
@@ -1150,7 +1150,7 @@ def main(argv: list[str] | None = None) -> int:
         # Accept paths that are either:
         # 1. Confirmed mountpoints (target == path from findmnt), OR
         # 2. Detected as Errno 107 (transport endpoint not connected) - this is
-        #    strong evidence of a stale FUSE/sshfs bind mount. When _get_mount_info()
+        #    strong evidence of a stale remote-backed bind mount. When _get_mount_info()
         #    fails to retrieve mount details for a stale path, errno 107 itself is
         #    sufficient evidence to attempt unmount.
         is_confirmed_mountpoint = bool(target and target == path)
@@ -1168,8 +1168,9 @@ def main(argv: list[str] | None = None) -> int:
         )
 
     if not apply_mode:
-        storage_ok, storage_errno = _probe_readable_dir(storagebox_mount)
-        storage_unit_present = _is_unit_present(str(args.storagebox_unit))
+        cold_archive_ok, cold_archive_errno = _probe_readable_dir(cold_archive_root)
+        cold_archive_unit = str(args.cold_archive_unit)
+        cold_archive_unit_present = bool(cold_archive_unit) and _is_unit_present(cold_archive_unit)
         tiering_script = Path(str(args.tiering_apply_script))
         annual_tiering_script = Path(str(args.annual_output_tiering_script))
 
@@ -1205,21 +1206,21 @@ def main(argv: list[str] | None = None) -> int:
         else:
             print("  2) (skip) no stale mountpoints eligible for unmount")
 
-        if storage_ok == 0:
-            if storage_unit_present:
+        if cold_archive_ok == 0:
+            if cold_archive_unit_present:
                 print(
-                    f"  3) systemctl restart {args.storagebox_unit} (base mount errno={storage_errno})"
+                    f"  3) systemctl restart {args.cold_archive_unit} (base mount errno={cold_archive_errno})"
                 )
             else:
                 print(
-                    f"  3) (blocked) base mount unreadable (errno={storage_errno}) and unit missing: {args.storagebox_unit}"
+                    f"  3) (blocked) base mount unreadable (errno={cold_archive_errno}) and unit missing: {args.cold_archive_unit}"
                 )
         else:
-            print(f"  3) (skip) base Storage Box mount is readable: {storagebox_mount}")
+            print(f"  3) (skip) cold archive root is readable: {cold_archive_root}")
 
         if tiering_script.is_file():
             print(
-                f"  4) {tiering_script} --apply --manifest {manifest_path} --storagebox-mount {storagebox_mount}"
+                f"  4) {tiering_script} --apply --manifest {manifest_path} --cold-archive-root {cold_archive_root}"
             )
         else:
             print(f"  4) (blocked) tiering apply script not found: {tiering_script}")
@@ -1320,7 +1321,7 @@ def main(argv: list[str] | None = None) -> int:
         # Accept paths that are either:
         # 1. Confirmed mountpoints (target == path from findmnt), OR
         # 2. Detected as Errno 107 (transport endpoint not connected) - this is
-        #    strong evidence of a stale FUSE/sshfs bind mount. When _get_mount_info()
+        #    strong evidence of a stale remote-backed bind mount. When _get_mount_info()
         #    fails to retrieve mount details for a stale path, errno 107 itself is
         #    sufficient evidence to attempt unmount.
         is_confirmed_mountpoint = bool(target and target == path)
@@ -1350,34 +1351,37 @@ def main(argv: list[str] | None = None) -> int:
         else:
             did_unmount = True
 
-    storage_ok, storage_errno = _probe_readable_dir(storagebox_mount)
-    did_restart_storagebox = False
+    cold_archive_ok, cold_archive_errno = _probe_readable_dir(cold_archive_root)
+    did_restart_cold_archive = False
     did_apply_tiering = False
-    if storage_ok == 0:
-        if _is_unit_present(str(args.storagebox_unit)):
-            cp = _run_apply(["systemctl", "restart", str(args.storagebox_unit)], timeout_seconds=60)
+    if cold_archive_ok == 0:
+        cold_archive_unit = str(args.cold_archive_unit)
+        if cold_archive_unit and _is_unit_present(cold_archive_unit):
+            cp = _run_apply(
+                ["systemctl", "restart", str(args.cold_archive_unit)], timeout_seconds=60
+            )
             if cp.returncode != 0:
-                note_err("systemctl restart storagebox failed", cp, critical=True)
+                note_err("systemctl restart cold archive unit failed", cp, critical=True)
             else:
-                did_restart_storagebox = True
+                did_restart_cold_archive = True
                 deadline = time.monotonic() + float(args.restart_wait_seconds)
                 while time.monotonic() < deadline:
-                    ok, _errno = _probe_readable_dir(storagebox_mount)
+                    ok, _errno = _probe_readable_dir(cold_archive_root)
                     if ok == 1:
-                        storage_ok = 1
-                        storage_errno = -1
+                        cold_archive_ok = 1
+                        cold_archive_errno = -1
                         break
                     time.sleep(float(args.restart_probe_interval_seconds))
-                if storage_ok == 0:
+                if cold_archive_ok == 0:
                     critical_errors.append(
-                        f"storagebox mount still unreadable after restart: errno={storage_errno}"
+                        f"cold archive root still unreadable after restart: errno={cold_archive_errno}"
                     )
         else:
             critical_errors.append(
-                f"storagebox mount unhealthy (errno={storage_errno}) and unit missing: {args.storagebox_unit}"
+                f"cold archive root unhealthy (errno={cold_archive_errno}) and unit missing: {args.cold_archive_unit}"
             )
 
-    if storage_ok == 1:
+    if cold_archive_ok == 1:
         tiering_script = str(args.tiering_apply_script)
         if Path(tiering_script).is_file():
             cp = _run_apply(
@@ -1386,8 +1390,8 @@ def main(argv: list[str] | None = None) -> int:
                     "--apply",
                     "--manifest",
                     str(manifest_path),
-                    "--storagebox-mount",
-                    str(storagebox_mount),
+                    "--cold-archive-root",
+                    str(cold_archive_root),
                 ],
                 timeout_seconds=120,
             )
@@ -1464,7 +1468,7 @@ def main(argv: list[str] | None = None) -> int:
         post_ok = False
 
     # If we changed mounts, restart replay so it sees a clean view of /srv/healtharchive/jobs.
-    if post_ok and (did_unmount or did_restart_storagebox or did_apply_tiering):
+    if post_ok and (did_unmount or did_restart_cold_archive or did_apply_tiering):
         if _is_unit_present(str(args.replay_unit)):
             cp = _run_apply(["systemctl", "restart", str(args.replay_unit)], timeout_seconds=60)
             if cp.returncode != 0:

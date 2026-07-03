@@ -8,10 +8,11 @@ import { resolveReplayUrl } from "@/lib/api";
 
 import type { ReplayEdition } from "./replayUtils";
 import {
-  buildReplayUrl,
+  buildReplayUrlForReadyEdition,
   formatEditionLabel,
   isoToTimestamp14,
   parseJobIdFromCollection,
+  sanitizeReplayTopUrl,
   stripUrlFragment,
 } from "./replayUtils";
 
@@ -87,7 +88,8 @@ export function SnapshotReplayClient({
 
       if (nextUrl) setCurrentOriginalUrl(stripUrlFragment(nextUrl));
       if (nextTs && /^\d{14}$/.test(nextTs)) setCurrentTimestamp14(nextTs);
-      if (nextTop) setCurrentReplayUrl(nextTop);
+      const safeTop = sanitizeReplayTopUrl(nextTop, replayOrigin);
+      if (safeTop) setCurrentReplayUrl(safeTop);
 
       const parsedJobId = parseJobIdFromCollection(nextColl);
       if (parsedJobId != null) setActiveJobId(parsedJobId);
@@ -146,29 +148,50 @@ export function SnapshotReplayClient({
         return;
       }
 
-      const timegateUrl = buildReplayUrl(replayOrigin, nextJobId, null, currentOriginalUrl);
-      setIframeSrc(timegateUrl);
-      setActiveJobId(nextJobId);
-      setCurrentReplayUrl(timegateUrl);
+      const timegateUrl = buildReplayUrlForReadyEdition(
+        replayOrigin,
+        edition,
+        null,
+        currentOriginalUrl,
+      );
+      if (timegateUrl) {
+        setIframeSrc(timegateUrl);
+        setActiveJobId(nextJobId);
+        setCurrentReplayUrl(timegateUrl);
+        setEditionNotice(
+          locale === "fr"
+            ? "Aucune capture exacte trouvée pour cette page dans cette édition; affichage de la capture la plus proche disponible."
+            : "No exact capture found for this page in that edition; showing the closest available capture.",
+        );
+        return;
+      }
+
       setEditionNotice(
         locale === "fr"
-          ? "Aucune capture exacte trouvée pour cette page dans cette édition; affichage de la capture la plus proche disponible."
-          : "No exact capture found for this page in that edition; showing the closest available capture.",
+          ? "La rediffusion de l’édition sélectionnée n’est pas disponible dans le cache local pour le moment."
+          : "Replay for the selected edition is not available in the local cache yet.",
       );
     } catch {
-      const nextSrc = buildReplayUrl(
+      const edition = editionOptions.find((opt) => opt.jobId === nextJobId);
+      const nextSrc = buildReplayUrlForReadyEdition(
         replayOrigin,
-        nextJobId,
+        edition,
         currentTimestamp14,
         currentOriginalUrl,
       );
-      setIframeSrc(nextSrc);
-      setActiveJobId(nextJobId);
-      setCurrentReplayUrl(nextSrc);
+      if (nextSrc) {
+        setIframeSrc(nextSrc);
+        setActiveJobId(nextJobId);
+        setCurrentReplayUrl(nextSrc);
+      }
       setEditionNotice(
-        locale === "fr"
-          ? "Impossible de confirmer la disponibilité de la capture; tentative d’ouverture de cette page dans l’édition sélectionnée."
-          : "Could not confirm capture availability; attempting to open this page in the selected edition.",
+        nextSrc
+          ? locale === "fr"
+            ? "Impossible de confirmer la disponibilité de la capture; tentative d’ouverture de cette page dans l’édition sélectionnée."
+            : "Could not confirm capture availability; attempting to open this page in the selected edition."
+          : locale === "fr"
+            ? "La rediffusion de l’édition sélectionnée n’est pas disponible dans le cache local pour le moment."
+            : "Replay for the selected edition is not available in the local cache yet.",
       );
     } finally {
       setIsResolvingEdition(false);

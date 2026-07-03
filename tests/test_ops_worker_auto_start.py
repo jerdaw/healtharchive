@@ -132,12 +132,12 @@ def test_worker_auto_start_refuses_during_deploy_lock(tmp_path, monkeypatch) -> 
     )
 
 
-def test_worker_auto_start_refuses_when_storagebox_unreadable(tmp_path, monkeypatch) -> None:
+def test_worker_auto_start_refuses_when_archive_cache_unreadable(tmp_path, monkeypatch) -> None:
     mod = _load_script_module(
         "vps-worker-auto-start.py",
-        module_name="ha_test_vps_worker_auto_start_storagebox_unreadable",
+        module_name="ha_test_vps_worker_auto_start_archive_cache_unreadable",
     )
-    _init_test_db(tmp_path, monkeypatch, "worker_storagebox.db")
+    _init_test_db(tmp_path, monkeypatch, "worker_archive_cache.db")
 
     sentinel = tmp_path / "sentinel"
     sentinel.write_text("1", encoding="utf-8")
@@ -166,9 +166,13 @@ def test_worker_auto_start_refuses_when_storagebox_unreadable(tmp_path, monkeypa
 
     prom = (out_dir / "worker.prom").read_text(encoding="utf-8")
     assert (
-        'healtharchive_worker_auto_start_last_result{result="skip",reason="storagebox_unreadable_errno_107"} 1'
+        'healtharchive_worker_auto_start_last_result{result="skip",reason="archive_cache_unreadable_errno_107"} 1'
         in prom
     )
+    assert "healtharchive_worker_auto_start_archive_cache_ok 0" in prom
+    assert "healtharchive_worker_auto_start_archive_cache_errno 107" in prom
+    legacy_cold_tier_name = "storage" + "box"
+    assert legacy_cold_tier_name not in prom.lower()
 
 
 def test_worker_auto_start_skips_when_worker_active(tmp_path, monkeypatch) -> None:

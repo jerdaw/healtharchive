@@ -13,10 +13,11 @@ from ha_backend.db import Base, get_engine, get_session
 from ha_backend.models import ArchiveJob, Source
 from ha_backend.seeds import seed_sources
 
+REPO_ROOT = Path(__file__).resolve().parents[1]
+
 
 def _load_script_module(script_filename: str, module_name: str) -> ModuleType:
-    repo_root = Path(__file__).resolve().parents[1]
-    script_path = repo_root / "scripts" / script_filename
+    script_path = REPO_ROOT / "scripts" / script_filename
     spec = importlib.util.spec_from_file_location(module_name, script_path)
     assert spec is not None
     assert spec.loader is not None
@@ -344,85 +345,113 @@ def test_vps_annual_output_tiering_cold_path_mapping() -> None:
     out = mod._cold_path_for_output_dir(
         output_dir=Path("/srv/healtharchive/jobs/cihr/20260101T000000Z__cihr-2026"),
         archive_root=Path("/srv/healtharchive/jobs"),
-        campaign_archive_root=Path("/srv/healtharchive/storagebox/jobs"),
+        campaign_archive_root=Path("/srv/healtharchive/cold-archive/jobs"),
     )
-    assert out == Path("/srv/healtharchive/storagebox/jobs/cihr/20260101T000000Z__cihr-2026")
+    assert out == Path("/srv/healtharchive/cold-archive/jobs/cihr/20260101T000000Z__cihr-2026")
 
 
-def test_vps_annual_output_tiering_detects_sshfs_backed_bind_mount(monkeypatch) -> None:
+def test_vps_annual_output_tiering_detects_cold_archive_backed_bind_mount(monkeypatch) -> None:
     mod = _load_script_module(
         "vps-annual-output-tiering.py",
         module_name="ha_test_vps_annual_output_tiering_bind_detect",
     )
 
-    storage = Path("/srv/healtharchive/storagebox")
+    cold_archive = Path("/srv/healtharchive/cold-archive")
     hot = Path("/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101")
-    cold = Path("/srv/healtharchive/storagebox/jobs/hc/20260101T000502Z__hc-20260101")
+    cold = Path("/srv/healtharchive/cold-archive/jobs/hc/20260101T000502Z__hc-20260101")
 
     def fake_mountinfo(path: Path) -> dict[str, str] | None:
-        if path == storage:
+        if path == cold_archive:
             return {
                 "major_minor": "0:64",
                 "root": "/",
-                "target": str(storage),
-                "fstype": "fuse.sshfs",
-                "source": "u524803@u524803.your-storagebox.de:",
+                "target": str(cold_archive),
+                "fstype": "nfs4",
+                "source": "nas:/healtharchive",
             }
         if path == hot:
             return {
                 "major_minor": "0:64",
                 "root": "/jobs/hc/20260101T000502Z__hc-20260101",
                 "target": str(hot),
-                "fstype": "fuse.sshfs",
-                "source": "u524803@u524803.your-storagebox.de:",
+                "fstype": "nfs4",
+                "source": "nas:/healtharchive",
             }
         return None
 
     monkeypatch.setattr(mod, "_get_mountinfo_for_target", fake_mountinfo)
+    is_expected_bind = getattr(mod, "_is_expected_cold_archive_bind_mount", None)
 
-    assert mod._is_expected_storagebox_bind_mount(
+    assert is_expected_bind is not None
+    assert is_expected_bind(
         output_dir=hot,
         cold_dir=cold,
-        storagebox_mount=storage,
+        cold_archive_root=cold_archive,
     )
 
 
-def test_vps_annual_output_tiering_rejects_direct_sshfs_submount(monkeypatch) -> None:
+def test_vps_annual_output_tiering_rejects_direct_cold_archive_submount(monkeypatch) -> None:
     mod = _load_script_module(
         "vps-annual-output-tiering.py",
         module_name="ha_test_vps_annual_output_tiering_direct_reject",
     )
 
-    storage = Path("/srv/healtharchive/storagebox")
+    cold_archive = Path("/srv/healtharchive/cold-archive")
     hot = Path("/srv/healtharchive/jobs/hc/20260101T000502Z__hc-20260101")
-    cold = Path("/srv/healtharchive/storagebox/jobs/hc/20260101T000502Z__hc-20260101")
+    cold = Path("/srv/healtharchive/cold-archive/jobs/hc/20260101T000502Z__hc-20260101")
 
     def fake_mountinfo(path: Path) -> dict[str, str] | None:
-        if path == storage:
+        if path == cold_archive:
             return {
                 "major_minor": "0:64",
                 "root": "/",
-                "target": str(storage),
-                "fstype": "fuse.sshfs",
-                "source": "u524803@u524803.your-storagebox.de:",
+                "target": str(cold_archive),
+                "fstype": "nfs4",
+                "source": "nas:/healtharchive",
             }
         if path == hot:
             return {
                 "major_minor": "0:65",
                 "root": "/",
                 "target": str(hot),
-                "fstype": "fuse.sshfs",
-                "source": "u524803@u524803.your-storagebox.de:",
+                "fstype": "nfs4",
+                "source": "nas:/healtharchive",
             }
         return None
 
     monkeypatch.setattr(mod, "_get_mountinfo_for_target", fake_mountinfo)
+    is_expected_bind = getattr(mod, "_is_expected_cold_archive_bind_mount", None)
 
-    assert not mod._is_expected_storagebox_bind_mount(
+    assert is_expected_bind is not None
+    assert not is_expected_bind(
         output_dir=hot,
         cold_dir=cold,
-        storagebox_mount=storage,
+        cold_archive_root=cold_archive,
     )
+
+
+def test_vps_annual_output_tiering_uses_generic_cold_archive_cli() -> None:
+    script = REPO_ROOT / "scripts" / "vps-annual-output-tiering.py"
+    text = script.read_text(encoding="utf-8")
+
+    assert "--cold-archive-root" in text
+    assert "HEALTHARCHIVE_COLD_ARCHIVE_ROOT" in text
+    assert "/srv/healtharchive/cold-archive" in text
+    assert "--storagebox-mount" not in text
+    assert "Storage Box" not in text
+    assert "/srv/healtharchive/storagebox" not in text
+
+
+def test_vps_warc_tiering_bind_mounts_uses_generic_cold_archive_contract() -> None:
+    script = REPO_ROOT / "scripts" / "vps-warc-tiering-bind-mounts.sh"
+    text = script.read_text(encoding="utf-8")
+
+    assert "--cold-archive-root" in text
+    assert 'COLD_ARCHIVE_ROOT="/srv/healtharchive/cold-archive"' in text
+    assert "cold_archive_root=" in text
+    assert "--storagebox-mount" not in text
+    assert "Storage Box" not in text
+    assert "/srv/healtharchive/storagebox" not in text
 
 
 def test_vps_annual_output_tiering_plan_selects_annual_jobs(tmp_path, monkeypatch) -> None:
@@ -474,11 +503,11 @@ def test_vps_annual_output_tiering_plan_selects_annual_jobs(tmp_path, monkeypatc
         year=2026,
         sources=["hc"],
         archive_root=Path("/srv/healtharchive/jobs"),
-        campaign_archive_root=Path("/srv/healtharchive/storagebox/jobs"),
+        campaign_archive_root=Path("/srv/healtharchive/cold-archive/jobs"),
     )
     assert [p.job_name for p in plan] == ["hc-annual-2026"]
     assert plan[0].cold_dir == Path(
-        "/srv/healtharchive/storagebox/jobs/hc/20260101T000000Z__hc-annual-2026"
+        "/srv/healtharchive/cold-archive/jobs/hc/20260101T000000Z__hc-annual-2026"
     )
 
 
@@ -512,7 +541,7 @@ def test_vps_annual_output_tiering_plan_window_override_includes_recent_jobs(
         year=2026,
         sources=["hc"],
         archive_root=Path("/srv/healtharchive/jobs"),
-        campaign_archive_root=Path("/srv/healtharchive/storagebox/jobs"),
+        campaign_archive_root=Path("/srv/healtharchive/cold-archive/jobs"),
         created_after=datetime(2025, 12, 28, tzinfo=timezone.utc),
         created_before=datetime(2025, 12, 30, tzinfo=timezone.utc),
     )
