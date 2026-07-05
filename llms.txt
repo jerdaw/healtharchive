@@ -508,9 +508,8 @@ defaults:
 
 - `HEALTHARCHIVE_ARCHIVE_ROOT`
   Base directory for job output dirs (passed as `--output-dir` to `archive_tool`).
-  Defaults to the value configured in `ha_backend.config`. For local
-  development, set it explicitly to a git-ignored directory under your
-  checkout, such as `$(pwd)/.dev-archive-root`.
+  Defaults to the repo-local, git-ignored `.dev-archive-root` directory. For
+  staging/production, set this explicitly from the deployment environment.
 
 - `HEALTHARCHIVE_TOOL_CMD`
   Command used to invoke the archiver. Defaults to `archive-tool`.
@@ -518,8 +517,9 @@ defaults:
 - `HEALTHARCHIVE_ENV`
   High-level environment hint used by admin auth. Recognised values:
 
-  - `"development"` (default when unset): admin endpoints are open when
-    `HEALTHARCHIVE_ADMIN_TOKEN` is unset (dev convenience).
+  - `"development"` (default when unset): admin endpoints still fail closed
+    when `HEALTHARCHIVE_ADMIN_TOKEN` is unset unless
+    `HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true` is also set.
   - `"staging"` or `"production"`: admin endpoints fail closed with HTTP 500
     if `HEALTHARCHIVE_ADMIN_TOKEN` is not configured.
 
@@ -528,12 +528,12 @@ defaults:
 
   - `Authorization: Bearer <token>` or
   - `X-Admin-Token: <token>`
-    If unset and `HEALTHARCHIVE_ENV` is `"development"` (or unset), admin
-    endpoints are open (intended only for local development). In staging and
-    production you should **always** set a long, random token and store it as a
-    secret in your hosting platform (never committed to the repo); when
-    `HEALTHARCHIVE_ENV` is `"staging"` or `"production"` and this token is
-    missing, admin and metrics endpoints return HTTP 500.
+
+  If unset, admin and metrics endpoints fail closed with HTTP 500 by default.
+  The only local-dev exception is setting both a local/dev/test
+  `HEALTHARCHIVE_ENV` and `HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true`.
+  In staging and production you should **always** set a long, random token and
+  store it as a secret in your hosting platform, never committed to the repo.
 
 - `HEALTHARCHIVE_LOG_LEVEL`
   Global log level (`DEBUG`, `INFO`, etc.). Defaults to `INFO`.
@@ -582,12 +582,14 @@ run on pushes to `main` and on pull requests. It:
 - Checks out the repository.
 - Sets up Python 3.11.
 - Runs `make ci` (fast gate: format check, lint, typecheck, tests).
+- Runs `make audit-ci` for Python dependency vulnerability checks.
+- Runs an API health/public-surface smoke with a temporary SQLite database.
 - Runs an end-to-end smoke test (backend + frontend) from the same checkout.
 
-A separate nightly/manual workflow (`.github/workflows/backend-ci-full.yml`)
-runs `make check-full`, which includes `coverage-critical`, docs checks,
-pre-commit hooks, and security scans. That broader full gate is useful before
-deploys, but it is **not** the default PR-blocking backend CI path today.
+A separate manual workflow (`.github/workflows/backend-ci-full.yml`) runs
+`make check-full`, which includes `coverage-critical`, docs checks, pre-commit
+hooks, and security scans. That broader full gate is useful before deploys, but
+it is **not** the default PR-blocking backend CI path today.
 
 The CI job uses a temporary SQLite database via:
 
@@ -690,6 +692,7 @@ documented here.
 | Local development setup | [Dev Setup](development/dev-environment-setup.md) |
 | Search API | [API Documentation](api.md) |
 | Data releases | [Datasets](datasets-external/README.md) |
+| Latest maintenance audit | [Maintenance Audit](maintenance-audit.md) |
 
 ## Documentation Structure
 
@@ -867,11 +870,14 @@ Key roles:
 - Locate the **archive root** (`--output-dir` base) and `archive_tool` command.
 - Read the **database URL**.
 
-Admin‑related configuration is handled separately in `ha_backend/api/deps.py`,
+Admin-related configuration is handled separately in `ha_backend/api/deps.py`,
 which reads `HEALTHARCHIVE_ADMIN_TOKEN` from the environment. When this token
-is **unset**, admin and metrics endpoints are effectively open and should only
-be used in local development. In staging and production you should always set
-`HEALTHARCHIVE_ADMIN_TOKEN` to a long, random value and treat it as a secret.
+is **unset**, admin and metrics endpoints fail closed by default. Local
+development can opt into tokenless admin access only by setting both a
+local/dev/test `HEALTHARCHIVE_ENV` and
+`HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true`. In staging and production you
+should always set `HEALTHARCHIVE_ADMIN_TOKEN` to a long, random value and treat
+it as a secret.
 
 #### ArchiveToolConfig
 
@@ -887,7 +893,7 @@ class ArchiveToolConfig:
 
 Defaults:
 
-- `DEFAULT_ARCHIVE_ROOT` = `<archive-root>`
+- `DEFAULT_ARCHIVE_ROOT` = repo-local `.dev-archive-root`
 - `DEFAULT_ARCHIVE_TOOL_CMD` = `"archive-tool"`
 
 Env overrides:
@@ -1823,13 +1829,12 @@ Behavior:
 
 - Reads `HEALTHARCHIVE_ENV` and `HEALTHARCHIVE_ADMIN_TOKEN` from the
   environment.
-- If `HEALTHARCHIVE_ENV` is `"production"` or `"staging"` and
-  `HEALTHARCHIVE_ADMIN_TOKEN` is **unset**:
+- If `HEALTHARCHIVE_ADMIN_TOKEN` is **unset**:
   - Admin and metrics endpoints **fail closed** with HTTP 500 and a clear
     error detail (`"Admin token not configured for this environment"`).
-- In other environments (or when `HEALTHARCHIVE_ENV` is unset) and the admin
-  token is **unset**:
-  - Admin endpoints are **open** (dev mode convenience).
+  - Local development can opt into tokenless admin access only with a
+    local/dev/test `HEALTHARCHIVE_ENV` and
+    `HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true`.
 - When `HEALTHARCHIVE_ADMIN_TOKEN` is set:
   - Requires the same token via either:
     - `Authorization: Bearer <token>` header, or
@@ -3276,15 +3281,16 @@ Expect:
 
 ### 2.3 Admin endpoints
 
-With `HEALTHARCHIVE_ADMIN_TOKEN` **unset** (local dev only):
+By default, admin and metrics endpoints fail closed when
+`HEALTHARCHIVE_ADMIN_TOKEN` is unset, even in local development:
 
 ```bash
-curl http://localhost:8001/api/admin/jobs
+curl -i http://localhost:8001/api/admin/jobs
 ```
 
-Admin routes are open (dev mode).
+Expect HTTP 500 with `"Admin token not configured for this environment"`.
 
-With `HEALTHARCHIVE_ADMIN_TOKEN` set when starting uvicorn:
+For normal local testing, set a throwaway admin token before starting uvicorn:
 
 ```bash
 curl -H "Authorization: Bearer ${HEALTHARCHIVE_ADMIN_TOKEN:?set-local-token}" \
@@ -3293,11 +3299,22 @@ curl -H "Authorization: Bearer ${HEALTHARCHIVE_ADMIN_TOKEN:?set-local-token}" \
 
 Confirms admin auth + simple bearer token protection.
 
+If you specifically need tokenless local admin access, opt in explicitly before
+starting uvicorn:
+
+```bash
+export HEALTHARCHIVE_ENV=development
+export HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true
+unset HEALTHARCHIVE_ADMIN_TOKEN
+```
+
+Then `curl http://localhost:8001/api/admin/jobs` should return HTTP 200.
+
 ### 2.4 Admin access patterns (local vs staging/prod)
 
-In local development it is acceptable to either leave
-`HEALTHARCHIVE_ADMIN_TOKEN` unset (open admin endpoints) or to use a simple
-throwaway token exported in your shell as shown above.
+In local development, prefer a simple throwaway token exported in your shell as
+shown above. Tokenless admin access is available only behind the explicit
+`HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true` override.
 
 In staging and production you should **always** set a strong, random admin
 token and treat it as a secret:
