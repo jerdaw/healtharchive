@@ -701,10 +701,8 @@ def relax_permissions(host_output_dir: Path, temp_dirs: List[Path] | None = None
 
 def filter_args_for_final_run(passthrough_args: List[str]) -> List[str]:
     """Removes args not needed for the final --warcs build."""
-    # --- Initialize filtered ---
     filtered: List[str] = []
-    # --- End Initialization ---
-    i = 0  # Ensure i is initialized
+    i = 0
     while i < len(passthrough_args):
         arg = passthrough_args[i]
         keep_arg = False

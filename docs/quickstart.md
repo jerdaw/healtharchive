@@ -1,6 +1,7 @@
 # Quick Start
 
-Get up and running with HealthArchive in 5 minutes.
+Use this page to find the right starting point for local development, API use,
+or public-safe project orientation.
 
 ## What is HealthArchive?
 
@@ -10,24 +11,24 @@ HealthArchive is a web archiving service that preserves Canadian health governme
 
 Pick the guide that matches your role:
 
-### 👤 I'm an Operator
+### Operator Or Maintainer
 
-**Goal**: Deploy, monitor, and maintain the production system.
+**Goal**: Understand the public operations boundary and find the appropriate
+private runbook for the target environment.
 
-1. Read the [Production Runbook](deployment/production-single-vps.md) for deployment setup
-2. Review [Operator Responsibilities](operations/playbooks/core/operator-responsibilities.md) for your must-do checklist
-3. Bookmark [Incident Response](operations/playbooks/core/incident-response.md) for emergencies
+1. Read the [Deployment boundary summary](deployment/README.md) for the public
+   scope of deployment documentation.
+2. Use the private operations workspace for environment-specific deployment,
+   monitoring, response, and continuity procedures.
+3. Keep public docs focused on project purpose, architecture, reproducible
+   local development, and user-facing operational impact.
 
-**Quick Deploy**:
-```bash
-# On the VPS
-cd <deploy-root>
-./scripts/vps-deploy.sh --apply --baseline-mode live
-```
+This public repo intentionally does not publish live deployment commands,
+private host paths, service-unit details, alert routes, or credential locations.
 
 ---
 
-### 💻 I'm a Developer
+### Developer
 
 **Goal**: Contribute code, fix bugs, add features.
 
@@ -63,7 +64,7 @@ cd <deploy-root>
 
 ---
 
-### 🔧 I'm an API Consumer / Researcher
+### API Consumer Or Researcher
 
 **Goal**: Search the archive and retrieve historical snapshots.
 

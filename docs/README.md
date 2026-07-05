@@ -11,12 +11,12 @@ documented here.
 
 ## Quick Start by Role
 
-**Choose your path:**
+Choose the path that matches your role:
 
-- **💻 Developers**: Start with [Development Guide](development/README.md) → [Live Testing](development/live-testing.md)
-- **🔧 Deploying**: Use your environment-specific deployment runbook outside this public docs portal
-- **📊 API consumers**: Start with [API Documentation](api.md)
-- **📚 Researchers**: Start with [Architecture](architecture.md) → [Datasets](datasets-external/README.md)
+- **Developers**: Start with [Development Guide](development/README.md) → [Live Testing](development/live-testing.md)
+- **Deploying**: Use your environment-specific deployment runbook outside this public docs portal
+- **API consumers**: Start with [API Documentation](api.md)
+- **Researchers**: Start with [Architecture](architecture.md) → [Datasets](datasets-external/README.md)
 
 ## Key Resources
 

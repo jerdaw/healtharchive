@@ -954,5 +954,3 @@ A: Yes, use `<iframe src="https://api.healtharchive.ca/api/snapshots/raw/{id}"><
 - **Download datasets**: Visit [healtharchive-datasets](https://github.com/jerdaw/healtharchive-datasets)
 - **Read the architecture**: [Architecture Guide](architecture.md)
 - **Stay updated**: Watch the [backend repo](https://github.com/jerdaw/healtharchive) for changes
-
-Happy researching! 📊

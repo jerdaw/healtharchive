@@ -198,7 +198,7 @@ class ArchiveToolConfig:
             raise RuntimeError(f"Archive root is not writable: {self.archive_root}") from exc
 
 
-# Simple global accessor for now; later we can make this more flexible.
+# Centralized accessor keeps environment-derived tool config in one place.
 def get_archive_tool_config() -> ArchiveToolConfig:
     root_str = os.environ.get("HEALTHARCHIVE_ARCHIVE_ROOT", str(DEFAULT_ARCHIVE_ROOT))
     archive_root = Path(root_str)

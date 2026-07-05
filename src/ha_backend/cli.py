@@ -541,8 +541,7 @@ def cmd_watchdog_status(args: argparse.Namespace) -> None:
     recoveries = crawl_state.get("recoveries", {})
     total_recoveries = sum(len(v) for v in recoveries.values() if isinstance(v, list))
 
-    # Estimate running/stalled jobs (would need to query DB for accurate count)
-    # For now, show what we can from state
+    # State files track recoveries but do not provide a complete live job census.
     print(f"  Recoveries:  {total_recoveries} total recorded")
 
     if crawl_enabled:

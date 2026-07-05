@@ -982,7 +982,7 @@ html[data-theme="dark"] .ha-page-intro-card {
   line-height: 1.7;
 }
 
-/* Dark mode override for French banner to avoid "ugly brown" background */
+/* Dark mode override for French banner contrast. */
 html[data-theme="dark"] div.ha-callout {
   background-color: transparent !important;
   color: #fef3c7; /* amber-100 */

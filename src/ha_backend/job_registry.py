@@ -339,7 +339,7 @@ SOURCE_JOB_CONFIGS: Dict[str, SourceJobConfig] = {
             "https://www.canada.ca/fr/sante-canada.html",
         ],
         # Zimit arguments passed after the "--" separator. Keep conservative
-        # defaults for now and tune later as needed.
+        # defaults and tune them as crawl evidence changes.
         default_zimit_passthrough_args=[
             "--scopeType",
             "custom",

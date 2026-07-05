@@ -69,7 +69,7 @@ Bitwarden or deployment environments.
 
 From the repo root (Python project):
 
-- Create venv (if not already done) – adjust to my actual workflow:
+- Create a virtual environment, if one is not already available:
 
   ```bash
   make venv

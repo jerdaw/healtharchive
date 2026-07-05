@@ -1423,7 +1423,8 @@ def main():
 
                 elif event_status == "error" and "message" in monitor_message:
                     logger.error(f"Monitor thread reported an error: {monitor_message['message']}")
-                    # Consider if this should cause the stage to fail? For now, just log it.
+                    # Monitor errors are logged here; stage failure is governed
+                    # by process exit and crawl status classification.
 
             # --- Periodic Progress Printing ---
             now = time.monotonic()

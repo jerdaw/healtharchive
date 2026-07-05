@@ -137,7 +137,7 @@ generated API types so the backend schema remains the source of truth.
 ### 3. Database
 
 By default the backend uses a SQLite file at `sqlite:///healtharchive.db` in
-the repo root, or whatever you point `HEALTHARCHIVE_DATABASE_URL` at.
+the repo root, or the location configured by `HEALTHARCHIVE_DATABASE_URL`.
 
 To verify connectivity:
 
