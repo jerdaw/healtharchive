@@ -143,7 +143,7 @@ generated API types so the backend schema remains the source of truth.
 ### 3. Database
 
 By default the backend uses a SQLite file at `sqlite:///healtharchive.db` in
-the repo root, or whatever you point `HEALTHARCHIVE_DATABASE_URL` at.
+the repo root, or the location configured by `HEALTHARCHIVE_DATABASE_URL`.
 
 To verify connectivity:
 
@@ -677,12 +677,12 @@ documented here.
 
 ## Quick Start by Role
 
-**Choose your path:**
+Choose the path that matches your role:
 
-- **💻 Developers**: Start with [Development Guide](development/README.md) → [Live Testing](development/live-testing.md)
-- **🔧 Deploying**: Use your environment-specific deployment runbook outside this public docs portal
-- **📊 API consumers**: Start with [API Documentation](api.md)
-- **📚 Researchers**: Start with [Architecture](architecture.md) → [Datasets](datasets-external/README.md)
+- **Developers**: Start with [Development Guide](development/README.md) → [Live Testing](development/live-testing.md)
+- **Deploying**: Use your environment-specific deployment runbook outside this public docs portal
+- **API consumers**: Start with [API Documentation](api.md)
+- **Researchers**: Start with [Architecture](architecture.md) → [Datasets](datasets-external/README.md)
 
 ## Key Resources
 
@@ -3148,8 +3148,6 @@ A: Yes, use `<iframe src="https://api.healtharchive.ca/api/snapshots/raw/{id}"><
 - **Download datasets**: Visit [healtharchive-datasets](https://github.com/jerdaw/healtharchive-datasets)
 - **Read the architecture**: [Architecture Guide](architecture.md)
 - **Stay updated**: Watch the [backend repo](https://github.com/jerdaw/healtharchive) for changes
-
-Happy researching! 📊
 
 
 ---
