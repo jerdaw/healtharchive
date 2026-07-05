@@ -130,11 +130,14 @@ Key roles:
 - Locate the **archive root** (`--output-dir` base) and `archive_tool` command.
 - Read the **database URL**.
 
-Admin‑related configuration is handled separately in `ha_backend/api/deps.py`,
+Admin-related configuration is handled separately in `ha_backend/api/deps.py`,
 which reads `HEALTHARCHIVE_ADMIN_TOKEN` from the environment. When this token
-is **unset**, admin and metrics endpoints are effectively open and should only
-be used in local development. In staging and production you should always set
-`HEALTHARCHIVE_ADMIN_TOKEN` to a long, random value and treat it as a secret.
+is **unset**, admin and metrics endpoints fail closed by default. Local
+development can opt into tokenless admin access only by setting both a
+local/dev/test `HEALTHARCHIVE_ENV` and
+`HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true`. In staging and production you
+should always set `HEALTHARCHIVE_ADMIN_TOKEN` to a long, random value and treat
+it as a secret.
 
 #### ArchiveToolConfig
 
@@ -150,7 +153,7 @@ class ArchiveToolConfig:
 
 Defaults:
 
-- `DEFAULT_ARCHIVE_ROOT` = `<archive-root>`
+- `DEFAULT_ARCHIVE_ROOT` = repo-local `.dev-archive-root`
 - `DEFAULT_ARCHIVE_TOOL_CMD` = `"archive-tool"`
 
 Env overrides:
@@ -1086,13 +1089,12 @@ Behavior:
 
 - Reads `HEALTHARCHIVE_ENV` and `HEALTHARCHIVE_ADMIN_TOKEN` from the
   environment.
-- If `HEALTHARCHIVE_ENV` is `"production"` or `"staging"` and
-  `HEALTHARCHIVE_ADMIN_TOKEN` is **unset**:
+- If `HEALTHARCHIVE_ADMIN_TOKEN` is **unset**:
   - Admin and metrics endpoints **fail closed** with HTTP 500 and a clear
     error detail (`"Admin token not configured for this environment"`).
-- In other environments (or when `HEALTHARCHIVE_ENV` is unset) and the admin
-  token is **unset**:
-  - Admin endpoints are **open** (dev mode convenience).
+  - Local development can opt into tokenless admin access only with a
+    local/dev/test `HEALTHARCHIVE_ENV` and
+    `HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true`.
 - When `HEALTHARCHIVE_ADMIN_TOKEN` is set:
   - Requires the same token via either:
     - `Authorization: Bearer <token>` header, or

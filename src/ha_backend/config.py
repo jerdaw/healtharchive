@@ -28,12 +28,14 @@ from urllib.parse import urlsplit
 
 # === Core paths ===
 
-# Base directory where all job output dirs will live.
-# Adjust to your actual NAS mount if you like.
-DEFAULT_ARCHIVE_ROOT = Path("/mnt/nasd/nobak/healtharchive/jobs")
-
 # Path to this repo root (computed from this file)
 REPO_ROOT = Path(__file__).resolve().parents[2]  # src/ha_backend -> src -> repo root
+
+# Base directory where all job output dirs will live when no environment
+# override is configured. Production and staging deployments should set
+# HEALTHARCHIVE_ARCHIVE_ROOT explicitly; this fallback is intentionally
+# project-local and git-ignored so fresh public checkouts stay self-contained.
+DEFAULT_ARCHIVE_ROOT = REPO_ROOT / ".dev-archive-root"
 
 # === Archive tool invocation ===
 

@@ -26,6 +26,7 @@ documented here.
 | Local development setup | [Dev Setup](development/dev-environment-setup.md) |
 | Search API | [API Documentation](api.md) |
 | Data releases | [Datasets](datasets-external/README.md) |
+| Latest maintenance audit | [Maintenance Audit](maintenance-audit.md) |
 
 ## Documentation Structure
 

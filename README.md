@@ -502,9 +502,8 @@ defaults:
 
 - `HEALTHARCHIVE_ARCHIVE_ROOT`
   Base directory for job output dirs (passed as `--output-dir` to `archive_tool`).
-  Defaults to the value configured in `ha_backend.config`. For local
-  development, set it explicitly to a git-ignored directory under your
-  checkout, such as `$(pwd)/.dev-archive-root`.
+  Defaults to the repo-local, git-ignored `.dev-archive-root` directory. For
+  staging/production, set this explicitly from the deployment environment.
 
 - `HEALTHARCHIVE_TOOL_CMD`
   Command used to invoke the archiver. Defaults to `archive-tool`.
@@ -512,8 +511,9 @@ defaults:
 - `HEALTHARCHIVE_ENV`
   High-level environment hint used by admin auth. Recognised values:
 
-  - `"development"` (default when unset): admin endpoints are open when
-    `HEALTHARCHIVE_ADMIN_TOKEN` is unset (dev convenience).
+  - `"development"` (default when unset): admin endpoints still fail closed
+    when `HEALTHARCHIVE_ADMIN_TOKEN` is unset unless
+    `HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true` is also set.
   - `"staging"` or `"production"`: admin endpoints fail closed with HTTP 500
     if `HEALTHARCHIVE_ADMIN_TOKEN` is not configured.
 
@@ -522,12 +522,12 @@ defaults:
 
   - `Authorization: Bearer <token>` or
   - `X-Admin-Token: <token>`
-    If unset and `HEALTHARCHIVE_ENV` is `"development"` (or unset), admin
-    endpoints are open (intended only for local development). In staging and
-    production you should **always** set a long, random token and store it as a
-    secret in your hosting platform (never committed to the repo); when
-    `HEALTHARCHIVE_ENV` is `"staging"` or `"production"` and this token is
-    missing, admin and metrics endpoints return HTTP 500.
+
+  If unset, admin and metrics endpoints fail closed with HTTP 500 by default.
+  The only local-dev exception is setting both a local/dev/test
+  `HEALTHARCHIVE_ENV` and `HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true`.
+  In staging and production you should **always** set a long, random token and
+  store it as a secret in your hosting platform, never committed to the repo.
 
 - `HEALTHARCHIVE_LOG_LEVEL`
   Global log level (`DEBUG`, `INFO`, etc.). Defaults to `INFO`.
@@ -576,12 +576,14 @@ run on pushes to `main` and on pull requests. It:
 - Checks out the repository.
 - Sets up Python 3.11.
 - Runs `make ci` (fast gate: format check, lint, typecheck, tests).
+- Runs `make audit-ci` for Python dependency vulnerability checks.
+- Runs an API health/public-surface smoke with a temporary SQLite database.
 - Runs an end-to-end smoke test (backend + frontend) from the same checkout.
 
-A separate nightly/manual workflow (`.github/workflows/backend-ci-full.yml`)
-runs `make check-full`, which includes `coverage-critical`, docs checks,
-pre-commit hooks, and security scans. That broader full gate is useful before
-deploys, but it is **not** the default PR-blocking backend CI path today.
+A separate manual workflow (`.github/workflows/backend-ci-full.yml`) runs
+`make check-full`, which includes `coverage-critical`, docs checks, pre-commit
+hooks, and security scans. That broader full gate is useful before deploys, but
+it is **not** the default PR-blocking backend CI path today.
 
 The CI job uses a temporary SQLite database via:
 

@@ -11,6 +11,7 @@ from ha_backend.config import (
     DEFAULT_DB_MAX_OVERFLOW,
     DEFAULT_DB_POOL_SIZE,
     DEFAULT_DB_POOL_TIMEOUT_SECONDS,
+    REPO_ROOT,
     ArchiveToolConfig,
     DatabaseConfig,
     get_archive_tool_config,
@@ -41,6 +42,21 @@ def test_archive_tool_config_defaults(monkeypatch) -> None:
     assert cfg.archive_tool_cmd == expected_cmd
     assert isinstance(cfg.archive_root, Path)
     assert cfg.archive_root == DEFAULT_ARCHIVE_ROOT
+
+
+def test_archive_tool_default_root_is_repo_local_and_public_safe(monkeypatch) -> None:
+    """
+    The default archive root should be safe for a fresh public checkout.
+
+    Real deployments should still set HEALTHARCHIVE_ARCHIVE_ROOT explicitly;
+    the built-in fallback must not bake in machine-specific host paths.
+    """
+    monkeypatch.delenv("HEALTHARCHIVE_ARCHIVE_ROOT", raising=False)
+
+    cfg = get_archive_tool_config()
+
+    assert cfg.archive_root == REPO_ROOT / ".dev-archive-root"
+    assert not cfg.archive_root.is_absolute() or cfg.archive_root.is_relative_to(REPO_ROOT)
 
 
 def test_archive_tool_config_env_overrides(monkeypatch, tmp_path) -> None:

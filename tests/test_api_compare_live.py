@@ -4,12 +4,18 @@ from datetime import datetime, timezone
 from io import BytesIO
 from pathlib import Path
 
+import pytest
 from fastapi.testclient import TestClient
 from warcio.warcwriter import WARCWriter
 
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
-from ha_backend.live_compare import LiveFetchBlocked, LiveFetchNotHtml, LiveFetchResult
+from ha_backend.live_compare import (
+    LiveFetchBlocked,
+    LiveFetchNotHtml,
+    LiveFetchResult,
+    _normalize_url,
+)
 from ha_backend.models import Snapshot, Source
 
 
@@ -91,6 +97,32 @@ def _seed_snapshot_with_warc(
         session.add(snap)
         session.flush()
         return int(snap.id)
+
+
+@pytest.mark.parametrize(
+    "raw_url",
+    [
+        "",
+        "ftp://example.org",
+        "https://user:pass@example.org",
+        "http://localhost/",
+        "http://example.local/",
+        "http://127.0.0.1/",
+        "http://10.0.0.1/",
+        "http://169.254.169.254/",
+        "http://[::1]/",
+        "https://93.184.216.34:8443/",
+    ],
+)
+def test_compare_live_normalize_url_blocks_unsafe_targets(raw_url: str) -> None:
+    with pytest.raises(LiveFetchBlocked):
+        _normalize_url(raw_url)
+
+
+def test_compare_live_normalize_url_strips_fragment_without_network() -> None:
+    assert _normalize_url("HTTPS://93.184.216.34/path?x=1#section") == (
+        "https://93.184.216.34/path?x=1"
+    )
 
 
 def test_compare_live_disabled_returns_404(tmp_path, monkeypatch) -> None:

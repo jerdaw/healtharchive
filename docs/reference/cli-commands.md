@@ -1019,14 +1019,14 @@ Commands respect these environment variables:
 | Variable | Purpose | Default |
 |----------|---------|---------|
 | `HEALTHARCHIVE_DATABASE_URL` | Database connection | `sqlite:///healtharchive.db` |
-| `HEALTHARCHIVE_ARCHIVE_ROOT` | Base directory for jobs | `<archive-root>` |
+| `HEALTHARCHIVE_ARCHIVE_ROOT` | Base directory for jobs | repo-local `.dev-archive-root` |
 | `HEALTHARCHIVE_TOOL_CMD` | archive-tool command | `archive-tool` |
 | `HEALTHARCHIVE_LOG_LEVEL` | Logging level | `INFO` |
 
 **Set in `.env` file**:
 ```bash
 HEALTHARCHIVE_DATABASE_URL=postgresql://user:pass@localhost/healtharchive
-HEALTHARCHIVE_ARCHIVE_ROOT=/data/healtharchive/jobs
+HEALTHARCHIVE_ARCHIVE_ROOT=./.dev-archive-root
 HEALTHARCHIVE_LOG_LEVEL=DEBUG
 ```
 

@@ -123,15 +123,16 @@ Expect:
 
 ### 2.3 Admin endpoints
 
-With `HEALTHARCHIVE_ADMIN_TOKEN` **unset** (local dev only):
+By default, admin and metrics endpoints fail closed when
+`HEALTHARCHIVE_ADMIN_TOKEN` is unset, even in local development:
 
 ```bash
-curl http://localhost:8001/api/admin/jobs
+curl -i http://localhost:8001/api/admin/jobs
 ```
 
-Admin routes are open (dev mode).
+Expect HTTP 500 with `"Admin token not configured for this environment"`.
 
-With `HEALTHARCHIVE_ADMIN_TOKEN` set when starting uvicorn:
+For normal local testing, set a throwaway admin token before starting uvicorn:
 
 ```bash
 curl -H "Authorization: Bearer ${HEALTHARCHIVE_ADMIN_TOKEN:?set-local-token}" \
@@ -140,11 +141,22 @@ curl -H "Authorization: Bearer ${HEALTHARCHIVE_ADMIN_TOKEN:?set-local-token}" \
 
 Confirms admin auth + simple bearer token protection.
 
+If you specifically need tokenless local admin access, opt in explicitly before
+starting uvicorn:
+
+```bash
+export HEALTHARCHIVE_ENV=development
+export HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true
+unset HEALTHARCHIVE_ADMIN_TOKEN
+```
+
+Then `curl http://localhost:8001/api/admin/jobs` should return HTTP 200.
+
 ### 2.4 Admin access patterns (local vs staging/prod)
 
-In local development it is acceptable to either leave
-`HEALTHARCHIVE_ADMIN_TOKEN` unset (open admin endpoints) or to use a simple
-throwaway token exported in your shell as shown above.
+In local development, prefer a simple throwaway token exported in your shell as
+shown above. Tokenless admin access is available only behind the explicit
+`HEALTHARCHIVE_ALLOW_DEV_ADMIN_NO_TOKEN=true` override.
 
 In staging and production you should **always** set a strong, random admin
 token and treat it as a secret:
