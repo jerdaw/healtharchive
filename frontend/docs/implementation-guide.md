@@ -746,13 +746,16 @@ All in `src/data/demo-records.ts`:
 ### 8.3 Browse by source `/archive/browse-by-source` – `src/app/[locale]/archive/browse-by-source/page.tsx`
 
 - Server component that prefers backend `GET /api/sources` (via `fetchSources()`).
-- Falls back to `getSourcesSummary()` from the bundled offline sample dataset when the API is unreachable.
+- Falls back to `getSourcesSummary()` from the bundled offline sample dataset only when the API request fails. A successful response with no public sources renders the empty result instead of demo data.
 
 - `<PageShell>` with:
   - Eyebrow: “Archive explorer”
   - Title: “Browse records by source”
 
+- Displays a localized source total before the results grid.
+- When no public sources remain, renders an explicit localized empty-state callout instead of an empty grid.
 - Displays a `.ha-grid-2` of cards, one per source:
+  - Each card is an `<article>` named with `aria-labelledby` from its visible source heading.
   - Card shows:
     - `sourceName`
     - “N snapshots captured between [first] and [last]”.
