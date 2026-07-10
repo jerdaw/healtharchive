@@ -150,7 +150,7 @@ git commit -m "feat: persist indexing progress heartbeats"
 - Produces: `WarcConsolidationProgress`
 - Extends: `consolidate_warcs(..., progress_callback=None)`
 
-- [ ] **Step 1: Write failing consolidation callback tests**
+- [x] **Step 1: Write failing consolidation callback tests**
 
 Add a test with two small WARC files and capture callback events:
 
@@ -169,7 +169,7 @@ assert all(Path(e.warc_name).name == e.warc_name for e in events)
 
 Cover reuse and copy fallback so their final byte counts are reported.
 
-- [ ] **Step 2: Run the callback test and observe RED**
+- [x] **Step 2: Run the callback test and observe RED**
 
 ```bash
 python -m pytest -q tests/test_archive_storage.py -k progress
@@ -177,20 +177,20 @@ python -m pytest -q tests/test_archive_storage.py -k progress
 
 Expected: `consolidate_warcs` rejects `progress_callback`.
 
-- [ ] **Step 3: Implement progress callbacks**
+- [x] **Step 3: Implement progress callbacks**
 
 Add a frozen dataclass with `phase`, `warc_name`, `warc_index`, `warc_total`,
 `bytes_processed`, and `bytes_total`. Emit callbacks while copying and hashing,
 plus final events for hardlink/reuse. Keep the argument optional and existing
 results unchanged.
 
-- [ ] **Step 4: Run archive-storage tests and observe GREEN**
+- [x] **Step 4: Run archive-storage tests and observe GREEN**
 
 ```bash
 python -m pytest -q tests/test_archive_storage.py
 ```
 
-- [ ] **Step 5: Commit consolidation progress**
+- [x] **Step 5: Commit consolidation progress**
 
 ```bash
 git add src/ha_backend/archive_storage.py tests/test_archive_storage.py
