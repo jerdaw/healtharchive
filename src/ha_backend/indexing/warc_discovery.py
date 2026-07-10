@@ -20,7 +20,8 @@ class WarcDiscoveryResult:
     Attributes:
         warc_paths: List of discovered WARC file paths
         source: Discovery source ("stable", "temp", "fallback", "mixed", or "none")
-        manifest_valid: Whether the manifest (if any) is valid
+        manifest_valid: Legacy compatibility flag that is false when fallback
+            WARCs are discovered; it does not yet report parsed manifest status
         count: Number of WARC files discovered
     """
 
@@ -68,8 +69,16 @@ def _manifest_consolidated_source_paths(host_output_dir: Path) -> set[Path]:
     except (OSError, json.JSONDecodeError):
         return set()
 
+    if not isinstance(manifest, dict):
+        return set()
+    entries = manifest.get("entries")
+    if not isinstance(entries, list):
+        return set()
+
     paths: set[Path] = set()
-    for entry in manifest.get("entries") or []:
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
         source_path = str(entry.get("source_path") or "")
         stable_name = str(entry.get("stable_name") or "")
         if not source_path or not stable_name:
@@ -184,7 +193,8 @@ def discover_all_warcs_for_output_dir(
     Returns a WarcDiscoveryResult with:
     - warc_paths: List of discovered WARC files
     - source: Where WARCs were found ("stable", "temp", "fallback", or "mixed")
-    - manifest_valid: Whether the manifest is valid (always True for now)
+    - manifest_valid: Legacy flag preserved for compatibility; actual manifest
+      status reporting remains a separate follow-up
     - count: Number of WARCs discovered
     """
     host_output_dir = host_output_dir.resolve()

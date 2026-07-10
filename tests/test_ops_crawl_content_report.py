@@ -284,6 +284,27 @@ def test_read_only_discovery_unions_stable_tracked_and_fallback_without_state_wr
     assert state_path.read_text(encoding="utf-8") == original_state
 
 
+def test_read_only_discovery_ignores_non_mapping_manifest_entries(tmp_path: Path) -> None:
+    mod = _load_script_module(
+        "vps-crawl-content-report.py",
+        module_name="ha_test_vps_crawl_content_report_manifest_shape",
+    )
+    output_dir = tmp_path / "jobdir"
+    stable_dir = output_dir / "warcs"
+    stable_dir.mkdir(parents=True)
+    stable_warc = stable_dir / "stable-001.warc.gz"
+    stable_warc.write_bytes(b"stable")
+    (stable_dir / "manifest.json").write_text(
+        json.dumps({"entries": ["not-a-mapping"]}),
+        encoding="utf-8",
+    )
+
+    warc_paths, source = mod.discover_warcs_read_only(output_dir, {})
+
+    assert warc_paths == [stable_warc.resolve()]
+    assert source == "stable"
+
+
 def test_report_scans_previous_logs_when_latest_log_is_quiet(
     db_session: Session, tmp_path: Path
 ) -> None:

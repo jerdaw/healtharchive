@@ -24,6 +24,9 @@ with indexing's canonical stable/temp/fallback WARC union.
   untracked fallback layout.
 - Report regression coverage for the same mixed layout, including an assertion
   that `.archive_state.json` remains unchanged.
+- Helper and report coverage for structurally malformed but valid-JSON
+  manifests; invalid shapes now disable manifest-copy deduplication without
+  aborting discovery.
 - Existing stable-only, temp-only, fallback-only, hardlink, and copied-manifest
   discovery coverage remains the compatibility contract.
 

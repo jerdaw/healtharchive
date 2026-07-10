@@ -65,6 +65,20 @@ def test_output_dir_discovery_unions_stable_tracked_and_latest_fallback(
     assert result.source_counts == {"fallback": 1, "stable": 1, "temp": 1}
 
 
+def test_output_dir_discovery_ignores_non_mapping_manifest(tmp_path: Path) -> None:
+    output_dir = tmp_path / "job-out"
+    stable_dir = output_dir / "warcs"
+    stable_dir.mkdir(parents=True)
+    stable_warc = stable_dir / "stable-001.warc.gz"
+    stable_warc.write_bytes(b"stable")
+    (stable_dir / "manifest.json").write_text("[]", encoding="utf-8")
+
+    result = warc_discovery.discover_all_warcs_for_output_dir(output_dir)
+
+    assert result.warc_paths == [stable_warc.resolve()]
+    assert result.source == "stable"
+
+
 class TestDiscoverWarcsForJob:
     """Tests for discover_warcs_for_job function."""
 
