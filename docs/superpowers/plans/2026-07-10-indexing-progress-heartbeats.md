@@ -36,7 +36,7 @@
 - Produces: `IndexingProgressReporter.update(...)`, `.mark_failed()`, and `.clear()`
 - Produces: `indexing_progress_payload(progress, now_utc=...)`
 
-- [ ] **Step 1: Write failing model/reporter tests**
+- [x] **Step 1: Write failing model/reporter tests**
 
 Add tests that create one job and assert:
 
@@ -64,7 +64,7 @@ Also assert a phase/current-WARC change bypasses throttling, payload age and
 elapsed values are non-negative, `mark_failed()` retains the row, and `clear()`
 removes it.
 
-- [ ] **Step 2: Run the tests and observe RED**
+- [x] **Step 2: Run the tests and observe RED**
 
 Run:
 
@@ -74,7 +74,7 @@ python -m pytest -q tests/test_indexing_progress.py
 
 Expected: collection fails because the progress model/module does not exist.
 
-- [ ] **Step 3: Add the model and migration**
+- [x] **Step 3: Add the model and migration**
 
 Create revision `0016_indexing_progress` after `0015_annual_editions` with table
 `archive_job_indexing_progress` and these columns:
@@ -94,7 +94,7 @@ last_progress_at TIMESTAMPTZ NOT NULL
 
 Mirror the table in `models.py` with non-null integer defaults.
 
-- [ ] **Step 4: Implement the reporter and serializer**
+- [x] **Step 4: Implement the reporter and serializer**
 
 Implement a reporter that remembers its last phase, WARC, and monotonic write
 time. `update()` writes when forced, when phase/WARC changes, or after the
@@ -122,7 +122,7 @@ Return payload keys:
 }
 ```
 
-- [ ] **Step 5: Run focused schema/reporter tests and observe GREEN**
+- [x] **Step 5: Run focused schema/reporter tests and observe GREEN**
 
 ```bash
 python -m pytest -q \
@@ -131,7 +131,7 @@ python -m pytest -q \
   tests/test_ci_schema_parity.py
 ```
 
-- [ ] **Step 6: Commit persistence**
+- [x] **Step 6: Commit persistence**
 
 ```bash
 git add alembic/versions/0016_archive_job_indexing_progress.py \
