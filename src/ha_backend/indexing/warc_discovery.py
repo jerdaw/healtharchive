@@ -4,7 +4,7 @@ import json
 from collections import Counter
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import List, Literal, cast
+from typing import List, Literal, Sequence, cast
 
 from archive_tool.state import CrawlState
 from archive_tool.utils import find_all_warc_files, find_latest_temp_dir_fallback
@@ -117,6 +117,17 @@ def _dedupe_warc_paths_by_file_identity(
     return sorted(selected, key=lambda item: item[1])
 
 
+def _existing_temp_dirs(paths: Sequence[Path]) -> list[Path]:
+    existing: set[Path] = set()
+    for path in paths:
+        try:
+            if path.is_dir():
+                existing.add(path.resolve())
+        except (OSError, RuntimeError, ValueError):
+            continue
+    return sorted(existing)
+
+
 def discover_temp_warcs_for_job(
     job: ArchiveJob,
     *,
@@ -161,26 +172,26 @@ def discover_warcs_for_job(
     return result.warc_paths
 
 
-def discover_all_warcs_for_job(
-    job: ArchiveJob,
+def discover_all_warcs_for_output_dir(
+    host_output_dir: Path,
     *,
+    tracked_temp_dirs: Sequence[Path] = (),
     allow_fallback: bool = True,
 ) -> WarcDiscoveryResult:
     """
-    Discover all WARC files for a job with detailed metadata.
+    Discover the canonical WARC union without reading or writing crawl state.
 
     Returns a WarcDiscoveryResult with:
     - warc_paths: List of discovered WARC files
-    - source: Where WARCs were found ("stable", "temp", or "fallback")
+    - source: Where WARCs were found ("stable", "temp", "fallback", or "mixed")
     - manifest_valid: Whether the manifest is valid (always True for now)
     - count: Number of WARCs discovered
     """
-    host_output_dir = Path(job.output_dir).resolve()
+    host_output_dir = host_output_dir.resolve()
 
     stable_warcs = _discover_stable_warcs_for_output_dir(host_output_dir)
 
-    state = CrawlState(host_output_dir, initial_workers=1)
-    temp_dirs = state.get_temp_dir_paths()
+    temp_dirs = _existing_temp_dirs(tracked_temp_dirs)
     temp_warcs: list[Path] = find_all_warc_files(temp_dirs) if temp_dirs else []
     fallback_warcs: list[Path] = []
 
@@ -227,9 +238,25 @@ def discover_all_warcs_for_job(
     )
 
 
+def discover_all_warcs_for_job(
+    job: ArchiveJob,
+    *,
+    allow_fallback: bool = True,
+) -> WarcDiscoveryResult:
+    """Discover all WARC files for a job with detailed metadata."""
+    host_output_dir = Path(job.output_dir).resolve()
+    state = CrawlState(host_output_dir, initial_workers=1)
+    return discover_all_warcs_for_output_dir(
+        host_output_dir,
+        tracked_temp_dirs=state.get_temp_dir_paths(),
+        allow_fallback=allow_fallback,
+    )
+
+
 __all__ = [
     "discover_temp_warcs_for_job",
     "discover_warcs_for_job",
+    "discover_all_warcs_for_output_dir",
     "discover_all_warcs_for_job",
     "WarcDiscoveryResult",
 ]

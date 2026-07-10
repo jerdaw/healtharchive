@@ -14,6 +14,7 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
+from ha_backend.indexing import warc_discovery
 from ha_backend.indexing.warc_discovery import (
     WarcDiscoveryResult,
     discover_all_warcs_for_job,
@@ -27,6 +28,41 @@ def _create_job_mock(output_dir: Path) -> MagicMock:
     job = MagicMock()
     job.output_dir = str(output_dir)
     return job
+
+
+def test_output_dir_discovery_unions_stable_tracked_and_latest_fallback(
+    tmp_path: Path,
+) -> None:
+    output_dir = tmp_path / "job-out"
+    stable_dir = output_dir / "warcs"
+    stable_dir.mkdir(parents=True)
+    (stable_dir / "stable-001.warc.gz").write_bytes(b"stable")
+
+    tracked_temp = output_dir / ".tmp-tracked"
+    tracked_archive = tracked_temp / "collections" / "crawl-1" / "archive"
+    tracked_archive.mkdir(parents=True)
+    (tracked_archive / "tracked-001.warc.gz").write_bytes(b"tracked")
+
+    fallback_temp = output_dir / ".tmp-fallback"
+    fallback_archive = fallback_temp / "collections" / "crawl-2" / "archive"
+    fallback_archive.mkdir(parents=True)
+    (fallback_archive / "fallback-001.warc.gz").write_bytes(b"fallback")
+    os.utime(tracked_temp, (100, 100))
+    os.utime(fallback_temp, (200, 200))
+
+    result = warc_discovery.discover_all_warcs_for_output_dir(
+        output_dir,
+        tracked_temp_dirs=[tracked_temp],
+    )
+
+    assert result.source == "mixed"
+    assert result.count == 3
+    assert sorted(path.name for path in result.warc_paths) == [
+        "fallback-001.warc.gz",
+        "stable-001.warc.gz",
+        "tracked-001.warc.gz",
+    ]
+    assert result.source_counts == {"fallback": 1, "stable": 1, "temp": 1}
 
 
 class TestDiscoverWarcsForJob:
