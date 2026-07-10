@@ -11,6 +11,8 @@ When complete, move them to `docs/planning/implemented/` and date them.
 
 Active plans:
 
+- Unused MkDocs monorepo plugin removal:
+  `2026-07-10-unused-mkdocs-monorepo-plugin.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
 
 ## Current priority sequence
