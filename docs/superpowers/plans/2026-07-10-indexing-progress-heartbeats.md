@@ -208,7 +208,7 @@ git commit -m "feat: report WARC consolidation progress"
 - Consumes: `WarcConsolidationProgress`
 - Preserves: `index_job(job_id: int) -> int`
 
-- [ ] **Step 1: Write failing lifecycle tests**
+- [x] **Step 1: Write failing lifecycle tests**
 
 Use a fake reporter and assert ordered phase coverage:
 
@@ -229,7 +229,7 @@ assert reporter.cleared is True
 Add a failure case asserting `mark_failed()` is called and `clear()` is not.
 Keep existing log assertions.
 
-- [ ] **Step 2: Run lifecycle tests and observe RED**
+- [x] **Step 2: Run lifecycle tests and observe RED**
 
 ```bash
 python -m pytest -q tests/test_indexing_pipeline_infra.py -k progress
@@ -237,7 +237,7 @@ python -m pytest -q tests/test_indexing_pipeline_infra.py -k progress
 
 Expected: the pipeline never constructs the reporter.
 
-- [ ] **Step 3: Refactor without changing indexing atomicity**
+- [x] **Step 3: Refactor without changing indexing atomicity**
 
 Keep `index_job(job_id)` as the public wrapper. Move the existing session body
 into `_index_job_transaction(job_id, reporter)`. The wrapper writes `starting`,
@@ -248,7 +248,7 @@ Pass a consolidation callback through `_ensure_stable_warcs_available`. Emit
 forced phase/WARC transitions, throttled record counts inside the record loop,
 and `finalize` before page/signal/storage post-processing.
 
-- [ ] **Step 4: Run pipeline and worker tests and observe GREEN**
+- [x] **Step 4: Run pipeline and worker tests and observe GREEN**
 
 ```bash
 python -m pytest -q \
@@ -257,7 +257,7 @@ python -m pytest -q \
   tests/test_annual_editions.py
 ```
 
-- [ ] **Step 5: Commit pipeline lifecycle**
+- [x] **Step 5: Commit pipeline lifecycle**
 
 ```bash
 git add src/ha_backend/indexing/pipeline.py tests/test_indexing_pipeline_infra.py
