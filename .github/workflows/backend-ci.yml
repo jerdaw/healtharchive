@@ -162,3 +162,4 @@ jobs:
           name: backend-e2e-smoke-artifacts
           path: .tmp/ci-e2e-smoke/
           if-no-files-found: ignore
+          retention-days: 3
