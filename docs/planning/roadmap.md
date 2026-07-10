@@ -205,11 +205,16 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 
 ### Crawling & indexing reliability (backend)
 
-- WARC discovery consistency follow-through (remaining work: keep non-indexing
-  operator scripts aligned with union stable/temp/fallback discovery as new
-  shard tooling matures).
+- WARC discovery manifest-status and error reporting.
+  - Current gap: malformed or unreadable consolidation manifests are treated
+    as having no copy-deduplication entries, while `manifest_valid` still
+    conflates fallback discovery with manifest state.
+  - Scope: additively distinguish missing, valid, and invalid manifest states
+    and surface parse/presence errors in operator output without breaking the
+    existing boolean field.
+  - Done when: discovery and CLI tests cover missing, valid, and malformed
+    manifests and operator output explains the resulting state.
   - Historical context: `implemented/2026-01-29-warc-discovery-consistency.md`
-  - Already implemented: `implemented/2026-01-29-warc-manifest-verification.md`
 - Annual edition/shard convergence follow-through.
   - First-pass implementation now models `{source, year}` as `AnnualEdition`,
     attaches legacy 2026 jobs as salvage shards, reconciles completed-job

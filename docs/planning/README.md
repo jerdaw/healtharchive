@@ -11,7 +11,6 @@ When complete, move them to `docs/planning/implemented/` and date them.
 
 Active plans:
 
-- WARC report discovery parity: `2026-07-10-warc-report-discovery-parity.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
 
 ## Current priority sequence
@@ -111,6 +110,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- WARC report discovery parity:
+  `implemented/2026-07-10-warc-report-discovery-parity.md`
 - Autonomous overnight maintenance queue:
   `implemented/2026-06-28-autonomous-overnight-work-plan.md`
 - Storage budget and WARC promotion hardening:

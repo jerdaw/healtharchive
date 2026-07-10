@@ -732,10 +732,13 @@ The backend and ``archive_tool`` share a small but important contract:
 
 - **WARC discovery and cleanup**:
 
-  - `ha_backend.indexing.warc_discovery.discover_warcs_for_job` relies on
-    `archive_tool.state.CrawlState` and `archive_tool.utils.find_all_warc_files`
-    / `find_latest_temp_dir_fallback` for WARC discovery and temp dir
-    tracking.
+  - `ha_backend.indexing.warc_discovery.discover_all_warcs_for_output_dir`
+    performs the read-only stable/temp/fallback filesystem union and duplicate
+    suppression.
+  - Job discovery validates tracked temp paths through
+    `archive_tool.state.CrawlState` before delegating to the read-only helper;
+    operator reports pass paths parsed from state JSON without invoking
+    `CrawlState` or modifying the file.
   - `ha_backend.cli.cmd_cleanup_job` uses `CrawlState` and
     `archive_tool.utils.cleanup_temp_dirs` to remove `.tmp*` directories and
     `.archive_state.json` safely once jobs are indexed.
@@ -755,35 +758,48 @@ structured `Snapshot` rows.
 ### 6.1 WARC discovery (`warc_discovery.py`)
 
 ```python
-from archive_tool.state import CrawlState
-from archive_tool.utils import find_all_warc_files, find_latest_temp_dir_fallback
+def discover_all_warcs_for_output_dir(
+    host_output_dir: Path,
+    *,
+    tracked_temp_dirs: Sequence[Path] = (),
+    allow_fallback: bool = True,
+) -> WarcDiscoveryResult:
+    ...
 ```
 
 ```python
-def discover_warcs_for_job(
+def discover_all_warcs_for_job(
     job: ArchiveJob,
     *,
     allow_fallback: bool = True,
-) -> List[Path]:
+) -> WarcDiscoveryResult:
+    ...
 ```
 
-Steps:
+The output-directory helper is intentionally read-only. It:
+
+1. Finds non-empty stable WARCs under `<output_dir>/warcs/`.
+2. Validates the supplied state-tracked temp directories without editing
+   `.archive_state.json`, then finds their WARCs.
+3. When fallback is enabled, includes the latest `.tmp*` directory if it is
+   not already tracked.
+4. Unions all three groups and prefers stable replay paths when hardlink inode
+   identity or the consolidation manifest proves a temp path is a duplicate.
+5. Returns paths plus `stable`, `temp`, `fallback`, `mixed`, or `none` source
+   metadata and per-source counts.
+
+The job wrapper adds state-aware behavior:
 
 1. Resolve `host_output_dir = Path(job.output_dir).resolve()`.
 2. Instantiate `CrawlState(host_output_dir, initial_workers=1)`:
    - This loads `.archive_state.json` if present.
 3. Get `temp_dirs = state.get_temp_dir_paths()`:
    - Returns only existing directories and prunes missing ones from state.
-4. If `temp_dirs` is empty and `allow_fallback`:
-   - Use `find_latest_temp_dir_fallback(host_output_dir)` to scan for `.tmp*`
-     directories.
-5. If still empty → return `[]`.
-6. Call `find_all_warc_files(temp_dirs)`:
-   - Returns a de‑duplicated list of `*.warc.gz` files under each
-     `collections/crawl-*/archive` directory.
+4. Delegate to `discover_all_warcs_for_output_dir` with those validated paths.
 
-This ensures the backend uses **exactly the same** WARC discovery logic as
-`archive_tool` itself.
+The crawl content-cost report reads state JSON directly and calls the pure
+helper, so it sees the same union as indexing while remaining byte-for-byte
+read-only with respect to crawl state.
 
 ### 6.2 WARC reading (`warc_reader.py`)
 
