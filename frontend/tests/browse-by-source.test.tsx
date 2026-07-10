@@ -77,6 +77,10 @@ describe("/archive/browse-by-source", () => {
 
     expect(screen.getByText("Showing 0 sources.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "No sources available" })).toBeInTheDocument();
+    expect(
+      screen.getByText("No archive sources are available in this view yet."),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: "Live API unavailable" })).not.toBeInTheDocument();
     expect(screen.queryAllByRole("article")).toHaveLength(0);
   });
 
@@ -88,6 +92,12 @@ describe("/archive/browse-by-source", () => {
 
     expect(screen.getByText("Affichage de 0 sources.")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Aucune source disponible" })).toBeInTheDocument();
+    expect(
+      screen.getByText("Aucune source d’archive n’est encore disponible dans cette vue."),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("heading", { name: "API en direct indisponible" }),
+    ).not.toBeInTheDocument();
   });
 
   it("renders cached preview images when available", async () => {

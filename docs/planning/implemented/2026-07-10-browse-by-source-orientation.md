@@ -21,8 +21,8 @@ browse-by-source page without changing its backend-first loading contract.
 
 ## Canonical Docs Updated
 
-- `../../../frontend/FEATURE_PAGES_ANALYSIS.md`
-- `../../../frontend/docs/implementation-guide.md`
+- [Frontend feature-page analysis](https://github.com/jerdaw/healtharchive/blob/main/frontend/FEATURE_PAGES_ANALYSIS.md)
+- [Frontend implementation guide](https://github.com/jerdaw/healtharchive/blob/main/frontend/docs/implementation-guide.md)
 
 ## Validation
 

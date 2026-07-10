@@ -745,7 +745,8 @@ All in `src/data/demo-records.ts`:
 
 ### 8.3 Browse by source `/archive/browse-by-source` – `src/app/[locale]/archive/browse-by-source/page.tsx`
 
-- Server component that prefers backend `GET /api/sources` (via `fetchSources()`).
+- Server component that prefers backend `GET /api/sources`: English uses `fetchSources()`,
+  while French uses `fetchSourcesLocalized({ lang: "fr" })`.
 - Falls back to `getSourcesSummary()` from the bundled offline sample dataset only when the API request fails. A successful response with no public sources renders the empty result instead of demo data.
 
 - `<PageShell>` with:
@@ -759,10 +760,14 @@ All in `src/data/demo-records.ts`:
   - Card shows:
     - `sourceName`
     - “N snapshots captured between [first] and [last]”.
-      - Buttons:
-        - “Browse archived site” → `/browse/${entryRecordId}` (falls back to `latestRecordId`).
-        - “Browse records” → `/archive?source=${sourceCode}`
-        - Optional: “Open in replay ↗” → `entryBrowseUrl` (when replay is configured in the backend).
+      - Actions:
+        - A single primary CTA uses `entryBrowseUrl` when present; otherwise it uses
+          `/browse/${entryRecordId ?? latestRecordId}` when an ID exists.
+        - The primary label is “View archived site” / “Voir le site archivé” when
+          `entryRecordId` exists and “View latest snapshot” / “Voir la capture la plus récente”
+          otherwise.
+        - “Browse records” / “Parcourir les enregistrements” remains the separate source-filter
+          action → `/archive?source=${sourceCode}`.
 
 ### 8.4 Methods `/methods` – `src/app/[locale]/methods/page.tsx`
 
