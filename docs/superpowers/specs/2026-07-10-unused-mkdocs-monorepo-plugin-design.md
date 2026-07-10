@@ -64,12 +64,11 @@ expand the review surface.
 
 ## Validation Boundary
 
-`make docs-refs` currently reports an unchanged historical inline reference to
-an ignored frontend-local environment file when run in a clean worktree. This
-batch will run the check and record that baseline if it is the only finding,
-while requiring the strict coverage and build gates to pass. It will not
-create, copy, or inspect environment files to make a path-existence check
-green.
+`make docs-refs` currently reports unchanged historical inline references to
+ignored frontend-local environment and dependency-install assets when run in
+a clean worktree. This batch will record those baseline findings while
+requiring the strict coverage and build gates to pass. It will not create,
+copy, or inspect ignored local assets to make path-existence checks green.
 
 ## Risk And Rollback
 

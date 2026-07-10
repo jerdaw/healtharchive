@@ -89,9 +89,10 @@ mypy, pip-audit.
   git diff --check
   ```
 
-  Expected: backend CI and both strict docs gates pass. `docs-refs` may report
-  only the unchanged historical ignored-environment-file baseline documented
-  in the design; any other finding is a regression to fix.
+  Expected: backend CI and both strict docs gates pass. While this plan is
+  active, `docs-refs` may report the future archive path plus the unchanged
+  historical ignored-local-asset baselines documented in the design. After
+  archiving, only the two historical baseline findings should remain.
 
 ### Task 3: Close The Documented Candidate
 
