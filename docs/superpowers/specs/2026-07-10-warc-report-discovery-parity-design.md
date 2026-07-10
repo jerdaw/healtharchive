@@ -104,10 +104,12 @@ performs its existing state maintenance.
 ## Documentation And Backlog
 
 Update the architecture guide to describe union discovery, stable-path
-preference, and the read-only output-directory helper. Remove the completed
-WARC-discovery consistency follow-through item from the future roadmap after
-repository search and tests confirm the crawl content report was the remaining
-independent operator-script path.
+preference, and the read-only output-directory helper. Update the historical
+discovery-consistency record to mark structured results and operator-script
+alignment complete while retaining malformed-manifest reporting as deferred.
+Replace the generic future-roadmap item with that explicit manifest-status and
+error-reporting follow-up after repository search and tests confirm the crawl
+content report was the remaining independent operator-script path.
 
 ## Completion Criteria
 
@@ -115,5 +117,6 @@ independent operator-script path.
 - Mixed stable, tracked-temp, and latest-fallback output is fully counted.
 - Stable duplicates remain preferred and are not counted twice.
 - Report generation does not modify crawl state.
-- Canonical docs and the future roadmap describe the delivered state.
+- Canonical docs distinguish the delivered parity work from the remaining
+  manifest-reporting task.
 - Focused, complete, and strict documentation validation pass.
