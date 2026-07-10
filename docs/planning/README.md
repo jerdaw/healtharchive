@@ -11,6 +11,7 @@ When complete, move them to `docs/planning/implemented/` and date them.
 
 Active plans:
 
+- GitHub Actions free-tier policy closeout: `2026-07-10-ci-free-tier-policy-closeout.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
 
 ## Current priority sequence
