@@ -2,13 +2,22 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Status:** Active
+**Status:** Implemented 2026-07-10
 
 **Goal:** Persist consolidation and indexing liveness outside the atomic snapshot transaction and expose it through operator status commands and metrics.
 
 **Architecture:** A dedicated one-row-per-job progress table is updated by a throttled, best-effort reporter using short independent transactions. Consolidation and indexing emit bounded callbacks into that reporter; operator surfaces read the row without changing snapshot transaction semantics.
 
 **Tech Stack:** Python 3.11+, SQLAlchemy 2, Alembic, PostgreSQL/SQLite, pytest, Prometheus textfile metrics.
+
+## Verification Results
+
+- Focused pytest command: `60 passed, 1 warning in 21.65s`
+- `make backend-ci`: Ruff format/check passed; mypy passed for 170 source
+  files; `388 passed, 1 warning in 119.80s`
+- `make docs-coverage-strict docs-build-strict`: strict coverage check passed;
+  OpenAPI and `llms.txt` generation completed; strict MkDocs build completed
+- `git diff --check`: passed
 
 ## Global Constraints
 
@@ -379,7 +388,7 @@ git commit -m "feat: export indexing progress metrics"
 - Consumes: implemented progress contract
 - Produces: accurate public observability and remaining backlog state
 
-- [ ] **Step 1: Update canonical docs**
+- [x] **Step 1: Update canonical docs**
 
 Document durable consolidation/indexing progress as a dashboard/operator
 signal, including heartbeat age and the no-alert-yet posture. In the roadmap,
@@ -387,12 +396,12 @@ mark persistence plus `show-job`, `annual-status`, `ha-check` consumption, and
 metrics complete. Retain checkpoint/transaction-policy, stale-transaction
 guidance, and detached-run wrapper work.
 
-- [ ] **Step 2: Mark this plan complete**
+- [x] **Step 2: Mark this plan complete**
 
 Change `**Status:** Active` to `**Status:** Implemented 2026-07-10` and add a
 short verification-results section with actual command outputs only.
 
-- [ ] **Step 3: Run focused validation**
+- [x] **Step 3: Run focused validation**
 
 ```bash
 python -m pytest -q \
@@ -407,7 +416,7 @@ python -m pytest -q \
   tests/test_ci_schema_parity.py
 ```
 
-- [ ] **Step 4: Run complete validation**
+- [x] **Step 4: Run complete validation**
 
 ```bash
 make backend-ci VENV=/home/jer/repos/vps/healtharchive/healtharchive/.venv
@@ -416,7 +425,7 @@ make docs-coverage-strict docs-build-strict \
 git diff --check
 ```
 
-- [ ] **Step 5: Commit documentation closeout**
+- [x] **Step 5: Commit documentation closeout**
 
 ```bash
 git add docs/operations/monitoring-and-alerting.md docs/planning/roadmap.md \
@@ -424,7 +433,7 @@ git add docs/operations/monitoring-and-alerting.md docs/planning/roadmap.md \
 git commit -m "docs: close indexing progress heartbeat backlog"
 ```
 
-- [ ] **Step 6: Verify the clean committed tree**
+- [x] **Step 6: Verify the clean committed tree**
 
 Repeat Steps 3 and 4, then confirm `git status --short --branch` is clean before
 push and PR creation.

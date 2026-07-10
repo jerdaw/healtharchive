@@ -262,14 +262,20 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     operators had to infer health from `/proc/<pid>/io`, `lsof`, CPU, and
     current open WARC paths because application logs and database-visible state
     did not show live progress.
+  - Delivered 2026-07-10:
+    - durable, throttled progress heartbeats during stable WARC consolidation
+      and indexing, including phase, current WARC basename, WARC index / total,
+      byte and record counters, elapsed time, and last-progress timestamp
+    - a separate short-transaction progress table that preserves the atomic
+      all-at-once snapshot transaction while making liveness database-visible
+    - operator output in `show-job` and `annual-status`; private `ha-check`
+      consumers inherit the annual-status payload
+    - low-cardinality `healtharchive_indexing_progress_*` metrics for heartbeat
+      age and numeric progress, with no WARC path/name label and no alert until
+      live history supports a reliable threshold
+    - handled failures retain their final progress row for diagnosis; successful
+      indexing clears it only after the snapshot transaction commits
   - Remaining work:
-    - add progress heartbeats/logging during stable WARC consolidation and long
-      WARC indexing runs, including current phase, current WARC, WARC index /
-      total, bytes or records processed where available, elapsed time, and
-      last-progress timestamp
-    - expose enough indexing progress outside the final all-at-once transaction
-      for `show-job`, `annual-status`, `ha-check`, and metrics to distinguish
-      "healthy but quiet" from "stalled"
     - evaluate safer transaction/checkpoint behavior for very large jobs, or
       document why the current all-at-once transaction remains required
     - add clearer stale-transaction detection/remediation guidance for manual
