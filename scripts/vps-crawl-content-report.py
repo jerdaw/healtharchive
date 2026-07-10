@@ -82,10 +82,9 @@ _load_backend_env_file()
 from warcio.archiveiterator import ArchiveIterator
 
 from archive_tool.constants import HTTP_ERROR_PATTERNS, STATE_FILE_NAME, TIMEOUT_PATTERNS
-from archive_tool.utils import discover_temp_dirs, find_all_warc_files
-from ha_backend.archive_storage import get_job_warcs_dir
 from ha_backend.crawl_stats import parse_crawl_log_progress
 from ha_backend.db import get_session
+from ha_backend.indexing.warc_discovery import discover_all_warcs_for_output_dir
 from ha_backend.models import ArchiveJob, Source
 
 URL_RE = re.compile(r"https?://[^\s\"'<>]+")
@@ -379,48 +378,22 @@ def summarize_recent_logs(
     return summary
 
 
-def _stable_warc_paths(output_dir: Path) -> list[Path]:
-    warcs_dir = get_job_warcs_dir(output_dir)
-    if not warcs_dir.is_dir():
-        return []
-    warc_paths: set[Path] = set()
-    for ext in (".warc.gz", ".warc"):
-        for path in warcs_dir.rglob(f"*{ext}"):
-            try:
-                if path.is_file() and path.stat().st_size > 0:
-                    warc_paths.add(path.resolve())
-            except OSError:
-                continue
-    return sorted(warc_paths)
-
-
 def discover_warcs_read_only(
     output_dir: Path, state_data: dict[str, Any]
 ) -> tuple[list[Path], str]:
-    stable_paths = _stable_warc_paths(output_dir)
-    if stable_paths:
-        return stable_paths, "stable"
-
     temp_dirs_raw = state_data.get("temp_dirs_host_paths", [])
-    temp_dirs: list[Path] = []
+    tracked_temp_dirs: list[Path] = []
     if isinstance(temp_dirs_raw, list):
         for raw in temp_dirs_raw:
-            try:
-                path = Path(str(raw))
-            except Exception:
-                continue
-            try:
-                if path.is_dir():
-                    temp_dirs.append(path.resolve())
-            except OSError:
-                continue
-    if temp_dirs:
-        return find_all_warc_files(temp_dirs), "temp"
+            value = str(raw).strip()
+            if value:
+                tracked_temp_dirs.append(Path(value))
 
-    fallback_dirs = discover_temp_dirs(output_dir)
-    if fallback_dirs:
-        return find_all_warc_files(fallback_dirs), "fallback"
-    return [], "none"
+    result = discover_all_warcs_for_output_dir(
+        output_dir,
+        tracked_temp_dirs=tracked_temp_dirs,
+    )
+    return result.warc_paths, result.source
 
 
 def _open_warc_stream(path: Path):

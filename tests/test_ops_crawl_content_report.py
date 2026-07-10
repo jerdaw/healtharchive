@@ -244,6 +244,46 @@ def test_main_emits_json_report_without_mutating_state(
     assert "job_id=" in out
 
 
+def test_read_only_discovery_unions_stable_tracked_and_fallback_without_state_write(
+    tmp_path: Path,
+) -> None:
+    mod = _load_script_module(
+        "vps-crawl-content-report.py",
+        module_name="ha_test_vps_crawl_content_report_union",
+    )
+    output_dir = tmp_path / "jobdir"
+    stable_dir = output_dir / "warcs"
+    stable_dir.mkdir(parents=True)
+    (stable_dir / "stable-001.warc.gz").write_bytes(b"stable")
+
+    tracked_temp = output_dir / ".tmp-tracked"
+    tracked_archive = tracked_temp / "collections" / "crawl-1" / "archive"
+    tracked_archive.mkdir(parents=True)
+    (tracked_archive / "tracked-001.warc.gz").write_bytes(b"tracked")
+
+    fallback_temp = output_dir / ".tmp-fallback"
+    fallback_archive = fallback_temp / "collections" / "crawl-2" / "archive"
+    fallback_archive.mkdir(parents=True)
+    (fallback_archive / "fallback-001.warc.gz").write_bytes(b"fallback")
+    os.utime(tracked_temp, (100, 100))
+    os.utime(fallback_temp, (200, 200))
+
+    state_path = output_dir / ".archive_state.json"
+    state_data = {"temp_dirs_host_paths": [str(tracked_temp)]}
+    state_path.write_text(json.dumps(state_data), encoding="utf-8")
+    original_state = state_path.read_text(encoding="utf-8")
+
+    warc_paths, source = mod.discover_warcs_read_only(output_dir, state_data)
+
+    assert source == "mixed"
+    assert sorted(path.name for path in warc_paths) == [
+        "fallback-001.warc.gz",
+        "stable-001.warc.gz",
+        "tracked-001.warc.gz",
+    ]
+    assert state_path.read_text(encoding="utf-8") == original_state
+
+
 def test_report_scans_previous_logs_when_latest_log_is_quiet(
     db_session: Session, tmp_path: Path
 ) -> None:
