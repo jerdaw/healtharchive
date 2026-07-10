@@ -206,6 +206,18 @@ groups:
           description: "The crawl metrics textfile script is failing (healtharchive_crawl_metrics_ok==0). Check healtharchive-crawl-metrics.service logs and storage mount health."
           runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/tutorials/debug-crawl.md"
 
+      - alert: HealthArchiveWarcCompleteFinalizationFailureAccepted
+        expr: delta(healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source[30m]) > 0
+        for: 5m
+        labels:
+          severity: warning
+          notification_tier: P2
+          service: healtharchive
+        annotations:
+          summary: "WARC-complete crawl accepted after optional finalization failure"
+          description: "A new WARC-complete job was accepted for indexing after optional ZIM finalization failed: source={{ $labels.source }}. Review the annual campaign record and confirm indexing/replay follow-through; this warning is dashboard-only."
+          runbook_url: "https://github.com/jerdaw/healtharchive/blob/main/docs/operations/playbooks/crawl/annual-campaign.md"
+
       - alert: HealthArchiveWorkerDownWhileJobsPending
         expr: |
           (

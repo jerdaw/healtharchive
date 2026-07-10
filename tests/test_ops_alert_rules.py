@@ -229,6 +229,21 @@ def test_crawl_container_restarts_high_alert_semantics() -> None:
     assert "docs/operations/runbooks/crawl-restart-budget-low.md" in body
 
 
+def test_warc_complete_finalization_failure_alert_semantics() -> None:
+    text = _rules_text()
+    body = _extract_alert_block(text, "HealthArchiveWarcCompleteFinalizationFailureAccepted")
+
+    assert (
+        "delta(healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source[30m]) > 0"
+        in body
+    )
+    assert re.search(r"^\s*for:\s*5m\s*$", body, re.MULTILINE)
+    assert re.search(r"^\s*severity:\s*warning\s*$", body, re.MULTILINE)
+    _assert_notification_tier(body, "P2")
+    _assert_no_pushover_notify(body)
+    assert "docs/operations/playbooks/crawl/annual-campaign.md" in body
+
+
 def test_worker_down_alert_is_automation_aware() -> None:
     text = _rules_text()
     body = _extract_alert_block(text, "HealthArchiveWorkerDownWhileJobsPending")
