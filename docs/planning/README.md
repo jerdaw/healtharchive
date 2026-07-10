@@ -11,7 +11,6 @@ When complete, move them to `docs/planning/implemented/` and date them.
 
 Active plans:
 
-- WARC-complete finalization failure alert: `2026-07-10-warc-finalization-alert.md`
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
 
 ## Current priority sequence
@@ -118,6 +117,8 @@ Recently closed items:
 - Annual crawl storage guardrails:
   `implemented/2026-06-11-annual-crawl-storage-guardrails.md`
 - WARC compaction staging: `implemented/2026-06-05-warc-compaction-staging.md`
+- WARC-complete finalization failure alert:
+  `implemented/2026-07-10-warc-finalization-alert.md`
 - Public search and CIHR follow-through:
   `implemented/2026-05-05-public-search-and-cihr-followthrough.md`
 - Annual edition recovery handoff docs:

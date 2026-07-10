@@ -247,8 +247,6 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     - `annual-status` and `show-job` surface
       `warc-complete-finalization-failed` with an operator note
   - Remaining work:
-    - add a metric/alert for accepted WARC-complete finalization failures if
-      this state recurs in a future run
     - decide whether WARC-only jobs should suppress Zimit's internal
       `warc2zim` path, or tolerate that finalization failure only after WARC
       completeness is proven
