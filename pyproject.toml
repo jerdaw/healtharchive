@@ -43,7 +43,6 @@ docs = [
   "mkdocs-material[imaging]",
   "pymdown-extensions>=10.21.3",  # CVE-2026-46338 fix
   "mkdocs-minify-plugin",
-  "mkdocs-monorepo-plugin",
   "mkdocs-swagger-ui-tag",
   "cairosvg",
   "pillow",
