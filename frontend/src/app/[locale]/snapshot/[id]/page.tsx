@@ -21,6 +21,9 @@ import { SnapshotFrame } from "@/components/SnapshotFrame";
 import { formatDate, formatUtcTimestamp } from "@/lib/format";
 import { getSiteCopy } from "@/lib/siteCopy";
 
+const metadataLabelClassName = "text-ha-muted w-20 shrink-0 sm:w-28";
+const metadataValueClassName = "min-w-0 flex-1 break-all";
+
 function getSnapshotDetailsMetadataCopy(locale: Locale) {
   if (locale === "fr") {
     return {
@@ -193,12 +196,12 @@ export default async function SnapshotPage({
       <section className="ha-card ha-home-panel space-y-4 p-4 sm:p-5">
         <dl className="space-y-1 text-xs text-[var(--text)] sm:text-sm">
           <div className="flex gap-2">
-            <dt className="text-ha-muted w-28">{locale === "fr" ? "Source" : "Source"}</dt>
-            <dd>{sourceName}</dd>
+            <dt className={metadataLabelClassName}>{locale === "fr" ? "Source" : "Source"}</dt>
+            <dd className={metadataValueClassName}>{sourceName}</dd>
           </div>
           <div className="flex gap-2">
-            <dt className="text-ha-muted w-28">{locale === "fr" ? "Date" : "Date"}</dt>
-            <dd>
+            <dt className={metadataLabelClassName}>{locale === "fr" ? "Date" : "Date"}</dt>
+            <dd className={metadataValueClassName}>
               {captureDate
                 ? formatDate(locale, captureDate)
                 : locale === "fr"
@@ -215,22 +218,24 @@ export default async function SnapshotPage({
           </div>
           {captureTimestamp ? (
             <div className="flex gap-2">
-              <dt className="text-ha-muted w-28">{locale === "fr" ? "Horodatage" : "Timestamp"}</dt>
-              <dd className="break-all">{formatUtcTimestamp(captureTimestamp)}</dd>
+              <dt className={metadataLabelClassName}>
+                {locale === "fr" ? "Horodatage" : "Timestamp"}
+              </dt>
+              <dd className={metadataValueClassName}>{formatUtcTimestamp(captureTimestamp)}</dd>
             </div>
           ) : null}
           {language ? (
             <div className="flex gap-2">
-              <dt className="text-ha-muted w-28">{locale === "fr" ? "Langue" : "Language"}</dt>
-              <dd>{language}</dd>
+              <dt className={metadataLabelClassName}>{locale === "fr" ? "Langue" : "Language"}</dt>
+              <dd className={metadataValueClassName}>{language}</dd>
             </div>
           ) : null}
           {originalUrl ? (
             <div className="flex gap-2">
-              <dt className="text-ha-muted w-28">
+              <dt className={metadataLabelClassName}>
                 {locale === "fr" ? "URL d’origine" : "Original URL"}
               </dt>
-              <dd className="min-w-0 flex-1 break-all">
+              <dd className={metadataValueClassName}>
                 <a
                   href={originalUrl}
                   target="_blank"
@@ -244,10 +249,10 @@ export default async function SnapshotPage({
           ) : null}
           {browseUrl ? (
             <div className="flex gap-2">
-              <dt className="text-ha-muted w-28">
+              <dt className={metadataLabelClassName}>
                 {locale === "fr" ? "URL de relecture" : "Replay URL"}
               </dt>
-              <dd className="min-w-0 flex-1 break-all">
+              <dd className={metadataValueClassName}>
                 <a
                   href={browseUrl}
                   target="_blank"
@@ -262,20 +267,20 @@ export default async function SnapshotPage({
 
           {usingBackend && snapshotMeta ? (
             <div className="flex gap-2">
-              <dt className="text-ha-muted w-28">ID</dt>
-              <dd className="break-all">{snapshotMeta.id}</dd>
+              <dt className={metadataLabelClassName}>ID</dt>
+              <dd className={metadataValueClassName}>{snapshotMeta.id}</dd>
             </div>
           ) : null}
           {usingBackend && snapshotMeta?.statusCode != null ? (
             <div className="flex gap-2">
-              <dt className="text-ha-muted w-28">{locale === "fr" ? "Statut" : "Status"}</dt>
-              <dd>{snapshotMeta.statusCode}</dd>
+              <dt className={metadataLabelClassName}>{locale === "fr" ? "Statut" : "Status"}</dt>
+              <dd className={metadataValueClassName}>{snapshotMeta.statusCode}</dd>
             </div>
           ) : null}
           {usingBackend && snapshotMeta?.mimeType ? (
             <div className="flex gap-2">
-              <dt className="text-ha-muted w-28">{locale === "fr" ? "Type" : "Type"}</dt>
-              <dd className="break-all">{snapshotMeta.mimeType}</dd>
+              <dt className={metadataLabelClassName}>{locale === "fr" ? "Type" : "Type"}</dt>
+              <dd className={metadataValueClassName}>{snapshotMeta.mimeType}</dd>
             </div>
           ) : null}
         </dl>

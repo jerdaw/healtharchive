@@ -111,7 +111,19 @@ describe("/snapshot/[id] (details)", () => {
     mockFetchSnapshotTimeline.mockResolvedValue(timeline);
 
     const ui = await SnapshotDetailsPage({ params: Promise.resolve({ id: "45" }) });
-    render(ui);
+    const { container } = render(ui);
+
+    const metadataTerms = Array.from(container.querySelectorAll("dl dt"));
+    const metadataValues = Array.from(container.querySelectorAll("dl dd"));
+
+    expect(metadataTerms).toHaveLength(9);
+    expect(metadataValues).toHaveLength(9);
+    for (const term of metadataTerms) {
+      expect(term).toHaveClass("w-20", "shrink-0", "sm:w-28");
+    }
+    for (const value of metadataValues) {
+      expect(value).toHaveClass("min-w-0", "flex-1", "break-all");
+    }
 
     const viewLinks = screen.getAllByRole("link", { name: "View" });
     expect(
