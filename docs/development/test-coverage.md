@@ -15,7 +15,7 @@ The main distinction is:
 | Surface | Workflow / command | When it runs | Coverage enforced? |
 |--------|---------------------|--------------|--------------------|
 | Fast backend CI | `.github/workflows/backend-ci.yml` → `make ci` | pushes to `main`, pull requests, manual dispatch | No |
-| Full backend CI | `.github/workflows/backend-ci-full.yml` → `make check-full` | nightly schedule, manual dispatch | Yes |
+| Full backend CI | `.github/workflows/backend-ci-full.yml` → `make check-full` | manual dispatch | Yes |
 | Local full gate | `make check-full` | when run explicitly (recommended before deploys) | Yes |
 
 Do not describe the fast `make ci` path as a coverage gate. Today it checks
@@ -101,7 +101,7 @@ coverage-critical:
 Coverage failures currently block:
 
 - `make check-full` when you run it locally
-- `.github/workflows/backend-ci-full.yml` when the nightly/manual full workflow
+- `.github/workflows/backend-ci-full.yml` when the manual full workflow
   runs
 
 Coverage failures do **not** currently block:
@@ -124,7 +124,7 @@ Coverage failures do **not** currently block:
 
 **Q: Why not enforce coverage in the fast PR gate?**
 A: The current repo choice keeps `make ci` fast and predictable for daily work.
-Coverage is still checked in the fuller nightly/manual path and can be run
+Coverage is still checked in the fuller manual path and can be run
 locally before deploys.
 
 **Q: Is 75% enforced per critical package?**
