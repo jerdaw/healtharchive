@@ -276,7 +276,7 @@ git commit -m "feat: heartbeat long indexing phases"
 - Consumes: `indexing_progress_payload`
 - Produces: `indexingProgress` in annual JSON job payloads
 
-- [ ] **Step 1: Write failing CLI tests**
+- [x] **Step 1: Write failing CLI tests**
 
 Seed a progress row and assert `show-job` contains phase, WARC position,
 records, byte position, elapsed seconds, last-progress timestamp, and age.
@@ -286,7 +286,7 @@ Assert annual JSON includes the serializer payload and text includes:
 indexing: phase=read_warc warc=2/5 current=warc-000002.warc.gz records=1234 last_progress_age_seconds=30
 ```
 
-- [ ] **Step 2: Run CLI tests and observe RED**
+- [x] **Step 2: Run CLI tests and observe RED**
 
 ```bash
 python -m pytest -q \
@@ -295,19 +295,19 @@ python -m pytest -q \
   -k progress
 ```
 
-- [ ] **Step 3: Add bounded CLI output**
+- [x] **Step 3: Add bounded CLI output**
 
 Load progress inside existing job queries. Use the serializer for JSON and a
 single compact text line. Print `-` for absent current WARC; preserve all
 existing output and summary semantics when no row exists.
 
-- [ ] **Step 4: Run complete CLI test files and observe GREEN**
+- [x] **Step 4: Run complete CLI test files and observe GREEN**
 
 ```bash
 python -m pytest -q tests/test_cli_jobs_admin.py tests/test_cli_annual_status.py
 ```
 
-- [ ] **Step 5: Commit operator status**
+- [x] **Step 5: Commit operator status**
 
 ```bash
 git add src/ha_backend/cli.py tests/test_cli_jobs_admin.py tests/test_cli_annual_status.py

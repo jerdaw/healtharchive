@@ -1396,6 +1396,30 @@ def cmd_schedule_annual(args: argparse.Namespace) -> None:
                 )
 
 
+def _format_indexing_progress(progress: dict[str, object]) -> str:
+    """Format one compact, stable operator-facing indexing progress line."""
+
+    def _number(key: str) -> str:
+        value = progress.get(key, 0)
+        if not isinstance(value, (str, int, float)):
+            return "0"
+        try:
+            return f"{float(value):g}"
+        except (TypeError, ValueError):
+            return "0"
+
+    return (
+        f"phase={progress.get('phase')} "
+        f"warc={_number('warcIndex')}/{_number('warcTotal')} "
+        f"current={progress.get('currentWarc') or '-'} "
+        f"records={_number('recordsProcessed')} "
+        f"bytes={_number('bytesProcessed')}/{_number('bytesTotal')} "
+        f"elapsed_seconds={_number('elapsedSeconds')} "
+        f"last_progress_at={progress.get('lastProgressAt')} "
+        f"last_progress_age_seconds={_number('lastProgressAgeSeconds')}"
+    )
+
+
 def cmd_annual_status(args: argparse.Namespace) -> None:
     """
     Report the status of the Jan 01 (UTC) annual campaign for a given year.
@@ -1406,8 +1430,9 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
     from datetime import datetime, timezone
 
     from .crawl_rescue_status import derive_crawl_rescue_status, summarize_crawl_operator_state
+    from .indexing.progress import indexing_progress_payload
     from .models import ArchiveJob as ORMArchiveJob
-    from .models import Source
+    from .models import ArchiveJobIndexingProgress, Source
 
     year = int(args.year)
     campaign_dt = datetime(year, 1, 1, tzinfo=timezone.utc)
@@ -1545,6 +1570,8 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
                 last_stats=last_stats,
             )
             operator_state = summarize_crawl_operator_state(job_status=job.status, rescue=rescue)
+            progress = session.get(ArchiveJobIndexingProgress, job.id)
+            progress_payload = indexing_progress_payload(progress) if progress is not None else None
 
             is_search_ready = job.status == "indexed"
 
@@ -1570,6 +1597,11 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
                         "campaignYear": cfg.get("campaign_year"),
                         "campaignDate": cfg.get("campaign_date"),
                         "schedulerVersion": cfg.get("scheduler_version"),
+                        **(
+                            {"indexingProgress": progress_payload}
+                            if progress_payload is not None
+                            else {}
+                        ),
                         "rescue": {
                             "primaryBackend": rescue.primary_backend,
                             "configuredBackend": rescue.configured_backend,
@@ -1702,6 +1734,9 @@ def cmd_annual_status(args: argparse.Namespace) -> None:
         operator_note = rescue_data.get("operatorNote")
         if operator_note:
             print(f"     note: {operator_note}")
+        indexing_progress = job_data.get("indexingProgress")
+        if isinstance(indexing_progress, dict):
+            print(f"     indexing: {_format_indexing_progress(indexing_progress)}")
 
 
 def cmd_reconcile_annual_tool_options(args: argparse.Namespace) -> None:
@@ -2728,9 +2763,12 @@ def cmd_show_job(args: argparse.Namespace) -> None:
     Show detailed information about a single job.
     """
     from .crawl_rescue_status import derive_crawl_rescue_status
+    from .indexing.progress import indexing_progress_payload
     from .models import ArchiveJob as ORMArchiveJob
+    from .models import ArchiveJobIndexingProgress
 
     discovered_warc_count: int | None = None
+    progress_payload: dict[str, object] | None = None
     with get_session() as session:
         job = session.get(ORMArchiveJob, args.id)
         if job is None:
@@ -2766,6 +2804,9 @@ def cmd_show_job(args: argparse.Namespace) -> None:
             crawler_stage=crawler_stage,
             last_stats=last_stats,
         )
+        progress = session.get(ArchiveJobIndexingProgress, job.id)
+        if progress is not None:
+            progress_payload = indexing_progress_payload(progress)
 
         # Best-effort, on-demand WARC discovery to avoid misleading "0" counts
         # for long-running crawls (job.warc_file_count is primarily updated by
@@ -2797,6 +2838,8 @@ def cmd_show_job(args: argparse.Namespace) -> None:
     print(f"Crawler RC:      {crawler_exit_code}")
     print(f"Crawler status:  {crawler_status}")
     print(f"Crawler stage:   {crawler_stage}")
+    if progress_payload is not None:
+        print(f"Indexing:        {_format_indexing_progress(progress_payload)}")
     print(f"WARC files:      {warc_file_count}")
     if discovered_warc_count is None:
         print("WARC files (discovered): (unknown)")

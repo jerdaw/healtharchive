@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import json
 import sys
+from datetime import datetime, timedelta, timezone
 from io import StringIO
 from pathlib import Path
 
@@ -9,7 +10,7 @@ from ha_backend import cli as cli_module
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
 from ha_backend.job_registry import SOURCE_JOB_CONFIGS, build_job_config
-from ha_backend.models import ArchiveJob, Source
+from ha_backend.models import ArchiveJob, ArchiveJobIndexingProgress, Source
 from ha_backend.seeds import seed_sources
 
 
@@ -150,6 +151,60 @@ def test_annual_status_json_summary_counts(tmp_path, monkeypatch) -> None:
     assert summary["errors"] == 0
     assert summary["inProgress"] == 1
     assert summary["readyForSearch"] is False
+
+
+def test_annual_status_exposes_indexing_progress(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    now = datetime(2027, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+    monkeypatch.setattr("ha_backend.indexing.progress._now_utc", lambda: now)
+
+    with get_session() as session:
+        seed_sources(session)
+        session.flush()
+        job = _create_annual_job(
+            session,
+            source_code="hc",
+            year=2027,
+            status="indexing",
+        )
+        session.flush()
+        session.add(
+            ArchiveJobIndexingProgress(
+                job_id=job.id,
+                phase="read_warc",
+                current_warc="warc-000002.warc.gz",
+                warc_index=2,
+                warc_total=5,
+                records_processed=1234,
+                bytes_processed=4096,
+                bytes_total=8192,
+                started_at=now - timedelta(seconds=90),
+                last_progress_at=now - timedelta(seconds=30),
+            )
+        )
+
+    json_out = _run_cli(["annual-status", "--year", "2027", "--json", "--sources", "hc"])
+    progress = json.loads(json_out)["sources"][0]["job"]["indexingProgress"]
+    assert progress == {
+        "bytesProcessed": 4096,
+        "bytesTotal": 8192,
+        "currentWarc": "warc-000002.warc.gz",
+        "elapsedSeconds": 90.0,
+        "lastProgressAgeSeconds": 30.0,
+        "lastProgressAt": "2027-01-02T03:03:35+00:00",
+        "phase": "read_warc",
+        "recordsProcessed": 1234,
+        "startedAt": "2027-01-02T03:02:35+00:00",
+        "warcIndex": 2,
+        "warcTotal": 5,
+    }
+
+    text_out = _run_cli(["annual-status", "--year", "2027", "--sources", "hc"])
+    assert (
+        "indexing: phase=read_warc warc=2/5 current=warc-000002.warc.gz "
+        "records=1234 bytes=4096/8192 elapsed_seconds=90 "
+        "last_progress_at=2027-01-02T03:03:35+00:00 last_progress_age_seconds=30"
+    ) in text_out
 
 
 def test_annual_status_json_includes_rescue_and_operator_state(tmp_path, monkeypatch) -> None:
