@@ -324,7 +324,7 @@ git commit -m "feat: show durable indexing progress"
 - Consumes: non-failed `ArchiveJobIndexingProgress` rows joined to source/job
 - Produces: `healtharchive_indexing_progress_*` gauges
 
-- [ ] **Step 1: Write the failing metrics test**
+- [x] **Step 1: Write the failing metrics test**
 
 Seed one active and one failed progress row. Assert only the active job emits:
 
@@ -339,20 +339,20 @@ healtharchive_indexing_progress_bytes_total
 
 Assert labels are exactly `source`, `job_id`, and `phase`, with no WARC value.
 
-- [ ] **Step 2: Run the metrics test and observe RED**
+- [x] **Step 2: Run the metrics test and observe RED**
 
 ```bash
 python -m pytest -q \
   tests/test_ops_crawl_metrics_textfile_state.py::test_metrics_emits_active_indexing_progress
 ```
 
-- [ ] **Step 3: Emit the gauges**
+- [x] **Step 3: Emit the gauges**
 
 Query progress rows in the existing database block, convert timestamps to UTC,
 clamp age to zero, reset the collection in the existing DB-exception path, and
 emit all six gauges for phases other than `failed`.
 
-- [ ] **Step 4: Run metrics tests and observe GREEN**
+- [x] **Step 4: Run metrics tests and observe GREEN**
 
 ```bash
 python -m pytest -q \
@@ -360,7 +360,7 @@ python -m pytest -q \
   tests/test_ops_metrics_textfile_scripts.py
 ```
 
-- [ ] **Step 5: Commit metrics**
+- [x] **Step 5: Commit metrics**
 
 ```bash
 git add scripts/vps-crawl-metrics-textfile.py \
