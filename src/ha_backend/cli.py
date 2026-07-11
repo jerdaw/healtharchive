@@ -2713,6 +2713,8 @@ def cmd_list_warcs(args: argparse.Namespace) -> None:
             "job_id": args.id,
             "source": result.source,
             "manifest_valid": result.manifest_valid,
+            "manifest_status": result.manifest_status,
+            "manifest_error": result.manifest_error,
             "count": result.count,
             "warcs": [str(p) for p in warcs],
         }
@@ -2806,7 +2808,10 @@ def cmd_show_job(args: argparse.Namespace) -> None:
     # Show detailed WARC info if requested
     if warc_details is not None:
         print(f"WARC source:     {warc_details.source}")
+        print(f"Manifest status: {warc_details.manifest_status}")
         print(f"Manifest valid:  {warc_details.manifest_valid}")
+        if warc_details.manifest_error is not None:
+            print(f"Manifest error:  {warc_details.manifest_error}")
         if warc_details.warc_paths:
             # Show 5 most recent WARCs by modification time
 

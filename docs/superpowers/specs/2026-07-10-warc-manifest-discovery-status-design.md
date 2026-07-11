@@ -62,9 +62,10 @@ but the aggregate status remains `invalid`/`invalid-entry` so the partial
 manifest cannot be mistaken for healthy evidence.
 
 This parser validates only the structure required for discovery deduplication:
-a dictionary root, an `entries` list, dictionary entries, and non-empty
-`source_path`/`stable_name` fields. Full file presence, size, and hash checks
-remain the responsibility of `verify-warc-manifest`.
+a dictionary root, an optional `entries` list, dictionary entries, and
+non-empty `source_path`/`stable_name` fields. A missing `entries` key is treated
+as an empty list to match the existing full verifier. Full file presence, size,
+and hash checks remain the responsibility of `verify-warc-manifest`.
 
 ## Consumer Behavior
 

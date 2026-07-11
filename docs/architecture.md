@@ -779,7 +779,9 @@ Steps:
    is not already state-tracked.
 4. Union the three source groups and prefer stable paths when files are
    hardlinks or the consolidation manifest records a copied temp source.
-5. Return sorted paths, source counts, total count, manifest/fallback status,
+5. Parse the consolidation manifest only far enough to validate the root/entry
+   shape and collect copy-fallback source paths for deduplication.
+6. Return sorted paths, source counts, total count, bounded manifest status,
    and a source label of `stable`, `temp`, `fallback`, `mixed`, or `none`.
 
 `discover_all_warcs_for_job` obtains `temp_dirs` from `CrawlState` and delegates
@@ -787,6 +789,17 @@ to this helper. `discover_warcs_for_job` returns only the result paths for the
 indexer. The read-only content-cost report supplies the temp paths from its
 already-loaded state snapshot, so operator counts cannot silently fall back to
 stable-only discovery.
+
+Manifest status is `missing`, `valid`, `invalid`, or `unreadable`.
+`manifest_valid` remains true for `missing`/`valid` and false for
+`invalid`/`unreadable`; a missing manifest is not a discovery error. Invalid
+results expose only bounded codes such as `invalid-json` or `invalid-entry`,
+not raw content, exception text, or paths. `list-warcs --json`, `show-job
+--warc-details`, and the read-only content-cost report surface the same fields.
+
+This lightweight parse status is not an integrity check. Use
+`healtharchive verify-warc-manifest --id JOB_ID` for presence/size validation or
+add `--level hash` for SHA-256 verification.
 
 ### 6.2 WARC reading (`warc_reader.py`)
 

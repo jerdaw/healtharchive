@@ -1,12 +1,12 @@
 # WARC Manifest Discovery Status Implementation Plan
 
-**Status:** Ready to implement
+**Status:** Implemented 2026-07-10; final verification pending
 
 **Goal:** Correct manifest validity semantics and expose bounded parsing status
 consistently without changing discovery results or performing expensive
 integrity verification.
 
-**Design:** `../superpowers/specs/2026-07-10-warc-manifest-discovery-status-design.md`
+**Design:** `../../superpowers/specs/2026-07-10-warc-manifest-discovery-status-design.md`
 
 ## Task 1: Add failing canonical status tests
 
