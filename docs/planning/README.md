@@ -12,6 +12,7 @@ When complete, move them to `docs/planning/implemented/` and date them.
 Active plans:
 
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
+- SQLAlchemy Query.get test hygiene: `2026-07-11-sqlalchemy-query-get-hygiene.md`
 
 ## Current priority sequence
 
