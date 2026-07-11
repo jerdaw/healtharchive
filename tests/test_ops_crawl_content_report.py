@@ -109,6 +109,45 @@ def test_classify_content_uses_extension_and_mime_heuristics() -> None:
     assert mod.classify_content("https://example.com/download", "application/pdf") == "document"
 
 
+def test_discover_warcs_read_only_unions_stable_tracked_temp_and_fallback(
+    tmp_path: Path,
+) -> None:
+    mod = _load_script_module(
+        "vps-crawl-content-report.py",
+        module_name="ha_test_vps_crawl_content_report_warc_union",
+    )
+    output_dir = tmp_path / "jobdir"
+    stable_dir = output_dir / "warcs"
+    tracked_temp_dir = output_dir / ".tmp-tracked"
+    fallback_temp_dir = output_dir / ".tmp-fallback"
+
+    stable_warc = stable_dir / "stable.warc.gz"
+    tracked_warc = tracked_temp_dir / "tracked.warc.gz"
+    fallback_warc = fallback_temp_dir / "fallback.warc.gz"
+    for warc_path, payload in [
+        (stable_warc, b"stable"),
+        (tracked_warc, b"tracked"),
+        (fallback_warc, b"fallback"),
+    ]:
+        warc_path.parent.mkdir(parents=True, exist_ok=True)
+        warc_path.write_bytes(payload)
+
+    os.utime(tracked_temp_dir, (1_700_000_000, 1_700_000_000))
+    os.utime(fallback_temp_dir, (1_700_000_001, 1_700_000_001))
+
+    warc_paths, source = mod.discover_warcs_read_only(
+        output_dir,
+        {"temp_dirs_host_paths": [str(tracked_temp_dir)]},
+    )
+
+    assert set(warc_paths) == {
+        stable_warc.resolve(),
+        tracked_warc.resolve(),
+        fallback_warc.resolve(),
+    }
+    assert source == "mixed"
+
+
 def test_load_backend_env_file_sets_database_url_when_missing(monkeypatch, tmp_path: Path) -> None:
     mod = _load_script_module(
         "vps-crawl-content-report.py",

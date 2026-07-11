@@ -161,26 +161,23 @@ def discover_warcs_for_job(
     return result.warc_paths
 
 
-def discover_all_warcs_for_job(
-    job: ArchiveJob,
+def discover_all_warcs_for_output_dir(
+    host_output_dir: Path,
     *,
+    temp_dirs: list[Path],
     allow_fallback: bool = True,
 ) -> WarcDiscoveryResult:
     """
-    Discover all WARC files for a job with detailed metadata.
+    Discover all WARC files for one output directory with detailed metadata.
 
-    Returns a WarcDiscoveryResult with:
-    - warc_paths: List of discovered WARC files
-    - source: Where WARCs were found ("stable", "temp", or "fallback")
-    - manifest_valid: Whether the manifest is valid (always True for now)
-    - count: Number of WARCs discovered
+    ``temp_dirs`` must be the existing temp directories tracked by crawl state.
+    When fallback is enabled, the latest untracked ``.tmp*`` directory is also
+    included. Stable, tracked-temp, and fallback WARCs are then deduplicated by
+    path, file identity, and consolidation-manifest source metadata.
     """
-    host_output_dir = Path(job.output_dir).resolve()
+    host_output_dir = host_output_dir.resolve()
 
     stable_warcs = _discover_stable_warcs_for_output_dir(host_output_dir)
-
-    state = CrawlState(host_output_dir, initial_workers=1)
-    temp_dirs = state.get_temp_dir_paths()
     temp_warcs: list[Path] = find_all_warc_files(temp_dirs) if temp_dirs else []
     fallback_warcs: list[Path] = []
 
@@ -227,9 +224,25 @@ def discover_all_warcs_for_job(
     )
 
 
+def discover_all_warcs_for_job(
+    job: ArchiveJob,
+    *,
+    allow_fallback: bool = True,
+) -> WarcDiscoveryResult:
+    """Discover all WARC files for a job with detailed source metadata."""
+    host_output_dir = Path(job.output_dir).resolve()
+    state = CrawlState(host_output_dir, initial_workers=1)
+    return discover_all_warcs_for_output_dir(
+        host_output_dir,
+        temp_dirs=state.get_temp_dir_paths(),
+        allow_fallback=allow_fallback,
+    )
+
+
 __all__ = [
     "discover_temp_warcs_for_job",
     "discover_warcs_for_job",
     "discover_all_warcs_for_job",
+    "discover_all_warcs_for_output_dir",
     "WarcDiscoveryResult",
 ]
