@@ -943,7 +943,7 @@ A: Yes, use `<iframe src="https://api.healtharchive.ca/api/snapshots/raw/{id}"><
 ## Support & Contact
 
 - **Technical issues**: [GitHub Issues](https://github.com/jerdaw/healtharchive/issues)
-- **General questions**: [GitHub Discussions](https://github.com/jerdaw/healtharchive/discussions)
+- **General questions**: [Contact page](https://healtharchive.ca/contact)
 - **API documentation**: [Interactive docs](https://api.healtharchive.ca/docs)
 
 ---
