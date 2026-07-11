@@ -39,16 +39,20 @@ without weakening or changing the checker.
 Rephrase the two maintenance-audit bullets to describe local environment
 overrides, virtual environments, and dependency trees as categories rather
 than formatting absent repository-prefixed paths as inline code. Add a rule to
-`docs/documentation-guidelines.md`: use inline-code formatting for a
-repository-relative path only when the path is expected to resolve when the
-reference checker runs from a clean checkout—either because it is tracked or
-because the documented check prerequisites generate it. Describe local or
-ignored examples that the workflow neither tracks nor generates in prose.
+`docs/documentation-guidelines.md`: path-like inline-code tokens under
+checker-recognized repository prefixes must resolve when the reference checker
+runs from a clean checkout—either because they are tracked or because the
+documented check prerequisites generate them. Bare illustrative artifact or
+category names that the checker does not recognize as repository references
+need not resolve. Describe unmanaged local examples under recognized prefixes
+in prose.
 
-This matches the checker's existing contract: path-like inline code is a
-machine-checkable reference, while prose may discuss a class of local artifact
-without asserting that a specific path exists. It fixes the source ambiguity
-instead of adding an exception mechanism.
+This matches the checker's existing contract: path-like inline code under a
+recognized repository prefix is a machine-checkable reference, while bare
+illustrative artifact or category names are not repository references. Prose
+may discuss a class of local artifact without asserting that a specific path
+exists. It fixes the source ambiguity instead of adding an exception
+mechanism.
 
 ### 2. Explicit inline-code waiver
 
@@ -73,9 +77,12 @@ The existing checker remains unchanged:
 - path-like inline-code tokens under recognized repository prefixes must exist
   when the checker runs from a clean checkout, either as tracked files or as
   outputs created by the documented check prerequisites;
-- local or ignored artifacts that the validation workflow neither tracks nor
-  generates should be described by category in prose, not presented as
-  resolvable inline-code references;
+- bare illustrative artifact or category names that the checker does not
+  recognize as repository references may remain inline code and need not
+  resolve;
+- local or ignored artifacts under a recognized repository prefix that the
+  validation workflow neither tracks nor generates should be described by
+  category in prose, not presented as resolvable inline-code references;
 - no placeholder files may be created solely to satisfy documentation checks.
 
 The maintenance audit will continue to state that ignored local assets were

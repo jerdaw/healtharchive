@@ -146,11 +146,14 @@ Available templates:
   outputs. Regenerate them through `make docs-refs`, `make docs-build`, or
   `make docs-serve`; do not hand-edit or commit them. If either output is
   wrong, update the API schema, source docs, or generator script that feeds it.
-- Use inline-code formatting for a repository-relative path only when it will
-  exist when `make docs-refs` reaches the reference checker—either because the
-  path is tracked or because an earlier step in that target generates it.
-  Describe unmanaged local or ignored artifacts by category in prose; do not
-  create placeholder files solely to satisfy documentation checks.
+- Treat path-like inline-code tokens under repository prefixes recognized by
+  `make docs-refs` as resolvable repository references: each must exist when
+  the checker runs, either because it is tracked or because an earlier target
+  step generates it. Bare inline-code artifact or category names that the
+  checker does not recognize as repository references may remain illustrative
+  and need not resolve. Describe unmanaged local artifacts under a recognized
+  repository prefix by category in prose; do not create placeholder files
+  solely to satisfy documentation checks.
 - If you sync your workspace via Syncthing, treat `.stignore` as "sync ignore" (like `.gitignore`) and ensure it excludes build artifacts and machine-local dev artifacts (e.g., `.venv/`, `node_modules/`, `.dev-archive-root/`). Secrets may sync via Syncthing, but must remain git-ignored.
 
 ## Documentation framework (Diátaxis)
