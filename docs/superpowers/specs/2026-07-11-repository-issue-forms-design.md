@@ -11,6 +11,12 @@ and detailed bug/feature guidance in `CONTRIBUTING.md`, but it has no
 repository; GitHub Discussions are not, even though the contribution guide
 contains five directions to that disabled feature.
 
+Final branch review also verified through GitHub's repository API that private
+vulnerability reporting is disabled. The root and frontend security policies
+already name the working private email channel, so the design must not route
+reporters to the unavailable advisory form or change that repository setting
+implicitly.
+
 GitHub's current issue-form documentation places YAML forms and the template
 chooser configuration under `.github/ISSUE_TEMPLATE/`. Issue forms remain a
 GitHub public-preview feature, so this batch uses only the documented core
@@ -25,11 +31,11 @@ features.
 
 ## Non-goals
 
-- Enabling GitHub Discussions or changing repository settings.
+- Enabling GitHub Discussions, enabling private vulnerability reporting, or
+  changing any other repository settings.
 - Creating, renaming, or auto-applying labels, issue types, projects, or
   assignees.
-- Changing `SECURITY.md`, the public `/report` intake behavior, or the pull
-  request template.
+- Changing the public `/report` intake behavior or the pull request template.
 - Adding templates to repositories outside this checkout.
 - Claiming the cross-repository roadmap item is fully complete.
 - Adding GitHub Actions or third-party template-validation dependencies.
@@ -66,9 +72,10 @@ The bug form uses the existing contribution-guide expectations:
 
 - prominent Markdown warning that GitHub issues are public and must not contain
   secrets, personal data, or personal health information;
-- explicit routing for vulnerabilities to private vulnerability reporting and
-  for broken snapshots, metadata errors, missing coverage, and takedown
-  requests to `https://healtharchive.ca/report`;
+- explicit routing for vulnerabilities to the repository security policy,
+  which provides the working private email channel, and for broken snapshots,
+  metadata errors, missing coverage, and takedown requests to
+  `https://healtharchive.ca/report`;
 - affected area dropdown: backend API, crawler/archive tool, frontend/UI,
   documentation, CI/developer tooling, or other;
 - required description, reproduction steps, expected behavior, and actual
@@ -103,12 +110,16 @@ metadata.
 `.github/ISSUE_TEMPLATE/config.yml` disables contributor blank issues and
 provides two contact links:
 
-- private vulnerability reporting at the canonical GitHub advisory URL;
+- the stable GitHub security-policy page, which provides the working private
+  email reporting channel without depending on private-vulnerability-reporting
+  settings;
 - the public HealthArchive.ca report form for broken snapshots, metadata
   errors, missing coverage, and takedown requests.
 
-No Discussions link is shown because Discussions are disabled. The contribution
-guide replaces all five stale Discussions directions contextually:
+No Discussions link is shown because Discussions are disabled. Active public
+guidance in `CONTRIBUTING.md`, the first-contribution tutorial, API consumer
+guide, architecture walkthrough, and documentation-health guide replaces stale
+Discussions directions contextually:
 
 - feature and architecture proposals use the feature-request form;
 - general questions use the existing public contact page;
@@ -134,8 +145,14 @@ existing YAML dependency and asserts:
   blank issues are disabled;
 - chooser contact links are exactly the two intended mappings, each contains
   only `name`, `url`, and `about`, and all three values are non-empty strings;
-- security and public report contact-link URLs match canonical URLs;
-- `CONTRIBUTING.md` contains no remaining Discussions URL or instruction.
+- the security-policy and public-report contact-link URLs match canonical URLs;
+- both `SECURITY.md` and `frontend/SECURITY.md` name
+  `security@healtharchive.ca` as the private reporting channel;
+- active forms, chooser configuration, security policies, and contributor
+  guidance do not contain the disabled advisory URL or claim that private
+  vulnerability reporting is available;
+- all five active public guidance files contain no remaining Discussions URL
+  or intake instruction.
 
 Run that focused test, backend parity, pre-commit YAML validation, strict docs
 checks, and the repository pre-push gate. After pushing, hosted validation and
@@ -144,20 +161,23 @@ will not become active until merge and must not be claimed live.
 
 ## Documentation Closeout
 
-Update `CONTRIBUTING.md` to describe the issue forms and replace disabled
-Discussions directions. Update roadmap item 5 to state that monorepo issue and
-PR intake coverage is complete while external repository coverage remains
-unverified. Archive the implementation plan and update both planning indexes.
+Update both security policies to identify the working email route. Update
+`CONTRIBUTING.md` and the four active public guidance docs to describe the
+available intake paths and replace disabled Discussions directions. Update
+roadmap item 5 to state that monorepo issue and PR intake coverage is complete
+while external repository coverage remains unverified. Archive the
+implementation plan and update both planning indexes.
 
 ## Risk And Rollback
 
-The primary risks are invalid form schema, a public security-report path, or
-guidance that points to a disabled feature. Focused structure tests, YAML
-validation, and exact URL assertions cover these boundaries. Rollback is
-limited to the issue-template directory, focused test, contribution guide, and
-planning documentation.
+The primary risks are invalid form schema, a public or unavailable
+security-report path, or guidance that points to a disabled feature. Focused
+structure tests, YAML validation, and exact URL assertions cover these
+boundaries. Rollback is limited to the issue-template directory, focused test,
+security policies, public guidance files, and planning documentation.
 
 ## Reference
 
 - [GitHub: Configuring issue templates for your repository](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/configuring-issue-templates-for-your-repository)
 - [GitHub: Syntax for issue forms](https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms)
+- [GitHub: Configuring private vulnerability reporting](https://docs.github.com/en/code-security/how-tos/report-and-fix-vulnerabilities/configure-vulnerability-reporting/configure-for-a-repository)
