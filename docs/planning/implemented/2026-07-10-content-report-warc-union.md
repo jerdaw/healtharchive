@@ -113,3 +113,8 @@ boundary violations, and roadmap over-claiming. Commit, push, open a PR against
 - Architecture now documents the shared union/deduplication contract. The
   roadmap records content-report and `vps-crawl-status.sh` alignment as
   delivered and leaves only explicit manifest diagnostic/reporting work open.
+- PR [#129](https://github.com/jerdaw/healtharchive/pull/129) is open and
+  mergeable against `main`. Its body was read back with the TDD evidence,
+  timeout limitation, public safety boundary, and local verification intact.
+  Backend test/API-health/E2E, frontend contract/test, and platform integration
+  jobs were in progress at the first hosted readback.
