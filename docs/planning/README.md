@@ -110,6 +110,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Canonical architecture diagrams:
+  `implemented/2026-07-10-canonical-architecture-diagrams.md`
 - Frontend internal link checking and canonical locale routing:
   `implemented/2026-07-10-frontend-internal-link-check.md`
 - Autonomous overnight maintenance queue:
