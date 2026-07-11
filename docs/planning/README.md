@@ -110,6 +110,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Operations governance backlog truth reconciliation:
+  `implemented/2026-07-10-ops-governance-backlog-truth.md`
 - RCDC backlog scope audit:
   `implemented/2026-07-10-rcdc-backlog-scope-audit.md`
 - Cross-repo issue templates:
