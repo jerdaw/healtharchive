@@ -34,8 +34,9 @@ accessible names without changing visible copy, destinations, or fallbacks.
   run through the standard frontend parity commands.
 - Contract parity, strict documentation coverage/build, and the repository
   pre-push gate are part of the completed implementation workflow.
-- Localized narrow and desktop browser inspection remains a final verification
-  step; it is not inferred from automated checks.
+- Localized narrow and desktop browser inspection confirmed the API-backed
+  sections, unique accessible names, unchanged visible text and destinations,
+  and no horizontal overflow in English or French.
 
 ## Canonical Docs Updated
 
