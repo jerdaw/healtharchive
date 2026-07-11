@@ -4,6 +4,7 @@ This folder contains **historical implementation plans** that have already been 
 
 Implemented plans:
 
+- `2026-07-10-accessibility-audit-baseline.md`
 - `2026-07-10-canonical-architecture-diagrams.md`
 - `2026-07-10-frontend-internal-link-check.md`
 - `2026-06-28-autonomous-overnight-work-plan.md`

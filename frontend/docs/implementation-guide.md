@@ -1067,8 +1067,12 @@ If you’re continuing development, some clear next steps could be:
    - Add a “View timeline” link on snapshot cards to show capture history for a given URL.
 
 3. **Accessibility audit**:
-   - A first pass has been completed (skip link, nav landmarks, focus-visible styles, and basic ARIA).
-   - Future work could include automated testing (e.g., axe), screen reader testing across platforms, and deeper contrast audits.
+   - The dated internal [accessibility audit baseline](accessibility-audit-2026-07-10.md)
+     records current source evidence and 12 focused English/French accessibility
+     tests, including 11 axe scans.
+   - Remaining work includes high-traffic dynamic-route coverage, keyboard task
+     validation, screen-reader testing across platforms, zoom/reflow,
+     forced-colour, touch-target, and deeper contrast audits.
 
 4. **Analytics / logging** (if desired):
    - E.g., simple pageview tracking or logging to a privacy-respecting service.
