@@ -136,6 +136,7 @@ Recently closed items:
 - Disk usage investigation (48GB discrepancy): `implemented/2026-02-01-disk-usage-investigation.md`
 - WARC discovery consistency improvements (partial): `implemented/2026-01-29-warc-discovery-consistency.md`
 - WARC manifest verification: `implemented/2026-01-29-warc-manifest-verification.md`
+- Content report stable/temp/fallback WARC union: `implemented/2026-07-10-content-report-warc-union.md`
 - Patch-job-config CLI + integration tests: `implemented/2026-01-28-patch-job-config-and-integration-tests.md`
 - archive_tool hardening + ops improvements: `implemented/2026-01-27-archive-tool-hardening-and-ops-improvements.md`
 - Annual crawl throughput and WARC-first artifacts: `implemented/2026-01-23-annual-crawl-throughput-and-artifacts.md`

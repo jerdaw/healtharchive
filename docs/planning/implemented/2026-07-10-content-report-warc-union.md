@@ -1,12 +1,12 @@
 # Content Report WARC Union Implementation Plan
 
-**Status:** Ready to implement
+**Status:** Implemented 2026-07-10
 
 **Goal:** Align the read-only crawl content-cost report with canonical stable,
 tracked-temp, and fallback WARC union semantics without changing indexing or
 production state.
 
-**Design:** `../superpowers/specs/2026-07-10-content-report-warc-union-design.md`
+**Design:** `../../superpowers/specs/2026-07-10-content-report-warc-union-design.md`
 
 ## Task 1: Add the failing report regression
 
@@ -86,4 +86,30 @@ boundary violations, and roadmap over-claiming. Commit, push, open a PR against
 
 ## Completion Record
 
-Pending implementation.
+- Initial RED:
+  `test_discover_warcs_read_only_unions_stable_tracked_temp_and_fallback`
+  failed because the current report returned only `stable.warc.gz`; the tracked
+  and fallback files were absent.
+- Added `discover_all_warcs_for_output_dir` as the canonical stable,
+  state-tracked-temp, and latest-untracked-fallback union. Existing job-based
+  APIs now delegate to it without signature changes.
+- Removed the report's stable-first duplicate and delegated its already-loaded
+  state temp paths to the canonical helper.
+- Focused GREEN: the new regression plus canonical discovery module passed 22
+  tests; the complete content-report and discovery pair passed 29 tests.
+- Ruff check passed and Ruff format reported all three touched Python files
+  already formatted.
+- Mypy reported `Success: no issues found in 2 source files`; two existing
+  unchecked-body notes from `archive_tool.state` were informational.
+- The implementation commit's repository hooks passed whitespace, EOF, YAML,
+  TOML, large-file, private-key, Ruff format/check, mypy, and gitleaks checks.
+- One `make backend-ci` attempt exceeded the 124-second tool timeout without
+  returning buffered output. It provides no pass/fail evidence and was not
+  retried; the focused suites and hosted CI remain the executable integration
+  evidence for this batch.
+- `make docs-coverage-strict docs-build-strict` passed strict coverage,
+  OpenAPI/LLM generation, and the strict MkDocs build; documentation built in
+  1.65 seconds on the final wording.
+- Architecture now documents the shared union/deduplication contract. The
+  roadmap records content-report and `vps-crawl-status.sh` alignment as
+  delivered and leaves only explicit manifest diagnostic/reporting work open.
