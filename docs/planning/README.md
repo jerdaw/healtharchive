@@ -110,6 +110,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Cross-repo issue templates:
+  `implemented/2026-07-10-cross-repo-issue-templates.md`
 - Existing public project pages contract:
   `implemented/2026-07-10-public-project-pages-contract.md`
 - Accessibility audit baseline and statement reconciliation:
