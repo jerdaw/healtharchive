@@ -12,6 +12,7 @@ When complete, move them to `docs/planning/implemented/` and date them.
 Active plans:
 
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
+- Homepage fetch and source-link accessibility: `2026-07-10-homepage-fetch-accessibility.md`
 
 ## Current priority sequence
 
