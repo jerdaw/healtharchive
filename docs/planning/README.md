@@ -12,7 +12,6 @@ When complete, move them to `docs/planning/implemented/` and date them.
 Active plans:
 
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
-- SQLAlchemy Query.get test hygiene: `2026-07-11-sqlalchemy-query-get-hygiene.md`
 
 ## Current priority sequence
 
@@ -111,6 +110,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- SQLAlchemy Query.get test hygiene:
+  `implemented/2026-07-11-sqlalchemy-query-get-hygiene.md`
 - Autonomous overnight maintenance queue:
   `implemented/2026-06-28-autonomous-overnight-work-plan.md`
 - Storage budget and WARC promotion hardening:
