@@ -275,11 +275,13 @@ Keep this list short; prefer linking to the canonical doc that explains the item
       live history supports a reliable threshold
     - handled failures retain their final progress row for diagnosis; successful
       indexing clears it only after the snapshot transaction commits
+    - private operator guidance now correlates durable progress, client
+      ownership, exact `pg_stat_activity` evidence, blockers, rollback-safe
+      exact-PID termination, and normal reconciliation recovery; the procedure
+      remains in the private/shared operations source of truth
   - Remaining work:
     - evaluate safer transaction/checkpoint behavior for very large jobs, or
       document why the current all-at-once transaction remains required
-    - add clearer stale-transaction detection/remediation guidance for manual
-      reconciles
     - provide a first-class detached-run wrapper or runbook pattern for
       production `reconcile-completed-indexing`
     - ensure operators can distinguish healthy CPU-bound parsing from a stale
