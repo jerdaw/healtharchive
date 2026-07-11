@@ -118,3 +118,11 @@ link PR #129 explicitly.
   removed from the not-yet-implemented roadmap.
 - Final affected discovery/report/CLI/admin verification passed 58 tests in
   9.71 seconds after the positional-compatibility regression was added.
+- Base PR [#129](https://github.com/jerdaw/healtharchive/pull/129) is mergeable
+  and fully green across backend test/API-health/E2E, frontend
+  contract/lint-test/Docker smoke, and platform integration checks.
+- Stacked PR [#130](https://github.com/jerdaw/healtharchive/pull/130) is open
+  and mergeable against `fix/content-report-warc-union`. Its body/base/head and
+  compatibility/safety evidence were read back intact. No hosted checks were
+  attached at the first readback, so the recorded local broad/focused gates are
+  the current validation evidence for the stacked diff.
