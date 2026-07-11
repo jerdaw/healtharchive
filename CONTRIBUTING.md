@@ -421,7 +421,8 @@ Reviewers will check:
 
 The [structured bug report form](https://github.com/jerdaw/healtharchive/issues/new/choose)
 supplies the prompts below. Security vulnerabilities must use
-[private vulnerability reporting](https://github.com/jerdaw/healtharchive/security/advisories/new),
+the private email route in the
+[security policy](https://github.com/jerdaw/healtharchive/security/policy),
 and broken snapshots, metadata errors, missing coverage, or takedown requests
 must use the [archived-content report form](https://healtharchive.ca/report).
 
@@ -515,10 +516,9 @@ See `docs/_templates/decision-template.md` for the format.
 **DO NOT** open public issues for security vulnerabilities.
 
 Instead:
-1. Email the maintainers (check repo for contact info)
-2. Or use GitHub's private vulnerability reporting
-3. Provide details and reproduction steps
-4. Wait for acknowledgment before disclosing
+1. Read the [security policy](https://github.com/jerdaw/healtharchive/security/policy)
+2. Email `security@healtharchive.ca` with details and reproduction steps
+3. Wait for acknowledgment before disclosing
 
 ### Security Best Practices
 
@@ -611,7 +611,7 @@ We use labels to organize issues:
 | **General questions** | [Contact page](https://healtharchive.ca/contact) |
 | **Bug reports** | [Structured bug report form](https://github.com/jerdaw/healtharchive/issues/new/choose) |
 | **Feature requests** | [Structured feature request form](https://github.com/jerdaw/healtharchive/issues/new/choose) |
-| **Security issues** | [Private vulnerability reporting](https://github.com/jerdaw/healtharchive/security/advisories/new) |
+| **Security issues** | [Security policy and private email route](https://github.com/jerdaw/healtharchive/security/policy) |
 
 ### Resources
 

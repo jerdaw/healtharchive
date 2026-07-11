@@ -7,7 +7,7 @@ body:
       value: |
         GitHub issues are public. Do not include secrets, personal data, or personal health information.
 
-        Report security vulnerabilities privately at https://github.com/jerdaw/healtharchive/security/advisories/new.
+        Report security vulnerabilities privately by following https://github.com/jerdaw/healtharchive/security/policy.
         Report broken snapshots, metadata errors, missing coverage, or takedown requests at https://healtharchive.ca/report.
   - type: dropdown
     id: area

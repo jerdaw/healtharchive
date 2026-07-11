@@ -11,7 +11,20 @@ PUBLIC_GUIDES = (
     "CONTRIBUTING.md",
     "docs/tutorials/first-contribution.md",
     "docs/api-consumer-guide.md",
+    "docs/tutorials/architecture-walkthrough.md",
+    "docs/meta/documentation-health.md",
 )
+SECURITY_POLICIES = ("SECURITY.md", "frontend/SECURITY.md")
+ACTIVE_SECURITY_GUIDES = (
+    ".github/ISSUE_TEMPLATE/bug_report.yml",
+    ".github/ISSUE_TEMPLATE/feature_request.yml",
+    ".github/ISSUE_TEMPLATE/config.yml",
+    *SECURITY_POLICIES,
+    "CONTRIBUTING.md",
+)
+SECURITY_POLICY_URL = "https://github.com/jerdaw/healtharchive/security/policy"
+DISABLED_SECURITY_URL = "https://github.com/jerdaw/healtharchive/security/advisories/new"
+SECURITY_EMAIL = "security@healtharchive.ca"
 ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
 FORM_KEYS = {"name", "description", "title", "body"}
 FIELD_KEYS = {
@@ -35,8 +48,8 @@ REQUIRED_FIELDS = {
 EXPECTED_LINKS = [
     {
         "name": "Report a security vulnerability privately",
-        "url": "https://github.com/jerdaw/healtharchive/security/advisories/new",
-        "about": "Do not report security vulnerabilities in a public issue.",
+        "url": SECURITY_POLICY_URL,
+        "about": "Read the security policy for the private reporting channel.",
     },
     {
         "name": "Report an archived-content issue",
@@ -119,6 +132,20 @@ def test_issue_chooser_uses_only_the_intended_routes() -> None:
         for link in config["contact_links"]
         for value in link.values()
     )
+
+
+def test_security_guidance_uses_the_available_private_route() -> None:
+    bug_form = (TEMPLATE_DIR / "bug_report.yml").read_text(encoding="utf-8")
+    assert SECURITY_POLICY_URL in bug_form
+
+    for policy in SECURITY_POLICIES:
+        text = (ROOT / policy).read_text(encoding="utf-8")
+        assert SECURITY_EMAIL in text, policy
+
+    for guide in ACTIVE_SECURITY_GUIDES:
+        text = (ROOT / guide).read_text(encoding="utf-8")
+        assert DISABLED_SECURITY_URL not in text, guide
+        assert "private vulnerability reporting" not in text.casefold(), guide
 
 
 def test_public_guides_do_not_route_to_disabled_discussions() -> None:
