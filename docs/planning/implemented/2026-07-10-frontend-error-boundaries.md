@@ -100,3 +100,8 @@ testing. Remove completed roadmap item #24 without changing unrelated backlog.
 - The implementation guide documents segment/global ownership, dependency and
   no-detail boundaries, and tests. Completed roadmap item #24 was removed and
   this archived plan was added to the planning index.
+- PR [#131](https://github.com/jerdaw/healtharchive/pull/131) is open and
+  mergeable against `main`. Its body/base/head and safety/validation evidence
+  were read back intact. Platform integration was green at first readback;
+  backend test/API-health/E2E and frontend contract/lint-test jobs were still in
+  progress.
