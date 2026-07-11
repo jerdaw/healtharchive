@@ -21,6 +21,7 @@ ACTIVE_SECURITY_GUIDES = (
     ".github/ISSUE_TEMPLATE/config.yml",
     *SECURITY_POLICIES,
     "CONTRIBUTING.md",
+    "docs/planning/implemented/2026-07-11-repository-issue-forms.md",
 )
 SECURITY_POLICY_URL = "https://github.com/jerdaw/healtharchive/security/policy"
 DISABLED_SECURITY_URL = "https://github.com/jerdaw/healtharchive/security/advisories/new"

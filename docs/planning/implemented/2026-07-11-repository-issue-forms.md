@@ -31,48 +31,47 @@ checkout remains unverified, so the cross-repository roadmap item stays open.
 - `.github/ISSUE_TEMPLATE/config.yml` disables blank issues and exposes only
   the two intended specialized report routes.
 - `CONTRIBUTING.md`, `docs/tutorials/first-contribution.md`, and
-  `docs/api-consumer-guide.md` now align public intake with the issue forms and
-  contact page, with no remaining disabled GitHub Discussions routing.
+  `docs/api-consumer-guide.md`, `docs/tutorials/architecture-walkthrough.md`,
+  and `docs/meta/documentation-health.md` no longer route to disabled GitHub
+  Discussions.
+- Root and frontend `SECURITY.md` policies use the same private email channel.
 - `docs/planning/roadmap.md` records the completed monorepo scope without
   claiming unverified coverage elsewhere.
 
 ## Canonical routing
 
-- Security vulnerabilities:
-  `https://github.com/jerdaw/healtharchive/security/advisories/new`
+- Issue chooser security destination:
+  `https://github.com/jerdaw/healtharchive/security/policy`
+- Actual private security report channel: `security@healtharchive.ca`
 - Broken snapshots, metadata errors, missing coverage, or takedown requests:
   `https://healtharchive.ca/report`
 
 ## Contract coverage
 
-`tests/test_repository_issue_forms.py` protects three repository contracts:
+`tests/test_repository_issue_forms.py` protects four repository contracts:
 
 1. Both forms use supported top-level, field, attribute, ID, option, and
    required-validation shapes.
-2. The chooser disables blank issues and contains exactly the intended private
-   security and archived-content routes.
-3. All three public guides contain no remaining Discussions routing.
+2. The chooser disables blank issues and contains exactly the policy and
+   archived-content destinations.
+3. Active security guidance uses the policy URL, both security policies name
+   the private email, and no active guide uses the disabled advisory URL.
+4. All five public guidance files contain no Discussions routing.
 
-The contract was developed red-green: it first collected and failed on the
-missing form files, then passed after the forms and guidance were added.
+The forms contract was developed red-green on the missing files. The security
+contract also failed on this record's stale advisory URL before it was fixed.
 
 ## Validation evidence
 
-- `pytest tests/test_repository_issue_forms.py -q`: `3 passed in 0.04s`.
+- `pytest tests/test_repository_issue_forms.py -q`: `4 passed`.
 - `make backend-ci`: formatting, Ruff, mypy, and `385 passed`; exit 0.
-- `pre-commit run check-yaml --files .github/ISSUE_TEMPLATE/bug_report.yml
-  .github/ISSUE_TEMPLATE/feature_request.yml
-  .github/ISSUE_TEMPLATE/config.yml`: all three YAML files passed.
-- `make prepush`: formatting, Ruff, mypy, `385 passed`, API smoke, dependency
-  audit, and migration verification completed; exit 0.
 - `make docs-coverage-strict`: exit 0.
 - `make docs-build-strict`: strict MkDocs build completed; exit 0.
-- `git diff --check`: exit 0 before archival.
-- `make docs-check` after archival reached the reference checker and exited 1
-  only for two pre-existing `docs/maintenance-audit.md` references to the
+- `git diff --check`: exit 0.
+- `make docs-check` still exits 1 only for two pre-existing
+  `docs/maintenance-audit.md` references to the
   intentionally absent frontend/.env.local and frontend/node_modules/
-  local paths. The plan's two forward-reference errors were resolved by this
-  move; coverage and strict build were therefore run separately as above.
+  local paths; coverage and strict build pass independently as above.
 
 ## Remaining work
 
