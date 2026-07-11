@@ -32,9 +32,9 @@ class WarcDiscoveryResult:
     source: Literal["stable", "temp", "fallback", "mixed", "none"]
     manifest_valid: bool
     count: int
+    source_counts: dict[str, int] = field(default_factory=dict)
     manifest_status: ManifestStatus = "missing"
     manifest_error: str | None = None
-    source_counts: dict[str, int] = field(default_factory=dict)
 
 
 @dataclass(frozen=True)

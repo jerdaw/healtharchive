@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from collections.abc import Iterator
 from pathlib import Path
 
 import pytest
@@ -12,7 +13,7 @@ from ha_backend.models import ArchiveJob, Source
 
 
 @pytest.fixture
-def test_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+def test_db(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> Iterator[None]:
     db_path = tmp_path / "warc_discovery_status.db"
     monkeypatch.setenv("HEALTHARCHIVE_DATABASE_URL", f"sqlite:///{db_path}")
     db_module._engine = None
@@ -48,11 +49,10 @@ def _create_job_with_invalid_manifest(tmp_path: Path) -> tuple[int, Path]:
         return job.id, warc_path.resolve()
 
 
-def _run_cli(args_list: list[str]) -> str:
+def _run_cli(args_list: list[str]) -> None:
     parser = cli_module.build_parser()
     args = parser.parse_args(args_list)
     args.func(args)
-    return ""
 
 
 def test_list_warcs_json_exposes_bounded_manifest_status(

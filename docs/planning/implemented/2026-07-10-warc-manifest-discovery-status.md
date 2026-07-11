@@ -1,6 +1,6 @@
 # WARC Manifest Discovery Status Implementation Plan
 
-**Status:** Implemented 2026-07-10; final verification pending
+**Status:** Implemented 2026-07-10
 
 **Goal:** Correct manifest validity semantics and expose bounded parsing status
 consistently without changing discovery results or performing expensive
@@ -73,4 +73,48 @@ link PR #129 explicitly.
 
 ## Completion Record
 
-Pending implementation.
+- Canonical RED: `tests/test_warc_discovery.py` produced eight failures. The
+  fallback/no-manifest result was false instead of true, the result lacked
+  status/error fields, malformed roots could crash or report valid, and
+  unreadable/malformed JSON was silently treated as valid.
+- Corrected one test-placement mistake before implementation: the hardlink-only
+  case has no manifest and therefore expects `missing`, while the copy-fallback
+  manifest case expects `valid`.
+- Added bounded `missing`, `valid`, `invalid`, and `unreadable` status with
+  `read-error`, `invalid-json`, `invalid-root`, `invalid-entries`, and
+  `invalid-entry` error codes. Raw exception/path text is not stored.
+- Preserved the compatibility boolean: `missing`/`valid` are true and
+  `invalid`/`unreadable` are false. Fallback discovery no longer changes
+  manifest validity.
+- Consumer RED: the content report and JSON/show-job CLI checks produced three
+  failures because status/error output was absent; the plain path-only
+  `list-warcs` compatibility check already passed.
+- Consumer GREEN: status/error now appears in `list-warcs --json`, `show-job
+  --warc-details`, and content-report JSON/human output. Plain `list-warcs`
+  output remains path-only.
+- Self-review aligned `{}` with the established full verifier: a missing
+  `entries` key is a valid empty list; a present non-list or malformed entry is
+  invalid.
+- Complete-diff review moved the new defaulted fields after `source_counts` so
+  the legacy sixth positional constructor argument remains compatible, then
+  added a regression for that constructor shape.
+- Discovery/report/new CLI/full manifest-verifier tests passed 52 checks after
+  implementation. After full-mypy test-signature fixes, the affected suite plus
+  existing CLI admin coverage passed 57 tests in 10.75 seconds.
+- Repository-wide Ruff format checked 222 files; repository-wide Ruff lint
+  passed. Full mypy initially found three new test typing errors, then passed
+  all 169 source/test files after the narrow signature/fixture fixes. Existing
+  unchecked-body notes remained informational.
+- `make test-fast` passed 389 tests in 125.77 seconds with one existing
+  Starlette/httpx deprecation warning.
+- `make docs-coverage-strict docs-build-strict` passed strict coverage,
+  OpenAPI/LLM generation, and strict MkDocs; documentation built in 6.98
+  seconds.
+- Commit hooks passed whitespace, EOF, YAML/TOML, large-file, private-key,
+  Ruff, mypy, and gitleaks checks for the implementation commit.
+- Architecture distinguishes lightweight parse status from full
+  `verify-warc-manifest` presence/size/hash checks. The completed plans index
+  links this record, and the now-complete WARC discovery consistency item was
+  removed from the not-yet-implemented roadmap.
+- Final affected discovery/report/CLI/admin verification passed 58 tests in
+  9.71 seconds after the positional-compatibility regression was added.

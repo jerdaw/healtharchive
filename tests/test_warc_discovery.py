@@ -32,6 +32,14 @@ def _create_job_mock(output_dir: Path) -> MagicMock:
     return job
 
 
+def test_discovery_result_preserves_legacy_positional_source_counts() -> None:
+    result = WarcDiscoveryResult([], "none", True, 0, {"stable": 1})
+
+    assert result.source_counts == {"stable": 1}
+    assert result.manifest_status == "missing"
+    assert result.manifest_error is None
+
+
 class TestDiscoverWarcsForJob:
     """Tests for discover_warcs_for_job function."""
 
@@ -461,10 +469,14 @@ class TestDiscoverAllWarcsForJob:
         manifest_path.write_text('{"entries": []}', encoding="utf-8")
         original_read_text = Path.read_text
 
-        def fail_manifest_read(path: Path, *args: object, **kwargs: object) -> str:
+        def fail_manifest_read(
+            path: Path,
+            encoding: str | None = None,
+            errors: str | None = None,
+        ) -> str:
             if path == manifest_path:
-                raise PermissionError("private path and detail must not escape")
-            return original_read_text(path, *args, **kwargs)
+                raise PermissionError("sensitive detail")
+            return original_read_text(path, encoding=encoding, errors=errors)
 
         monkeypatch.setattr(Path, "read_text", fail_manifest_read)
 
@@ -473,6 +485,7 @@ class TestDiscoverAllWarcsForJob:
         assert result.manifest_valid is False
         assert result.manifest_status == "unreadable"
         assert result.manifest_error == "read-error"
+        assert "sensitive detail" not in result.manifest_error
 
     def test_manifest_dedupes_copied_stable_warc_from_temp_source(self, tmp_path: Path):
         """Prefers stable WARC when manifest says a temp source was already copied."""
