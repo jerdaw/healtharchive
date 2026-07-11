@@ -109,7 +109,8 @@ boundary violations, and roadmap over-claiming. Commit, push, open a PR against
   evidence for this batch.
 - `make docs-coverage-strict docs-build-strict` passed strict coverage,
   OpenAPI/LLM generation, and the strict MkDocs build; documentation built in
-  1.65 seconds on the final wording.
+  1.65 seconds on the pre-publication closeout wording and 1.74 seconds after
+  the PR evidence was added.
 - Architecture now documents the shared union/deduplication contract. The
   roadmap records content-report and `vps-crawl-status.sh` alignment as
   delivered and leaves only explicit manifest diagnostic/reporting work open.
