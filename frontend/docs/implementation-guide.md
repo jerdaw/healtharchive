@@ -826,6 +826,10 @@ All text is stable, but can be refined later.
 
 - Both pages are server components that tolerate backend failures by showing
   a fallback callout instead of crashing.
+- `/status` renders its localized “Last checked” value in a `time` element with
+  an ISO `dateTime` attribute derived from the same render-time instant.
+- When usage metrics are absent or disabled, `/status` uses neutral public copy
+  in English or French rather than exposing an operator action.
 
 ### 8.11 Change tracking (`/changes`, `/compare`, `/digest`)
 
