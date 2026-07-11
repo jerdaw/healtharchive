@@ -1,11 +1,11 @@
 # Frontend Error Boundaries Implementation Plan
 
-**Status:** Ready to implement
+**Status:** Implemented 2026-07-10
 
 **Goal:** Add tested locale-segment and global recovery boundaries that remain
 safe, accessible, bilingual, and free of internal error detail.
 
-**Design:** `../superpowers/specs/2026-07-10-frontend-error-boundaries-design.md`
+**Design:** `../../superpowers/specs/2026-07-10-frontend-error-boundaries-design.md`
 
 ## Task 1: Add failing boundary tests
 
@@ -65,4 +65,38 @@ testing. Remove completed roadmap item #24 without changing unrelated backlog.
 
 ## Completion Record
 
-Pending implementation.
+- WSL's non-interactive default PATH had no `npm`, so the first `npm ci`
+  command did not start. A compatible existing NVM runtime was located and used:
+  Node `v22.13.1`, npm `10.9.2` (the frontend requires Node `>=20.19`).
+- Locked `npm ci` installed 490 packages and applied the checked-in
+  `eslint-plugin-react@7.37.5` patch. The audit summary reported the repository's
+  existing 13 findings (1 low, 4 moderate, 8 high); dependencies were not
+  changed in this feature branch, and upstream-safe advisory follow-through
+  remains separately tracked in the roadmap.
+- Initial RED: focused Vitest could not resolve `@/app/[locale]/error`, so the
+  suite failed before collecting tests.
+- Added typed shared English/French recovery copy, a locale-aware segment
+  boundary, and a self-contained bilingual global boundary. Neither boundary
+  renders or logs the supplied error object.
+- Focused GREEN: six tests passed for English/French/invalid-locale behavior,
+  retry and localized home actions, global document structure, sentinel
+  message/digest non-disclosure, and axe accessibility.
+- Prettier initially found two new files requiring formatting, then the full
+  format check passed.
+- ESLint rejected the global native home link under the normal App Router rule.
+  A single documented line-level exception preserves the intentionally
+  router-independent global recovery link; full lint then passed.
+- TypeScript initially found localized-literal inference and test digest typing
+  errors. Explicit shared-copy and sentinel intersection types corrected both;
+  full typecheck passed.
+- `npm run check` passed format, lint, typecheck, 113 tests across 39 files, and
+  the Next.js `16.2.9` production build. The build compiled in 2.0 seconds,
+  completed TypeScript in 3.3 seconds, and generated all 47 static pages in 40
+  seconds.
+- `make docs-coverage-strict docs-build-strict` passed strict coverage,
+  OpenAPI/LLM generation, and strict MkDocs; documentation built in 6.24
+  seconds on the first closeout wording and 1.49 seconds after the completion
+  evidence was added.
+- The implementation guide documents segment/global ownership, dependency and
+  no-detail boundaries, and tests. Completed roadmap item #24 was removed and
+  this archived plan was added to the planning index.

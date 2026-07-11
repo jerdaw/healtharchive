@@ -517,6 +517,30 @@ Usage pattern:
 </PageShell>
 ```
 
+### 6.5 Error recovery boundaries
+
+The App Router has two complementary client error boundaries:
+
+- `src/app/[locale]/error.tsx` catches failures below the locale layout. It
+  keeps the normal Header/Footer, theme, locale provider, skip link, and
+  `PageShell`, then offers localized retry and home actions.
+- `src/app/global-error.tsx` catches failures that include the locale root
+  layout. It supplies its own `<html>`/`<body>`, resilient inline styling,
+  English and French recovery text, a retry action, and a native home link.
+  It intentionally does not import the layout, router link, theme, font,
+  provider, Header, or Footer trees that may have failed.
+- `src/lib/errorRecovery.ts` is the typed source for English/French recovery
+  copy and the independent/non-governmental archive reminder.
+
+Neither boundary renders or logs the error message, stack, digest, filesystem
+path, or other implementation detail. Recovery is always user-triggered; there
+is no automatic reload loop. Page-level API fallbacks and `notFound()` behavior
+remain separate and should not be converted into thrown errors merely to use
+these boundaries.
+
+Tests in `tests/errorBoundaries.test.tsx` cover localization, retry/home
+actions, global document structure, no-detail leakage, and axe accessibility.
+
 ---
 
 ## 7. Data model & offline sample dataset
