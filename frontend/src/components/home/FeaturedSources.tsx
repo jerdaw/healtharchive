@@ -28,7 +28,11 @@ export function FeaturedSources({ locale, sources }: Props) {
                 <p className="text-ha-muted text-xs">
                   {copy.featuredSources.latestCapture}: {source.lastCapture}
                 </p>
-                <Link href={`/archive?source=${source.sourceCode}`} className="ha-link text-xs">
+                <Link
+                  href={`/archive?source=${source.sourceCode}`}
+                  className="ha-link text-xs"
+                  aria-label={copy.featuredSources.browseAriaLabel(source.sourceName)}
+                >
                   {copy.featuredSources.browse}
                 </Link>
               </div>

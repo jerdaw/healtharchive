@@ -36,13 +36,17 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   const fallbackRecordCount = demoRecords.length;
   const fallbackPageCount = new Set(demoRecords.map((r) => r.originalUrl)).size;
 
-  const stats = await fetchArchiveStats().catch(() => null);
+  const [stats, apiSources, recentChanges] = await Promise.all([
+    fetchArchiveStats().catch(() => null),
+    fetchSources().catch(() => null),
+    fetchChanges({ pageSize: 5 }).catch(() => null),
+  ]);
+
   const usingBackendStats = stats != null;
   const recordCount = stats?.snapshotsTotal ?? fallbackRecordCount;
   const pageCount = stats?.pagesTotal ?? fallbackPageCount;
   const sourceCount = stats?.sourcesTotal ?? 2;
 
-  const apiSources = await fetchSources().catch(() => null);
   const featuredSources: SourceSummary[] =
     apiSources ??
     getSourcesSummary().map((s) => ({
@@ -54,7 +58,6 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
       entryBrowseUrl: null,
     }));
 
-  const recentChanges = await fetchChanges({ pageSize: 5 }).catch(() => null);
   const activityItems: ActivityItem[] = (recentChanges?.results ?? []).map((event) => ({
     id: event.toSnapshotId,
     title: event.summary ?? event.normalizedUrlGroup ?? "Page change",
