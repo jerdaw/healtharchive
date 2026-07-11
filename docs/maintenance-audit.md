@@ -293,8 +293,10 @@ Candidate findings considered:
   indirectly tested through API error mapping.
 - Deferred: existing TestClient/httpx deprecation warning is cross-suite
   maintenance and should be handled separately.
-- Deferred: Python `datetime.utcnow()`, SQLAlchemy `Query.get()`, and SQLite
-  ResourceWarnings from prior full verification remain focused cleanup work.
+- Deferred at the time: Python `datetime.utcnow()`, SQLAlchemy `Query.get()`,
+  and SQLite ResourceWarnings from prior full verification remained focused
+  cleanup work. The `Query.get()` item was resolved by the later 2026-07-11
+  hygiene pass; the datetime and SQLite items remain open.
 
 Tests added/updated:
 
@@ -878,8 +880,8 @@ Comment-only wording:
   implementations.
 - Investigate SQLite ResourceWarnings in full coverage runs and close any
   session/TestClient lifecycle gaps.
-- Schedule a Python test hygiene pass for `datetime.utcnow()`,
-  SQLAlchemy `Query.get()`, and Starlette/httpx TestClient deprecations.
+- Schedule a Python test hygiene pass for `datetime.utcnow()` and
+  Starlette/httpx TestClient deprecations.
 - Consider a focused optimization pass for same-day deduplication query shape
   if large duplicate groups show up in real datasets.
 - Consider a focused docs-policy pass for a public-safe env-var reference,
@@ -904,7 +906,6 @@ Remaining warnings:
 
 - Starlette/httpx TestClient deprecation warning.
 - Python `datetime.utcnow()` deprecation warnings in test fixtures.
-- SQLAlchemy `Query.get()` deprecation warnings in tests.
 - SQLite `ResourceWarning` messages during coverage.
 
 These were not introduced by this pass and are recorded as focused follow-up
