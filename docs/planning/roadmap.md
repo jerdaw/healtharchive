@@ -500,7 +500,6 @@ Completed items were removed from this backlog and archived in:
 
 35. **Consolidate bilingual strings (remove inline ternaries)** (L: 1-2 weeks)
 36. **Add automated performance/Lighthouse testing** (M: 1 day)
-37. **Add automated link checking to frontend CI** (S: 1-2h)
 38. **Add coverage badges to READMEs** (S: 1-2h)
 39. **Create public project summary page** (M: 1 day)
 40. **Generate architecture diagrams (Mermaid/D2)** (M: 1 day)

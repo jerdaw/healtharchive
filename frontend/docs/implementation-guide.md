@@ -162,10 +162,29 @@ npm run check
   - `npm ci`
   - `npm run check`
 
+- `npm run check` ends by starting the newly built standalone production
+  runtime and crawling rendered same-origin anchors from `/` and `/fr`.
+  `npm run check:links` can rerun that traversal against an existing `.next`
+  build. It checks route-level HTTP reachability, follows only loopback
+  redirects, bounds traversal, and ignores external URLs and fragments.
+- The crawler requires the configured frontend API base to be non-privileged
+  loopback HTTP. It provides a temporary fail-fast `503` API stub when that port
+  is free so fallback pages render deterministically without a live backend or
+  public-network access.
 - Tests mock network calls and do not require a live backend.
 - In CI, diagnostics env vars (`NEXT_PUBLIC_SHOW_API_HEALTH_BANNER`,
   `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE`, `NEXT_PUBLIC_SHOW_API_BASE_HINT`) are
   disabled to keep output quiet and deterministic.
+
+### Default-locale route canonicalization
+
+The proxy rewrites unprefixed public routes to the internal `/en` route tree and
+redirects user-visible `/en/**` requests back to their canonical unprefixed
+form. An internal request-only marker distinguishes the rewrite's second proxy
+pass from a direct `/en/**` request and is removed before rendering. Preserve
+that distinction: treating the internal pass as a public request creates a
+self-redirect loop on every English route. Focused proxy tests and the rendered
+link crawl cover both the canonical redirect and the internal rewrite path.
 
 ### Deployment env expectations (local / hosted runtime)
 

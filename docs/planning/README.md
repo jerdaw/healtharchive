@@ -110,6 +110,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Frontend internal link checking and canonical locale routing:
+  `implemented/2026-07-10-frontend-internal-link-check.md`
 - Autonomous overnight maintenance queue:
   `implemented/2026-06-28-autonomous-overnight-work-plan.md`
 - Storage budget and WARC promotion hardening:
