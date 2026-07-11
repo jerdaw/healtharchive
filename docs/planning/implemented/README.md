@@ -4,6 +4,7 @@ This folder contains **historical implementation plans** that have already been 
 
 Implemented plans:
 
+- `2026-07-10-rcdc-backlog-scope-audit.md`
 - `2026-07-10-cross-repo-issue-templates.md`
 - `2026-07-10-public-project-pages-contract.md`
 - `2026-07-10-accessibility-audit-baseline.md`

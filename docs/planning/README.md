@@ -110,6 +110,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- RCDC backlog scope audit:
+  `implemented/2026-07-10-rcdc-backlog-scope-audit.md`
 - Cross-repo issue templates:
   `implemented/2026-07-10-cross-repo-issue-templates.md`
 - Existing public project pages contract:

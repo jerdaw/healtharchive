@@ -502,3 +502,9 @@ Completed items were removed from this backlog and archived in:
 ## Adjacent / optional (in this monorepo, not core HA)
 
 - `rcdc/CDC_zim_mirror`: add startup DB sanity checks and clearer failure modes (empty/invalid LevelDB, missing prefixes, etc.).
+  - Scope status (2026-07-10): blocked. The named subproject is absent from the
+    current `origin/main` tree, has no matching path in this repository's
+    reachable history, and was not found in the recursively searched workspace.
+  - Resume only after the canonical source is restored/imported here or its
+    maintained repository is linked explicitly. Re-read that project's local
+    instructions and test harness before planning the startup validation.
