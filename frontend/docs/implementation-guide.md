@@ -613,7 +613,13 @@ All in `src/data/demo-records.ts`:
 ### 8.1 Home page `/` – `src/app/[locale]/page.tsx`
 
 - Fetches lightweight archive totals from `GET /api/stats` (via `fetchArchiveStats()` in `src/lib/api.ts`).
+- Starts archive-statistics, source-summary, and recent-change requests
+  concurrently. Each request has its own failure fallback, so an unavailable
+  endpoint does not discard successful responses from the others.
 - If the backend API is unreachable, falls back to the bundled offline sample dataset (`demoRecords`).
+- Featured-source links retain their visible "Browse →" / "Parcourir →"
+  copy and destinations while exposing source-specific English or French
+  accessible names.
 
 - Content:
   1. **Hero section:**
