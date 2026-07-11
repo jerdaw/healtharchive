@@ -12,7 +12,6 @@ When complete, move them to `docs/planning/implemented/` and date them.
 Active plans:
 
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
-- Repository issue forms: `2026-07-11-repository-issue-forms.md`
 
 ## Current priority sequence
 
@@ -111,6 +110,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Repository issue forms:
+  `implemented/2026-07-11-repository-issue-forms.md`
 - Autonomous overnight maintenance queue:
   `implemented/2026-06-28-autonomous-overnight-work-plan.md`
 - Storage budget and WARC promotion hardening:
