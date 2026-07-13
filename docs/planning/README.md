@@ -4,14 +4,20 @@
 
 - Future roadmap (what is *not* implemented yet): `roadmap.md`
 
-## Implementation plans (active)
+## Implementation plans
 
 Implementation plans live directly under `docs/planning/` while they are active.
 When complete, move them to `docs/planning/implemented/` and date them.
 
 Active plans:
 
+- None.
+
+Paused or conditional plans:
+
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
+  - Reactivate only after a captured Errno 107 recurrence, an approved
+    maintenance-window drill, or an explicit storage-architecture disposition.
 
 ## Current priority sequence
 
