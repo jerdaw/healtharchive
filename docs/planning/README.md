@@ -52,6 +52,8 @@ Current known items:
 
 Recently closed items:
 
+- Frontend locale/global error recovery boundaries: `implemented/2026-07-10-frontend-error-boundaries.md`
+
 - 2026 CIHR WARC compaction closeout:
   - Current state: completed. The staged compacted WARC set was promoted after
     parse validation, replay indexes were rebuilt, replay smoke returned `200`,
