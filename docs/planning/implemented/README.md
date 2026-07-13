@@ -4,6 +4,7 @@ This folder contains **historical implementation plans** that have already been 
 
 Implemented plans:
 
+- `2026-07-13-aggregate-data-integrity-report.md`
 - `2026-07-13-test-and-capture-resource-hygiene.md`
 - `2026-07-11-sqlalchemy-query-get-hygiene.md`
 - `2026-07-10-ops-governance-backlog-truth.md`
