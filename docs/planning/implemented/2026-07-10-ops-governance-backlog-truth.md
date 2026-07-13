@@ -8,7 +8,7 @@ public/private operations boundary.
 
 ## Evidence
 
-1. `implemented/2026-01-17-disaster-recovery-and-escalation-procedures.md`
+1. `docs/planning/implemented/2026-01-17-disaster-recovery-and-escalation-procedures.md`
    records the completed RPO/RTO/MTTR targets, restoration procedure, severity
    model, escalation path, break-glass procedures, and drill schedule.
 2. The detailed environment-specific recovery and escalation material was

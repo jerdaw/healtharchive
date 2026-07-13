@@ -110,7 +110,7 @@ scope.
 
 ## Delivery
 
-Use a stacked branch based on `docs/architecture-diagrams` so the planning
-indexes remain conflict-free. Open a PR against that branch. No deployment,
+Use a stacked branch based on the architecture-diagrams branch from PR #134 so
+the planning indexes remain conflict-free. Open a PR against that branch. No deployment,
 live-site probe, external expert claim, or application behavior change is part
 of the batch.

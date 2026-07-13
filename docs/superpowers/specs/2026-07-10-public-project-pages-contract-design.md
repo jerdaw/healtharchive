@@ -68,6 +68,6 @@ duplicating their copy inside MkDocs.
 
 ## Delivery
 
-Use a stacked branch based on `docs/accessibility-audit-baseline` because the
-parent series updates the same planning indexes. Open a PR against that branch.
+Use a stacked branch based on the accessibility-audit branch from PR #135
+because the parent series updates the same planning indexes. Open a PR against that branch.
 No deployment or live-site action is part of this batch.
