@@ -394,7 +394,6 @@ Completed items were removed from this backlog and archived in:
 
 ### Reliability, security, and CI
 
-23. **Create formal accessibility audit document** (M: 1-2 days)
 25. **Track the frontend Next/PostCSS production dependency advisory until an upstream-safe fix exists** (S: 1-2h)
     - Current evidence: `npm audit --omit=dev --json` on 2026-05-06 reports
       the PostCSS XSS advisory through `next@16.2.4` / bundled `postcss`;
@@ -458,9 +457,6 @@ Completed items were removed from this backlog and archived in:
 ### Documentation and operations maturity
 
 26. **Create explicit data retention schedule table** (S: 2h)
-27. **Add disaster recovery SLOs (RTO/RPO)** (S: 1-2h)
-28. **Write first-responder / on-call runbook** (S: 2-3h)
-29. **Create change-management runbook** (S: 2-3h)
 30. **Formalize ethics/research exemption statement** (S: 1-2h)
 31. **Add error tracking integration (Sentry)** (M: 1 day)
 32. **Add automated uptime monitoring badge** (S: 1-2h) — external monitor (UptimeRobot) is described in the monitoring checklist but public badge and history page are not yet confirmed live as of 2026-03-25
@@ -501,13 +497,15 @@ Completed items were removed from this backlog and archived in:
 
 35. **Consolidate bilingual strings (remove inline ternaries)** (L: 1-2 weeks)
 36. **Add automated performance/Lighthouse testing** (M: 1 day)
-37. **Add automated link checking to frontend CI** (S: 1-2h)
 38. **Add coverage badges to READMEs** (S: 1-2h)
-39. **Create public project summary page** (M: 1 day)
-40. **Generate architecture diagrams (Mermaid/D2)** (M: 1 day)
-41. **Create public changelog page on frontend** (M: 1 day)
 42. **Create automated WARC/data integrity report** (M: 1 day)
 
 ## Adjacent / optional (in this monorepo, not core HA)
 
 - `rcdc/CDC_zim_mirror`: add startup DB sanity checks and clearer failure modes (empty/invalid LevelDB, missing prefixes, etc.).
+  - Scope status (2026-07-10): blocked. The named subproject is absent from the
+    current `origin/main` tree, has no matching path in this repository's
+    reachable history, and was not found in the recursively searched workspace.
+  - Resume only after the canonical source is restored/imported here or its
+    maintained repository is linked explicitly. Re-read that project's local
+    instructions and test harness before planning the startup validation.

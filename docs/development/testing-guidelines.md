@@ -26,6 +26,23 @@ Notes:
   `PYTHON_BIN` only when debugging a local environment issue.
 - Browser automation suites (for example Playwright in related repos) should run in CI by default; only run them locally when you explicitly need interactive debugging.
 
+### Frontend internal-link crawl
+
+`npm run check:links` reuses an existing frontend production build, assembles
+its standalone runtime, and breadth-first crawls rendered same-origin anchors
+from the English and French roots. Run `npm run build` first when invoking it
+directly; the normal `npm run check` sequence already does this.
+
+The check is intentionally local and deterministic:
+
+- the frontend API base must be non-privileged loopback HTTP;
+- a temporary fail-fast `503` stub exercises existing offline/fallback UI when
+  the configured loopback port is free;
+- external links, replay iframe contents, and fragments are out of scope;
+- redirects may not leave the local frontend origin;
+- fetch, HTTP, redirect-loop, and page-limit failures identify both the target
+  route and the page where it was discovered.
+
 ## Change-scope local gates
 
 Use the narrowest gate that matches the files you changed while iterating, then
@@ -35,7 +52,7 @@ contracts or user-visible workflows.
 | Change scope | Local validation | CI/workflow parity |
 | --- | --- | --- |
 | Backend-only code or backend tests | `make backend-ci` | `.github/workflows/backend-ci.yml` fast backend gate |
-| Frontend-only code, UI tests, or frontend docs/build inputs | `make contract-check` and `make frontend-ci` | `.github/workflows/frontend-ci.yml` contract + frontend jobs |
+| Frontend-only code, UI tests, or frontend docs/build inputs | `make contract-check` and `make frontend-ci` (`npm run check` includes the post-build internal-link crawl) | `.github/workflows/frontend-ci.yml` contract + frontend jobs |
 | Docs-only changes | `make docs-refs` and `make docs-coverage-strict`; add `make docs-build` for nav or rendered-page changes | `.github/workflows/docs.yml` docs build plus advisory docs reference/coverage checks |
 | Backend/frontend API contract changes | `make contract-sync`, `make contract-check`, and `make integration-e2e` | Backend and frontend CI plus integrated smoke |
 | Broad pre-push readiness | `make prepush`; use `make check-full` before deploys or stricter review | Local parity gate plus optional full backend suite |

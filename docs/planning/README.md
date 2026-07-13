@@ -118,6 +118,18 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Operations governance backlog truth reconciliation:
+  `implemented/2026-07-10-ops-governance-backlog-truth.md`
+- RCDC backlog scope audit:
+  `implemented/2026-07-10-rcdc-backlog-scope-audit.md`
+- Existing public project pages contract:
+  `implemented/2026-07-10-public-project-pages-contract.md`
+- Accessibility audit baseline and statement reconciliation:
+  `implemented/2026-07-10-accessibility-audit-baseline.md`
+- Canonical architecture diagrams:
+  `implemented/2026-07-10-canonical-architecture-diagrams.md`
+- Frontend internal link checking and canonical locale routing:
+  `implemented/2026-07-10-frontend-internal-link-check.md`
 - Deterministic documentation reference checks:
   `implemented/2026-07-11-deterministic-docs-references.md`
 - Repository issue forms:
