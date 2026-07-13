@@ -2,6 +2,22 @@ import { fireEvent, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { SearchWithinResults } from "@/components/archive/SearchWithinResults";
+import { LocaleProvider } from "@/components/i18n/LocaleProvider";
+
+const defaultProps = {
+  q: "covid",
+  within: "",
+  source: "",
+  fromDate: "",
+  toDate: "",
+  sort: "relevance",
+  view: "pages",
+  includeNon2xx: false,
+  includeDuplicates: false,
+  pageSize: 10,
+  defaultSort: "relevance",
+  defaultView: "pages",
+};
 
 describe("SearchWithinResults", () => {
   it("reveals the input and submit button after clicking", async () => {
@@ -78,5 +94,20 @@ describe("SearchWithinResults", () => {
     expect(
       container.querySelector('input[type="hidden"][name="pageSize"][value="20"]'),
     ).toBeTruthy();
+  });
+
+  it("uses French labels and placeholder from the archive catalog", () => {
+    render(
+      <LocaleProvider locale="fr">
+        <SearchWithinResults {...defaultProps} within="vaccin" />
+      </LocaleProvider>,
+    );
+
+    expect(
+      screen.getByRole("searchbox", { name: "Rechercher dans les résultats" }),
+    ).toHaveAttribute("placeholder", "Ajouter des mots-clés pour affiner la liste actuelle…");
+    expect(
+      screen.getByRole("button", { name: "Rechercher dans les résultats" }),
+    ).toBeInTheDocument();
   });
 });

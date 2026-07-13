@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { fetchHealth, getApiBaseUrl } from "@/lib/api";
+import { getArchiveCopy } from "@/lib/archiveCopy";
 
 import { useLocale } from "@/components/i18n/LocaleProvider";
 
@@ -13,6 +14,7 @@ const IS_TEST = typeof process !== "undefined" && process.env.VITEST;
 
 export function ApiHealthBanner() {
   const locale = useLocale();
+  const copy = getArchiveCopy(locale).apiHealth;
   const [status, setStatus] = useState<"idle" | "ok" | "error">("idle");
 
   useEffect(() => {
@@ -60,24 +62,13 @@ export function ApiHealthBanner() {
 
   return (
     <div className="ha-callout mb-4 border-amber-300 bg-amber-50 text-amber-900">
-      <h3 className="ha-callout-title">
-        {locale === "fr" ? "Backend inaccessible" : "Backend unreachable"}
-      </h3>
+      <h3 className="ha-callout-title">{copy.heading}</h3>
       <p className="text-xs leading-relaxed sm:text-sm">
-        {locale === "fr" ? (
-          <>
-            La vérification de santé de l’API a échoué. Assurez-vous que{" "}
-            <code>NEXT_PUBLIC_API_BASE_URL</code> pointe vers un backend en cours d’exécution et que
-            le paramètre <code>HEALTHARCHIVE_CORS_ORIGINS</code> du backend autorise l’origine de ce
-            frontend.
-          </>
-        ) : (
-          <>
-            The API health check failed. Make sure <code>NEXT_PUBLIC_API_BASE_URL</code> points to a
-            running backend and that the backend&apos;s <code>HEALTHARCHIVE_CORS_ORIGINS</code>{" "}
-            setting allows this frontend origin.
-          </>
-        )}
+        {copy.beforeApiBase}
+        <code>NEXT_PUBLIC_API_BASE_URL</code>
+        {copy.betweenSettings}
+        <code>HEALTHARCHIVE_CORS_ORIGINS</code>
+        {copy.afterCorsOrigins}
       </p>
     </div>
   );
