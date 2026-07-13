@@ -74,8 +74,25 @@ high-signal and avoid burning CI minutes on nonessential pushes:
 - batch docs-only and maintenance-only updates where practical so CI runs less
   often without weakening the required branch checks.
 
-The backlog item for longer-term workflow optimization is tracked in
-`../planning/roadmap.md` under GitHub Actions free-tier resilience.
+The 2026-07-10 workflow review keeps this policy explicit:
+
+| Workflow class | Trigger policy | Concurrency policy | Reason |
+| --- | --- | --- | --- |
+| Required backend/frontend | Push and pull request to `main`, plus manual dispatch | Cancel superseded runs | Exact required status contexts protect `main`; cross-boundary contract changes stay covered. |
+| Docs, platform contract, and workflow lint | Narrowest existing safe automatic trigger, plus manual dispatch | Cancel superseded runs | Obsolete validation or documentation-deploy runs should not consume minutes. |
+| Full backend and production smoke | Manual dispatch only | Never auto-cancel | An operator-started escalation run must finish unless explicitly cancelled. |
+
+The required ruleset contexts are `Backend CI / test`,
+`Backend CI / api-health`, `Frontend CI / contract-sync`, and
+`Frontend CI / lint-and-test`. Do not rename those jobs or path-filter their
+workflows without coordinating the repository ruleset in the same maintenance
+window. The e2e smoke failure bundle is the only uploaded CI artifact and
+expires after three days.
+
+`Backend CI (Full)` and `Production Smoke` are escalation lanes. Use the full
+backend workflow for broader coverage/security evidence and production smoke
+only for an explicitly authorized production verification; neither is a
+routine per-commit gate.
 
 ## End-to-end smoke (public surface)
 

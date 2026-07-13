@@ -4,6 +4,7 @@ This folder contains **historical implementation plans** that have already been 
 
 Implemented plans:
 
+- `2026-07-10-ci-free-tier-policy-closeout.md`
 - `2026-07-10-homepage-fetch-accessibility.md`
 - `2026-07-13-test-and-capture-resource-hygiene.md`
 - `2026-07-11-sqlalchemy-query-get-hygiene.md`
@@ -15,6 +16,7 @@ Implemented plans:
 - `2026-07-10-frontend-internal-link-check.md`
 - `2026-07-11-deterministic-docs-references.md`
 - `2026-07-11-repository-issue-forms.md`
+- `2026-07-10-unused-mkdocs-monorepo-plugin.md`
 - `2026-07-10-snapshot-metadata-mobile.md`
 - `2026-07-10-browse-by-source-orientation.md`
 - `2026-07-10-changes-result-orientation.md`

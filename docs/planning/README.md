@@ -140,6 +140,8 @@ Recently closed items:
   `implemented/2026-07-11-deterministic-docs-references.md`
 - Repository issue forms:
   `implemented/2026-07-11-repository-issue-forms.md`
+- Unused MkDocs monorepo plugin removal:
+  `implemented/2026-07-10-unused-mkdocs-monorepo-plugin.md`
 - Snapshot metadata mobile layout:
   `implemented/2026-07-10-snapshot-metadata-mobile.md`
 - Browse-by-source orientation and accessibility:
