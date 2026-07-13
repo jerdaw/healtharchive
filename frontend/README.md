@@ -164,6 +164,20 @@ npm run check
 
 This runs formatting checks, lint, typecheck, tests (mocked; no backend required), and a build.
 
+The Chrome-dependent Lighthouse regression gate is intentionally separate from
+the routine local check. To run the same production-build audit used by CI:
+
+```bash
+npm run build
+npm run check:lighthouse
+```
+
+From the monorepo root, the equivalent sequence is
+`make frontend-ci frontend-lighthouse`. The runner uses only loopback services
+and bundled fallback data, writes reports to the ignored `.lighthouseci/`
+directory, and requires a discoverable Chrome or Chromium binary. Set
+`CHROME_PATH` when needed.
+
 ### 6. Set up Git hooks
 
 After cloning, enable Git hooks:
@@ -186,7 +200,8 @@ bash scripts/setup-hooks.sh
 - GitHub Actions workflow `.github/workflows/frontend-ci.yml` runs on pushes to
   `main`, pull requests, and manual dispatch. It currently has three jobs:
   - `Frontend CI / contract-sync` runs `make contract-check`.
-  - `Frontend CI / lint-and-test` runs `make frontend-ci` (`npm run check`).
+  - `Frontend CI / lint-and-test` runs `make frontend-ci` (`npm run check`),
+    then applies the Lighthouse performance budgets to that production build.
   - `Frontend CI / docker-build-smoke` builds the production frontend image
     after the first two jobs pass.
 - The frontend workflow does **not** currently run `npm audit` or any other

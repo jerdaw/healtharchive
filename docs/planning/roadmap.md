@@ -481,7 +481,11 @@ Completed items were removed from this backlog and archived in:
 ### Frontend quality and public communication
 
 35. **Consolidate bilingual strings (remove inline ternaries)** (L: 1-2 weeks)
-36. **Add automated performance/Lighthouse testing** (M: 1 day)
+<!-- Item #36 removed 2026-07-13: the existing frontend CI build now runs a
+loopback-only Lighthouse regression gate over representative home, archive
+search, and demo-snapshot routes, with repeated samples, blocking budgets, and
+three-day failure reports. See
+`implemented/2026-07-13-frontend-lighthouse-performance-gate.md`. -->
 38. **Add coverage badges to READMEs** (S: 1-2h)
 <!-- Item #42 removed 2026-07-13: `data-integrity-report` now produces
 public-safe aggregate JSON/Markdown with snapshot totals, canonical WARC
