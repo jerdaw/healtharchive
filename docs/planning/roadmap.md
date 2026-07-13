@@ -205,11 +205,6 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 
 ### Crawling & indexing reliability (backend)
 
-- WARC discovery consistency follow-through (remaining work: keep non-indexing
-  operator scripts aligned with union stable/temp/fallback discovery as new
-  shard tooling matures).
-  - Historical context: `implemented/2026-01-29-warc-discovery-consistency.md`
-  - Already implemented: `implemented/2026-01-29-warc-manifest-verification.md`
 - Annual edition/shard convergence follow-through.
   - First-pass implementation now models `{source, year}` as `AnnualEdition`,
     attaches legacy 2026 jobs as salvage shards, reconciles completed-job
