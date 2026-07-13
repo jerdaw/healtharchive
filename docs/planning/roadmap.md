@@ -392,7 +392,6 @@ Completed items were removed from this backlog and archived in:
 
 ### Reliability, security, and CI
 
-23. **Create formal accessibility audit document** (M: 1-2 days)
 24. **Add frontend error boundary components** (M: 1 day)
 25. **Track the frontend Next/PostCSS production dependency advisory until an upstream-safe fix exists** (S: 1-2h)
     - Current evidence: `npm audit --omit=dev --json` on 2026-05-06 reports
@@ -501,9 +500,6 @@ Completed items were removed from this backlog and archived in:
 35. **Consolidate bilingual strings (remove inline ternaries)** (L: 1-2 weeks)
 36. **Add automated performance/Lighthouse testing** (M: 1 day)
 38. **Add coverage badges to READMEs** (S: 1-2h)
-39. **Create public project summary page** (M: 1 day)
-40. **Generate architecture diagrams (Mermaid/D2)** (M: 1 day)
-41. **Create public changelog page on frontend** (M: 1 day)
 42. **Create automated WARC/data integrity report** (M: 1 day)
 
 ## Adjacent / optional (in this monorepo, not core HA)
