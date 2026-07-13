@@ -27,12 +27,21 @@ def load_workflow(name: str) -> dict:
     )
 
 
+def workflow_paths() -> list[Path]:
+    return sorted([*WORKFLOWS.glob("*.yml"), *WORKFLOWS.glob("*.yaml")])
+
+
 def test_every_workflow_supports_manual_dispatch() -> None:
-    workflow_names = {path.name for path in WORKFLOWS.glob("*.yml")}
+    workflow_names = {path.name for path in workflow_paths()}
 
     assert workflow_names == AUTOMATIC | MANUAL_ONLY
     for name in workflow_names:
         assert "workflow_dispatch" in load_workflow(name)["on"]
+
+
+def test_manual_only_workflows_have_no_automatic_triggers() -> None:
+    for name in MANUAL_ONLY:
+        assert set(load_workflow(name)["on"]) == {"workflow_dispatch"}
 
 
 def test_concurrency_matches_workflow_class() -> None:
@@ -54,7 +63,7 @@ def test_ruleset_required_job_names_stay_stable() -> None:
 def test_uploaded_artifacts_expire_within_three_days() -> None:
     upload_steps: list[tuple[str, dict]] = []
 
-    for path in WORKFLOWS.glob("*.yml"):
+    for path in workflow_paths():
         workflow = load_workflow(path.name)
         for job in workflow["jobs"].values():
             for step in job.get("steps", []):
