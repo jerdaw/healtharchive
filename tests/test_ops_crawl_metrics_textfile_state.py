@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from ha_backend import db as db_module
+from ha_backend.crawl_rescue_status import WARC_COMPLETE_FINALIZATION_FAILED
 from ha_backend.db import Base, get_engine, get_session
 from ha_backend.models import ArchiveJob, Source
 from ha_backend.seeds import seed_sources
@@ -163,3 +164,41 @@ def test_metrics_emits_indexing_pending_job_age(tmp_path, monkeypatch) -> None:
     content = (out_dir / out_file).read_text(encoding="utf-8")
     assert "healtharchive_indexing_pending_jobs 1" in content
     assert 'healtharchive_indexing_pending_jobs_by_source{source="hc"} 1' in content
+
+
+def test_metrics_emits_warc_complete_finalization_failure_counts(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    out_dir = tmp_path / "textfile"
+    out_file = "healtharchive_crawl.prom"
+
+    with get_session() as session:
+        seed_sources(session)
+        session.flush()
+        source = session.query(Source).filter_by(code="hc").one()
+        session.add(
+            ArchiveJob(
+                source=source,
+                name="hc-warc-complete",
+                output_dir=str(tmp_path / "jobdir"),
+                status="completed",
+                finished_at=datetime.now(timezone.utc),
+                crawler_stage=WARC_COMPLETE_FINALIZATION_FAILED,
+            )
+        )
+        session.commit()
+
+    module = _load_script_module()
+    rc = int(module.main(["--out-dir", str(out_dir), "--out-file", out_file]))
+    assert rc == 0
+
+    content = (out_dir / out_file).read_text(encoding="utf-8")
+    assert "healtharchive_crawl_warc_complete_finalization_failed_jobs 1" in content
+    assert (
+        'healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source{source="hc"} 1'
+        in content
+    )
+    assert (
+        'healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source{source="phac"} 0'
+        in content
+    )

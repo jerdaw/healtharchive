@@ -119,6 +119,8 @@ Recently closed items:
 - Annual crawl storage guardrails:
   `implemented/2026-06-11-annual-crawl-storage-guardrails.md`
 - WARC compaction staging: `implemented/2026-06-05-warc-compaction-staging.md`
+- WARC-complete finalization failure alert:
+  `implemented/2026-07-10-warc-finalization-alert.md`
 - Public search and CIHR follow-through:
   `implemented/2026-05-05-public-search-and-cihr-followthrough.md`
 - Annual edition recovery handoff docs:

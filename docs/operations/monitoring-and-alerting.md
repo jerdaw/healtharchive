@@ -5,7 +5,8 @@ ingestion health, and service availability.
 
 This public document describes the kinds of signals that are useful to monitor:
 
-- crawler completion status
+- crawler completion status, including accepted WARC-complete jobs whose
+  optional finalization failed
 - dataset freshness
 - service availability
 - error rates
@@ -38,3 +39,7 @@ signals.
 Specific monitoring implementation details, collector paths, alert-routing
 configuration, credentials, and incident-response procedures are intentionally
 excluded from public documentation.
+
+An accepted WARC-complete finalization failure is a dashboard-only warning. It
+prompts review of indexing and annual-edition follow-through, but it does not by
+itself indicate an outage or data-loss condition.

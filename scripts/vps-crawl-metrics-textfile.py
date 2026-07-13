@@ -13,8 +13,13 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+from sqlalchemy import func
+
 from archive_tool.constants import STATE_FILE_NAME
-from ha_backend.crawl_rescue_status import derive_crawl_rescue_status
+from ha_backend.crawl_rescue_status import (
+    WARC_COMPLETE_FINALIZATION_FAILED,
+    derive_crawl_rescue_status,
+)
 from ha_backend.crawl_stats import (
     count_new_crawl_phase_events_from_log_tail,
     count_resume_crawl_events_from_log_tail,
@@ -307,8 +312,28 @@ def main(argv: list[str] | None = None) -> int:
     pending_annual_jobs: list[PendingCrawlAnnualJob] = []
     pending_crawl_jobs = 0
     recent_infra_error_jobs = 0
+    finalization_failure_counts_by_source: dict[str, int] = {}
     try:
         with get_session() as session:
+            source_codes = [
+                str(source_code)
+                for (source_code,) in session.query(Source.code).order_by(Source.code.asc()).all()
+            ]
+            failure_rows = (
+                session.query(Source.code, func.count(ArchiveJob.id))
+                .join(Source, ArchiveJob.source_id == Source.id)
+                .filter(ArchiveJob.crawler_stage == WARC_COMPLETE_FINALIZATION_FAILED)
+                .group_by(Source.code)
+                .all()
+            )
+            observed_failure_counts = {
+                str(source_code): int(count) for source_code, count in failure_rows
+            }
+            finalization_failure_counts_by_source = {
+                source_code: observed_failure_counts.get(source_code, 0)
+                for source_code in source_codes
+            }
+
             rows = (
                 session.query(
                     ArchiveJob.id,
@@ -427,6 +452,7 @@ def main(argv: list[str] | None = None) -> int:
         pending_annual_jobs = []
         pending_crawl_jobs = 0
         recent_infra_error_jobs = 0
+        finalization_failure_counts_by_source = {}
 
     worker_active = _systemctl_is_active(str(args.worker_unit))
     archive_cache_ok, _archive_cache_errno = _probe_readable_dir(Path(str(args.archive_cache_root)))
@@ -477,6 +503,34 @@ def main(argv: list[str] | None = None) -> int:
         lines,
         f'healtharchive_jobs_infra_error_recent_total{{minutes="{window_minutes}"}} {recent_infra_error_jobs}',
     )
+
+    _emit(
+        lines,
+        "# HELP healtharchive_crawl_warc_complete_finalization_failed_jobs Number of accepted WARC-complete jobs whose optional finalization failed.",
+    )
+    _emit(
+        lines,
+        "# TYPE healtharchive_crawl_warc_complete_finalization_failed_jobs gauge",
+    )
+    _emit(
+        lines,
+        "healtharchive_crawl_warc_complete_finalization_failed_jobs "
+        f"{sum(finalization_failure_counts_by_source.values())}",
+    )
+    _emit(
+        lines,
+        "# HELP healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source Number of accepted WARC-complete jobs whose optional finalization failed, by source.",
+    )
+    _emit(
+        lines,
+        "# TYPE healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source gauge",
+    )
+    for source_code, count in sorted(finalization_failure_counts_by_source.items()):
+        _emit(
+            lines,
+            "healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source"
+            f'{{source="{source_code}"}} {count}',
+        )
 
     _emit(
         lines,
