@@ -1,0 +1,27 @@
+diff --git a/node_modules/chrome-launcher/dist/chrome-launcher.js b/node_modules/chrome-launcher/dist/chrome-launcher.js
+index 837d39b..451dc08 100644
+--- a/node_modules/chrome-launcher/dist/chrome-launcher.js
++++ b/node_modules/chrome-launcher/dist/chrome-launcher.js
+@@ -115,7 +115,8 @@ class Launcher {
+         if (!this.useDefaultProfile) {
+             // Place Chrome profile in a custom location we'll rm -rf later
+             // If in WSL, we need to use the Windows format
+-            flags.push(`--user-data-dir=${isWsl ? utils_1.toWinDirFormat(this.userDataDir) : this.userDataDir}`);
++            const useWindowsWslPath = isWsl && process.env.HEALTHARCHIVE_LINUX_CHROME !== '1';
++            flags.push(`--user-data-dir=${useWindowsWslPath ? utils_1.toWinDirFormat(this.userDataDir) : this.userDataDir}`);
+         }
+         flags.push(...this.chromeFlags);
+         flags.push(this.startingUrl);
+diff --git a/node_modules/chrome-launcher/dist/utils.js b/node_modules/chrome-launcher/dist/utils.js
+index 582b96f..b02c7ef 100644
+--- a/node_modules/chrome-launcher/dist/utils.js
++++ b/node_modules/chrome-launcher/dist/utils.js
+@@ -81,6 +81,8 @@ function makeTmpDir() {
+         case 'linux':
+             return makeUnixTmpDir();
+         case 'wsl':
++            if (process.env.HEALTHARCHIVE_LINUX_CHROME === '1')
++                return makeUnixTmpDir();
+             // We populate the user's Windows temp dir so the folder is correctly created later
+             process.env.TEMP = getLocalAppDataPath(`${process.env.PATH}`);
+         case 'win32':
