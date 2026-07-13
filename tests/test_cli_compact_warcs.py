@@ -53,7 +53,10 @@ def _write_response_record(
     )
     record_id = record.rec_headers.get_header("WARC-Record-ID")
     assert record_id
-    writer.write_record(record)
+    try:
+        writer.write_record(record)
+    finally:
+        record.raw_stream.close()
     return record_id
 
 

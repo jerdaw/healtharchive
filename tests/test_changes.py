@@ -224,7 +224,7 @@ def test_get_latest_job_ids_by_source_logic(db_session, snapshot_factory):
     source1_id = snap1.source_id
 
     # Update job status to 'indexed' (factory defaults to 'completed')
-    job1 = db_session.query(ArchiveJob).get(snap1.job_id)
+    job1 = db_session.get(ArchiveJob, snap1.job_id)
     job1.status = "indexed"
     db_session.commit()
 
@@ -233,7 +233,7 @@ def test_get_latest_job_ids_by_source_logic(db_session, snapshot_factory):
 
     # Add a newer job for same source
     snap2 = snapshot_factory(url="http://b", timestamp=datetime(2025, 1, 2))
-    job2 = db_session.query(ArchiveJob).get(snap2.job_id)
+    job2 = db_session.get(ArchiveJob, snap2.job_id)
     job2.status = "indexed"
     db_session.commit()
 

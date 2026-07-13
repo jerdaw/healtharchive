@@ -32,6 +32,7 @@ dev = [
   "types-PyYAML",
   "pytest",
   "pytest-cov",
+  "httpx2>=2.0.0",  # Starlette TestClient transport; plain httpx is deprecated there
   "bandit",
   "pip-audit",
   "pre-commit",
@@ -46,7 +47,7 @@ docs = [
   "mkdocs-monorepo-plugin",
   "mkdocs-swagger-ui-tag",
   "cairosvg",
-  "pillow",
+  "pillow>=12.3.0",  # Security fixes for PYSEC-2026-2253 through PYSEC-2026-2257
 ]
 
 [build-system]

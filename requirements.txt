@@ -12,3 +12,4 @@ slowapi>=0.1.9
 
 # Test-only dependencies (install via extras or manually in dev)
 pytest>=9.1.1
+httpx2>=2.0.0

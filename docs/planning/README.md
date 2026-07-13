@@ -118,6 +118,10 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Test and capture resource hygiene:
+  `implemented/2026-07-13-test-and-capture-resource-hygiene.md`
+- SQLAlchemy Query.get test hygiene:
+  `implemented/2026-07-11-sqlalchemy-query-get-hygiene.md`
 - Operations governance backlog truth reconciliation:
   `implemented/2026-07-10-ops-governance-backlog-truth.md`
 - RCDC backlog scope audit:

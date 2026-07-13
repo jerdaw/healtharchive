@@ -44,7 +44,10 @@ def _write_test_warc(path: Path, *, url: str, html: str) -> None:
             payload=io.BytesIO(html.encode("utf-8")),
             http_headers=headers,
         )
-        writer.write_record(record)
+        try:
+            writer.write_record(record)
+        finally:
+            record.raw_stream.close()
 
 
 def test_reset_crawl_state_consolidates_warcs_and_removes_temp_state(

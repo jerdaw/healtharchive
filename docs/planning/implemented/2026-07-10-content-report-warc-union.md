@@ -46,7 +46,7 @@ production state.
 
 - Modify: `docs/architecture.md`
 - Modify: `docs/planning/roadmap.md`
-- Move: `docs/planning/2026-07-content-report-warc-union.md` to
+- Move the then-active plan into:
   `docs/planning/implemented/2026-07-10-content-report-warc-union.md`
 
 1. Describe the output-directory union helper, deduplication, and consumer

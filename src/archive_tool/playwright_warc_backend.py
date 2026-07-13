@@ -175,7 +175,13 @@ def _write_response_record(
         http_headers=http_headers,
         warc_headers_dict={"WARC-Date": _parse_capture_timestamp(capture_timestamp)},
     )
-    writer.write_record(record)
+    try:
+        writer.write_record(record)
+    finally:
+        record.raw_stream.close()
+        original_stream = getattr(record, "_orig_stream", None)
+        if original_stream is not None:
+            original_stream.close()
 
 
 def _stream_subprocess_output(proc: subprocess.Popen[str], sink: _StageLogSink) -> None:

@@ -35,7 +35,10 @@ def _write_test_warc_gz(path: Path) -> None:
             payload=io.BytesIO(b"<html><body>ok</body></html>"),
             http_headers=http_headers,
         )
-        writer.write_record(record)
+        try:
+            writer.write_record(record)
+        finally:
+            record.raw_stream.close()
 
 
 def test_verify_single_warc_level1_detects_truncated_gzip(tmp_path: Path) -> None:
