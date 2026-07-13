@@ -25,6 +25,7 @@ remain as-captured and are never translated.
 ## Source of truth for copy
 
 - Canonical shared copy: `src/lib/siteCopy.ts`
+- Archive discovery/search workflow copy: `src/lib/archiveCopy.ts`
 - Small localized snippets: `src/lib/localized.ts`
 - Locale helpers: `src/lib/i18n.ts`
 - Metadata helpers: `src/lib/metadata.ts`
@@ -46,6 +47,9 @@ in the PR if it is not obvious.
 5. Keep safety posture strong: not medical advice, not official, archived
    content may be outdated or incomplete.
 6. When introducing new terminology, add it to the glossary docs.
+7. For archive discovery/search copy, extend `getArchiveCopy(locale)` instead
+   of adding route or component-level locale ternaries. Keep data fetching,
+   routing, and source localization as behavior outside the copy catalog.
 
 ## Adding new routes or pages
 

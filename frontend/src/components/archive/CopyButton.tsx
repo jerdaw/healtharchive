@@ -4,6 +4,7 @@ import type { ReactNode } from "react";
 import { useEffect, useId, useRef, useState } from "react";
 
 import { useLocale } from "@/components/i18n/LocaleProvider";
+import { getArchiveCopy } from "@/lib/archiveCopy";
 
 type CopyButtonProps = {
   text: string;
@@ -60,6 +61,7 @@ export function CopyButton({
   children,
 }: CopyButtonProps) {
   const locale = useLocale();
+  const copy = getArchiveCopy(locale).clipboard;
   const [state, setState] = useState<CopyState>("idle");
   const statusId = useId();
   const timeoutRef = useRef<number | null>(null);
@@ -134,26 +136,12 @@ export function CopyButton({
             state === "copied" ? "ha-toast-success" : "ha-toast-error"
           }`}
         >
-          {state === "copied"
-            ? locale === "fr"
-              ? "Copié"
-              : "Copied"
-            : locale === "fr"
-              ? "Échec de la copie"
-              : "Copy failed"}
+          {state === "copied" ? copy.copiedToast : copy.failedToast}
         </span>
       )}
 
       <span id={statusId} className="sr-only" aria-live="polite">
-        {state === "copied"
-          ? locale === "fr"
-            ? "Copié dans le presse-papiers."
-            : "Copied to clipboard."
-          : state === "failed"
-            ? locale === "fr"
-              ? "Échec de la copie."
-              : "Copy failed."
-            : ""}
+        {state === "copied" ? copy.copiedStatus : state === "failed" ? copy.failedStatus : ""}
       </span>
     </span>
   );

@@ -481,6 +481,11 @@ Completed items were removed from this backlog and archived in:
 ### Frontend quality and public communication
 
 35. **Consolidate bilingual strings (remove inline ternaries)** (L: 1-2 weeks)
+    - 2026-07-13 phase: archive discovery/search now uses one typed catalog
+      across `/archive`, source browsing, result cards, filters, clipboard
+      feedback, and API-health diagnostics, with English/French rendering tests.
+    - Remaining scope: migrate the other public workflows in coherent batches;
+      do not reintroduce inline copy selection in the completed archive workflow.
 <!-- Item #36 removed 2026-07-13: the existing frontend CI build now runs a
 loopback-only Lighthouse regression gate over representative home, archive
 search, and demo-snapshot routes, with repeated samples, blocking budgets, and
