@@ -166,7 +166,7 @@ export default async function ResearchersPage({ params }: { params: Promise<{ lo
             ? "HealthArchive fournit des exportations de métadonnées uniquement, destinées à la recherche. Les exportations n’incluent pas le HTML brut ni les corps de diff complets."
             : "HealthArchive provides metadata-only exports for research. Exports do not include raw HTML or full diff bodies."}
         </p>
-        <div className="ha-card ha-home-panel space-y-2 p-4 text-xs text-slate-800 sm:p-5 sm:text-sm">
+        <div className="ha-card-inset space-y-2">
           <p className="text-ha-muted">
             {locale === "fr" ? "Manifeste d’exportation" : "Export manifest"}
           </p>
@@ -200,7 +200,7 @@ export default async function ResearchersPage({ params }: { params: Promise<{ lo
           </Link>
           .
         </p>
-        <h3 className="text-sm font-semibold text-slate-900">
+        <h3 className="ha-callout-title">
           {locale === "fr" ? "Liste de vérification pour une demande" : "Request checklist"}
         </h3>
         <ul className="text-ha-muted list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
@@ -272,10 +272,7 @@ export default async function ResearchersPage({ params }: { params: Promise<{ lo
             ? "pour un document partageable et des conseils de citation pour la vue de comparaison."
             : "for a shareable handout and compare-view citation guidance."}
         </p>
-        <div
-          lang="en"
-          className="ha-card ha-home-panel space-y-1 p-4 text-xs text-slate-800 sm:p-5 sm:text-sm"
-        >
+        <div lang="en" className="ha-card-inset space-y-1">
           HealthArchive.ca Project. “&lt;Page title&gt;” (snapshot from &lt; capture date/time&gt;).
           Archived copy of &lt;original agency&gt; web page (&lt;original URL&gt;). Accessed
           &lt;access date&gt;. Available from: &lt;HealthArchive.ca snapshot URL&gt;.
@@ -285,10 +282,7 @@ export default async function ResearchersPage({ params }: { params: Promise<{ lo
             ? "Par exemple, pour une capture d’une mise à jour épidémiologique COVID‑19 :"
             : "For example, for a COVID-19 epidemiology update snapshot:"}
         </p>
-        <div
-          lang="en"
-          className="ha-card ha-home-panel space-y-1 p-4 text-xs text-slate-800 sm:p-5 sm:text-sm"
-        >
+        <div lang="en" className="ha-card-inset space-y-1">
           HealthArchive.ca Project. “COVID-19 epidemiology update: Canada” (snapshot from 15 Feb
           2025). Archived copy of Public Health Agency of Canada web page
           (https://www.canada.ca/...). Accessed 3 Dec 2025. Available from:

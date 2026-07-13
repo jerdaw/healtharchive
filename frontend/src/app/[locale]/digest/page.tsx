@@ -50,7 +50,7 @@ export default async function DigestPage({ params }: { params: Promise<{ locale:
 
   return (
     <PageShell eyebrow={copy.eyebrow} title={copy.title} intro={copy.intro}>
-      <section className="ha-content-section-lead space-y-4">
+      <section className="ha-content-section-lead space-y-5">
         <div className="ha-callout">
           <h2 className="ha-callout-title">
             {locale === "fr" ? "Ce qu’est le bulletin" : "What the digest is"}
@@ -76,7 +76,7 @@ export default async function DigestPage({ params }: { params: Promise<{ locale:
         </div>
       </section>
 
-      <section className="ha-content-section space-y-4">
+      <section className="ha-content-section space-y-5">
         <h2 className="ha-section-heading">{locale === "fr" ? "Flux RSS" : "RSS feeds"}</h2>
         <div className="ha-card space-y-2">
           <p className="text-ha-muted text-xs">
@@ -88,25 +88,30 @@ export default async function DigestPage({ params }: { params: Promise<{ locale:
         </div>
 
         {sources && sources.length > 0 ? (
-          <div className="ha-grid-2">
-            {sources.map((source) => {
-              const rssUrl = `${apiBase}/api/changes/rss?source=${encodeURIComponent(
-                source.sourceCode,
-              )}`;
-              return (
-                <div key={source.sourceCode} className="ha-card space-y-2">
-                  <p className="text-ha-muted text-xs">{source.sourceName}</p>
-                  <a href={rssUrl} className="ha-link">
-                    {locale === "fr" ? "Flux RSS" : "RSS feed"}
-                  </a>
-                  <p className="text-ha-muted text-xs">
-                    {locale === "fr"
-                      ? "Suit les changements entre les dernières éditions archivées."
-                      : "Tracks changes between the latest archived editions."}
-                  </p>
-                </div>
-              );
-            })}
+          <div className="space-y-3">
+            <h3 className="ha-callout-title">
+              {locale === "fr" ? "Flux par source" : "Feeds by source"}
+            </h3>
+            <div className="ha-grid-2">
+              {sources.map((source) => {
+                const rssUrl = `${apiBase}/api/changes/rss?source=${encodeURIComponent(
+                  source.sourceCode,
+                )}`;
+                return (
+                  <div key={source.sourceCode} className="ha-card space-y-2">
+                    <p className="text-ha-muted text-xs">{source.sourceName}</p>
+                    <a href={rssUrl} className="ha-link">
+                      {locale === "fr" ? "Flux RSS" : "RSS feed"}
+                    </a>
+                    <p className="text-ha-muted text-xs">
+                      {locale === "fr"
+                        ? "Suit les changements entre les dernières éditions archivées."
+                        : "Tracks changes between the latest archived editions."}
+                    </p>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         ) : (
           <div className="ha-callout">
@@ -119,7 +124,7 @@ export default async function DigestPage({ params }: { params: Promise<{ locale:
         )}
       </section>
 
-      <section className="ha-content-section space-y-4">
+      <section className="ha-content-section space-y-5">
         <h2 className="ha-section-heading">
           {locale === "fr" ? "Prochaines étapes" : "Next steps"}
         </h2>

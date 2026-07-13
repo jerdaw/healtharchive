@@ -534,6 +534,10 @@ Completed items were removed from this backlog and archived in:
       do not reintroduce inline copy selection in the completed archive workflow.
     - This remains a broad P3 refactor; divide it by one user-visible surface
       when reselected.
+    - 2026-07-13 audit: the separate seven-page content improvement plan was
+      closed after its remaining correctness and design-system items landed;
+      its copy-only rewrite remains deferred here rather than as a duplicate
+      active plan.
 38. **Add coverage badges to READMEs** (S: 1-2h) — P3; requires a durable,
     trustworthy coverage publication source rather than a static claim.
 

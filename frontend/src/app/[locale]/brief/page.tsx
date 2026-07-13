@@ -166,9 +166,9 @@ export default async function BriefPage({ params }: { params: Promise<{ locale: 
         <ul className="text-ha-muted list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
           <li>
             {locale === "fr" ? "Accueil" : "Home"}:{" "}
-            <a className="ha-link" href="https://healtharchive.ca/">
+            <Link className="ha-link" href="/">
               https://healtharchive.ca/
-            </a>
+            </Link>
           </li>
           <li>
             {locale === "fr" ? "Recherche dans l’archive" : "Archive search"}:{" "}
@@ -236,7 +236,7 @@ export default async function BriefPage({ params }: { params: Promise<{ locale: 
         </ul>
       </section>
 
-      <section className="ha-content-section space-y-4">
+      <section className="ha-content-section space-y-5">
         <div className="ha-callout">
           <h3 className="ha-callout-title">
             {locale === "fr" ? "Contact et signalements" : "Contact and reporting"}

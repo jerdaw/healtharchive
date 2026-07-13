@@ -1,16 +1,43 @@
-# Content Pages Improvement Plan
+# Content pages improvement plan closeout
 
 Date: 2026-02-24
 
+**Status:** Audited and closed 2026-07-13
+
+This historical plan was reconciled against the current seven-page public
+surface. The remaining high-confidence correctness and design-system items were
+completed together in the content-page correctness batch. Suggestions that had
+already landed, were based on stale premises, or required new editorial/UX
+decisions were not carried forward as autonomous work.
+
+The broad copy-object rewrite remains represented only by roadmap item 35. It
+is intentionally deferred as P3 maintenance because moving nearly 200 already
+working localized strings would create substantial review churn without a
+current user-facing outcome.
+
+## Closeout disposition
+
+- Completed in the final batch: R2, B1, E1, E3, D3, C1, C4, S4/S6, and the
+  remaining mechanical S5 spacing normalization.
+- Previously complete: S3 and R4; the governance and report routes mentioned
+  by B3 also exist.
+- Closed as incorrect or stale: R1's private-URL premise, A2, B2, and D1.
+- Deferred pending a concrete UX/editorial decision: A3, E2, E4, D2, C2, C3,
+  and the email-digest future state in D4.
+- Deferred as broad P3 refactoring: S1, S2, M1, and related copy-only cleanup.
+
+The remainder of this file preserves the original proposal for historical
+context; it is not an active backlog.
+
 Pages in scope:
 
-- `/about` — `src/app/[locale]/about/page.tsx`
-- `/methods` — `src/app/[locale]/methods/page.tsx`
-- `/researchers` — `src/app/[locale]/researchers/page.tsx`
-- `/brief` — `src/app/[locale]/brief/page.tsx`
-- `/exports` — `src/app/[locale]/exports/page.tsx`
-- `/digest` — `src/app/[locale]/digest/page.tsx`
-- `/cite` — `src/app/[locale]/cite/page.tsx`
+- `/about` — `frontend/src/app/[locale]/about/page.tsx`
+- `/methods` — `frontend/src/app/[locale]/methods/page.tsx`
+- `/researchers` — `frontend/src/app/[locale]/researchers/page.tsx`
+- `/brief` — `frontend/src/app/[locale]/brief/page.tsx`
+- `/exports` — `frontend/src/app/[locale]/exports/page.tsx`
+- `/digest` — `frontend/src/app/[locale]/digest/page.tsx`
+- `/cite` — `frontend/src/app/[locale]/cite/page.tsx`
 
 Each improvement is labelled with a priority:
 
@@ -108,7 +135,7 @@ Example:
 
 Then use `className="ha-link"` at all call sites.
 
-**Improvement option B:** At minimum, define a `const linkCls = "text-ha-accent font-medium hover:text-blue-700"` at module scope in each page file (or in a shared `src/lib/styles.ts`) and spread it into className. This eliminates the repetition without requiring a CSS change.
+**Improvement option B:** At minimum, define a `const linkCls = "text-ha-accent font-medium hover:text-blue-700"` at module scope in each page file (or in a shared style helper) and spread it into className. This eliminates the repetition without requiring a CSS change.
 
 Option A is preferred because it keeps color tokens in CSS variables rather than Tailwind classes.
 
@@ -290,7 +317,7 @@ Line 251:
 <li>{siteCopy.whatThisSiteIs.forCurrent}.</li>
 ```
 
-If `siteCopy.whatThisSiteIs.forCurrent` already ends with a period (check `src/lib/siteCopy.ts`), this renders a double period. Remove the trailing `.` from the JSX if the string already terminates with punctuation, or ensure the copy string does not end with a period and always add it at the call site. Be consistent across `/brief`, `/digest`, and `/cite` which all use this string.
+If `siteCopy.whatThisSiteIs.forCurrent` already ends with a period (check `frontend/src/lib/siteCopy.ts`), this renders a double period. Remove the trailing `.` from the JSX if the string already terminates with punctuation, or ensure the copy string does not end with a period and always add it at the call site. Be consistent across `/brief`, `/digest`, and `/cite` which all use this string.
 
 ---
 
@@ -447,7 +474,7 @@ const localePrefix = locale === "fr" ? "/fr" : "";
 const snapshotUrl = `${SITE_BASE_URL}${localePrefix}/snapshot/${detail.id}`;
 ```
 
-This constructs a locale-prefixed absolute URL manually. If the locale routing logic changes (e.g., if English gains a `/en/` prefix), this will silently produce wrong URLs. Consider adding a `buildSnapshotUrl(locale, id)` utility in `src/lib/metadata.ts` or `src/lib/i18n.ts` that centralizes snapshot URL construction using the same locale logic as the `LocalizedLink` component.
+This constructs a locale-prefixed absolute URL manually. If the locale routing logic changes (e.g., if English gains a `/en/` prefix), this will silently produce wrong URLs. Consider adding a `buildSnapshotUrl(locale, id)` utility in `frontend/src/lib/metadata.ts` or `frontend/src/lib/i18n.ts` that centralizes snapshot URL construction using the same locale logic as the `LocalizedLink` component.
 
 ---
 

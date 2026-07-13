@@ -191,7 +191,7 @@ export default async function MethodsPage({ params }: { params: Promise<{ locale
         </ul>
       </section>
 
-      <section className="ha-content-section space-y-4">
+      <section className="ha-content-section space-y-5">
         <div className="ha-callout">
           <h3 className="ha-callout-title">
             {locale === "fr" ? "Limites et interprétation" : "Limitations and interpretation"}

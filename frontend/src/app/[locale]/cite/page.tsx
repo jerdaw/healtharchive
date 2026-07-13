@@ -5,7 +5,7 @@ import { CopyButton } from "@/components/archive/CopyButton";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { fetchSnapshotDetail, searchSnapshots } from "@/lib/api";
-import type { Locale } from "@/lib/i18n";
+import { localePrefix, type Locale } from "@/lib/i18n";
 import { buildPageMetadata, SITE_BASE_URL } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
 import { getSiteCopy } from "@/lib/siteCopy";
@@ -115,8 +115,7 @@ export default async function CitePage({
         const detail = await fetchSnapshotDetail(resolvedSnapshotId);
         const capture = formatUtcTimestamp(detail.captureTimestamp);
         const accessedDate = new Date().toISOString().slice(0, 10);
-        const localePrefix = locale === "fr" ? "/fr" : "";
-        const snapshotUrl = `${SITE_BASE_URL}${localePrefix}/snapshot/${detail.id}`;
+        const snapshotUrl = `${SITE_BASE_URL}${localePrefix(locale)}/snapshot/${detail.id}`;
         citationSnapshotId = detail.id;
         citationText = buildPrefilledCitation({
           locale,
@@ -145,41 +144,43 @@ export default async function CitePage({
   return (
     <PageShell eyebrow={copy.eyebrow} title={copy.title} intro={copy.intro}>
       {(citationText || prefillError) && (
-        <section className="ha-callout">
-          <h2 className="ha-callout-title">
-            {locale === "fr" ? "Citation suggérée" : "Suggested citation"}
-          </h2>
-          {prefillError ? (
-            <p className="mt-2 text-xs leading-relaxed sm:text-sm">{prefillError}</p>
-          ) : (
-            <>
-              <p className="mt-2 text-xs leading-relaxed sm:text-sm">
-                {locale === "fr"
-                  ? "Copiez et adaptez la citation ci-dessous selon votre style."
-                  : "Copy and adapt the citation below to your preferred style."}
-              </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <CopyButton
-                  text={citationText ?? ""}
-                  label={locale === "fr" ? "Copier la citation" : "Copy citation"}
-                  className="ha-btn-secondary text-xs"
-                >
-                  {locale === "fr" ? "Copier" : "Copy"}
-                </CopyButton>
-                {citationSnapshotId != null && (
-                  <Link
-                    href={`/snapshot/${citationSnapshotId}`}
+        <section className="ha-content-section">
+          <div className="ha-callout">
+            <h2 className="ha-callout-title">
+              {locale === "fr" ? "Citation suggérée" : "Suggested citation"}
+            </h2>
+            {prefillError ? (
+              <p className="mt-2 text-xs leading-relaxed sm:text-sm">{prefillError}</p>
+            ) : (
+              <>
+                <p className="mt-2 text-xs leading-relaxed sm:text-sm">
+                  {locale === "fr"
+                    ? "Copiez et adaptez la citation ci-dessous selon votre style."
+                    : "Copy and adapt the citation below to your preferred style."}
+                </p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <CopyButton
+                    text={citationText ?? ""}
+                    label={locale === "fr" ? "Copier la citation" : "Copy citation"}
                     className="ha-btn-secondary text-xs"
                   >
-                    {locale === "fr" ? "Ouvrir la capture" : "Open snapshot"}
-                  </Link>
-                )}
-              </div>
-              <div className="ha-card ha-home-panel mt-4 p-4 text-xs break-words whitespace-pre-wrap text-slate-800 sm:p-5 sm:text-sm">
-                {citationText}
-              </div>
-            </>
-          )}
+                    {locale === "fr" ? "Copier" : "Copy"}
+                  </CopyButton>
+                  {citationSnapshotId != null && (
+                    <Link
+                      href={`/snapshot/${citationSnapshotId}`}
+                      className="ha-btn-secondary text-xs"
+                    >
+                      {locale === "fr" ? "Ouvrir la capture" : "Open snapshot"}
+                    </Link>
+                  )}
+                </div>
+                <div className="ha-card-inset mt-4 p-4 text-xs break-words whitespace-pre-wrap text-slate-800 sm:p-5 sm:text-sm">
+                  {citationText}
+                </div>
+              </>
+            )}
+          </div>
         </section>
       )}
 
@@ -231,7 +232,7 @@ export default async function CitePage({
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           {locale === "fr" ? "Format recommandé" : "Recommended format"}
         </p>
-        <div className="ha-card ha-home-panel space-y-1 p-4 text-xs text-slate-800 sm:p-5 sm:text-sm">
+        <div className="ha-card-inset space-y-1 p-4 text-xs text-slate-800 sm:p-5 sm:text-sm">
           HealthArchive.ca Project. “&lt;Page title&gt;” (snapshot from &lt;capture date/time&gt;).
           Archived copy of &lt;source organization&gt; web page (&lt;original URL&gt;). Accessed
           &lt;access date&gt;. Available from: &lt;HealthArchive snapshot URL&gt;.
@@ -239,7 +240,7 @@ export default async function CitePage({
         <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
           {locale === "fr" ? "Exemple" : "Example"}
         </p>
-        <div className="ha-card ha-home-panel space-y-1 p-4 text-xs text-slate-800 sm:p-5 sm:text-sm">
+        <div className="ha-card-inset space-y-1 p-4 text-xs text-slate-800 sm:p-5 sm:text-sm">
           HealthArchive.ca Project. “COVID-19 epidemiology update: Canada” (snapshot from 2025-02-15
           00:00 UTC). Archived copy of Public Health Agency of Canada web page
           (https://www.canada.ca/...). Accessed 2025-12-03. Available from:
@@ -273,7 +274,7 @@ export default async function CitePage({
             ? "Les vues de comparaison mettent en évidence des différences de texte descriptives entre deux captures archivées de la même page."
             : "Compare views highlight descriptive text differences between two archived captures of the same page."}
         </p>
-        <div className="ha-card ha-home-panel space-y-1 p-4 text-xs text-slate-800 sm:p-5 sm:text-sm">
+        <div className="ha-card-inset space-y-1 p-4 text-xs text-slate-800 sm:p-5 sm:text-sm">
           HealthArchive.ca Project. “Comparison of archived captures” (from snapshot &lt;ID A&gt; to
           snapshot &lt;ID B&gt;). Archived copies of &lt;source organization&gt; web page
           (&lt;original URL&gt;). Accessed &lt;access date&gt;. Available from:
@@ -298,7 +299,7 @@ export default async function CitePage({
         </ul>
       </section>
 
-      <section className="ha-content-section space-y-4">
+      <section className="ha-content-section space-y-5">
         <div className="ha-callout">
           <h3 className="ha-callout-title">
             {locale === "fr"
