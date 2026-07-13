@@ -12,6 +12,21 @@ This public document describes the kinds of signals that are useful to monitor:
 - error rates
 - storage usage
 - release health
+- durable indexing phase and heartbeat age
+
+Long WARC consolidation and indexing runs persist bounded liveness state in a
+separate short-transaction record. Operators can inspect the current phase,
+WARC position, record and byte counters, elapsed time, and last-progress age
+through `show-job`, `annual-status` (and its `ha-check` consumers), or the
+`healtharchive_indexing_progress_*` dashboard metrics. WARC basenames appear in
+operator command output but are deliberately excluded from metric labels.
+
+Indexing heartbeat age is currently a dashboard and diagnostic signal, not an
+alert. A stale heartbeat can indicate a stalled process, a CPU-bound phase that
+has not reached its next bounded update, or failed best-effort progress
+persistence; operators should correlate it with job state and host/database
+health before taking action. Alert thresholds should be calibrated from live
+history before any notification policy is introduced.
 
 ## Signal Tiers
 

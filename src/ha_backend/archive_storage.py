@@ -10,7 +10,7 @@ import tempfile
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Iterable, Optional
+from typing import Callable, Iterable, Optional
 
 from archive_tool.constants import STATE_FILE_NAME
 from archive_tool.utils import find_latest_config_yaml
@@ -53,6 +53,16 @@ class WarcConsolidationResult:
     stable_warcs: list[Path]
     created: int
     reused: int
+
+
+@dataclass(frozen=True)
+class WarcConsolidationProgress:
+    phase: str
+    warc_name: str
+    warc_index: int
+    warc_total: int
+    bytes_processed: int
+    bytes_total: int
 
 
 @dataclass(frozen=True)
@@ -131,12 +141,22 @@ def _iter_stable_warc_paths(warcs_dir: Path) -> list[Path]:
     return sorted(warcs)
 
 
-def _compute_sha256(path: Path) -> str:
+def _compute_sha256(
+    path: Path,
+    *,
+    progress_callback: Callable[[int], None] | None = None,
+) -> str:
     """Compute the SHA256 hash of a file."""
     sha256 = hashlib.sha256()
+    bytes_processed = 0
     with path.open("rb") as f:
-        while chunk := f.read(8192):
+        while chunk := f.read(1024 * 1024):
             sha256.update(chunk)
+            bytes_processed += len(chunk)
+            if progress_callback is not None:
+                progress_callback(bytes_processed)
+    if progress_callback is not None and bytes_processed == 0:
+        progress_callback(0)
     return sha256.hexdigest()
 
 
@@ -158,6 +178,7 @@ def _safe_link_or_copy(
     dest: Path,
     *,
     allow_copy_fallback: bool,
+    progress_callback: Callable[[int], None] | None = None,
 ) -> str:
     """
     Create a stable WARC file at dest that is byte-identical to src.
@@ -191,8 +212,15 @@ def _safe_link_or_copy(
         suffix=".tmp",
     ) as tmp:
         tmp_path = Path(tmp.name)
+        bytes_processed = 0
         with src.open("rb") as fsrc:
-            shutil.copyfileobj(fsrc, tmp)
+            while chunk := fsrc.read(1024 * 1024):
+                tmp.write(chunk)
+                bytes_processed += len(chunk)
+                if progress_callback is not None:
+                    progress_callback(bytes_processed)
+        if progress_callback is not None and bytes_processed == 0:
+            progress_callback(0)
         tmp.flush()
         os.fsync(tmp.fileno())
     os.replace(tmp_path, dest)
@@ -206,6 +234,7 @@ def consolidate_warcs(
     source_warc_paths: list[Path],
     allow_copy_fallback: bool = False,
     dry_run: bool = False,
+    progress_callback: Callable[[WarcConsolidationProgress], None] | None = None,
 ) -> WarcConsolidationResult:
     """
     Consolidate discovered WARC files into a stable per-job warcs/ directory.
@@ -240,9 +269,25 @@ def consolidate_warcs(
     if not dry_run:
         warcs_dir.mkdir(parents=True, exist_ok=True)
 
-    for src in sorted({p.resolve() for p in source_warc_paths}):
-        if not src.is_file():
-            continue
+    sources = [src for src in sorted({p.resolve() for p in source_warc_paths}) if src.is_file()]
+    warc_total = len(sources)
+
+    for warc_index, src in enumerate(sources, start=1):
+        source_size = int(src.stat().st_size)
+
+        def report_progress(phase: str, bytes_processed: int) -> None:
+            if progress_callback is None:
+                return
+            progress_callback(
+                WarcConsolidationProgress(
+                    phase=phase,
+                    warc_name=src.name,
+                    warc_index=warc_index,
+                    warc_total=warc_total,
+                    bytes_processed=max(0, int(bytes_processed)),
+                    bytes_total=source_size,
+                )
+            )
 
         source_key = str(src)
         existing = by_source.get(source_key)
@@ -258,6 +303,7 @@ def consolidate_warcs(
             if dest.is_file():
                 reused += 1
                 stable_paths.append(dest.resolve())
+                report_progress("reuse", source_size)
                 by_source[source_key] = {
                     **(existing or {}),
                     "source_path": source_key,
@@ -277,8 +323,12 @@ def consolidate_warcs(
                 src,
                 dest,
                 allow_copy_fallback=allow_copy_fallback,
+                progress_callback=lambda processed: report_progress("copy", processed),
             )
-            sha256_hash = _compute_sha256(dest)
+            sha256_hash = _compute_sha256(
+                dest,
+                progress_callback=lambda processed: report_progress("hash", processed),
+            )
 
         created += 1
         stable_paths.append(dest.resolve())
