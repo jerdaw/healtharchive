@@ -23,18 +23,21 @@ See also:
 import logging
 import os
 import stat
+from collections.abc import Callable
 from pathlib import Path
 
 from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
 from ha_backend.archive_storage import (
+    WarcConsolidationProgress,
     compute_job_storage_stats,
     consolidate_warcs,
 )
 from ha_backend.authority import recompute_page_signals
 from ha_backend.db import get_session
 from ha_backend.indexing.mapping import record_to_snapshot
+from ha_backend.indexing.progress import IndexingProgressReporter
 from ha_backend.indexing.text_extraction import (
     detect_is_archived,
     detect_language,
@@ -53,7 +56,13 @@ from ha_backend.models import ArchiveJob, Snapshot, SnapshotOutlink
 logger = logging.getLogger("healtharchive.indexing")
 
 
-def _attempt_temp_warc_consolidation(job_id: int, job: ArchiveJob, output_dir: Path) -> None:
+def _attempt_temp_warc_consolidation(
+    job_id: int,
+    job: ArchiveJob,
+    output_dir: Path,
+    *,
+    progress_callback: Callable[[WarcConsolidationProgress], None] | None = None,
+) -> None:
     """Try consolidating legacy temp WARCs into stable directory."""
     temp_warcs = discover_temp_warcs_for_job(job)
     if not temp_warcs:
@@ -65,6 +74,7 @@ def _attempt_temp_warc_consolidation(job_id: int, job: ArchiveJob, output_dir: P
             source_warc_paths=temp_warcs,
             allow_copy_fallback=False,
             dry_run=False,
+            progress_callback=progress_callback,
         )
         logger.info(
             "Consolidated %d WARC(s) into %s (created=%d reused=%d).",
@@ -81,7 +91,13 @@ def _attempt_temp_warc_consolidation(job_id: int, job: ArchiveJob, output_dir: P
         )
 
 
-def _ensure_stable_warcs_available(job_id: int, job: "ArchiveJob", output_dir: Path) -> None:
+def _ensure_stable_warcs_available(
+    job_id: int,
+    job: "ArchiveJob",
+    output_dir: Path,
+    *,
+    progress_callback: Callable[[WarcConsolidationProgress], None] | None = None,
+) -> None:
     """
     Ensure temp WARCs are linked into the stable location when possible.
 
@@ -91,7 +107,12 @@ def _ensure_stable_warcs_available(job_id: int, job: "ArchiveJob", output_dir: P
     before indexing.
     """
     output_dir = output_dir.resolve()
-    _attempt_temp_warc_consolidation(job_id, job, output_dir)
+    _attempt_temp_warc_consolidation(
+        job_id,
+        job,
+        output_dir,
+        progress_callback=progress_callback,
+    )
 
 
 def _load_job(session: Session, job_id: int) -> ArchiveJob:
@@ -101,7 +122,7 @@ def _load_job(session: Session, job_id: int) -> ArchiveJob:
     return job
 
 
-def index_job(job_id: int) -> int:
+def _index_job_transaction(job_id: int, reporter: IndexingProgressReporter) -> int:
     """
     Index a completed ArchiveJob into Snapshot rows.
 
@@ -152,11 +173,34 @@ def index_job(job_id: int) -> int:
 
         try:
             # Prefer indexing from stable per-job WARCs when possible
-            _ensure_stable_warcs_available(job_id, job, output_dir)
+            reporter.update(phase="consolidate_warcs")
+
+            def report_consolidation(progress: WarcConsolidationProgress) -> None:
+                reporter.update(
+                    phase="consolidate_warcs",
+                    current_warc=progress.warc_name,
+                    warc_index=progress.warc_index,
+                    warc_total=progress.warc_total,
+                    bytes_processed=progress.bytes_processed,
+                    bytes_total=progress.bytes_total,
+                    force=(progress.bytes_processed >= progress.bytes_total),
+                )
+
+            _ensure_stable_warcs_available(
+                job_id,
+                job,
+                output_dir,
+                progress_callback=report_consolidation,
+            )
 
             # Discover WARC files for this job.
             warc_paths = discover_warcs_for_job(job)
             job.warc_file_count = len(warc_paths)
+            reporter.update(
+                phase="discover",
+                warc_total=len(warc_paths),
+                force=True,
+            )
             logger.info("Indexing job %s phase=discover warcs=%d", job_id, len(warc_paths))
 
             if not warc_paths:
@@ -213,6 +257,11 @@ def index_job(job_id: int) -> int:
                 job_id,
                 verify_level,
                 len(warc_paths),
+            )
+            reporter.update(
+                phase="verify",
+                warc_total=len(warc_paths),
+                force=True,
             )
             verify_report = verify_warcs(warc_paths, options=verify_options)
             if verify_report.warcs_failed:
@@ -272,6 +321,14 @@ def index_job(job_id: int) -> int:
                     warc_index,
                     total_warcs,
                     warc_path.name,
+                )
+                reporter.update(
+                    phase="read_warc",
+                    current_warc=warc_path.name,
+                    warc_index=warc_index,
+                    warc_total=total_warcs,
+                    records_processed=n_snapshots,
+                    force=True,
                 )
                 for rec in iter_html_records(warc_path):
                     try:
@@ -334,6 +391,13 @@ def index_job(job_id: int) -> int:
 
                         session.add(snapshot)
                         n_snapshots += 1
+                        reporter.update(
+                            phase="read_warc",
+                            current_warc=warc_path.name,
+                            warc_index=warc_index,
+                            warc_total=total_warcs,
+                            records_processed=n_snapshots,
+                        )
 
                         # Flush periodically to keep memory usage reasonable.
                         if n_snapshots % 500 == 0:
@@ -345,6 +409,14 @@ def index_job(job_id: int) -> int:
                             rec_exc,
                         )
                         continue
+
+            reporter.update(
+                phase="finalize",
+                warc_index=total_warcs,
+                warc_total=total_warcs,
+                records_processed=n_snapshots,
+                force=True,
+            )
 
             job.indexed_page_count = n_snapshots
             job.status = "indexed"
@@ -423,6 +495,23 @@ def index_job(job_id: int) -> int:
             logger.error("Indexing for job %s failed: %s", job_id, exc)
             job.status = "index_failed"
             return 1
+
+
+def index_job(job_id: int) -> int:
+    """Index one job while persisting liveness outside the snapshot transaction."""
+    reporter = IndexingProgressReporter(job_id)
+    reporter.update(phase="starting", force=True)
+    try:
+        rc = _index_job_transaction(job_id, reporter)
+    except Exception:
+        reporter.mark_failed()
+        raise
+
+    if rc == 0:
+        reporter.clear()
+    else:
+        reporter.mark_failed()
+    return rc
 
 
 __all__ = ["index_job"]

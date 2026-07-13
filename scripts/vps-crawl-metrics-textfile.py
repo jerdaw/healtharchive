@@ -13,15 +13,20 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterable
 
+from sqlalchemy import func
+
 from archive_tool.constants import STATE_FILE_NAME
-from ha_backend.crawl_rescue_status import derive_crawl_rescue_status
+from ha_backend.crawl_rescue_status import (
+    WARC_COMPLETE_FINALIZATION_FAILED,
+    derive_crawl_rescue_status,
+)
 from ha_backend.crawl_stats import (
     count_new_crawl_phase_events_from_log_tail,
     count_resume_crawl_events_from_log_tail,
     parse_crawl_log_progress,
 )
 from ha_backend.db import get_session
-from ha_backend.models import ArchiveJob, Source
+from ha_backend.models import ArchiveJob, ArchiveJobIndexingProgress, Source
 
 
 @dataclass(frozen=True)
@@ -52,6 +57,19 @@ class PendingCrawlAnnualJob:
     output_dir: str
 
 
+@dataclass(frozen=True)
+class ActiveIndexingProgress:
+    job_id: int
+    source_code: str
+    phase: str
+    last_progress_at: datetime
+    warc_index: int
+    warc_total: int
+    records_processed: int
+    bytes_processed: int
+    bytes_total: int
+
+
 _ANNUAL_JOB_SUFFIX_RE = re.compile(r"-(?P<year>[0-9]{4})0101(?:\b|$)")
 
 
@@ -60,7 +78,8 @@ def _dt_to_epoch_seconds(dt: datetime) -> int:
 
 
 def _age_seconds(dt: datetime, *, now_utc: datetime) -> float:
-    return max(0.0, (now_utc - dt.astimezone(timezone.utc)).total_seconds())
+    dt_utc = dt.replace(tzinfo=timezone.utc) if dt.tzinfo is None else dt.astimezone(timezone.utc)
+    return max(0.0, (now_utc - dt_utc).total_seconds())
 
 
 def _find_latest_combined_log(output_dir: Path) -> Path | None:
@@ -176,7 +195,7 @@ def _systemctl_is_active(unit: str) -> int:
 
 def _safe_int(value: object, *, default: int) -> int:
     try:
-        return int(value)  # type: ignore[arg-type]
+        return int(value)  # type: ignore[call-overload]
     except Exception:
         return int(default)
 
@@ -304,11 +323,32 @@ def main(argv: list[str] | None = None) -> int:
     metrics_ok = 1
     jobs: list[tuple[RunningJob, str]] = []
     pending_index_jobs: list[PendingIndexJob] = []
+    active_indexing_progress: list[ActiveIndexingProgress] = []
     pending_annual_jobs: list[PendingCrawlAnnualJob] = []
     pending_crawl_jobs = 0
     recent_infra_error_jobs = 0
+    finalization_failure_counts_by_source: dict[str, int] = {}
     try:
         with get_session() as session:
+            source_codes = [
+                str(source_code)
+                for (source_code,) in session.query(Source.code).order_by(Source.code.asc()).all()
+            ]
+            failure_rows = (
+                session.query(Source.code, func.count(ArchiveJob.id))
+                .join(Source, ArchiveJob.source_id == Source.id)
+                .filter(ArchiveJob.crawler_stage == WARC_COMPLETE_FINALIZATION_FAILED)
+                .group_by(Source.code)
+                .all()
+            )
+            observed_failure_counts = {
+                str(source_code): int(count) for source_code, count in failure_rows
+            }
+            finalization_failure_counts_by_source = {
+                source_code: observed_failure_counts.get(source_code, 0)
+                for source_code in source_codes
+            }
+
             rows = (
                 session.query(
                     ArchiveJob.id,
@@ -369,6 +409,49 @@ def main(argv: list[str] | None = None) -> int:
                 for job_id, source_code, finished_at in pending_rows
             ]
 
+            indexing_progress_rows = (
+                session.query(
+                    ArchiveJobIndexingProgress.job_id,
+                    Source.code,
+                    ArchiveJobIndexingProgress.phase,
+                    ArchiveJobIndexingProgress.last_progress_at,
+                    ArchiveJobIndexingProgress.warc_index,
+                    ArchiveJobIndexingProgress.warc_total,
+                    ArchiveJobIndexingProgress.records_processed,
+                    ArchiveJobIndexingProgress.bytes_processed,
+                    ArchiveJobIndexingProgress.bytes_total,
+                )
+                .join(ArchiveJob, ArchiveJobIndexingProgress.job_id == ArchiveJob.id)
+                .join(Source, ArchiveJob.source_id == Source.id)
+                .filter(ArchiveJobIndexingProgress.phase != "failed")
+                .order_by(ArchiveJobIndexingProgress.job_id.asc())
+                .all()
+            )
+            active_indexing_progress = [
+                ActiveIndexingProgress(
+                    job_id=int(job_id),
+                    source_code=str(source_code),
+                    phase=str(phase),
+                    last_progress_at=last_progress_at,
+                    warc_index=int(warc_index or 0),
+                    warc_total=int(warc_total or 0),
+                    records_processed=int(records_processed or 0),
+                    bytes_processed=int(bytes_processed or 0),
+                    bytes_total=int(bytes_total or 0),
+                )
+                for (
+                    job_id,
+                    source_code,
+                    phase,
+                    last_progress_at,
+                    warc_index,
+                    warc_total,
+                    records_processed,
+                    bytes_processed,
+                    bytes_total,
+                ) in indexing_progress_rows
+            ]
+
             pending_crawl_jobs = (
                 session.query(ArchiveJob)
                 .filter(ArchiveJob.status.in_(["queued", "retryable"]))
@@ -386,7 +469,7 @@ def main(argv: list[str] | None = None) -> int:
 
             max_annual_jobs = max(0, _safe_int(args.annual_writability_probe_max_jobs, default=0))
             if max_annual_jobs > 0:
-                pending_rows = (
+                pending_annual_rows = (
                     session.query(
                         ArchiveJob.id,
                         Source.code,
@@ -400,7 +483,7 @@ def main(argv: list[str] | None = None) -> int:
                     .limit(max_annual_jobs * 5)  # filter in Python; keep DB query small.
                     .all()
                 )
-                for job_id, source_code, status, name, output_dir in pending_rows:
+                for job_id, source_code, status, name, output_dir in pending_annual_rows:
                     if not output_dir:
                         continue
                     m = _ANNUAL_JOB_SUFFIX_RE.search(str(name or ""))
@@ -424,9 +507,11 @@ def main(argv: list[str] | None = None) -> int:
         metrics_ok = 0
         jobs = []
         pending_index_jobs = []
+        active_indexing_progress = []
         pending_annual_jobs = []
         pending_crawl_jobs = 0
         recent_infra_error_jobs = 0
+        finalization_failure_counts_by_source = {}
 
     worker_active = _systemctl_is_active(str(args.worker_unit))
     archive_cache_ok, _archive_cache_errno = _probe_readable_dir(Path(str(args.archive_cache_root)))
@@ -480,6 +565,34 @@ def main(argv: list[str] | None = None) -> int:
 
     _emit(
         lines,
+        "# HELP healtharchive_crawl_warc_complete_finalization_failed_jobs Number of accepted WARC-complete jobs whose optional finalization failed.",
+    )
+    _emit(
+        lines,
+        "# TYPE healtharchive_crawl_warc_complete_finalization_failed_jobs gauge",
+    )
+    _emit(
+        lines,
+        "healtharchive_crawl_warc_complete_finalization_failed_jobs "
+        f"{sum(finalization_failure_counts_by_source.values())}",
+    )
+    _emit(
+        lines,
+        "# HELP healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source Number of accepted WARC-complete jobs whose optional finalization failed, by source.",
+    )
+    _emit(
+        lines,
+        "# TYPE healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source gauge",
+    )
+    for source_code, count in sorted(finalization_failure_counts_by_source.items()):
+        _emit(
+            lines,
+            "healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source"
+            f'{{source="{source_code}"}} {count}',
+        )
+
+    _emit(
+        lines,
         "# HELP healtharchive_worker_should_be_running 1 if there are pending crawl jobs and the local archive cache root is readable.",
     )
     _emit(lines, "# TYPE healtharchive_worker_should_be_running gauge")
@@ -500,11 +613,12 @@ def main(argv: list[str] | None = None) -> int:
 
     max_pending_age_seconds = 0.0
     pending_by_source: dict[str, list[PendingIndexJob]] = {}
-    for j in pending_index_jobs:
-        pending_by_source.setdefault(j.source_code, []).append(j)
-        if j.finished_at is not None:
+    for pending_index_job in pending_index_jobs:
+        pending_by_source.setdefault(pending_index_job.source_code, []).append(pending_index_job)
+        if pending_index_job.finished_at is not None:
             max_pending_age_seconds = max(
-                max_pending_age_seconds, _age_seconds(j.finished_at, now_utc=now)
+                max_pending_age_seconds,
+                _age_seconds(pending_index_job.finished_at, now_utc=now),
             )
     _emit(
         lines, f"healtharchive_indexing_pending_job_max_age_seconds {max_pending_age_seconds:.0f}"
@@ -534,6 +648,54 @@ def main(argv: list[str] | None = None) -> int:
             lines,
             f"healtharchive_indexing_pending_job_max_age_seconds_by_source{{{labels}}} {max_age_source:.0f}",
         )
+
+    indexing_progress_metrics = (
+        (
+            "healtharchive_indexing_progress_last_update_age_seconds",
+            "Seconds since the active indexing job last persisted progress.",
+        ),
+        (
+            "healtharchive_indexing_progress_warc_index",
+            "Current one-based WARC position for the active indexing job.",
+        ),
+        (
+            "healtharchive_indexing_progress_warc_total",
+            "Total WARC count known to the active indexing job.",
+        ),
+        (
+            "healtharchive_indexing_progress_records_processed",
+            "Records processed by the active indexing job.",
+        ),
+        (
+            "healtharchive_indexing_progress_bytes_processed",
+            "Bytes processed by the active indexing job in its current phase.",
+        ),
+        (
+            "healtharchive_indexing_progress_bytes_total",
+            "Total bytes known to the active indexing job in its current phase.",
+        ),
+    )
+    for metric_name, help_text in indexing_progress_metrics:
+        _emit(lines, f"# HELP {metric_name} {help_text}")
+        _emit(lines, f"# TYPE {metric_name} gauge")
+
+    for index_state in active_indexing_progress:
+        labels = (
+            f'job_id="{index_state.job_id}",source="{index_state.source_code}",'
+            f'phase="{index_state.phase}"'
+        )
+        values = {
+            "healtharchive_indexing_progress_last_update_age_seconds": (
+                f"{_age_seconds(index_state.last_progress_at, now_utc=now):.0f}"
+            ),
+            "healtharchive_indexing_progress_warc_index": str(index_state.warc_index),
+            "healtharchive_indexing_progress_warc_total": str(index_state.warc_total),
+            "healtharchive_indexing_progress_records_processed": str(index_state.records_processed),
+            "healtharchive_indexing_progress_bytes_processed": str(index_state.bytes_processed),
+            "healtharchive_indexing_progress_bytes_total": str(index_state.bytes_total),
+        }
+        for metric_name, _help_text in indexing_progress_metrics:
+            _emit(lines, f"{metric_name}{{{labels}}} {values[metric_name]}")
 
     _emit(
         lines,
@@ -713,13 +875,13 @@ def main(argv: list[str] | None = None) -> int:
     _emit(lines, "# TYPE healtharchive_crawl_annual_pending_job_output_dir_writable_errno gauge")
 
     if probe_user_ok == 1:
-        for j in pending_annual_jobs:
+        for pending_annual_job in pending_annual_jobs:
             labels = (
-                f'job_id="{int(j.job_id)}",source="{j.source_code}",'
-                f'status="{j.status}",year="{int(j.year)}"'
+                f'job_id="{int(pending_annual_job.job_id)}",source="{pending_annual_job.source_code}",'
+                f'status="{pending_annual_job.status}",year="{int(pending_annual_job.year)}"'
             )
             ok, err = _probe_dir_writable_for_user(
-                Path(j.output_dir), uid=int(probe_uid), gids=set(probe_gids)
+                Path(pending_annual_job.output_dir), uid=int(probe_uid), gids=set(probe_gids)
             )
             _emit(
                 lines,

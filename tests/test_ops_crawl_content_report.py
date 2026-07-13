@@ -67,7 +67,10 @@ def _create_mixed_warc(warc_path: Path) -> None:
                 payload=io.BytesIO(payload),
                 http_headers=http_headers,
             )
-            writer.write_record(record)
+            try:
+                writer.write_record(record)
+            finally:
+                record.raw_stream.close()
 
 
 def _seed_job(
@@ -107,6 +110,45 @@ def test_classify_content_uses_extension_and_mime_heuristics() -> None:
     assert mod.classify_content("https://example.com/data.zip") == "archive"
     assert mod.classify_content("https://example.com/video.mp4") == "media"
     assert mod.classify_content("https://example.com/download", "application/pdf") == "document"
+
+
+def test_discover_warcs_read_only_unions_stable_tracked_temp_and_fallback(
+    tmp_path: Path,
+) -> None:
+    mod = _load_script_module(
+        "vps-crawl-content-report.py",
+        module_name="ha_test_vps_crawl_content_report_warc_union",
+    )
+    output_dir = tmp_path / "jobdir"
+    stable_dir = output_dir / "warcs"
+    tracked_temp_dir = output_dir / ".tmp-tracked"
+    fallback_temp_dir = output_dir / ".tmp-fallback"
+
+    stable_warc = stable_dir / "stable.warc.gz"
+    tracked_warc = tracked_temp_dir / "tracked.warc.gz"
+    fallback_warc = fallback_temp_dir / "fallback.warc.gz"
+    for warc_path, payload in [
+        (stable_warc, b"stable"),
+        (tracked_warc, b"tracked"),
+        (fallback_warc, b"fallback"),
+    ]:
+        warc_path.parent.mkdir(parents=True, exist_ok=True)
+        warc_path.write_bytes(payload)
+
+    os.utime(tracked_temp_dir, (1_700_000_000, 1_700_000_000))
+    os.utime(fallback_temp_dir, (1_700_000_001, 1_700_000_001))
+
+    warc_paths, source = mod.discover_warcs_read_only(
+        output_dir,
+        {"temp_dirs_host_paths": [str(tracked_temp_dir)]},
+    )
+
+    assert set(warc_paths) == {
+        stable_warc.resolve(),
+        tracked_warc.resolve(),
+        fallback_warc.resolve(),
+    }
+    assert source == "mixed"
 
 
 def test_load_backend_env_file_sets_database_url_when_missing(monkeypatch, tmp_path: Path) -> None:
@@ -205,6 +247,9 @@ def test_main_emits_json_report_without_mutating_state(
         json.dumps({"container_restarts_done": 4, "temp_dirs_host_paths": [str(tmp_dir)]}),
         encoding="utf-8",
     )
+    warcs_dir = output_dir / "warcs"
+    warcs_dir.mkdir(parents=True, exist_ok=True)
+    (warcs_dir / "manifest.json").write_text("{not-json", encoding="utf-8")
     original_state = state_path.read_text(encoding="utf-8")
 
     log_path = output_dir / "archive_resume_crawl_attempt_1.combined.log"
@@ -232,6 +277,9 @@ def test_main_emits_json_report_without_mutating_state(
     report = json.loads(json_out.read_text(encoding="utf-8"))
     assert report["job_metadata"]["job_id"] == job.id
     assert report["job_metadata"]["source"] == "phac"
+    assert report["job_metadata"]["warc_manifest_valid"] is False
+    assert report["job_metadata"]["warc_manifest_status"] == "invalid"
+    assert report["job_metadata"]["warc_manifest_error"] == "invalid-json"
     assert report["crawl_health_summary"]["container_restarts_done"] == 4
     assert report["content_cost_summary"]["warc_count_total"] == 1
     assert report["content_cost_summary"]["class_totals"]["document"]["count"] >= 1
@@ -242,6 +290,9 @@ def test_main_emits_json_report_without_mutating_state(
     out = capsys.readouterr().out
     assert "HealthArchive crawl content-cost report" in out
     assert "job_id=" in out
+    assert "warc_manifest_status=invalid" in out
+    assert "warc_manifest_error=invalid-json" in out
+    assert "not-json" not in out
 
 
 def test_report_scans_previous_logs_when_latest_log_is_quiet(

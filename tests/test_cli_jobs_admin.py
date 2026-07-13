@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import sys
+from datetime import datetime, timedelta, timezone
 from io import StringIO
 from pathlib import Path
 
@@ -8,7 +9,7 @@ from ha_backend import cli as cli_module
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
 from ha_backend.job_registry import SOURCE_JOB_CONFIGS
-from ha_backend.models import ArchiveJob, Source
+from ha_backend.models import ArchiveJob, ArchiveJobIndexingProgress, Source
 from ha_backend.seeds import seed_sources
 
 
@@ -216,6 +217,48 @@ def test_show_job_displays_details(tmp_path, monkeypatch) -> None:
     assert "Fallback active:      yes" in out
     assert "Promoted to fallback: yes" in out
     assert "promoted from browsertrix to playwright_warc" in out
+
+
+def test_show_job_displays_indexing_progress(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+    job_id = _seed_rescue_job()
+    now = datetime(2027, 1, 2, 3, 4, 5, tzinfo=timezone.utc)
+    monkeypatch.setattr("ha_backend.indexing.progress._now_utc", lambda: now)
+
+    with get_session() as session:
+        session.add(
+            ArchiveJobIndexingProgress(
+                job_id=job_id,
+                phase="read_warc",
+                current_warc="warc-000002.warc.gz",
+                warc_index=2,
+                warc_total=5,
+                records_processed=1234,
+                bytes_processed=4096,
+                bytes_total=8192,
+                started_at=now - timedelta(seconds=90),
+                last_progress_at=now - timedelta(seconds=30),
+            )
+        )
+
+    parser = cli_module.build_parser()
+    args = parser.parse_args(["show-job", "--id", str(job_id)])
+
+    stdout = StringIO()
+    old_stdout = sys.stdout
+    try:
+        sys.stdout = stdout
+        args.func(args)
+    finally:
+        sys.stdout = old_stdout
+
+    out = stdout.getvalue()
+    assert "Indexing:        phase=read_warc" in out
+    assert "warc=2/5 current=warc-000002.warc.gz" in out
+    assert "records=1234 bytes=4096/8192" in out
+    assert "elapsed_seconds=90" in out
+    assert "last_progress_at=2027-01-02T03:03:35+00:00" in out
+    assert "last_progress_age_seconds=30" in out
 
 
 def test_retry_job_marks_failed_as_retryable(tmp_path, monkeypatch) -> None:

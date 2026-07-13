@@ -386,14 +386,17 @@ def test_run_playwright_container_passes_playwright_version_env(tmp_path, monkey
     monkeypatch.setattr("archive_tool.playwright_warc_backend.subprocess.Popen", fake_popen)
 
     sink = _StageLogSink(tmp_path, "playwright_warc_capture")
-    rc, manifest = _run_playwright_container(
-        sink=sink,
-        seeds=["https://example.org"],
-        scope_include_rx=None,
-        scope_exclude_rx=None,
-        expand_links=False,
-        scratch_dir=scratch_dir,
-    )
+    try:
+        rc, manifest = _run_playwright_container(
+            sink=sink,
+            seeds=["https://example.org"],
+            scope_include_rx=None,
+            scope_exclude_rx=None,
+            expand_links=False,
+            scratch_dir=scratch_dir,
+        )
+    finally:
+        sink.close()
 
     assert rc == 0
     assert manifest["runtime"]["playwrightVersion"] == "1.50.1"

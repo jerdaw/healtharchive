@@ -15,7 +15,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
+    "check:links": "node scripts/check-internal-links.mjs",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run check:links",
     "test": "vitest run",
     "test:watch": "vitest",
     "postinstall": "patch-package"

@@ -162,10 +162,29 @@ npm run check
   - `npm ci`
   - `npm run check`
 
+- `npm run check` ends by starting the newly built standalone production
+  runtime and crawling rendered same-origin anchors from `/` and `/fr`.
+  `npm run check:links` can rerun that traversal against an existing `.next`
+  build. It checks route-level HTTP reachability, follows only loopback
+  redirects, bounds traversal, and ignores external URLs and fragments.
+- The crawler requires the configured frontend API base to be non-privileged
+  loopback HTTP. It provides a temporary fail-fast `503` API stub when that port
+  is free so fallback pages render deterministically without a live backend or
+  public-network access.
 - Tests mock network calls and do not require a live backend.
 - In CI, diagnostics env vars (`NEXT_PUBLIC_SHOW_API_HEALTH_BANNER`,
   `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE`, `NEXT_PUBLIC_SHOW_API_BASE_HINT`) are
   disabled to keep output quiet and deterministic.
+
+### Default-locale route canonicalization
+
+The proxy rewrites unprefixed public routes to the internal `/en` route tree and
+redirects user-visible `/en/**` requests back to their canonical unprefixed
+form. An internal request-only marker distinguishes the rewrite's second proxy
+pass from a direct `/en/**` request and is removed before rendering. Preserve
+that distinction: treating the internal pass as a public request creates a
+self-redirect loop on every English route. Focused proxy tests and the rendered
+link crawl cover both the canonical redirect and the internal rewrite path.
 
 ### Deployment env expectations (local / hosted runtime)
 
@@ -516,6 +535,30 @@ Usage pattern:
   {/* Page body sections here */}
 </PageShell>
 ```
+
+### 6.5 Error recovery boundaries
+
+The App Router has two complementary client error boundaries:
+
+- `src/app/[locale]/error.tsx` catches failures below the locale layout. It
+  keeps the normal Header/Footer, theme, locale provider, skip link, and
+  `PageShell`, then offers localized retry and home actions.
+- `src/app/global-error.tsx` catches failures that include the locale root
+  layout. It supplies its own `<html>`/`<body>`, resilient inline styling,
+  English and French recovery text, a retry action, and a native home link.
+  It intentionally does not import the layout, router link, theme, font,
+  provider, Header, or Footer trees that may have failed.
+- `src/lib/errorRecovery.ts` is the typed source for English/French recovery
+  copy and the independent/non-governmental archive reminder.
+
+Neither boundary renders or logs the error message, stack, digest, filesystem
+path, or other implementation detail. Recovery is always user-triggered; there
+is no automatic reload loop. Page-level API fallbacks and `notFound()` behavior
+remain separate and should not be converted into thrown errors merely to use
+these boundaries.
+
+Tests in `tests/errorBoundaries.test.tsx` cover localization, retry/home
+actions, global document structure, no-detail leakage, and axe accessibility.
 
 ---
 
@@ -1048,8 +1091,12 @@ If you’re continuing development, some clear next steps could be:
    - Add a “View timeline” link on snapshot cards to show capture history for a given URL.
 
 3. **Accessibility audit**:
-   - A first pass has been completed (skip link, nav landmarks, focus-visible styles, and basic ARIA).
-   - Future work could include automated testing (e.g., axe), screen reader testing across platforms, and deeper contrast audits.
+   - The dated internal [accessibility audit baseline](accessibility-audit-2026-07-10.md)
+     records current source evidence and 12 focused English/French accessibility
+     tests, including 11 axe scans.
+   - Remaining work includes high-traffic dynamic-route coverage, keyboard task
+     validation, screen-reader testing across platforms, zoom/reflow,
+     forced-colour, touch-target, and deeper contrast audits.
 
 4. **Analytics / logging** (if desired):
    - E.g., simple pageview tracking or logging to a privacy-respecting service.

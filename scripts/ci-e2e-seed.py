@@ -34,9 +34,13 @@ def _write_test_warc(warc_path: Path, url: str, html: str, *, warc_date: str) ->
             payload=payload,
             warc_headers_dict={"WARC-Date": warc_date},
         )
-        writer.write_record(record)
+        try:
+            writer.write_record(record)
+            record_id = record.rec_headers.get_header("WARC-Record-ID")
+        finally:
+            record.raw_stream.close()
+            payload.close()
 
-    record_id = record.rec_headers.get_header("WARC-Record-ID")
     if not record_id:
         raise RuntimeError("WARC writer did not provide a record id")
     return str(record_id)
