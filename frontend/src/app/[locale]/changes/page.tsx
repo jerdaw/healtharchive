@@ -19,7 +19,7 @@ function getChangesCopy(locale: Locale) {
         "Suivez les changements de texte entre des captures archivées. Ces changements reflètent des différences entre captures, et non des directives actuelles.",
       filterHeading: "Filtrer par source et édition",
       resultSummary: (formattedTotal: string, total: number) =>
-        `Affichage de ${formattedTotal} changement${total === 1 ? "" : "s"}.`,
+        `${formattedTotal} changement${total === 1 ? " trouvé" : "s trouvés"}.`,
     };
   }
 
@@ -30,7 +30,7 @@ function getChangesCopy(locale: Locale) {
       "Track text changes between archived captures. These changes reflect differences between snapshots, not current guidance.",
     filterHeading: "Filter by source & edition",
     resultSummary: (formattedTotal: string, total: number) =>
-      `Showing ${formattedTotal} change${total === 1 ? "" : "s"}.`,
+      `${formattedTotal} change${total === 1 ? "" : "s"} found.`,
   };
 }
 

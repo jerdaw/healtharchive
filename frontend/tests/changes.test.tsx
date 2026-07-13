@@ -102,7 +102,7 @@ describe("/changes", () => {
     expect(screen.getByText(/1 sections changed/i)).toBeInTheDocument();
     expect(screen.getByText(/Compare captures/i)).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Filter by source & edition" })).toBeInTheDocument();
-    expect(screen.getByText("Showing 1 change.")).toBeInTheDocument();
+    expect(screen.getByText("1 change found.")).toBeInTheDocument();
   });
 
   it("renders the result total for a successful empty change feed", async () => {
@@ -121,7 +121,7 @@ describe("/changes", () => {
     });
     render(ui);
 
-    expect(screen.getByText("Showing 0 changes.")).toBeInTheDocument();
+    expect(screen.getByText("0 changes found.")).toBeInTheDocument();
     expect(screen.getByText(/No changes found for this edition yet/i)).toBeInTheDocument();
   });
 
@@ -151,7 +151,7 @@ describe("/changes", () => {
     expect(
       screen.getByRole("heading", { name: "Filtrer par source et édition" }),
     ).toBeInTheDocument();
-    expect(screen.getByText("Affichage de 21 changements.")).toBeInTheDocument();
+    expect(screen.getByText("21 changements trouvés.")).toBeInTheDocument();
     expect(screen.getByText("Page 1 sur 2")).toBeInTheDocument();
   });
 
@@ -166,7 +166,7 @@ describe("/changes", () => {
     render(ui);
 
     expect(screen.getByRole("heading", { name: "Changes unavailable" })).toBeInTheDocument();
-    expect(screen.queryByText(/^Showing \d+ changes?\.$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^\d+ changes? found\.$/)).not.toBeInTheDocument();
   });
 
   it("does not show a result total when change tracking is disabled", async () => {
@@ -188,6 +188,6 @@ describe("/changes", () => {
     expect(
       screen.getByText("Change tracking is currently disabled on the backend."),
     ).toBeInTheDocument();
-    expect(screen.queryByText(/^Showing \d+ changes?\.$/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/^\d+ changes? found\.$/)).not.toBeInTheDocument();
   });
 });
