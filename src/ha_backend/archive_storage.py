@@ -7,7 +7,7 @@ import os
 import re
 import shutil
 import tempfile
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Iterable, Optional
@@ -44,6 +44,8 @@ class ManifestVerificationResult:
     hash_mismatches: list[tuple[str, str, str]]  # (stable_name, expected, actual)
     orphaned: list[str]  # files in warcs/ but not in manifest
     errors: list[str]  # other errors encountered
+    missing_hashes: list[str] = field(default_factory=list)
+    zero_byte: list[str] = field(default_factory=list)
 
 
 @dataclass(frozen=True)
@@ -128,13 +130,25 @@ def _dump_manifest(manifest_path: Path, data: dict) -> None:
 
 
 def _iter_stable_warc_paths(warcs_dir: Path) -> list[Path]:
+    warcs: list[Path] = []
+    for path in _iter_stable_warc_candidates(warcs_dir):
+        try:
+            if path.stat().st_size > 0:
+                warcs.append(path)
+        except OSError:
+            continue
+    return warcs
+
+
+def _iter_stable_warc_candidates(warcs_dir: Path) -> list[Path]:
+    """Return stable WARC paths, including zero-byte incomplete files."""
     if not warcs_dir.is_dir():
         return []
     warcs: set[Path] = set()
     for ext in (".warc.gz", ".warc"):
         for path in warcs_dir.rglob(f"*{ext}"):
             try:
-                if path.is_file() and path.stat().st_size > 0:
+                if path.is_file():
                     warcs.add(path.resolve())
             except OSError:
                 continue
@@ -589,6 +603,8 @@ def verify_warc_manifest(
     hash_mismatches: list[tuple[str, str, str]] = []
     orphaned: list[str] = []
     errors: list[str] = []
+    missing_hashes: list[str] = []
+    zero_byte: list[str] = []
 
     # Check manifest exists
     if not manifest_path.is_file():
@@ -606,7 +622,7 @@ def verify_warc_manifest(
 
     # Load and parse manifest
     manifest = _load_manifest(manifest_path)
-    if not manifest:
+    if not isinstance(manifest, dict) or not manifest:
         return ManifestVerificationResult(
             valid=False,
             manifest_path=manifest_path,
@@ -619,24 +635,54 @@ def verify_warc_manifest(
             errors=[f"Manifest is empty or invalid JSON: {manifest_path}"],
         )
 
-    entries = manifest.get("entries") or []
+    entries_value = manifest.get("entries")
+    if not isinstance(entries_value, list):
+        return ManifestVerificationResult(
+            valid=False,
+            manifest_path=manifest_path,
+            entries_total=0,
+            entries_verified=0,
+            missing=[],
+            size_mismatches=[],
+            hash_mismatches=[],
+            orphaned=[],
+            errors=["Manifest entries must be a list."],
+        )
+
+    entries = entries_value
     entries_total = len(entries)
     entries_verified = 0
     manifest_stable_names: set[str] = set()
 
     for entry in entries:
+        if not isinstance(entry, dict):
+            errors.append("Manifest entry must be an object.")
+            continue
         stable_name = entry.get("stable_name")
-        if not stable_name:
-            errors.append(f"Entry missing stable_name: {entry}")
+        if not isinstance(stable_name, str) or not stable_name:
+            errors.append("Manifest entry is missing a valid stable_name.")
+            continue
+        if Path(stable_name).name != stable_name:
+            errors.append("Manifest entry stable_name must be a basename.")
+            continue
+        if stable_name in manifest_stable_names:
+            errors.append("Manifest contains a duplicate stable_name.")
             continue
 
         manifest_stable_names.add(stable_name)
         warc_path = warcs_dir / stable_name
+        expected_hash = entry.get("sha256")
+        hash_missing = check_hash and (not isinstance(expected_hash, str) or not expected_hash)
+        if hash_missing:
+            missing_hashes.append(stable_name)
 
         # Check file exists
         try:
             if not warc_path.is_file():
                 missing.append(stable_name)
+                continue
+            if warc_path.stat().st_size == 0:
+                zero_byte.append(stable_name)
                 continue
         except OSError as exc:
             errors.append(f"OSError checking {stable_name}: {exc}")
@@ -657,23 +703,30 @@ def verify_warc_manifest(
 
         # Check hash
         if check_hash:
-            expected_hash = entry.get("sha256")
-            if expected_hash:
-                try:
-                    actual_hash = _compute_sha256(warc_path)
-                    if actual_hash != expected_hash:
-                        hash_mismatches.append((stable_name, expected_hash, actual_hash))
-                        continue
-                except OSError as exc:
-                    errors.append(f"OSError hashing {stable_name}: {exc}")
+            if hash_missing:
+                continue
+            assert isinstance(expected_hash, str)
+            try:
+                actual_hash = _compute_sha256(warc_path)
+                if actual_hash.lower() != expected_hash.lower():
+                    hash_mismatches.append((stable_name, expected_hash, actual_hash))
                     continue
+            except OSError as exc:
+                errors.append(f"OSError hashing {stable_name}: {exc}")
+                continue
 
         entries_verified += 1
 
     # Check for orphaned files
     try:
-        actual_warcs = _iter_stable_warc_paths(warcs_dir)
+        actual_warcs = _iter_stable_warc_candidates(warcs_dir)
         for warc_path in actual_warcs:
+            try:
+                if warc_path.stat().st_size == 0 and warc_path.name not in zero_byte:
+                    zero_byte.append(warc_path.name)
+            except OSError as exc:
+                errors.append(f"OSError stating {warc_path.name}: {exc}")
+                continue
             if warc_path.name not in manifest_stable_names:
                 orphaned.append(warc_path.name)
     except OSError as exc:
@@ -683,6 +736,8 @@ def verify_warc_manifest(
         len(missing) == 0
         and len(size_mismatches) == 0
         and len(hash_mismatches) == 0
+        and len(missing_hashes) == 0
+        and not any(name in manifest_stable_names for name in zero_byte)
         and len(errors) == 0
     )
 
@@ -696,4 +751,6 @@ def verify_warc_manifest(
         hash_mismatches=hash_mismatches,
         orphaned=orphaned,
         errors=errors,
+        missing_hashes=missing_hashes,
+        zero_byte=zero_byte,
     )
