@@ -9,8 +9,8 @@ import {
   getApiBaseUrl,
   type SourceSummary as ApiSourceSummary,
 } from "@/lib/api";
-import { formatDate } from "@/lib/format";
-import { localeToLanguageTag, type Locale } from "@/lib/i18n";
+import { formatDate, formatNumber } from "@/lib/format";
+import type { Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
 import { getSiteCopy } from "@/lib/siteCopy";
@@ -37,6 +37,10 @@ function getBrowseBySourceCopy(locale: Locale) {
       title: "Parcourir les sources",
       intro:
         "Parcourez la couverture par source et accédez à un site archivé ou à la liste complète des enregistrements. La couverture et les fonctionnalités sont encore en expansion.",
+      sourceSummary: (formattedCount: string, count: number) =>
+        `Affichage de ${formattedCount} source${count === 1 ? "" : "s"}.`,
+      emptyTitle: "Aucune source disponible",
+      emptyBody: "Aucune source d’archive n’est encore disponible dans cette vue.",
     };
   }
 
@@ -45,6 +49,10 @@ function getBrowseBySourceCopy(locale: Locale) {
     title: "Browse records by source",
     intro:
       "Browse coverage by source and jump into an archived site or the full record list. Coverage and features are still expanding.",
+    sourceSummary: (formattedCount: string, count: number) =>
+      `Showing ${formattedCount} source${count === 1 ? "" : "s"}.`,
+    emptyTitle: "No sources available",
+    emptyBody: "No archive sources are available in this view yet.",
   };
 }
 
@@ -136,91 +144,106 @@ export default async function BrowseBySourcePage({
           </p>
         </div>
       )}
-      <div className="ha-grid-2">
-        {summaries.map((source) => {
-          const entryId = source.entryRecordId;
-          const fallbackId = source.latestRecordId;
-          const browseId = entryId ?? fallbackId;
-          const browseLabel = entryId
-            ? locale === "fr"
-              ? "Voir le site archivé"
-              : "View archived site"
-            : locale === "fr"
-              ? "Voir la capture la plus récente"
-              : "View latest snapshot";
-          const previewSrc = source.entryPreviewUrl
-            ? `${apiBaseUrl}${source.entryPreviewUrl}`
-            : null;
+      <p className="text-ha-muted mb-4 text-sm">
+        {copy.sourceSummary(formatNumber(locale, summaries.length), summaries.length)}
+      </p>
+      {summaries.length === 0 && (
+        <div className="ha-callout">
+          <h2 className="ha-callout-title">{copy.emptyTitle}</h2>
+          <p className="mt-2 text-xs leading-relaxed sm:text-sm">{copy.emptyBody}</p>
+        </div>
+      )}
+      {summaries.length > 0 && (
+        <div className="ha-grid-2">
+          {summaries.map((source) => {
+            const entryId = source.entryRecordId;
+            const fallbackId = source.latestRecordId;
+            const browseId = entryId ?? fallbackId;
+            const browseLabel = entryId
+              ? locale === "fr"
+                ? "Voir le site archivé"
+                : "View archived site"
+              : locale === "fr"
+                ? "Voir la capture la plus récente"
+                : "View latest snapshot";
+            const previewSrc = source.entryPreviewUrl
+              ? `${apiBaseUrl}${source.entryPreviewUrl}`
+              : null;
+            const sourceHeadingId = `source-${source.sourceCode}-title`;
 
-          return (
-            <article
-              key={source.sourceCode}
-              className="ha-card ha-card-elevated overflow-hidden p-0"
-            >
-              {previewSrc ? (
-                <div className="border-ha-border relative h-28 overflow-hidden border-b bg-white">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={previewSrc}
-                    alt={
-                      locale === "fr"
-                        ? `Aperçu : ${source.sourceName}`
-                        : `${source.sourceName} preview`
-                    }
-                    loading="lazy"
-                    decoding="async"
-                    className="h-full w-full object-cover object-top"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/35 to-transparent dark:from-[#0b0c0d]/90 dark:via-[#0b0c0d]/35" />
-                </div>
-              ) : (
-                <div className="border-ha-border text-ha-muted flex h-28 items-center justify-center border-b bg-white px-4 text-xs dark:bg-[#0b0c0d]">
-                  {locale === "fr" ? "Aperçu indisponible" : "Preview unavailable"}
-                </div>
-              )}
+            return (
+              <article
+                key={source.sourceCode}
+                aria-labelledby={sourceHeadingId}
+                className="ha-card ha-card-elevated overflow-hidden p-0"
+              >
+                {previewSrc ? (
+                  <div className="border-ha-border relative h-28 overflow-hidden border-b bg-white">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={previewSrc}
+                      alt={
+                        locale === "fr"
+                          ? `Aperçu : ${source.sourceName}`
+                          : `${source.sourceName} preview`
+                      }
+                      loading="lazy"
+                      decoding="async"
+                      className="h-full w-full object-cover object-top"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-white/90 via-white/35 to-transparent dark:from-[#0b0c0d]/90 dark:via-[#0b0c0d]/35" />
+                  </div>
+                ) : (
+                  <div className="border-ha-border text-ha-muted flex h-28 items-center justify-center border-b bg-white px-4 text-xs dark:bg-[#0b0c0d]">
+                    {locale === "fr" ? "Aperçu indisponible" : "Preview unavailable"}
+                  </div>
+                )}
 
-              <div className="p-4 sm:p-5">
-                <h2 className="text-sm font-semibold text-slate-900">{source.sourceName}</h2>
-                <p className="text-ha-muted mt-1 text-xs">
-                  {locale === "fr"
-                    ? `${new Intl.NumberFormat(localeToLanguageTag(locale)).format(
-                        source.recordCount,
-                      )} capture${source.recordCount === 1 ? "" : "s"} capturée${
-                        source.recordCount === 1 ? "" : "s"
-                      } entre le ${formatDate(locale, source.firstCapture)} et le ${formatDate(
-                        locale,
-                        source.lastCapture,
-                      )}.`
-                    : `${new Intl.NumberFormat(localeToLanguageTag(locale)).format(
-                        source.recordCount,
-                      )} snapshot${source.recordCount === 1 ? "" : "s"} captured between ${formatDate(
-                        locale,
-                        source.firstCapture,
-                      )} and ${formatDate(locale, source.lastCapture)}.`}
-                </p>
+                <div className="p-4 sm:p-5">
+                  <h2 id={sourceHeadingId} className="text-sm font-semibold text-slate-900">
+                    {source.sourceName}
+                  </h2>
+                  <p className="text-ha-muted mt-1 text-xs">
+                    {locale === "fr"
+                      ? `${formatNumber(locale, source.recordCount)} capture${
+                          source.recordCount === 1 ? "" : "s"
+                        } capturée${
+                          source.recordCount === 1 ? "" : "s"
+                        } entre le ${formatDate(locale, source.firstCapture)} et le ${formatDate(
+                          locale,
+                          source.lastCapture,
+                        )}.`
+                      : `${formatNumber(locale, source.recordCount)} snapshot${
+                          source.recordCount === 1 ? "" : "s"
+                        } captured between ${formatDate(locale, source.firstCapture)} and ${formatDate(
+                          locale,
+                          source.lastCapture,
+                        )}.`}
+                  </p>
 
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {source.entryBrowseUrl ? (
-                    <a href={source.entryBrowseUrl} className="ha-btn-primary text-xs">
-                      {browseLabel}
-                    </a>
-                  ) : browseId ? (
-                    <Link href={`/browse/${browseId}`} className="ha-btn-primary text-xs">
-                      {browseLabel}
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {source.entryBrowseUrl ? (
+                      <a href={source.entryBrowseUrl} className="ha-btn-primary text-xs">
+                        {browseLabel}
+                      </a>
+                    ) : browseId ? (
+                      <Link href={`/browse/${browseId}`} className="ha-btn-primary text-xs">
+                        {browseLabel}
+                      </Link>
+                    ) : null}
+                    <Link
+                      href={`/archive?source=${source.sourceCode}`}
+                      className="ha-btn-secondary text-xs"
+                    >
+                      {locale === "fr" ? "Parcourir les enregistrements" : "Browse records"}
                     </Link>
-                  ) : null}
-                  <Link
-                    href={`/archive?source=${source.sourceCode}`}
-                    className="ha-btn-secondary text-xs"
-                  >
-                    {locale === "fr" ? "Parcourir les enregistrements" : "Browse records"}
-                  </Link>
+                  </div>
                 </div>
-              </div>
-            </article>
-          );
-        })}
-      </div>
+              </article>
+            );
+          })}
+        </div>
+      )}
     </PageShell>
   );
 }

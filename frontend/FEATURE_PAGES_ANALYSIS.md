@@ -26,20 +26,20 @@ Note: `formatDate`/`formatNumber` deduplication and `ha-home-hero` class swaps a
 5. ✅ Preview images use `loading="lazy" decoding="async"` and a gradient overlay for dark mode.
 6. ✅ Bilingual source name and homepage URL resolution via `getLocalizedSourceName` / `getLocalizedSourceHomepage`.
 7. ✅ Two distinct CTA paths: external `entryBrowseUrl` (via `<a>`) vs. internal `/browse/:id` (via `LocalizedLink`).
-8. 🔧 The record-count string inside each card uses raw `new Intl.NumberFormat(...).format(...)` inline rather than `formatNumber(locale, ...)` from `@/lib/format`. This is an inconsistency — `formatNumber` is the project-standard helper and already handles the `null` guard and locale tag lookup.
+8. ✅ Source and snapshot totals use the shared `formatNumber(locale, ...)` helper, keeping number formatting aligned with the project-standard locale handling.
 9. 🔧 The plural/gender logic for French ("capturée" / "capturées") is inlined in JSX across two branches. A small helper (e.g., `formatSnapshotCount(locale, count)`) would centralise this and make the card template cleaner.
 10. 🔧 The "Important note" callout and the "Live API unavailable" callout both use inline ternary locale strings rather than `getSiteCopy` or the local `getBrowseBySourceCopy` pattern used elsewhere in the file. The `siteCopy.workflow.archiveSummary` content is already wired, but the callout title ("Important note" / "Note importante") is not.
 11. 🔧 Card `<h2>` uses `text-slate-900` directly. Other pages in the codebase use `ha-card-title` or inline Tailwind — the project does not currently define `.ha-card-title` as a CSS class, but the pattern `text-sm font-semibold text-slate-900` is repeated across every card on every page and is a candidate for extraction.
 12. 🔧 The `previewSrc` placeholder block ("Preview unavailable") has no dark-mode background colour class — it uses `dark:bg-[#0b0c0d]` (a raw hex), matching the card body colour but bypassing the CSS variable system.
-13. 🔧 No `<article>` `aria-label` ties the card to its source name, so screen reader users traversing landmark regions will encounter unlabelled articles.
+13. ✅ Each `<article>` is named with `aria-labelledby` from its visible source heading, so the card landmark and on-screen title share one accessible name.
 14. ⚠️ The "View archived site" / "View latest snapshot" label difference is driven by `entryRecordId` being set, but there is no visual distinction between the two states — both render as `ha-btn-primary`. A user cannot tell at a glance whether they will land on the curated entry page or just the most recent snapshot.
-15. ⚠️ The page has no record count summary ("N sources found") to orient users before they scroll into the grid, and no empty-state if `summaries` ends up empty after filtering.
+15. ✅ A localized source-count summary now orients users before the grid, and an explicit localized callout appears when no public sources remain after filtering. A successful empty API result stays empty instead of switching to demo data.
 
 ### Top 5 Improvements
 
-1. **Replace inline `Intl.NumberFormat` with `formatNumber`** — remove the two raw `new Intl.NumberFormat` calls in the card template and use `formatNumber(locale, source.recordCount)` consistently with the rest of the codebase.
-2. **Add `aria-label` to each `<article>`** — e.g., `aria-label={source.sourceName}` to give screen reader users a navigable card landmark.
-3. **Show a source count summary** — add a line above the grid (e.g., "Showing N sources") so users know the scope of coverage before scrolling.
+1. ✅ **Implemented 2026-07-10 — use `formatNumber` for displayed totals.** Source and snapshot counts now use the shared formatter consistently with the rest of the codebase.
+2. ✅ **Implemented 2026-07-10 — name each `<article>` from its visible heading.** `aria-labelledby` gives screen reader users a navigable card landmark without duplicating the source name in an `aria-label`.
+3. ✅ **Implemented 2026-07-10 — show source-count and empty-state orientation.** A localized summary appears before the grid, with a localized callout when no public sources are available.
 4. **Distinguish entry-point vs. latest-snapshot CTA visually** — use a lighter or secondary style for "View latest snapshot" vs. the primary style for "View archived site" so intent is clear.
 5. **Extract the French plural helper** — create `formatSnapshotCount(locale, count)` in `src/lib/format.ts` to replace the duplicated inline plural/gender string logic.
 
