@@ -23,6 +23,8 @@ function getStatusCopy(locale: Locale) {
       title: "Statut et métriques",
       intro:
         "Une vue transparente de la couverture, de la fraîcheur et de l’état du service de HealthArchive.ca.",
+      usageUnavailable:
+        "Les données d’utilisation ne sont pas disponibles pour cette période de rapport.",
     };
   }
 
@@ -30,6 +32,7 @@ function getStatusCopy(locale: Locale) {
     eyebrow: "Status",
     title: "Status & metrics",
     intro: "A transparent view of HealthArchive.ca coverage, freshness, and service status.",
+    usageUnavailable: "Usage data is not available for this reporting period.",
   };
 }
 
@@ -73,11 +76,12 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
         ? "Dégradé"
         : "Degraded";
 
-  const lastChecked = new Date().toLocaleString(localeToLanguageTag(locale), {
+  const checkedAt = new Date();
+  const lastChecked = checkedAt.toLocaleString(localeToLanguageTag(locale), {
     dateStyle: "medium",
     timeStyle: "short",
   });
-  const annualCoverageYear = new Date().getUTCFullYear();
+  const annualCoverageYear = checkedAt.getUTCFullYear();
 
   return (
     <PageShell eyebrow={copy.eyebrow} title={copy.title} intro={copy.intro}>
@@ -102,7 +106,8 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
           <div className="flex flex-wrap items-center gap-3">
             <span className="ha-tag">{statusLabel}</span>
             <span className="text-ha-muted text-xs">
-              {locale === "fr" ? "Dernière vérification :" : "Last checked:"} {lastChecked}
+              {locale === "fr" ? "Dernière vérification :" : "Last checked:"}{" "}
+              <time dateTime={checkedAt.toISOString()}>{lastChecked}</time>
             </span>
           </div>
           <p className="text-ha-muted text-sm">
@@ -258,11 +263,7 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
           </div>
         ) : (
           <div className="ha-callout">
-            <p className="text-xs leading-relaxed sm:text-sm">
-              {locale === "fr"
-                ? "Les métriques d’utilisation sont actuellement indisponibles ou désactivées. Activez les décomptes agrégés dans le backend pour afficher cette section."
-                : "Usage metrics are currently unavailable or disabled. Enable aggregated usage counts in the backend to display this section."}
-            </p>
+            <p className="text-xs leading-relaxed sm:text-sm">{copy.usageUnavailable}</p>
           </div>
         )}
         <p className="text-ha-muted text-xs">

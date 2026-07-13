@@ -142,6 +142,8 @@ Recently closed items:
   `implemented/2026-07-10-browse-by-source-orientation.md`
 - Changes result orientation:
   `implemented/2026-07-10-changes-result-orientation.md`
+- Status availability communication:
+  `implemented/2026-07-10-status-availability-communication.md`
 - Autonomous overnight maintenance queue:
   `implemented/2026-06-28-autonomous-overnight-work-plan.md`
 - Storage budget and WARC promotion hardening:

@@ -150,17 +150,17 @@ Note: `formatDate`/`formatNumber` deduplication and `ha-home-hero` class swaps a
 9. 🔧 `siteCopy.whatThisSiteIs.is` and `siteCopy.whatThisSiteIs.isNot` are concatenated inline in the status card with a `<span>` "Not:" separator. This is a fragile prose pattern; a `<dl>` or two separate `<p>` elements would be clearer and more accessible.
 10. 🔧 "Coverage snapshot" / "Aperçu de la couverture" is used as a section heading on both `/status` and `/impact`. The heading is identical on both pages, which is confusing if a user has both open. `/status` could say "Live coverage snapshot" to differentiate.
 11. 🔧 The per-source coverage grid (`ha-grid-2`) is purely informational duplicates of browse-by-source cards — but it also includes CTA buttons ("View archived site", "Browse records"). These CTAs make sense on a browse page but feel noisy on a status/metrics page. Consider a leaner card for this context (name + dates + snapshot count, no action buttons).
-12. 🔧 The "Usage snapshot" section conditionally renders nothing (beyond a callout) when usage is disabled. The callout message "Enable aggregated usage counts in the backend to display this section" is clearly developer-facing copy, not appropriate for public users who have no ability to change backend settings.
-13. 🔧 The status page has no `<time>` element with a `dateTime` attribute for the "Last checked" value. Assistive technologies and machine consumers would benefit from a structured timestamp.
+12. ✅ When usage metrics are absent or disabled, the "Usage snapshot" section now uses neutral public copy in English and French instead of telling visitors to change backend configuration.
+13. ✅ The localized "Last checked" value now uses a `<time>` element with an ISO `dateTime` attribute for assistive technologies and machine consumers.
 14. ⚠️ The page re-validates data entirely on load (server component, no caching hint). For a status page, `revalidate = 60` (or a short ISR window) would reduce backend load while keeping data reasonably fresh.
 15. ⚠️ There is no link from `/status` to the RSS feed or digest for change notifications — the "Monthly impact report" link is present, but users interested in ongoing status changes have no directed path to `/digest`.
 
 ### Top 5 Improvements
 
 1. **Colour-code the status label** — apply green/amber/red tinting to the status `ha-tag` based on the value (operational / degraded / unavailable) for immediate visual recognition.
-2. **Replace the developer-facing usage callout** — rewrite "Enable aggregated usage counts in the backend…" as user-appropriate copy ("Usage data is not available for this reporting period.").
+2. ✅ **Replace the developer-facing usage callout** — unavailable usage reporting now uses neutral public copy in English and French.
 3. **Add a link to `/digest` or RSS** — surface the change notifications feed from the status page for users who want to track ongoing changes.
-4. **Use `<time dateTime="...">` for the "Last checked" timestamp** — structured timestamp improves accessibility and machine readability.
+4. ✅ **Use `<time dateTime="...">` for the "Last checked" timestamp** — the localized value now includes the matching ISO timestamp for accessibility and machine readability.
 5. **Add a short ISR revalidation hint** — export `revalidate = 60` (or similar) to avoid re-fetching all four API endpoints on every page request during stable periods.
 
 ---

@@ -16,6 +16,7 @@ Implemented plans:
 - `2026-07-10-snapshot-metadata-mobile.md`
 - `2026-07-10-browse-by-source-orientation.md`
 - `2026-07-10-changes-result-orientation.md`
+- `2026-07-10-status-availability-communication.md`
 - `2026-06-28-autonomous-overnight-work-plan.md`
 - `2026-06-11-storage-budget-and-warc-promotion-hardening.md`
 - `2026-06-11-annual-crawl-storage-guardrails.md`
