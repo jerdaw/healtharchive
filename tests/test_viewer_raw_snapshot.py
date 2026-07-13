@@ -61,8 +61,12 @@ def _write_test_warc(warc_path: Path, url: str, html: str) -> str:
             payload=payload,
             warc_headers_dict={"WARC-Date": "2025-01-01T12:00:00Z"},
         )
-        writer.write_record(record)
-        return record.rec_headers.get_header("WARC-Record-ID")
+        try:
+            writer.write_record(record)
+            return record.rec_headers.get_header("WARC-Record-ID")
+        finally:
+            record.raw_stream.close()
+            payload.close()
 
 
 def _write_multi_record_warc(warc_path: Path, records: list[tuple[str, str]]) -> list[str]:
@@ -85,8 +89,12 @@ def _write_multi_record_warc(warc_path: Path, records: list[tuple[str, str]]) ->
                 payload=payload,
                 warc_headers_dict={"WARC-Date": "2025-01-01T12:00:00Z"},
             )
-            writer.write_record(record)
-            record_ids.append(record.rec_headers.get_header("WARC-Record-ID"))
+            try:
+                writer.write_record(record)
+                record_ids.append(record.rec_headers.get_header("WARC-Record-ID"))
+            finally:
+                record.raw_stream.close()
+                payload.close()
     return record_ids
 
 

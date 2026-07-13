@@ -4,7 +4,7 @@ import argparse
 import gzip
 import io
 import os
-from datetime import datetime
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Callable, Generator
 
@@ -64,6 +64,20 @@ def _isolate_process_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv(
         "HEALTHARCHIVE_JOB_LOCK_DIR", f"/tmp/healtharchive-job-locks-tests-{os.getpid()}"
     )
+
+
+@pytest.fixture(autouse=True)
+def _dispose_cached_database_engine() -> Generator[None, None, None]:
+    """Release cached test database connections after every test."""
+    yield
+
+    from ha_backend import db
+
+    engine = db._engine
+    db._engine = None
+    db._SessionLocal = None
+    if engine is not None:
+        engine.dispose()
 
 
 @pytest.fixture(name="db_session")
@@ -181,7 +195,7 @@ def fixture_snapshot_factory(db_session: Session, tmp_path: Path) -> Callable[..
         db_session.flush()
 
         # Create snapshot
-        ts = timestamp or datetime.utcnow()
+        ts = timestamp or datetime.now(UTC)
         snap = Snapshot(
             job_id=job.id,
             source_id=source.id,
@@ -230,7 +244,10 @@ def fixture_mock_warc_generator(tmp_path: Path) -> Callable[..., Path]:
                     payload=io.BytesIO(content),
                     http_headers=http_headers,
                 )
-                writer.write_record(record)
+                try:
+                    writer.write_record(record)
+                finally:
+                    record.raw_stream.close()
 
         return warc_path
 

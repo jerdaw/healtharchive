@@ -27,7 +27,11 @@ def _write_test_warc(warc_path: Path, url: str, html: str, warc_date: str) -> No
             payload=payload,
             warc_headers_dict={"WARC-Date": warc_date},
         )
-        writer.write_record(record)
+        try:
+            writer.write_record(record)
+        finally:
+            record.raw_stream.close()
+            payload.close()
 
 
 def test_iter_html_records_parses_iso8601_warc_date(tmp_path: Path) -> None:

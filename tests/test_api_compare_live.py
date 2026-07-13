@@ -58,8 +58,12 @@ def _write_test_warc(warc_path: Path, url: str, html: str) -> str:
             payload=payload,
             warc_headers_dict={"WARC-Date": "2025-01-01T12:00:00Z"},
         )
-        writer.write_record(record)
-        return record.rec_headers.get_header("WARC-Record-ID")
+        try:
+            writer.write_record(record)
+            return record.rec_headers.get_header("WARC-Record-ID")
+        finally:
+            record.raw_stream.close()
+            payload.close()
 
 
 def _seed_snapshot_with_warc(
