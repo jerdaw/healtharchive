@@ -474,6 +474,11 @@ Completed items were removed from this backlog and archived in:
 ### Frontend quality and public communication
 
 35. **Consolidate bilingual strings (remove inline ternaries)** (L: 1-2 weeks)
+    - 2026-07-13 phase: archive discovery/search now uses one typed catalog
+      across `/archive`, source browsing, result cards, filters, clipboard
+      feedback, and API-health diagnostics, with English/French rendering tests.
+    - Remaining scope: migrate the other public workflows in coherent batches;
+      do not reintroduce inline copy selection in the completed archive workflow.
 36. **Add automated performance/Lighthouse testing** (M: 1 day)
 38. **Add coverage badges to READMEs** (S: 1-2h)
 42. **Create automated WARC/data integrity report** (M: 1 day)
