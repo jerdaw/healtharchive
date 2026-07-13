@@ -4179,6 +4179,119 @@ def cmd_job_storage_report(args: argparse.Namespace) -> None:
             print(f"{k}: {payload[k]}")
 
 
+def _write_data_integrity_artifacts(
+    artifacts: Sequence[tuple[Path, str]], *, overwrite: bool
+) -> None:
+    """Stage and publish a report artifact set with rollback and no-clobber semantics."""
+    staged: list[tuple[Path, Path]] = []
+    backups: list[tuple[Path, Path]] = []
+    published: list[Path] = []
+    try:
+        for index, (raw_path, content) in enumerate(artifacts):
+            path = raw_path.expanduser()
+            if path.exists() and not overwrite:
+                raise FileExistsError(f"Refusing to overwrite existing report: {path}")
+            path.parent.mkdir(parents=True, exist_ok=True)
+            tmp_path = path.with_name(f".{path.name}.tmp.{os.getpid()}.{index}")
+            created = False
+            try:
+                with tmp_path.open("x", encoding="utf-8") as handle:
+                    created = True
+                    handle.write(content)
+                    handle.flush()
+                    os.fsync(handle.fileno())
+            except Exception:
+                if created:
+                    tmp_path.unlink(missing_ok=True)
+                raise
+            staged.append((path, tmp_path))
+
+        if overwrite:
+            for index, (path, _tmp_path) in enumerate(staged):
+                if not path.exists():
+                    continue
+                backup = path.with_name(f".{path.name}.bak.{os.getpid()}.{index}")
+                if backup.exists():
+                    raise FileExistsError(f"Temporary backup already exists: {backup}")
+                os.replace(path, backup)
+                backups.append((path, backup))
+
+        for path, tmp_path in staged:
+            if overwrite:
+                os.replace(tmp_path, path)
+            else:
+                # Hard-link publication is atomic and refuses a destination
+                # created after the preflight check instead of clobbering it.
+                os.link(tmp_path, path)
+                tmp_path.unlink()
+            published.append(path)
+    except Exception:
+        for path in reversed(published):
+            path.unlink(missing_ok=True)
+        for path, backup in reversed(backups):
+            if backup.exists():
+                os.replace(backup, path)
+        raise
+    else:
+        for _path, backup in backups:
+            backup.unlink(missing_ok=True)
+    finally:
+        for _path, tmp_path in staged:
+            tmp_path.unlink(missing_ok=True)
+
+
+def cmd_data_integrity_report(args: argparse.Namespace) -> None:
+    """Build a public-safe corpus-level WARC and snapshot integrity report."""
+    from .data_integrity_report import (
+        build_data_integrity_report,
+        render_data_integrity_markdown,
+        serialize_data_integrity_json,
+    )
+
+    json_out = Path(args.json_out).expanduser() if args.json_out else None
+    markdown_out = Path(args.markdown_out).expanduser() if args.markdown_out else None
+    output_paths = [path for path in (json_out, markdown_out) if path is not None]
+    if len({path.resolve() for path in output_paths}) != len(output_paths):
+        print("ERROR: --json-out and --markdown-out must use different paths.", file=sys.stderr)
+        sys.exit(2)
+    if not args.overwrite:
+        existing = [path for path in output_paths if path.exists()]
+        if existing:
+            print(f"ERROR: Refusing to overwrite existing report: {existing[0]}", file=sys.stderr)
+            sys.exit(2)
+
+    with get_session() as session:
+        report = build_data_integrity_report(
+            session,
+            verify_checksums=not args.skip_checksums,
+        )
+
+    json_content = serialize_data_integrity_json(report)
+    markdown_content = render_data_integrity_markdown(report)
+    artifacts: list[tuple[Path, str]] = []
+    if json_out is not None:
+        artifacts.append((json_out, json_content))
+    if markdown_out is not None:
+        artifacts.append((markdown_out, markdown_content))
+    try:
+        _write_data_integrity_artifacts(artifacts, overwrite=args.overwrite)
+    except OSError as exc:
+        print(f"ERROR: Failed to write data-integrity report: {exc}", file=sys.stderr)
+        sys.exit(1)
+
+    if args.stdout_format == "json":
+        print(json_content, end="")
+    else:
+        print(markdown_content, end="")
+
+    status = report["status"]
+    if status == "pass":
+        return
+    if status == "incomplete":
+        sys.exit(2)
+    sys.exit(1)
+
+
 def cmd_verify_warcs(args: argparse.Namespace) -> None:
     """
     Verify integrity of WARC files for a given job (optionally quarantining corrupt ones).
@@ -4517,6 +4630,8 @@ def cmd_verify_warc_manifest(args: argparse.Namespace) -> None:
                 {"name": name, "expected": expected, "actual": actual}
                 for name, expected, actual in result.hash_mismatches
             ],
+            "missing_hashes": result.missing_hashes,
+            "zero_byte": result.zero_byte,
             "orphaned": result.orphaned,
             "errors": result.errors,
         }
@@ -4554,6 +4669,22 @@ def cmd_verify_warc_manifest(args: argparse.Namespace) -> None:
                 print(f"    actual:   {hactual}")
             if len(result.hash_mismatches) > 20:
                 print(f"  ... ({len(result.hash_mismatches) - 20} more)")
+
+        if result.missing_hashes:
+            print("")
+            print("Missing checksums:")
+            for name in result.missing_hashes[:20]:
+                print(f"  MISSING_HASH: {name}")
+            if len(result.missing_hashes) > 20:
+                print(f"  ... ({len(result.missing_hashes) - 20} more)")
+
+        if result.zero_byte:
+            print("")
+            print("Zero-byte WARC candidates:")
+            for name in result.zero_byte[:20]:
+                print(f"  ZERO_BYTE: {name}")
+            if len(result.zero_byte) > 20:
+                print(f"  ... ({len(result.zero_byte) - 20} more)")
 
         if result.errors:
             print("")
@@ -7076,6 +7207,39 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     p_verify_warcs.set_defaults(func=cmd_verify_warcs)
+
+    # data-integrity-report
+    p_integrity_report = subparsers.add_parser(
+        "data-integrity-report",
+        help="Generate a public-safe aggregate snapshot, WARC, and checksum integrity report.",
+    )
+    p_integrity_report.add_argument(
+        "--json-out",
+        help="Atomically write the versioned JSON report to this path.",
+    )
+    p_integrity_report.add_argument(
+        "--markdown-out",
+        help="Atomically write the human-readable Markdown report to this path.",
+    )
+    p_integrity_report.add_argument(
+        "--stdout-format",
+        choices=["markdown", "json"],
+        default="markdown",
+        help="Report format printed to stdout (default: markdown).",
+    )
+    p_integrity_report.add_argument(
+        "--skip-checksums",
+        action="store_true",
+        default=False,
+        help="Skip SHA-256 verification for a faster inventory; report status will be incomplete.",
+    )
+    p_integrity_report.add_argument(
+        "--overwrite",
+        action="store_true",
+        default=False,
+        help="Allow replacing existing output artifacts atomically.",
+    )
+    p_integrity_report.set_defaults(func=cmd_data_integrity_report)
 
     # verify-warc-manifest
     p_verify_manifest = subparsers.add_parser(

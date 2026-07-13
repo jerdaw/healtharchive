@@ -29,6 +29,7 @@ healtharchive --help
 | **Job Management** | `create-job`, `run-db-job`, `index-job`, `reconcile-completed-indexing`, `register-job-dir` |
 | **Direct Execution** | `run-job` |
 | **Inspection** | `list-jobs`, `show-job` |
+| **Data Integrity** | `data-integrity-report`, `verify-warcs`, `verify-warc-manifest` |
 | **Maintenance** | `retry-job`, `reset-retry-count`, `cleanup-job`, `reset-crawl-state`, `compact-warcs`, `promote-compacted-warcs`, `replay-index-job` |
 | **Annual Campaign** | `schedule-annual`, `annual-status`, `salvage-annual-edition`, `plan-annual-shards`, `annual-edition-report`, `accept-annual-shard-gap`, `reconcile-annual-tool-options` |
 | **Seeding** | `seed-sources` |
@@ -415,6 +416,65 @@ questions without requiring immediate combined-log inspection:
 - whether fallback promotion already happened
 - whether the job is still in a fresh Browsertrix failure state or has moved to
   a healthy fallback path
+
+---
+
+## Data Integrity Commands
+
+### data-integrity-report
+
+Generate one public-safe corpus-level report containing total and per-source
+snapshot counts, canonical WARC counts, manifest and SHA-256 coverage, and the
+latest successful crawl completion for each source. Distinct WARC paths still
+referenced by snapshots are checked for readable, non-empty files without
+publishing those paths.
+
+**Usage**:
+
+```bash
+healtharchive data-integrity-report \
+  --json-out artifacts/data-integrity.json \
+  --markdown-out artifacts/data-integrity.md
+```
+
+**Arguments**:
+
+- `--json-out PATH` - Atomically write versioned JSON.
+- `--markdown-out PATH` - Atomically write human-readable Markdown.
+- `--stdout-format {markdown,json}` - Select stdout format; default is Markdown.
+- `--skip-checksums` - Produce a faster inventory without hashing files. This
+  always reports `incomplete`, never `pass`.
+- `--overwrite` - Explicitly allow atomic replacement of existing artifacts.
+
+The default run verifies SHA-256 values for every manifest-covered WARC in
+successful (`completed` or `indexed`) jobs. The report uses three states:
+
+- `pass` - all relevant jobs have complete, matching manifest/checksum coverage
+  and readable snapshot WARC references.
+- `incomplete` - evidence is absent or was intentionally skipped, including
+  missing manifests, missing checksums, orphaned files, or discovery gaps.
+- `fail` - evidence contradicts stored artifacts, such as invalid manifests,
+  size/hash mismatches, unreadable manifests, missing snapshot WARCs, or
+  zero-byte WARC candidates.
+
+JSON and Markdown contain bounded issue codes instead of storage paths, job
+names, or raw exception text, so generated artifacts are safe to publish after
+normal review. Environment-specific scheduling and publication ownership stay
+in the private operations source of truth.
+
+**Exit codes**:
+
+- `0` - report status is `pass`
+- `1` - report status is `fail`, or an artifact could not be written
+- `2` - report status is `incomplete`, arguments conflict, or overwrite was refused
+
+### verify-warcs and verify-warc-manifest
+
+Use `verify-warcs --job-id JOB_ID` for gzip/WARC parsing checks and
+`verify-warc-manifest --id JOB_ID --level hash` for targeted per-job manifest
+verification. Hash-level manifest verification treats missing checksums and
+zero-byte manifest entries as unverified failures and reports orphaned stable
+WARCs separately.
 
 ---
 

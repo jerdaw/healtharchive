@@ -137,6 +137,28 @@ class TestVerifyWarcManifestFunction:
         assert result.entries_total == 0
         assert result.entries_verified == 0
 
+    @pytest.mark.parametrize(
+        ("payload", "expected_error"),
+        [
+            (["not", "an", "object"], "Manifest is empty or invalid JSON"),
+            ({"entries": "not-a-list"}, "Manifest entries must be a list."),
+            ({"entries": ["not-an-object"]}, "Manifest entry must be an object."),
+        ],
+    )
+    def test_malformed_manifest_shapes_are_bounded_failures(
+        self, tmp_path: Path, payload, expected_error: str
+    ):
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        (warcs_dir / "manifest.json").write_text(json.dumps(payload), encoding="utf-8")
+
+        result = verify_warc_manifest(output_dir, check_size=True, check_hash=True)
+
+        assert result.valid is False
+        assert result.entries_verified == 0
+        assert any(expected_error in error for error in result.errors)
+
     def test_missing_warc_file(self, tmp_path: Path):
         """Verify detection of missing WARC files."""
         output_dir = tmp_path / "job-out"
@@ -236,6 +258,79 @@ class TestVerifyWarcManifestFunction:
         assert expected == "0" * 64
         assert actual == hashlib.sha256(content).hexdigest()
 
+    def test_hash_verification_accepts_uppercase_hex(self, tmp_path: Path):
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        size, sha256 = _create_warc(warcs_dir / "warc-000001.warc.gz", b"content")
+        _create_manifest(
+            warcs_dir,
+            [
+                {
+                    "source_path": "/tmp/src.warc.gz",
+                    "stable_name": "warc-000001.warc.gz",
+                    "size_bytes": size,
+                    "sha256": sha256.upper(),
+                },
+            ],
+        )
+
+        result = verify_warc_manifest(output_dir, check_size=True, check_hash=True)
+
+        assert result.valid is True
+        assert result.entries_verified == 1
+
+    def test_hash_check_requires_manifest_hash(self, tmp_path: Path):
+        """Hash verification stays incomplete when an entry has no SHA256."""
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+
+        size, _ = _create_warc(warcs_dir / "warc-000001.warc.gz", b"content")
+        _create_manifest(
+            warcs_dir,
+            [
+                {
+                    "source_path": "/tmp/src.warc.gz",
+                    "stable_name": "warc-000001.warc.gz",
+                    "size_bytes": size,
+                },
+            ],
+        )
+
+        result = verify_warc_manifest(output_dir, check_size=True, check_hash=True)
+
+        assert result.valid is False
+        assert result.entries_total == 1
+        assert result.entries_verified == 0
+        assert result.missing_hashes == ["warc-000001.warc.gz"]
+        assert result.hash_mismatches == []
+
+    def test_zero_byte_manifest_entry_is_incomplete(self, tmp_path: Path):
+        """Zero-byte stable WARCs are reported and never counted as verified."""
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        (warcs_dir / "warc-000001.warc.gz").touch()
+
+        _create_manifest(
+            warcs_dir,
+            [
+                {
+                    "source_path": "/tmp/src.warc.gz",
+                    "stable_name": "warc-000001.warc.gz",
+                    "size_bytes": 0,
+                    "sha256": hashlib.sha256(b"").hexdigest(),
+                },
+            ],
+        )
+
+        result = verify_warc_manifest(output_dir, check_size=True, check_hash=True)
+
+        assert result.valid is False
+        assert result.entries_verified == 0
+        assert result.zero_byte == ["warc-000001.warc.gz"]
+
     def test_orphaned_warc(self, tmp_path: Path):
         """Verify detection of orphaned WARCs not in manifest."""
         output_dir = tmp_path / "job-out"
@@ -264,6 +359,47 @@ class TestVerifyWarcManifestFunction:
         # Orphaned files don't fail verification, just a warning
         assert result.valid is True
         assert result.orphaned == ["warc-000002.warc.gz"]
+
+    def test_zero_byte_orphan_is_visible(self, tmp_path: Path):
+        """Incomplete orphan candidates are not hidden by stable-WARC scanning."""
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        (warcs_dir / "warc-000002.warc.gz").touch()
+        _create_manifest(warcs_dir, [])
+
+        result = verify_warc_manifest(output_dir)
+
+        # Like other orphan warnings, a zero-byte orphan does not invalidate
+        # the files that are actually covered by the manifest.
+        assert result.valid is True
+        assert result.orphaned == ["warc-000002.warc.gz"]
+        assert result.zero_byte == ["warc-000002.warc.gz"]
+
+    def test_manifest_stable_name_cannot_escape_warcs_directory(self, tmp_path: Path):
+        """Verification never follows a manifest stable_name outside warcs/."""
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        outside = output_dir / "outside.warc.gz"
+        size, sha256 = _create_warc(outside, b"outside")
+        _create_manifest(
+            warcs_dir,
+            [
+                {
+                    "source_path": "/tmp/source.warc.gz",
+                    "stable_name": "../outside.warc.gz",
+                    "size_bytes": size,
+                    "sha256": sha256,
+                }
+            ],
+        )
+
+        result = verify_warc_manifest(output_dir, check_size=True, check_hash=True)
+
+        assert result.valid is False
+        assert result.entries_verified == 0
+        assert result.errors == ["Manifest entry stable_name must be a basename."]
 
     def test_presence_level_skips_size_check(self, tmp_path: Path):
         """Verify that presence level doesn't check sizes."""
@@ -430,6 +566,8 @@ class TestVerifyWarcManifestCLI:
         assert output["entries_total"] == 1
         assert output["entries_verified"] == 1
         assert output["level"] == "size"
+        assert output["missing_hashes"] == []
+        assert output["zero_byte"] == []
 
     def test_cli_no_manifest(self, test_db, tmp_path: Path, monkeypatch, capsys):
         """CLI handles job without manifest (pre-consolidation)."""
