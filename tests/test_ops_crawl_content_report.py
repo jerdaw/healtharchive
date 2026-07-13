@@ -67,7 +67,10 @@ def _create_mixed_warc(warc_path: Path) -> None:
                 payload=io.BytesIO(payload),
                 http_headers=http_headers,
             )
-            writer.write_record(record)
+            try:
+                writer.write_record(record)
+            finally:
+                record.raw_stream.close()
 
 
 def _seed_job(
