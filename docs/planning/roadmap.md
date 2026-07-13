@@ -526,7 +526,13 @@ Completed items were removed from this backlog and archived in:
 ### Frontend quality and public communication
 
 35. **Consolidate bilingual strings (remove inline ternaries)** (L: 1-2 weeks)
-    — Broad P3 refactor; divide by one user-visible surface when reselected.
+    - 2026-07-13 phase: archive discovery/search now uses one typed catalog
+      across `/archive`, source browsing, result cards, filters, clipboard
+      feedback, and API-health diagnostics, with English/French rendering tests.
+    - Remaining scope: migrate the other public workflows in coherent batches;
+      do not reintroduce inline copy selection in the completed archive workflow.
+    - This remains a broad P3 refactor; divide it by one user-visible surface
+      when reselected.
 36. **Add automated performance/Lighthouse testing** (M: 1 day) — P3;
     establish the budget, runner cost, and actionable thresholds first.
 38. **Add coverage badges to READMEs** (S: 1-2h) — P3; requires a durable,

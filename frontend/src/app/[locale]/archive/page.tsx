@@ -10,11 +10,11 @@ import {
   searchSnapshots,
   type SearchParams as ApiSearchParams,
 } from "@/lib/api";
-import { localeToLanguageTag, type Locale } from "@/lib/i18n";
+import { localeToLanguageTag } from "@/lib/i18n";
 import { formatDate } from "@/lib/format";
+import { getArchiveCopy } from "@/lib/archiveCopy";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
-import { getSiteCopy } from "@/lib/siteCopy";
 import { getLocalizedSourceHomepage, getLocalizedSourceName } from "@/lib/sources";
 import { ApiHealthBanner } from "@/components/ApiHealthBanner";
 import { HoverGlowButton } from "@/components/home/HoverGlowButton";
@@ -63,15 +63,6 @@ type SourceBrowseSummary = {
   entryPreviewUrl?: string | null;
 };
 
-function getArchiveCopy(locale: Locale) {
-  const siteCopy = getSiteCopy(locale);
-  return {
-    eyebrow: locale === "fr" ? "Explorateur d’archives" : "Archive explorer",
-    title: locale === "fr" ? "Parcourir et rechercher des captures" : "Browse & search snapshots",
-    description: `${siteCopy.workflow.archiveSummary} ${siteCopy.whatThisSiteIs.limitations} ${siteCopy.whatThisSiteIs.forCurrent}.`,
-  };
-}
-
 export async function generateMetadata({
   params,
 }: {
@@ -79,7 +70,7 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
   const copy = getArchiveCopy(locale);
-  return buildPageMetadata(locale, "/archive", copy.title, copy.description);
+  return buildPageMetadata(locale, "/archive", copy.meta.title, copy.meta.description);
 }
 
 function parsePositiveInt(value: string | undefined, fallback: number): number {
@@ -105,7 +96,6 @@ export default async function ArchivePage({
 }) {
   const locale = await resolveLocale(routeParams);
   const copy = getArchiveCopy(locale);
-  const siteCopy = getSiteCopy(locale);
   const params = await searchParams;
   const qRaw = params.q?.trim() ?? "";
   const withinRaw = params.within?.trim() ?? "";
@@ -201,31 +191,15 @@ export default async function ArchivePage({
   let sourceOptions: { value: string; label: string }[] = [
     {
       value: "phac",
-      label: getLocalizedSourceName(
-        locale,
-        "phac",
-        locale === "fr"
-          ? "Agence de la santé publique du Canada"
-          : "Public Health Agency of Canada",
-      ),
+      label: getLocalizedSourceName(locale, "phac", copy.fallbackSourceNames.phac),
     },
     {
       value: "hc",
-      label: getLocalizedSourceName(
-        locale,
-        "hc",
-        locale === "fr" ? "Santé Canada" : "Health Canada",
-      ),
+      label: getLocalizedSourceName(locale, "hc", copy.fallbackSourceNames.hc),
     },
     {
       value: "cihr",
-      label: getLocalizedSourceName(
-        locale,
-        "cihr",
-        locale === "fr"
-          ? "Instituts de recherche en santé du Canada"
-          : "Canadian Institutes of Health Research",
-      ),
+      label: getLocalizedSourceName(locale, "cihr", copy.fallbackSourceNames.cihr),
     },
   ];
   let sourceSummaries: SourceBrowseSummary[] = [];
@@ -369,11 +343,7 @@ export default async function ArchivePage({
         }
       }
 
-      backendError =
-        detailText ??
-        (locale === "fr"
-          ? "Filtres de recherche invalides. Veuillez vérifier votre plage de dates."
-          : "Invalid search filters. Please check your date range.");
+      backendError = detailText ?? copy.feedback.invalidFilters;
       usingBackend = true;
       results = [];
       totalResults = 0;
@@ -392,23 +362,15 @@ export default async function ArchivePage({
     ? results
     : results.slice((effectivePage - 1) * paginationSize, effectivePage * paginationSize);
 
-  const resultNoun =
-    locale === "fr"
-      ? usingBackend
-        ? view === "pages"
-          ? "page"
-          : "capture"
-        : "capture"
-      : usingBackend
-        ? view === "pages"
-          ? "page"
-          : "snapshot"
-        : "snapshot";
+  const resultNoun = usingBackend
+    ? view === "pages"
+      ? copy.results.nouns.page
+      : copy.results.nouns.snapshot
+    : copy.results.nouns.fallbackSnapshot;
   const formattedTotalResults = new Intl.NumberFormat(localeToLanguageTag(locale)).format(
     totalResults,
   );
-  const resultCountText =
-    totalResults === 1 ? `1 ${resultNoun}` : `${formattedTotalResults} ${resultNoun}s`;
+  const resultCountText = copy.results.count(formattedTotalResults, totalResults, resultNoun);
 
   const buildPageHref = (targetPage: number) => {
     const qs = new URLSearchParams();
@@ -450,23 +412,16 @@ export default async function ArchivePage({
   const apiBaseUrl = getApiBaseUrl();
 
   return (
-    <PageShell eyebrow={copy.eyebrow} title={copy.title} compact hideHeaderVisually>
+    <PageShell eyebrow={copy.meta.eyebrow} title={copy.meta.title} compact hideHeaderVisually>
       <ApiHealthBanner />
       <section className="mb-4">
         <div className="ha-callout">
-          <h2 className="ha-callout-title">
-            {locale === "fr" ? "Note importante" : "Important note"}
-          </h2>
-          <p className="mt-2 text-xs leading-relaxed sm:text-sm">
-            {siteCopy.workflow.archiveSummary} {siteCopy.whatThisSiteIs.limitations}{" "}
-            {siteCopy.whatThisSiteIs.forCurrent}.
-          </p>
+          <h2 className="ha-callout-title">{copy.importantNote.heading}</h2>
+          <p className="mt-2 text-xs leading-relaxed sm:text-sm">{copy.meta.description}</p>
           <p className="mt-3 text-xs leading-relaxed sm:text-sm">
-            {locale === "fr"
-              ? "Pour plus de contexte sur la couverture et les méthodes de capture, voir"
-              : "For background on coverage and capture methods, see"}{" "}
+            {copy.importantNote.methodsLead}{" "}
             <Link href="/methods" className="text-ha-accent hover:text-ha-accent font-medium">
-              {locale === "fr" ? "Méthodes et couverture" : "Methods & coverage"}
+              {copy.importantNote.methodsLink}
             </Link>
             .
           </p>
@@ -477,14 +432,14 @@ export default async function ArchivePage({
           <div className="flex flex-wrap items-baseline justify-between gap-3">
             <div>
               <h2 className="text-sm font-semibold text-[var(--text)]">
-                {locale === "fr" ? "Parcourir les sites archivés" : "Browse archived sites"}
+                {copy.sourceBrowser.heading}
               </h2>
             </div>
             <Link
               href="/archive/browse-by-source"
               className="text-ha-accent hover:text-ha-accent text-xs font-medium"
             >
-              {locale === "fr" ? "Parcourir toutes les sources →" : "Browse all sources →"}
+              {copy.sourceBrowser.browseAll}
             </Link>
           </div>
 
@@ -510,20 +465,12 @@ export default async function ArchivePage({
                         <Link
                           href={`/browse/${browseId}`}
                           className="border-ha-border relative block h-[4.5rem] overflow-hidden border-b bg-[var(--card-bg)]"
-                          aria-label={
-                            locale === "fr"
-                              ? `Voir ${summary.sourceName}`
-                              : `View ${summary.sourceName}`
-                          }
+                          aria-label={copy.sourceBrowser.viewSource(summary.sourceName)}
                         >
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={previewSrc}
-                            alt={
-                              locale === "fr"
-                                ? `Aperçu : ${summary.sourceName}`
-                                : `${summary.sourceName} preview`
-                            }
+                            alt={copy.sourceBrowser.previewAlt(summary.sourceName)}
                             loading="lazy"
                             decoding="async"
                             className="h-full w-full object-cover object-top"
@@ -534,11 +481,7 @@ export default async function ArchivePage({
                           {/* eslint-disable-next-line @next/next/no-img-element */}
                           <img
                             src={previewSrc}
-                            alt={
-                              locale === "fr"
-                                ? `Aperçu : ${summary.sourceName}`
-                                : `${summary.sourceName} preview`
-                            }
+                            alt={copy.sourceBrowser.previewAlt(summary.sourceName)}
                             loading="lazy"
                             decoding="async"
                             className="h-full w-full object-cover object-top"
@@ -549,17 +492,13 @@ export default async function ArchivePage({
                       <Link
                         href={`/browse/${browseId}`}
                         className="border-ha-border text-ha-muted flex h-[4.5rem] items-center justify-center border-b bg-[var(--card-bg)] px-4 text-xs"
-                        aria-label={
-                          locale === "fr"
-                            ? `Voir ${summary.sourceName}`
-                            : `View ${summary.sourceName}`
-                        }
+                        aria-label={copy.sourceBrowser.viewSource(summary.sourceName)}
                       >
-                        {locale === "fr" ? "Aperçu indisponible" : "Preview unavailable"}
+                        {copy.sourceBrowser.previewUnavailable}
                       </Link>
                     ) : (
                       <div className="border-ha-border text-ha-muted flex h-[4.5rem] items-center justify-center border-b bg-[var(--card-bg)] px-4 text-xs">
-                        {locale === "fr" ? "Aperçu indisponible" : "Preview unavailable"}
+                        {copy.sourceBrowser.previewUnavailable}
                       </div>
                     )}
 
@@ -581,24 +520,18 @@ export default async function ArchivePage({
                         </h3>
                       )}
                       <p className="text-ha-muted mt-1 text-xs whitespace-nowrap">
-                        {locale === "fr"
-                          ? `${new Intl.NumberFormat(localeToLanguageTag(locale)).format(
-                              summary.recordCount,
-                            )} capture${summary.recordCount === 1 ? "" : "s"} · dernière capture : ${formatDate(
-                              locale,
-                              summary.lastCapture,
-                            )}`
-                          : `${new Intl.NumberFormat(localeToLanguageTag(locale)).format(
-                              summary.recordCount,
-                            )} snapshot${summary.recordCount === 1 ? "" : "s"} · latest ${formatDate(
-                              locale,
-                              summary.lastCapture,
-                            )}`}
+                        {copy.sourceBrowser.captureSummary({
+                          formattedCount: new Intl.NumberFormat(localeToLanguageTag(locale)).format(
+                            summary.recordCount,
+                          ),
+                          count: summary.recordCount,
+                          formattedDate: formatDate(locale, summary.lastCapture),
+                        })}
                       </p>
                       {summary.baseUrl && (
                         <div className="text-ha-muted mt-1.5 flex min-w-0 items-baseline gap-1 text-[11px]">
                           <span className="flex-shrink-0 font-medium text-[var(--muted)]">
-                            {locale === "fr" ? "Page d’accueil :" : "Homepage:"}
+                            {copy.sourceBrowser.homepageLabel}
                           </span>
                           {summary.entryBrowseUrl ? (
                             <a
@@ -631,14 +564,14 @@ export default async function ArchivePage({
                               href={summary.entryBrowseUrl}
                               className="text-ha-accent hover:text-ha-accent"
                             >
-                              {locale === "fr" ? "Voir" : "View"}
+                              {copy.sourceBrowser.view}
                             </a>
                           ) : browseId ? (
                             <Link
                               href={`/browse/${browseId}`}
                               className="text-ha-accent hover:text-ha-accent"
                             >
-                              {locale === "fr" ? "Voir" : "View"}
+                              {copy.sourceBrowser.view}
                             </Link>
                           ) : null}
                         </div>
@@ -649,13 +582,9 @@ export default async function ArchivePage({
                               target="_blank"
                               rel="noreferrer"
                               className="text-ha-accent hover:text-ha-accent"
-                              title={
-                                locale === "fr"
-                                  ? "Ouvrir la page d’accueil de cette source dans le service de relecture (nouvel onglet)"
-                                  : "Open this source homepage in the replay service (new tab)"
-                              }
+                              title={copy.sourceBrowser.replayTitle}
                             >
-                              {locale === "fr" ? "Voir ↗" : "View ↗"}
+                              {copy.sourceBrowser.viewExternal}
                             </a>
                           )}
                         </div>
@@ -667,7 +596,7 @@ export default async function ArchivePage({
                             scroll={false}
                             className="text-ha-accent hover:text-ha-accent"
                           >
-                            {locale === "fr" ? "Rechercher" : "Search"}
+                            {copy.sourceBrowser.search}
                           </Link>
                         </div>
                       </div>
@@ -687,44 +616,24 @@ export default async function ArchivePage({
               {hasActiveSearch ? (
                 <>
                   <span className="text-ha-accent font-semibold">
-                    {locale === "fr"
-                      ? view === "pages"
-                        ? "Pages"
-                        : "Captures"
-                      : view === "pages"
-                        ? "Page"
-                        : "Snapshot"}
+                    {view === "pages" ? copy.results.pageViewLabel : copy.results.snapshotViewLabel}
                   </span>
-                  <span className="text-[var(--text)]">
-                    {locale === "fr" ? "résultats de recherche" : "search results"}
-                  </span>
+                  <span className="text-[var(--text)]">{copy.results.headingSuffix}</span>
                   <span className="group relative inline-flex">
                     <button
                       type="button"
                       className="border-ha-border text-ha-muted inline-flex h-4 w-4 items-center justify-center rounded-full border bg-[var(--card-bg)] text-[10px] leading-none font-semibold transition-colors hover:border-[var(--accent)] hover:text-[var(--muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                      aria-label={
-                        locale === "fr"
-                          ? "Info sur les pages et les captures"
-                          : "Info about pages vs snapshots"
-                      }
+                      aria-label={copy.results.viewInfoAriaLabel}
                     >
                       i
                     </button>
                     <span className="border-ha-border pointer-events-none absolute top-full left-1/2 z-10 mt-2 w-60 -translate-x-1/2 rounded-lg border bg-[var(--card-bg)] px-3 py-2 text-[11px] leading-relaxed text-[var(--muted)] opacity-0 shadow-lg transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100">
-                      {view === "pages"
-                        ? locale === "fr"
-                          ? "La vue Pages affiche la dernière capture pour chaque URL (regroupées par URL sans chaînes de requête)."
-                          : "Pages view shows the latest capture for each URL (grouped by URL without query strings)."
-                        : locale === "fr"
-                          ? "La vue Captures affiche chaque capture, y compris plusieurs captures de la même URL au fil du temps."
-                          : "Snapshots view shows every capture, including multiple captures of the same URL over time."}
+                      {view === "pages" ? copy.results.pageViewInfo : copy.results.snapshotViewInfo}
                     </span>
                   </span>
                 </>
-              ) : locale === "fr" ? (
-                "Recherche"
               ) : (
-                "Search"
+                copy.results.searchHeading
               )}
             </h2>
             <span className="text-ha-muted ml-auto text-right text-xs">
@@ -732,8 +641,7 @@ export default async function ArchivePage({
               {q && (
                 <>
                   {" "}
-                  {locale === "fr" ? "correspondant à" : "matching"}{" "}
-                  <span className="font-medium">“{q}”</span>
+                  {copy.results.matching} <span className="font-medium">“{q}”</span>
                 </>
               )}
               {within && (
@@ -745,13 +653,9 @@ export default async function ArchivePage({
               {(fromDate || toDate) && (
                 <>
                   {" "}
-                  · {locale === "fr" ? "Date" : "Date"}:{" "}
-                  {fromDate
-                    ? formatDate(locale, fromDate)
-                    : locale === "fr"
-                      ? "Sans limite"
-                      : "Any"}{" "}
-                  – {toDate ? formatDate(locale, toDate) : locale === "fr" ? "Sans limite" : "Any"}
+                  · {copy.results.dateLabel}:{" "}
+                  {fromDate ? formatDate(locale, fromDate) : copy.results.anyDate} –{" "}
+                  {toDate ? formatDate(locale, toDate) : copy.results.anyDate}
                 </>
               )}
             </span>
@@ -784,7 +688,7 @@ export default async function ArchivePage({
             {/* Text search */}
             <div className="space-y-1">
               <label htmlFor="q" className="text-xs font-medium text-[var(--text)]">
-                {locale === "fr" ? "Mots-clés" : "Keywords"}
+                {copy.filters.keywords}
               </label>
               <div className="flex flex-col gap-2 sm:flex-row">
                 <input
@@ -792,15 +696,11 @@ export default async function ArchivePage({
                   name="q"
                   type="search"
                   defaultValue={q}
-                  placeholder={
-                    locale === "fr"
-                      ? "p. ex. grippe, https://www.canada.ca/…, covid AND vaccin, -archived, url:covid"
-                      : "e.g. influenza, https://www.canada.ca/…, covid AND vaccine, -archived, url:covid"
-                  }
+                  placeholder={copy.filters.keywordsPlaceholder}
                   className="border-ha-border min-w-0 flex-1 rounded-lg border bg-[var(--card-bg)] px-3 py-2 text-sm text-[var(--text)] shadow-sm ring-0 outline-none placeholder:text-[var(--muted)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]"
                 />
                 <HoverGlowButton type="submit" className="ha-btn-primary w-full text-xs sm:w-auto">
-                  {locale === "fr" ? "Rechercher" : "Search"}
+                  {copy.filters.search}
                 </HoverGlowButton>
               </div>
             </div>
@@ -809,7 +709,7 @@ export default async function ArchivePage({
             <div className="grid grid-cols-1 gap-3 sm:grid-cols-4">
               <div className="space-y-1 sm:col-span-2">
                 <label htmlFor="source" className="text-xs font-medium text-[var(--text)]">
-                  {locale === "fr" ? "Source" : "Source"}
+                  {copy.filters.source}
                 </label>
                 <select
                   id="source"
@@ -817,7 +717,7 @@ export default async function ArchivePage({
                   defaultValue={source}
                   className="border-ha-border h-10 w-full rounded-lg border bg-[var(--card-bg)] px-3 py-2 text-sm text-[var(--text)] shadow-sm outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent)]"
                 >
-                  <option value="">{locale === "fr" ? "Toutes les sources" : "All sources"}</option>
+                  <option value="">{copy.filters.allSources}</option>
                   {sourceOptions.map((opt) => (
                     <option key={opt.value} value={opt.value}>
                       {opt.label}
@@ -827,7 +727,7 @@ export default async function ArchivePage({
               </div>
               <div className="space-y-1 sm:col-span-1">
                 <label htmlFor="from" className="text-xs font-medium text-[var(--text)]">
-                  {locale === "fr" ? "Du" : "From"}
+                  {copy.filters.from}
                 </label>
                 <input
                   id="from"
@@ -839,7 +739,7 @@ export default async function ArchivePage({
               </div>
               <div className="space-y-1 sm:col-span-1">
                 <label htmlFor="to" className="text-xs font-medium text-[var(--text)]">
-                  {locale === "fr" ? "Au" : "To"}
+                  {copy.filters.to}
                 </label>
                 <input
                   id="to"
@@ -855,24 +755,18 @@ export default async function ArchivePage({
                 <div className="flex flex-wrap items-center gap-2">
                   <div className="inline-flex items-center gap-1">
                     <label htmlFor="view" className="text-ha-muted text-xs font-medium">
-                      {locale === "fr" ? "Afficher" : "Show"}
+                      {copy.filters.show}
                     </label>
                     <span className="group relative inline-flex">
                       <button
                         type="button"
                         className="border-ha-border text-ha-muted inline-flex h-4 w-4 items-center justify-center rounded-full border bg-[var(--card-bg)] text-[10px] leading-none font-semibold transition-colors hover:border-[var(--accent)] hover:text-[var(--muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                        aria-label={
-                          locale === "fr"
-                            ? "Info sur le regroupement des pages"
-                            : "Info about page grouping"
-                        }
+                        aria-label={copy.filters.viewInfoAriaLabel}
                       >
                         i
                       </button>
                       <span className="border-ha-border pointer-events-none absolute top-full left-1/2 z-10 mt-2 w-56 -translate-x-1/2 rounded-lg border bg-[var(--card-bg)] px-3 py-2 text-[11px] leading-relaxed text-[var(--muted)] opacity-0 shadow-lg transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100">
-                        {locale === "fr"
-                          ? "La vue Pages affiche la dernière capture pour chaque URL. La vue Captures affiche chaque capture."
-                          : "Pages view shows the latest capture for each URL. Snapshots view shows every capture."}
+                        {copy.filters.viewInfo}
                       </span>
                     </span>
                     <select
@@ -881,18 +775,14 @@ export default async function ArchivePage({
                       defaultValue={view}
                       className="ha-select ha-select-sm"
                     >
-                      <option value="pages">
-                        {locale === "fr" ? "Pages (dernière)" : "Pages (latest)"}
-                      </option>
-                      <option value="snapshots">
-                        {locale === "fr" ? "Toutes les captures" : "All snapshots"}
-                      </option>
+                      <option value="pages">{copy.filters.pagesLatest}</option>
+                      <option value="snapshots">{copy.filters.allSnapshots}</option>
                     </select>
                   </div>
 
                   <div className="inline-flex items-center gap-1 sm:ml-2">
                     <label htmlFor="sort" className="text-ha-muted text-xs font-medium">
-                      {locale === "fr" ? "Trier" : "Sort"}
+                      {copy.filters.sort}
                     </label>
                     <select
                       id="sort"
@@ -900,16 +790,14 @@ export default async function ArchivePage({
                       defaultValue={sortUi}
                       className="ha-select ha-select-sm"
                     >
-                      <option value="relevance">
-                        {locale === "fr" ? "Pertinence" : "Relevance"}
-                      </option>
-                      <option value="newest">{locale === "fr" ? "Plus récent" : "Newest"}</option>
+                      <option value="relevance">{copy.filters.relevance}</option>
+                      <option value="newest">{copy.filters.newest}</option>
                     </select>
                   </div>
 
                   <div className="inline-flex items-center gap-1 sm:ml-2">
                     <label htmlFor="pageSize" className="text-ha-muted text-xs font-medium">
-                      {locale === "fr" ? "Par page" : "Per page"}
+                      {copy.filters.perPage}
                     </label>
                     <select
                       id="pageSize"
@@ -934,24 +822,18 @@ export default async function ArchivePage({
                       defaultChecked={includeNon2xx}
                     />
                     <label htmlFor="includeNon2xx" className="text-ha-muted text-xs font-medium">
-                      {locale === "fr" ? "Inclure les erreurs" : "Include errors"}
+                      {copy.filters.includeErrors}
                     </label>
                     <span className="group relative inline-flex">
                       <button
                         type="button"
                         className="border-ha-border text-ha-muted inline-flex h-4 w-4 items-center justify-center rounded-full border bg-[var(--card-bg)] text-[10px] leading-none font-semibold transition-colors hover:border-[var(--accent)] hover:text-[var(--muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                        aria-label={
-                          locale === "fr"
-                            ? "Info sur l’inclusion des erreurs"
-                            : "Info about including errors"
-                        }
+                        aria-label={copy.filters.includeErrorsInfoAriaLabel}
                       >
                         i
                       </button>
                       <span className="border-ha-border pointer-events-none absolute top-full left-1/2 z-10 mt-2 w-64 -translate-x-1/2 rounded-lg border bg-[var(--card-bg)] px-3 py-2 text-[11px] leading-relaxed text-[var(--muted)] opacity-0 shadow-lg transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100">
-                        {locale === "fr"
-                          ? "Inclut les captures dont le code HTTP n’est pas 2xx (ex. 404 ou 500)."
-                          : "Includes snapshots with non-2xx HTTP status codes (e.g. 404 or 500)."}
+                        {copy.filters.includeErrorsInfo}
                       </span>
                     </span>
                   </div>
@@ -968,38 +850,32 @@ export default async function ArchivePage({
                         htmlFor="includeDuplicates"
                         className="text-ha-muted text-xs font-medium"
                       >
-                        {locale === "fr" ? "Inclure les doublons" : "Include duplicates"}
+                        {copy.filters.includeDuplicates}
                       </label>
                       <span className="group relative inline-flex">
                         <button
                           type="button"
                           className="border-ha-border text-ha-muted inline-flex h-4 w-4 items-center justify-center rounded-full border bg-[var(--card-bg)] text-[10px] leading-none font-semibold transition-colors hover:border-[var(--accent)] hover:text-[var(--muted)] focus:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-                          aria-label={
-                            locale === "fr"
-                              ? "Info sur l’inclusion des doublons"
-                              : "Info about including duplicates"
-                          }
+                          aria-label={copy.filters.includeDuplicatesInfoAriaLabel}
                         >
                           i
                         </button>
                         <span className="border-ha-border pointer-events-none absolute top-full left-1/2 z-10 mt-2 w-64 -translate-x-1/2 rounded-lg border bg-[var(--card-bg)] px-3 py-2 text-[11px] leading-relaxed text-[var(--muted)] opacity-0 shadow-lg transition-opacity duration-150 group-focus-within:opacity-100 group-hover:opacity-100">
-                          {locale === "fr"
-                            ? "Affiche aussi des captures identiques répétées (même URL + même contenu), souvent prises le même jour."
-                            : "Also shows repeated identical captures (same URL + same content), often taken on the same day."}
+                          {copy.filters.includeDuplicatesInfo}
                         </span>
                       </span>
                     </div>
                   )}
 
                   <button type="submit" className="ha-btn-secondary text-xs sm:ml-2">
-                    {locale === "fr" ? "Appliquer" : "Apply"}
+                    {copy.filters.apply}
                   </button>
 
                   <Link
                     href="/archive"
                     className="text-ha-muted ml-auto text-xs font-medium hover:text-[var(--text)]"
                   >
-                    {locale === "fr" ? "Effacer" : "Clear"}
+                    {copy.filters.clear}
                   </Link>
                 </div>
               </div>
@@ -1010,7 +886,7 @@ export default async function ArchivePage({
             <div className="ha-callout-warning">
               {backendError}{" "}
               <Link href="/archive" className="font-medium underline underline-offset-2">
-                {locale === "fr" ? "Effacer les filtres" : "Clear filters"}
+                {copy.filters.clearFilters}
               </Link>
             </div>
           )}
@@ -1037,22 +913,16 @@ export default async function ArchivePage({
         <section id="archive-results" className="space-y-4">
           <ArchiveFiltersAutoscroll targetId="archive-results" focusParam="results" />
           {!usingBackend && (
-            <div className="ha-callout-warning font-medium">
-              {locale === "fr"
-                ? "API en direct indisponible; affichage d’un échantillon hors ligne limité."
-                : "Live API unavailable; showing a limited offline sample."}
-            </div>
+            <div className="ha-callout-warning font-medium">{copy.feedback.offline}</div>
           )}
 
           <div className="space-y-3">
             {totalResults === 0 ? (
               <div className="ha-card ha-home-panel p-4 sm:p-5">
                 <p className="text-ha-muted text-sm">
-                  {locale === "fr"
-                    ? "Aucun enregistrement ne correspond aux filtres actuels. Essayez de retirer certains filtres, d’utiliser des mots-clés plus généraux ou de"
-                    : "No records match the current filters. Try removing some filters, using broader keywords, or"}{" "}
+                  {copy.feedback.noResultsLead}{" "}
                   <Link href="/archive" className="text-ha-accent hover:text-ha-accent font-medium">
-                    {locale === "fr" ? "réinitialiser la recherche" : "resetting the search"}
+                    {copy.feedback.resetSearch}
                   </Link>
                   .
                 </p>
@@ -1074,22 +944,14 @@ export default async function ArchivePage({
           {pageCount > 1 && (
             <div className="ha-card ha-home-panel text-ha-muted flex flex-wrap items-center justify-between gap-3 p-4 text-sm sm:p-5">
               <div className="flex flex-wrap items-center gap-2">
-                <span>
-                  {locale === "fr"
-                    ? `Page ${Math.min(effectivePage, pageCount)} sur ${pageCount}`
-                    : `Page ${Math.min(effectivePage, pageCount)} of ${pageCount}`}
-                </span>
+                <span>{copy.pagination.page(Math.min(effectivePage, pageCount), pageCount)}</span>
                 {usingBackend && (
                   <span className="text-ha-muted text-[11px]">
-                    {locale === "fr"
-                      ? `Affichage de ${(effectivePage - 1) * paginationSize + 1} à ${Math.min(
-                          effectivePage * paginationSize,
-                          totalResults,
-                        )} sur ${totalResults}`
-                      : `Showing ${(effectivePage - 1) * paginationSize + 1}-${Math.min(
-                          effectivePage * paginationSize,
-                          totalResults,
-                        )} of ${totalResults}`}
+                    {copy.pagination.showing(
+                      (effectivePage - 1) * paginationSize + 1,
+                      Math.min(effectivePage * paginationSize, totalResults),
+                      totalResults,
+                    )}
                   </span>
                 )}
               </div>
@@ -1101,7 +963,7 @@ export default async function ArchivePage({
                     effectivePage <= 1 ? "pointer-events-none opacity-50" : ""
                   }`}
                 >
-                  {locale === "fr" ? "« Première" : "« First"}
+                  {copy.pagination.first}
                 </Link>
                 <Link
                   href={buildPageHref(Math.max(1, effectivePage - 1))}
@@ -1110,7 +972,7 @@ export default async function ArchivePage({
                     effectivePage <= 1 ? "pointer-events-none opacity-50" : ""
                   }`}
                 >
-                  {locale === "fr" ? "← Préc." : "← Prev"}
+                  {copy.pagination.previous}
                 </Link>
                 <Link
                   href={buildPageHref(Math.min(pageCount, effectivePage + 1))}
@@ -1119,7 +981,7 @@ export default async function ArchivePage({
                     effectivePage >= pageCount ? "pointer-events-none opacity-50" : ""
                   }`}
                 >
-                  {locale === "fr" ? "Suiv. →" : "Next →"}
+                  {copy.pagination.next}
                 </Link>
                 <Link
                   href={buildPageHref(pageCount)}
@@ -1128,7 +990,7 @@ export default async function ArchivePage({
                     effectivePage >= pageCount ? "pointer-events-none opacity-50" : ""
                   }`}
                 >
-                  {locale === "fr" ? "Dernière »" : "Last »"}
+                  {copy.pagination.last}
                 </Link>
               </div>
             </div>
@@ -1136,11 +998,7 @@ export default async function ArchivePage({
         </section>
       </div>
 
-      <p className="text-ha-muted text-xs leading-relaxed">
-        {locale === "fr"
-          ? "Version préliminaire : la couverture et les fonctionnalités sont encore en expansion."
-          : "Early release: coverage and features are still expanding."}
-      </p>
+      <p className="text-ha-muted text-xs leading-relaxed">{copy.feedback.earlyRelease}</p>
     </PageShell>
   );
 }

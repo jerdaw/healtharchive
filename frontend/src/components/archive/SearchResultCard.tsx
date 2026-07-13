@@ -3,6 +3,7 @@ import type { ReactElement, ReactNode } from "react";
 
 import { CopyButton } from "@/components/archive/CopyButton";
 import { buildReplayUrl, isoToTimestamp14 } from "@/components/replay/replayUtils";
+import { getArchiveCopy } from "@/lib/archiveCopy";
 import { formatDate } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 
@@ -174,20 +175,10 @@ export function SearchResultCard({
   locale: Locale;
   returnPath?: string | null;
 }) {
-  const label =
-    locale === "fr"
-      ? view === "pages"
-        ? "Dernière capture"
-        : "Capturée"
-      : view === "pages"
-        ? "Latest capture"
-        : "Captured";
+  const copy = getArchiveCopy(locale).searchResult;
+  const label = view === "pages" ? copy.latestCapture : copy.captured;
 
-  const snippetRaw =
-    record.snippet?.trim() ||
-    (locale === "fr"
-      ? "Aucun résumé n’est encore disponible pour cette capture."
-      : "No summary is available for this snapshot yet.");
+  const snippetRaw = record.snippet?.trim() || copy.noSummary;
   const snippet = cleanSnippet(snippetRaw);
 
   const queryTokens = tokenizeQuery(query);
@@ -198,8 +189,6 @@ export function SearchResultCard({
 
   const viewUrl = buildViewUrl(record, returnPath ?? null);
   const detailsUrl = `/snapshot/${record.id}`;
-  const viewLabel = locale === "fr" ? "Voir" : "View";
-  const detailsLabel = locale === "fr" ? "Détails" : "Details";
 
   return (
     <article className="ha-result-card">
@@ -217,18 +206,13 @@ export function SearchResultCard({
             )}
           </h3>
 
-          <div
-            className="ha-result-meta"
-            aria-label={locale === "fr" ? "Métadonnées du résultat" : "Result metadata"}
-          >
+          <div className="ha-result-meta" aria-label={copy.metadataAriaLabel}>
             <span className="ha-result-badge ha-result-badge--source">{record.sourceName}</span>
             {view === "pages" &&
               typeof record.pageSnapshotsCount === "number" &&
               record.pageSnapshotsCount > 1 && (
                 <span className="ha-result-meta-item">
-                  <span className="ha-result-meta-label">
-                    {locale === "fr" ? "Captures" : "Captures"}
-                  </span>{" "}
+                  <span className="ha-result-meta-label">{copy.captures}</span>{" "}
                   {record.pageSnapshotsCount}
                 </span>
               )}
@@ -255,16 +239,16 @@ export function SearchResultCard({
         <div className="ha-result-actions flex flex-wrap justify-start gap-2 sm:justify-end">
           {viewUrl ? (
             <a href={viewUrl} className="ha-btn-primary text-xs">
-              {viewLabel}
+              {copy.view}
             </a>
           ) : (
             <Link href={detailsUrl} className="ha-btn-primary text-xs">
-              {detailsLabel}
+              {copy.details}
             </Link>
           )}
           {viewUrl && (
             <Link href={detailsUrl} className="ha-btn-secondary text-xs">
-              {detailsLabel}
+              {copy.details}
             </Link>
           )}
           {view === "pages" && (
@@ -274,7 +258,7 @@ export function SearchResultCard({
               )}&q=${encodeURIComponent(record.originalUrl)}&focus=results`}
               className="ha-btn-secondary text-xs"
             >
-              {locale === "fr" ? "Toutes les captures" : "All snapshots"}
+              {copy.allSnapshots}
             </Link>
           )}
         </div>
@@ -284,9 +268,7 @@ export function SearchResultCard({
 
       <div className="ha-result-url-row">
         <div className="ha-result-url">
-          <span className="ha-result-url-label">
-            {locale === "fr" ? "URL d’origine" : "Original URL"}
-          </span>
+          <span className="ha-result-url-label">{copy.originalUrl}</span>
           <a
             href={record.originalUrl}
             target="_blank"
@@ -299,7 +281,7 @@ export function SearchResultCard({
           </a>
           <CopyButton
             text={record.originalUrl}
-            label={locale === "fr" ? "Copier l’URL d’origine" : "Copy original URL"}
+            label={copy.copyOriginalUrl}
             className="ha-icon-btn"
           >
             <CopyIcon />

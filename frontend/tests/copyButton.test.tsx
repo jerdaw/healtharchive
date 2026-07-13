@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { CopyButton } from "@/components/archive/CopyButton";
+import { LocaleProvider } from "@/components/i18n/LocaleProvider";
 
 function setClipboard(writeText: (value: string) => Promise<void>) {
   Object.defineProperty(navigator, "clipboard", {
@@ -90,5 +91,25 @@ describe("CopyButton", () => {
 
     expect(execCommand).toHaveBeenCalledWith("copy");
     expect(screen.getByText("Copy failed")).toBeInTheDocument();
+  });
+
+  it("announces successful copies in French", async () => {
+    setClipboard(vi.fn().mockResolvedValue(undefined));
+
+    render(
+      <LocaleProvider locale="fr">
+        <CopyButton text="https://example.com" label="Copier l’URL">
+          Copier
+        </CopyButton>
+      </LocaleProvider>,
+    );
+
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Copier l’URL" }));
+      await Promise.resolve();
+    });
+
+    expect(screen.getByText("Copié")).toBeInTheDocument();
+    expect(screen.getByText("Copié dans le presse-papiers.")).toHaveClass("sr-only");
   });
 });

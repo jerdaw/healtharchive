@@ -9,8 +9,8 @@ import {
   getApiBaseUrl,
   type SourceSummary as ApiSourceSummary,
 } from "@/lib/api";
+import { getArchiveCopy } from "@/lib/archiveCopy";
 import { formatDate, formatNumber } from "@/lib/format";
-import type { Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
 import { getSiteCopy } from "@/lib/siteCopy";
@@ -30,39 +30,13 @@ type SourceSummaryLike = {
   entryPreviewUrl?: string | null;
 };
 
-function getBrowseBySourceCopy(locale: Locale) {
-  if (locale === "fr") {
-    return {
-      eyebrow: "Explorateur d’archives",
-      title: "Parcourir les sources",
-      intro:
-        "Parcourez la couverture par source et accédez à un site archivé ou à la liste complète des enregistrements. La couverture et les fonctionnalités sont encore en expansion.",
-      sourceSummary: (formattedCount: string, count: number) =>
-        `Affichage de ${formattedCount} source${count === 1 ? "" : "s"}.`,
-      emptyTitle: "Aucune source disponible",
-      emptyBody: "Aucune source d’archive n’est encore disponible dans cette vue.",
-    };
-  }
-
-  return {
-    eyebrow: "Archive explorer",
-    title: "Browse records by source",
-    intro:
-      "Browse coverage by source and jump into an archived site or the full record list. Coverage and features are still expanding.",
-    sourceSummary: (formattedCount: string, count: number) =>
-      `Showing ${formattedCount} source${count === 1 ? "" : "s"}.`,
-    emptyTitle: "No sources available",
-    emptyBody: "No archive sources are available in this view yet.",
-  };
-}
-
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ locale: string }>;
 }): Promise<Metadata> {
   const locale = await resolveLocale(params);
-  const copy = getBrowseBySourceCopy(locale);
+  const copy = getArchiveCopy(locale).browseBySource;
   return buildPageMetadata(locale, "/archive/browse-by-source", copy.title, copy.intro);
 }
 
@@ -72,7 +46,7 @@ export default async function BrowseBySourcePage({
   params: Promise<{ locale: string }>;
 }) {
   const locale = await resolveLocale(params);
-  const copy = getBrowseBySourceCopy(locale);
+  const copy = getArchiveCopy(locale).browseBySource;
   const siteCopy = getSiteCopy(locale);
 
   let summaries: SourceSummaryLike[] = getSourcesSummary().map((s) => ({
@@ -124,9 +98,7 @@ export default async function BrowseBySourcePage({
   return (
     <PageShell eyebrow={copy.eyebrow} title={copy.title} intro={copy.intro}>
       <div className="ha-callout mb-6">
-        <h2 className="ha-callout-title">
-          {locale === "fr" ? "Note importante" : "Important note"}
-        </h2>
+        <h2 className="ha-callout-title">{copy.importantNoteHeading}</h2>
         <p className="mt-2 text-xs leading-relaxed sm:text-sm">
           {siteCopy.workflow.archiveSummary} {siteCopy.whatThisSiteIs.limitations}{" "}
           {siteCopy.whatThisSiteIs.forCurrent}.
@@ -134,14 +106,8 @@ export default async function BrowseBySourcePage({
       </div>
       {!usingBackend && (
         <div className="ha-callout mb-6">
-          <h3 className="ha-callout-title">
-            {locale === "fr" ? "API en direct indisponible" : "Live API unavailable"}
-          </h3>
-          <p className="text-xs leading-relaxed sm:text-sm">
-            {locale === "fr"
-              ? "Affichage d’un échantillon hors ligne limité pendant que l’API en direct est indisponible."
-              : "Showing a limited offline sample while the live API is unavailable."}
-          </p>
+          <h3 className="ha-callout-title">{copy.offlineTitle}</h3>
+          <p className="text-xs leading-relaxed sm:text-sm">{copy.offlineBody}</p>
         </div>
       )}
       <p className="text-ha-muted mb-4 text-sm">
@@ -159,13 +125,7 @@ export default async function BrowseBySourcePage({
             const entryId = source.entryRecordId;
             const fallbackId = source.latestRecordId;
             const browseId = entryId ?? fallbackId;
-            const browseLabel = entryId
-              ? locale === "fr"
-                ? "Voir le site archivé"
-                : "View archived site"
-              : locale === "fr"
-                ? "Voir la capture la plus récente"
-                : "View latest snapshot";
+            const browseLabel = entryId ? copy.viewArchivedSite : copy.viewLatestSnapshot;
             const previewSrc = source.entryPreviewUrl
               ? `${apiBaseUrl}${source.entryPreviewUrl}`
               : null;
@@ -182,11 +142,7 @@ export default async function BrowseBySourcePage({
                     {/* eslint-disable-next-line @next/next/no-img-element */}
                     <img
                       src={previewSrc}
-                      alt={
-                        locale === "fr"
-                          ? `Aperçu : ${source.sourceName}`
-                          : `${source.sourceName} preview`
-                      }
+                      alt={copy.previewAlt(source.sourceName)}
                       loading="lazy"
                       decoding="async"
                       className="h-full w-full object-cover object-top"
@@ -195,7 +151,7 @@ export default async function BrowseBySourcePage({
                   </div>
                 ) : (
                   <div className="border-ha-border text-ha-muted flex h-28 items-center justify-center border-b bg-white px-4 text-xs dark:bg-[#0b0c0d]">
-                    {locale === "fr" ? "Aperçu indisponible" : "Preview unavailable"}
+                    {copy.previewUnavailable}
                   </div>
                 )}
 
@@ -204,21 +160,12 @@ export default async function BrowseBySourcePage({
                     {source.sourceName}
                   </h2>
                   <p className="text-ha-muted mt-1 text-xs">
-                    {locale === "fr"
-                      ? `${formatNumber(locale, source.recordCount)} capture${
-                          source.recordCount === 1 ? "" : "s"
-                        } capturée${
-                          source.recordCount === 1 ? "" : "s"
-                        } entre le ${formatDate(locale, source.firstCapture)} et le ${formatDate(
-                          locale,
-                          source.lastCapture,
-                        )}.`
-                      : `${formatNumber(locale, source.recordCount)} snapshot${
-                          source.recordCount === 1 ? "" : "s"
-                        } captured between ${formatDate(locale, source.firstCapture)} and ${formatDate(
-                          locale,
-                          source.lastCapture,
-                        )}.`}
+                    {copy.captureRange({
+                      formattedCount: formatNumber(locale, source.recordCount),
+                      count: source.recordCount,
+                      formattedFirstCapture: formatDate(locale, source.firstCapture),
+                      formattedLastCapture: formatDate(locale, source.lastCapture),
+                    })}
                   </p>
 
                   <div className="mt-4 flex flex-wrap gap-2">
@@ -235,7 +182,7 @@ export default async function BrowseBySourcePage({
                       href={`/archive?source=${source.sourceCode}`}
                       className="ha-btn-secondary text-xs"
                     >
-                      {locale === "fr" ? "Parcourir les enregistrements" : "Browse records"}
+                      {copy.browseRecords}
                     </Link>
                   </div>
                 </div>
