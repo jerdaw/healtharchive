@@ -3,13 +3,14 @@ from __future__ import annotations
 import importlib.util
 import json
 import sys
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any
 
 from ha_backend import db as db_module
+from ha_backend.crawl_rescue_status import WARC_COMPLETE_FINALIZATION_FAILED
 from ha_backend.db import Base, get_engine, get_session
-from ha_backend.models import ArchiveJob, Source
+from ha_backend.models import ArchiveJob, ArchiveJobIndexingProgress, Source
 from ha_backend.seeds import seed_sources
 
 
@@ -163,3 +164,128 @@ def test_metrics_emits_indexing_pending_job_age(tmp_path, monkeypatch) -> None:
     content = (out_dir / out_file).read_text(encoding="utf-8")
     assert "healtharchive_indexing_pending_jobs 1" in content
     assert 'healtharchive_indexing_pending_jobs_by_source{source="hc"} 1' in content
+
+
+def test_metrics_emits_active_indexing_progress(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    out_dir = tmp_path / "textfile"
+    out_file = "healtharchive_crawl.prom"
+    now = datetime.now(timezone.utc)
+
+    with get_session() as session:
+        seed_sources(session)
+        session.flush()
+        source = session.query(Source).filter_by(code="hc").one()
+        active_job = ArchiveJob(
+            source=source,
+            name="hc-indexing",
+            output_dir=str(tmp_path / "active"),
+            status="indexing",
+        )
+        failed_job = ArchiveJob(
+            source=source,
+            name="hc-index-failed",
+            output_dir=str(tmp_path / "failed"),
+            status="index_failed",
+        )
+        session.add_all([active_job, failed_job])
+        session.flush()
+        session.add_all(
+            [
+                ArchiveJobIndexingProgress(
+                    job_id=active_job.id,
+                    phase="read_warc",
+                    current_warc="private-active-warc-name.warc.gz",
+                    warc_index=2,
+                    warc_total=5,
+                    records_processed=1234,
+                    bytes_processed=4096,
+                    bytes_total=8192,
+                    started_at=now - timedelta(seconds=90),
+                    last_progress_at=now - timedelta(seconds=30),
+                ),
+                ArchiveJobIndexingProgress(
+                    job_id=failed_job.id,
+                    phase="failed",
+                    current_warc="private-failed-warc-name.warc.gz",
+                    started_at=now - timedelta(seconds=120),
+                    last_progress_at=now - timedelta(seconds=60),
+                ),
+            ]
+        )
+        session.flush()
+        active_job_id = int(active_job.id)
+        failed_job_id = int(failed_job.id)
+
+    module = _load_script_module()
+    rc = int(module.main(["--out-dir", str(out_dir), "--out-file", out_file]))
+    assert rc == 0
+
+    content = (out_dir / out_file).read_text(encoding="utf-8")
+    labels = f'job_id="{active_job_id}",source="hc",phase="read_warc"'
+    expected = {
+        "healtharchive_indexing_progress_last_update_age_seconds": None,
+        "healtharchive_indexing_progress_warc_index": "2",
+        "healtharchive_indexing_progress_warc_total": "5",
+        "healtharchive_indexing_progress_records_processed": "1234",
+        "healtharchive_indexing_progress_bytes_processed": "4096",
+        "healtharchive_indexing_progress_bytes_total": "8192",
+    }
+    for metric_name, expected_value in expected.items():
+        matching = [line for line in content.splitlines() if line.startswith(f"{metric_name}{{")]
+        assert len(matching) == 1
+        prefix, value = matching[0].split(" ", 1)
+        assert prefix == f"{metric_name}{{{labels}}}"
+        if expected_value is not None:
+            assert value == expected_value
+
+    age_line = next(
+        line
+        for line in content.splitlines()
+        if line.startswith("healtharchive_indexing_progress_last_update_age_seconds{")
+    )
+    assert 25 <= float(age_line.rsplit(" ", 1)[1]) <= 35
+    assert f'job_id="{failed_job_id}"' not in "\n".join(
+        line for line in content.splitlines() if line.startswith("healtharchive_indexing_progress_")
+    )
+    assert "private-active-warc-name.warc.gz" not in content
+    assert "private-failed-warc-name.warc.gz" not in content
+
+
+def test_metrics_emits_warc_complete_finalization_failure_counts(tmp_path, monkeypatch) -> None:
+    _init_test_db(tmp_path, monkeypatch)
+
+    out_dir = tmp_path / "textfile"
+    out_file = "healtharchive_crawl.prom"
+
+    with get_session() as session:
+        seed_sources(session)
+        session.flush()
+        source = session.query(Source).filter_by(code="hc").one()
+        session.add(
+            ArchiveJob(
+                source=source,
+                name="hc-warc-complete",
+                output_dir=str(tmp_path / "jobdir"),
+                status="completed",
+                finished_at=datetime.now(timezone.utc),
+                crawler_stage=WARC_COMPLETE_FINALIZATION_FAILED,
+            )
+        )
+        session.commit()
+
+    module = _load_script_module()
+    rc = int(module.main(["--out-dir", str(out_dir), "--out-file", out_file]))
+    assert rc == 0
+
+    content = (out_dir / out_file).read_text(encoding="utf-8")
+    assert "healtharchive_crawl_warc_complete_finalization_failed_jobs 1" in content
+    assert (
+        'healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source{source="hc"} 1'
+        in content
+    )
+    assert (
+        'healtharchive_crawl_warc_complete_finalization_failed_jobs_by_source{source="phac"} 0'
+        in content
+    )

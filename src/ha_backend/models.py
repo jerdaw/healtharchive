@@ -341,6 +341,54 @@ class ArchiveJob(TimestampMixin, Base):
         return f"<ArchiveJob id={self.id!r} name={self.name!r} status={self.status!r}>"
 
 
+class ArchiveJobIndexingProgress(Base):
+    """Durable liveness state for one active or most-recent failed indexing run."""
+
+    __tablename__ = "archive_job_indexing_progress"
+
+    job_id: Mapped[int] = mapped_column(
+        ForeignKey("archive_jobs.id", ondelete="CASCADE"),
+        primary_key=True,
+    )
+    phase: Mapped[str] = mapped_column(String(50), nullable=False)
+    current_warc: Mapped[Optional[str]] = mapped_column(String(255))
+    warc_index: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    warc_total: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        server_default=text("0"),
+    )
+    records_processed: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        server_default=text("0"),
+    )
+    bytes_processed: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        server_default=text("0"),
+    )
+    bytes_total: Mapped[int] = mapped_column(
+        BigInteger,
+        nullable=False,
+        server_default=text("0"),
+    )
+    started_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+    last_progress_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        nullable=False,
+        server_default=func.now(),
+    )
+
+
 class Snapshot(TimestampMixin, Base):
     """
     Individual captured page snapshot, derived from WARCs.
@@ -742,6 +790,7 @@ class PageSignal(Base):
 __all__ = [
     "Source",
     "ArchiveJob",
+    "ArchiveJobIndexingProgress",
     "Snapshot",
     "IssueReport",
     "UsageMetric",

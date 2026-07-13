@@ -16,6 +16,15 @@ overview of common commands and local testing flows, see
 `development/live-testing.md`. Deployment details are environment-specific and
 kept outside the public docs portal.
 
+Visual references:
+
+- [Architecture walkthrough](tutorials/architecture-walkthrough.md) follows a
+  page from job creation through crawl, indexing, and search.
+- [Data model reference](reference/data-model.md#entity-relationship) contains
+  the full Mermaid entity-relationship diagram.
+- [`archive_tool` documentation](https://github.com/jerdaw/healtharchive/blob/main/src/archive_tool/docs/documentation.md)
+  covers crawler orchestration and artifact internals.
+
 ---
 
 ## 1. High‑level architecture
@@ -43,7 +52,35 @@ kept outside the public docs portal.
   - Database (SQLite by default; Postgres recommended in production).
   - Optional VPN client/command for rotation (e.g., `nordvpn`).
 
-### 1.2 Data flow overview
+### 1.2 System context
+
+```mermaid
+flowchart LR
+    Public["Researchers and public users"] --> Frontend["Next.js frontend"]
+    Frontend -->|"Public HTTP API"| API["FastAPI public routes"]
+    API -->|"Search, metadata, and changes"| Frontend
+
+    Operator["Authorized operators"] --> Admin["CLI and admin routes"]
+    Admin --> Services["Job and edition services"]
+    Worker["Worker and background tasks"] --> Services
+
+    Services --> Database["Relational metadata database"]
+    API --> Database
+
+    Worker -->|"Subprocess"| ArchiveTool["archive_tool"]
+    ArchiveTool --> Crawler["Crawler container"]
+    Sources["Public source websites"] -->|"Captured HTTP content"| Crawler
+    Crawler --> WARCs["Durable WARC files"]
+    WARCs --> Indexer["WARC indexing pipeline"]
+    Indexer --> Database
+    API -->|"Raw and replay lookup"| WARCs
+```
+
+The database stores lifecycle and researcher-facing metadata; WARCs remain the
+durable captured-content source for indexing and replay. Optional ZIM output is
+not a prerequisite for backend search readiness.
+
+### 1.3 Data flow overview
 
 1. **Job creation**:
    - Admin runs `healtharchive create-job --source hc`.
@@ -100,7 +137,7 @@ kept outside the public docs portal.
      - and a renderable diff artifact when available.
    - This work is intentionally **off the request path** to keep APIs fast.
 
-5. **Serving**:
+6. **Serving**:
    - FastAPI app:
      - `GET /api/search` queries `Snapshot` for search results.
      - `GET /api/stats` provides lightweight public archive totals for frontend metrics.
@@ -110,7 +147,7 @@ kept outside the public docs portal.
      - `GET /api/changes` and `GET /api/changes/compare` expose change feeds and diffs.
      - `GET /api/snapshots/{id}/timeline` returns a capture timeline for a page group.
 
-5. **Admin & cleanup**:
+7. **Admin & cleanup**:
    - Admin API:
      - `GET /api/admin/jobs` / `{id}` for job status and config.
      - `GET /metrics` for Prometheus‑style metrics.
@@ -118,6 +155,29 @@ kept outside the public docs portal.
      - `healtharchive retry-job` to reattempt failed jobs.
      - `healtharchive cleanup-job` to delete temp dirs/state for indexed jobs,
        updating `cleanup_status`.
+
+### 1.4 Job lifecycle
+
+```mermaid
+stateDiagram-v2
+    [*] --> queued
+    queued --> running: worker claims job
+    running --> retryable: recoverable crawl failure
+    retryable --> running: retry budget available
+    running --> failed: terminal crawl failure
+    running --> completed: crawl output accepted
+    completed --> indexing: indexing begins
+    indexing --> indexed: snapshots committed
+    indexing --> index_failed: indexing error
+    index_failed --> indexing: explicit retry or reconciliation
+    indexed --> [*]
+    failed --> [*]
+```
+
+`warc_complete_finalization_failed` is a crawler-stage acceptance signal, not
+an `ArchiveJob.status`. Once WARC completeness is proven, that condition may
+take the normal `running` to `completed` path even though optional ZIM
+finalization failed.
 
 ---
 
@@ -732,10 +792,13 @@ The backend and ``archive_tool`` share a small but important contract:
 
 - **WARC discovery and cleanup**:
 
-  - `ha_backend.indexing.warc_discovery.discover_warcs_for_job` relies on
-    `archive_tool.state.CrawlState` and `archive_tool.utils.find_all_warc_files`
-    / `find_latest_temp_dir_fallback` for WARC discovery and temp dir
-    tracking.
+  - `ha_backend.indexing.warc_discovery.discover_all_warcs_for_output_dir`
+    owns the stable, state-tracked temp, and latest untracked fallback union,
+    including hardlink/manifest-source deduplication. Job indexing and the
+    read-only crawl content-cost report both delegate to that helper.
+  - `discover_warcs_for_job` loads tracked temp directories through
+    `archive_tool.state.CrawlState` and preserves the list-only API used by the
+    indexing pipeline.
   - `ha_backend.cli.cmd_cleanup_job` uses `CrawlState` and
     `archive_tool.utils.cleanup_temp_dirs` to remove `.tmp*` directories and
     `.archive_state.json` safely once jobs are indexed.
@@ -760,30 +823,43 @@ from archive_tool.utils import find_all_warc_files, find_latest_temp_dir_fallbac
 ```
 
 ```python
-def discover_warcs_for_job(
-    job: ArchiveJob,
+def discover_all_warcs_for_output_dir(
+    host_output_dir: Path,
     *,
+    temp_dirs: list[Path],
     allow_fallback: bool = True,
-) -> List[Path]:
+) -> WarcDiscoveryResult:
 ```
 
 Steps:
 
-1. Resolve `host_output_dir = Path(job.output_dir).resolve()`.
-2. Instantiate `CrawlState(host_output_dir, initial_workers=1)`:
-   - This loads `.archive_state.json` if present.
-3. Get `temp_dirs = state.get_temp_dir_paths()`:
-   - Returns only existing directories and prunes missing ones from state.
-4. If `temp_dirs` is empty and `allow_fallback`:
-   - Use `find_latest_temp_dir_fallback(host_output_dir)` to scan for `.tmp*`
-     directories.
-5. If still empty → return `[]`.
-6. Call `find_all_warc_files(temp_dirs)`:
-   - Returns a de‑duplicated list of `*.warc.gz` files under each
-     `collections/crawl-*/archive` directory.
+1. Discover non-empty stable files under the job's `warcs/` directory.
+2. Discover non-empty files under every supplied state-tracked temp directory.
+3. If fallback is allowed, include the latest `.tmp*` directory only when it
+   is not already state-tracked.
+4. Union the three source groups and prefer stable paths when files are
+   hardlinks or the consolidation manifest records a copied temp source.
+5. Parse the consolidation manifest only far enough to validate the root/entry
+   shape and collect copy-fallback source paths for deduplication.
+6. Return sorted paths, source counts, total count, bounded manifest status,
+   and a source label of `stable`, `temp`, `fallback`, `mixed`, or `none`.
 
-This ensures the backend uses **exactly the same** WARC discovery logic as
-`archive_tool` itself.
+`discover_all_warcs_for_job` obtains `temp_dirs` from `CrawlState` and delegates
+to this helper. `discover_warcs_for_job` returns only the result paths for the
+indexer. The read-only content-cost report supplies the temp paths from its
+already-loaded state snapshot, so operator counts cannot silently fall back to
+stable-only discovery.
+
+Manifest status is `missing`, `valid`, `invalid`, or `unreadable`.
+`manifest_valid` remains true for `missing`/`valid` and false for
+`invalid`/`unreadable`; a missing manifest is not a discovery error. Invalid
+results expose only bounded codes such as `invalid-json` or `invalid-entry`,
+not raw content, exception text, or paths. `list-warcs --json`, `show-job
+--warc-details`, and the read-only content-cost report surface the same fields.
+
+This lightweight parse status is not an integrity check. Use
+`healtharchive verify-warc-manifest --id JOB_ID` for presence/size validation or
+add `--level hash` for SHA-256 verification.
 
 ### 6.2 WARC reading (`warc_reader.py`)
 

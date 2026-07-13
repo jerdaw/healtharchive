@@ -1,0 +1,53 @@
+name: Feature request
+description: Propose an improvement to HealthArchive
+title: "[Feature]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        GitHub issues are public. Do not include secrets, personal data, or personal health information.
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or user need
+      description: Explain who is affected and what they cannot do today.
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed outcome
+      description: Describe the result you would like, without requiring a specific implementation.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Backend API
+        - Crawler and archive tooling
+        - Frontend and public website
+        - Documentation
+        - CI and developer tooling
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Examples or additional context
+      description: Add public-safe examples, references, or mockups if helpful.
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues for a similar proposal.
+          required: true
+        - label: I removed secrets, personal data, and personal health information.
+          required: true
