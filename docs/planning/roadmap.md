@@ -533,10 +533,18 @@ Completed items were removed from this backlog and archived in:
       do not reintroduce inline copy selection in the completed archive workflow.
     - This remains a broad P3 refactor; divide it by one user-visible surface
       when reselected.
-36. **Add automated performance/Lighthouse testing** (M: 1 day) — P3;
-    establish the budget, runner cost, and actionable thresholds first.
+<!-- Item #36 removed 2026-07-13: the existing frontend CI build now runs a
+loopback-only Lighthouse regression gate over representative home, archive
+search, and demo-snapshot routes, with repeated samples, blocking budgets, and
+three-day failure reports. See
+`implemented/2026-07-13-frontend-lighthouse-performance-gate.md`. -->
 38. **Add coverage badges to READMEs** (S: 1-2h) — P3; requires a durable,
     trustworthy coverage publication source rather than a static claim.
+<!-- Item #42 removed 2026-07-13: `data-integrity-report` now produces
+public-safe aggregate JSON/Markdown with snapshot totals, canonical WARC
+counts, SHA-256 coverage, latest successful crawl metadata, explicit integrity
+status, and atomic artifact output. See
+`implemented/2026-07-13-aggregate-data-integrity-report.md`. -->
 
 ## Adjacent / optional (in this monorepo, not core HA)
 

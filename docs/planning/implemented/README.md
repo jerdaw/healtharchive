@@ -4,6 +4,7 @@ This folder contains **historical implementation plans** that have already been 
 
 Implemented plans:
 
+- `2026-07-13-frontend-lighthouse-performance-gate.md`
 - `2026-07-13-archive-discovery-copy-catalog.md`
 - `2026-07-13-aggregate-data-integrity-report.md`
 - `2026-07-10-ci-free-tier-policy-closeout.md`
