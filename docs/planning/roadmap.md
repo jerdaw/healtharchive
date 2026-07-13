@@ -1,8 +1,39 @@
-# Future roadmap (backlog)
+# HealthArchive roadmap
 
-This file tracks **not-yet-implemented** work and planned upgrades.
+**Current state:** Repository implementation is stable; the aggregate
+data-integrity report and July maintenance/UX batches are complete.
+**Last updated:** 2026-07-13
+**Immediate priority:** live integrity evidence, storage/capacity decisions,
+and external-validation proof.
+**Repository-only execution queue:** empty until a trigger in the table below
+is satisfied.
+
+This file tracks **not-yet-implemented** work and planned upgrades. Completed
+implementation records belong in `implemented/`, not in the active queue.
 
 It is intentionally **not** an implementation plan.
+
+## Priority and readiness
+
+| Priority | Outcome | Readiness | Gate / next action |
+|----------|---------|-----------|--------------------|
+| P0 | Publish the first live aggregate data-integrity artifact | External/operator | Run the existing generator against the live corpus, review the artifact, and choose its public destination and cadence |
+| P0 | Choose the next annual storage and retention posture | Operator/policy decision | Complete capacity, replay, restore, and pre-promotion-original decisions before another annual campaign |
+| P1 | Establish repeatable external-validation evidence | External/human | Complete named partner/verifier, public citation, uptime, restore, and quarterly release evidence over real cycles |
+| P1 | Improve large-job indexing only when live evidence warrants it | Conditional | Use durable progress history to choose checkpointing, detached execution, or an explicit all-at-once rationale |
+| P2 | Resolve WARC-finalization, raw-lookup, or page-search design questions | Decision required | Start a focused plan only after a measured user/operational need selects one option |
+| P2 | Maintain upstream dependency and advisory posture | Conditional maintenance | Act only when a compatible upstream fix exists or a concrete security regression appears |
+| P3 | Bilingual consolidation, Lighthouse automation, and public badges | Later/broad | Reassess after P0/P1 evidence work or when a bounded independent slice is justified |
+
+Selection rules:
+
+1. Prefer a P0/P1 item whose gate has actually changed.
+2. Do not replace live evidence, policy, legal, or operator decisions with
+   speculative repository work.
+3. For conditional technical items, record the triggering measurement or
+   incident in the implementation plan.
+4. Keep broad P3 work out of active plans while higher-value evidence gaps
+   remain.
 
 ## How to use this file (workflow)
 
@@ -391,13 +422,18 @@ Completed items were removed from this backlog and archived in:
 
 <!-- Items #1 (CITATION.cff) and #2 (SECURITY.md) removed 2026-03-25: confirmed present in all three repos (backend, frontend, datasets). Completed as part of implemented/2026-02-12-governance-seo-and-security-foundations.md. -->
 
-3. **Add a code of conduct to all repos** (S: 1h)
-4. **Add LICENSE to datasets repo** (S: 30m) — confirmed still missing as of 2026-03-25
-5. **Add GitHub issue and PR templates across repos** (S: 2-3h) -
-   this monorepo now has structured bug and feature issue forms, specialized
-   report routing, and PR guidance. Coverage in repositories outside this
-   checkout remains unverified.
-7. **Add changelog/release tags to backend and frontend** (M: 1 day)
+3. **Add a code of conduct to all repos** (S: 1h) — Later governance batch;
+   select one shared policy and attribution posture before copying it across
+   repositories.
+4. **Add LICENSE to datasets repo** (S: 30m) — Human/legal decision required;
+   the datasets roadmap now makes license selection its first explicit gate.
+5. **Finish GitHub issue and PR template coverage across repos** (S: 1h) —
+   CareConnect, HealthArchive, HealthArchive Datasets, VisitBrief, and WaitTime
+   have intake templates. Platform Ops is the only workspace repo without
+   them; decide whether that private operations repo needs standardized issue
+   intake before implementing an exception or forms.
+7. **Add changelog/release tags to backend and frontend** (M: 1 day) — Release
+   policy and publication intent required before changing tag automation.
 
 ### Reliability, security, and CI
 
@@ -441,12 +477,21 @@ Completed items were removed from this backlog and archived in:
 
 ### Documentation and operations maturity
 
-26. **Create explicit data retention schedule table** (S: 2h)
-30. **Formalize ethics/research exemption statement** (S: 1-2h)
-31. **Add error tracking integration (Sentry)** (M: 1 day)
-32. **Add automated uptime monitoring badge** (S: 1-2h) — external monitor (UptimeRobot) is described in the monitoring checklist but public badge and history page are not yet confirmed live as of 2026-03-25
-33. **Add public status page content with uptime history** (M: 1 day) — `../operations/service-levels.md` notes no dedicated status page yet
-34b. **Measure and record API/operational performance baselines** (S: 1-2h) — all baseline fields in `../operations/service-levels.md` remain TBD since 2026-01-18; collect real p50/p95 measurements from production under normal load and fill in the table
+26. **Create explicit data retention schedule table** (S: 2h) — Policy input
+    required; document only approved user-facing retention commitments.
+30. **Formalize ethics/research exemption statement** (S: 1-2h) — Human
+    ethics/research review required before publication.
+31. **Add error tracking integration (Sentry)** (M: 1 day) — Product,
+    privacy, account, and operational-ownership decision required.
+32. **Add automated uptime monitoring badge** (S: 1-2h) — External monitor
+    and public-history ownership required; do not add a badge before the live
+    monitor and durable public history are verified.
+33. **Add public status page content with uptime history** (M: 1 day) —
+    External status/history evidence required; `../operations/service-levels.md`
+    currently records no dedicated status page.
+34b. **Measure and record API/operational performance baselines** (S: 1-2h) —
+     Live production measurement required; collect representative p50/p95
+     evidence before filling the currently TBD service-level fields.
 34c. **Split private operational assets from the public repo surface** (M-L: 2-4 days)
      - Context: the public docs portal and generated `docs/llms.txt` are now
        constrained to public-safe project, methodology, API, contribution, and
@@ -486,12 +531,15 @@ Completed items were removed from this backlog and archived in:
       feedback, and API-health diagnostics, with English/French rendering tests.
     - Remaining scope: migrate the other public workflows in coherent batches;
       do not reintroduce inline copy selection in the completed archive workflow.
+    - This remains a broad P3 refactor; divide it by one user-visible surface
+      when reselected.
 <!-- Item #36 removed 2026-07-13: the existing frontend CI build now runs a
 loopback-only Lighthouse regression gate over representative home, archive
 search, and demo-snapshot routes, with repeated samples, blocking budgets, and
 three-day failure reports. See
 `implemented/2026-07-13-frontend-lighthouse-performance-gate.md`. -->
-38. **Add coverage badges to READMEs** (S: 1-2h)
+38. **Add coverage badges to READMEs** (S: 1-2h) — P3; requires a durable,
+    trustworthy coverage publication source rather than a static claim.
 <!-- Item #42 removed 2026-07-13: `data-integrity-report` now produces
 public-safe aggregate JSON/Markdown with snapshot totals, canonical WARC
 counts, SHA-256 coverage, latest successful crawl metadata, explicit integrity
