@@ -1,6 +1,33 @@
-# Content Pages Improvement Plan
+# Content pages improvement plan closeout
 
 Date: 2026-02-24
+
+**Status:** Audited and closed 2026-07-13
+
+This historical plan was reconciled against the current seven-page public
+surface. The remaining high-confidence correctness and design-system items were
+completed together in the content-page correctness batch. Suggestions that had
+already landed, were based on stale premises, or required new editorial/UX
+decisions were not carried forward as autonomous work.
+
+The broad copy-object rewrite remains represented only by roadmap item 35. It
+is intentionally deferred as P3 maintenance because moving nearly 200 already
+working localized strings would create substantial review churn without a
+current user-facing outcome.
+
+## Closeout disposition
+
+- Completed in the final batch: R2, B1, E1, E3, D3, C1, C4, S4/S6, and the
+  remaining mechanical S5 spacing normalization.
+- Previously complete: S3 and R4; the governance and report routes mentioned
+  by B3 also exist.
+- Closed as incorrect or stale: R1's private-URL premise, A2, B2, and D1.
+- Deferred pending a concrete UX/editorial decision: A3, E2, E4, D2, C2, C3,
+  and the email-digest future state in D4.
+- Deferred as broad P3 refactoring: S1, S2, M1, and related copy-only cleanup.
+
+The remainder of this file preserves the original proposal for historical
+context; it is not an active backlog.
 
 Pages in scope:
 
