@@ -1,7 +1,8 @@
-import { render, waitFor } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import { describe, it, beforeEach, vi } from "vitest";
 import { expectNoA11yViolations } from "../a11y-helper";
 import HomePage from "@/app/[locale]/page";
+import { LocaleProvider } from "@/components/i18n/LocaleProvider";
 
 // Mock Next.js Image
 vi.mock("next/image", () => ({
@@ -52,12 +53,26 @@ describe("Home page accessibility", () => {
       pageSize: 5,
       results: [],
     });
-    mockFetchSources.mockResolvedValue([]);
+    mockFetchSources.mockResolvedValue([
+      {
+        sourceCode: "hc",
+        sourceName: "Health Canada",
+        baseUrl: null,
+        description: null,
+        recordCount: 12,
+        firstCapture: "2026-01-01",
+        lastCapture: "2026-01-15",
+        latestRecordId: 11,
+        entryRecordId: null,
+        entryBrowseUrl: null,
+        entryPreviewUrl: null,
+      },
+    ]);
   });
 
   it("should have no accessibility violations (English)", { timeout: 10000 }, async () => {
     const ui = await HomePage({ params: Promise.resolve({ locale: "en" }) });
-    const { container } = render(ui);
+    const { container } = render(<LocaleProvider locale="en">{ui}</LocaleProvider>);
 
     // Wait for any initial animations/state updates to complete
     await waitFor(() => {
@@ -65,11 +80,15 @@ describe("Home page accessibility", () => {
     });
 
     await expectNoA11yViolations(container);
+
+    const link = screen.getByRole("link", { name: "Browse Health Canada" });
+    expect(link).toHaveTextContent("Browse →");
+    expect(link).toHaveAttribute("href", "/archive?source=hc");
   });
 
   it("should have no accessibility violations (French)", { timeout: 10000 }, async () => {
     const ui = await HomePage({ params: Promise.resolve({ locale: "fr" }) });
-    const { container } = render(ui);
+    const { container } = render(<LocaleProvider locale="fr">{ui}</LocaleProvider>);
 
     // Wait for any initial animations/state updates to complete
     await waitFor(() => {
@@ -77,6 +96,10 @@ describe("Home page accessibility", () => {
     });
 
     await expectNoA11yViolations(container);
+
+    const link = screen.getByRole("link", { name: "Parcourir Health Canada" });
+    expect(link).toHaveTextContent("Parcourir →");
+    expect(link).toHaveAttribute("href", "/fr/archive?source=hc");
   });
 
   // Note: Heading hierarchy and skip links are covered by the axe a11y tests above

@@ -51,6 +51,7 @@ export type HomeCopy = {
     snapshotsLabel: string;
     latestCapture: string;
     browse: string;
+    browseAriaLabel: (sourceName: string) => string;
     noSources: string;
   };
   exampleStory: {
@@ -162,6 +163,7 @@ const homeCopyEn: HomeCopy = {
     snapshotsLabel: "snapshots",
     latestCapture: "Latest capture",
     browse: "Browse \u2192",
+    browseAriaLabel: (sourceName) => `Browse ${sourceName}`,
     noSources: "No sources available.",
   },
   exampleStory: {
@@ -302,6 +304,7 @@ const homeCopyFr: HomeCopy = {
     snapshotsLabel: "captures",
     latestCapture: "Derni\u00e8re capture",
     browse: "Parcourir \u2192",
+    browseAriaLabel: (sourceName) => `Parcourir ${sourceName}`,
     noSources: "Aucune source disponible.",
   },
   exampleStory: {

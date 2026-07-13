@@ -2,7 +2,11 @@
 
 **Page:** `src/app/[locale]/snapshot/[id]/page.tsx`
 **Date:** 2026-02-24
-**Status notes:** `formatDate` dedup and `ha-home-hero` swap are already done.
+**Status notes:**
+
+- `formatDate` dedup and `ha-home-hero` swap are already done.
+- Sections 2.2 and 4.6 were implemented on 2026-07-10 with one responsive
+  label/value contract and narrow-screen browser verification.
 
 ---
 
@@ -136,19 +140,21 @@ The button strip at lines 290–345 can have up to eight buttons in a single `fl
 </div>
 ```
 
-### 2.2 Metadata `<dl>` label column: fixed width is too narrow on small screens
+### 2.2 Metadata `<dl>` label column: fixed width is too narrow on small screens — Implemented 2026-07-10
 
-The `w-28` on `<dt>` elements (line 194) clips "URL d'origine" on very narrow screens (320px). Switch to a percentage or max-content approach:
+Every metadata term now uses `w-20 shrink-0 sm:w-28`, and every value uses
+`min-w-0 flex-1 break-all`. This preserves the wider desktop label column while
+letting long values wrap inside the card at 320px and 360px:
 
 ```tsx
 <dl className="space-y-1 text-xs text-[var(--text)] sm:text-sm">
   <div className="flex gap-2">
-    <dt className="text-ha-muted w-24 flex-shrink-0 sm:w-28">{copy.labelSource}</dt>
+    <dt className="text-ha-muted w-20 shrink-0 sm:w-28">{copy.labelSource}</dt>
     <dd className="min-w-0 flex-1 break-all">{sourceName}</dd>
   </div>
 ```
 
-Adding `flex-shrink-0` to `<dt>` and `min-w-0 flex-1 break-all` to all `<dd>` elements ensures long values (URLs, MIME types) wrap correctly without overflowing.
+The shared classes are regression-tested across every rendered metadata row.
 
 ### 2.3 Status code: display as a badge with semantic colour
 
@@ -333,13 +339,15 @@ className = "text-ha-accent font-medium underline-offset-2 hover:underline";
 
 This gives a clear hover affordance in both light and dark themes without requiring a second colour token.
 
-### 4.6 Mobile: reduce the `w-28` DL label and allow wrapping on very narrow screens
+### 4.6 Mobile: reduce the `w-28` DL label and allow wrapping on very narrow screens — Implemented 2026-07-10
 
-On screens narrower than 360px (older Android phones), `w-28` (112px) plus a long `<dd>` value can overflow the card. Add `overflow-wrap: anywhere` via Tailwind's `break-all` to all `<dd>` elements and reduce the label column to `w-24` on `xs`:
+The responsive contract from section 2.2 applies to all metadata values,
+including source, dates, identifiers, status codes, MIME types, and URLs:
 
 ```tsx
-<dt className="text-ha-muted w-20 flex-shrink-0 sm:w-28">{copy.labelOrigUrl}</dt>
+<dt className="text-ha-muted w-20 shrink-0 sm:w-28">{copy.labelOrigUrl}</dt>
 <dd className="min-w-0 flex-1 break-all">{…}</dd>
 ```
 
-Only the URL rows currently have `break-all`; apply it globally to the `<dd>` elements for defensive rendering on all field values.
+English and French demo pages were checked at both 320px and 360px with no
+document-level or metadata-card horizontal overflow.
