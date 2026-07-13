@@ -397,7 +397,7 @@ After your first contribution:
 - **Questions about the code?** Ask in the issue thread
 - **CI failures?** Check the [Testing Guidelines](../development/testing-guidelines.md)
 - **Architecture questions?** Read the [Architecture Guide](../architecture.md)
-- **Still stuck?** Open a discussion on GitHub
+- **Still stuck?** Use the [contact page](https://healtharchive.ca/contact)
 
 ---
 

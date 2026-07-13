@@ -267,7 +267,7 @@ Every 3 months, review:
 2. **Accuracy**: Verify technical details match current code
 3. **Completeness**: Check for new features needing docs
 4. **Gaps**: Identify missing documentation
-5. **Feedback**: Incorporate user feedback from issues/discussions
+5. **Feedback**: Incorporate user feedback from issues and contact messages
 
 **Tracked in**: [Operations Cadence Checklist](../operations/ops-cadence-checklist.md)
 
@@ -371,4 +371,6 @@ Every 3 months, review:
 
 ---
 
-**Questions or suggestions?** Open an issue or discussion on GitHub!
+**Questions or suggestions?** Open a GitHub issue for a concrete documentation
+change, or use the [contact page](https://healtharchive.ca/contact) for a
+general question.

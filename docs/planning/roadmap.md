@@ -386,8 +386,9 @@ Completed items were removed from this backlog and archived in:
 3. **Add a code of conduct to all repos** (S: 1h)
 4. **Add LICENSE to datasets repo** (S: 30m) — confirmed still missing as of 2026-03-25
 5. **Add GitHub issue and PR templates across repos** (S: 2-3h) -
-   this monorepo has PR guidance; issue templates and remaining repo coverage
-   are still not confirmed.
+   this monorepo now has structured bug and feature issue forms, specialized
+   report routing, and PR guidance. Coverage in repositories outside this
+   checkout remains unverified.
 7. **Add changelog/release tags to backend and frontend** (M: 1 day)
 
 ### Reliability, security, and CI
