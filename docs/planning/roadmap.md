@@ -44,6 +44,13 @@ Individual items:
 - Healthchecks.io alignment: keep private scheduler configuration, private
   health-check environment configuration, and the external healthchecks UI in sync.
   - Public tracking should expose only public-safe status evidence.
+- Publish the first live aggregate data-integrity artifact and establish its
+  operating cadence.
+  - Repo-side generator: `healtharchive data-integrity-report` (versioned
+    public-safe JSON/Markdown, checksum and snapshot-reference verification).
+  - Remaining external work: run it against the live corpus, review the first
+    artifact, choose the durable public destination/cadence, and configure the
+    environment-specific schedule in the private operations source of truth.
 - Investigate Ontario Health811 (https://health811.ontario.ca/static/guest/home/) to see what value our project has in relation to that service.
 
 Track the current status and next actions in:
@@ -481,7 +488,11 @@ Completed items were removed from this backlog and archived in:
       do not reintroduce inline copy selection in the completed archive workflow.
 36. **Add automated performance/Lighthouse testing** (M: 1 day)
 38. **Add coverage badges to READMEs** (S: 1-2h)
-42. **Create automated WARC/data integrity report** (M: 1 day)
+<!-- Item #42 removed 2026-07-13: `data-integrity-report` now produces
+public-safe aggregate JSON/Markdown with snapshot totals, canonical WARC
+counts, SHA-256 coverage, latest successful crawl metadata, explicit integrity
+status, and atomic artifact output. See
+`implemented/2026-07-13-aggregate-data-integrity-report.md`. -->
 
 ## Adjacent / optional (in this monorepo, not core HA)
 

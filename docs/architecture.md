@@ -861,6 +861,26 @@ This lightweight parse status is not an integrity check. Use
 `healtharchive verify-warc-manifest --id JOB_ID` for presence/size validation or
 add `--level hash` for SHA-256 verification.
 
+#### Aggregate data-integrity reporting
+
+`ha_backend.data_integrity_report` combines the discovery and manifest
+verification primitives with database counts to produce one versioned,
+public-safe corpus report. `healtharchive data-integrity-report` includes:
+
+- global and per-source snapshot counts
+- successful crawl-job counts and latest completion timestamps
+- canonical WARC file and byte totals
+- manifest entry coverage and SHA-256 verification coverage
+- distinct snapshot WARC-reference readability coverage
+- bounded finding codes and explicit `pass`, `incomplete`, or `fail` status
+
+The collector deliberately excludes output directories, WARC paths, job names,
+raw exception text, and host details. Missing evidence is `incomplete`, not a
+successful verification; invalid manifests, unreadable snapshot references,
+and file/size/hash contradictions are `fail`. JSON and Markdown renderers are
+deterministic, and the CLI stages a requested artifact set before publishing,
+rolls the set back on publication failure, and refuses overwrite by default.
+
 ### 6.2 WARC reading (`warc_reader.py`)
 
 Wraps `warcio` to stream HTML response records from a `.warc.gz` file.
