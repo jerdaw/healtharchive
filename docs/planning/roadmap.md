@@ -247,8 +247,6 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     - `annual-status` and `show-job` surface
       `warc-complete-finalization-failed` with an operator note
   - Remaining work:
-    - add a metric/alert for accepted WARC-complete finalization failures if
-      this state recurs in a future run
     - decide whether WARC-only jobs should suppress Zimit's internal
       `warc2zim` path, or tolerate that finalization failure only after WARC
       completeness is proven
@@ -392,8 +390,9 @@ Completed items were removed from this backlog and archived in:
 3. **Add a code of conduct to all repos** (S: 1h)
 4. **Add LICENSE to datasets repo** (S: 30m) — confirmed still missing as of 2026-03-25
 5. **Add GitHub issue and PR templates across repos** (S: 2-3h) -
-   this monorepo has PR guidance; issue templates and remaining repo coverage
-   are still not confirmed.
+   this monorepo now has structured bug and feature issue forms, specialized
+   report routing, and PR guidance. Coverage in repositories outside this
+   checkout remains unverified.
 7. **Add changelog/release tags to backend and frontend** (M: 1 day)
 
 ### Reliability, security, and CI

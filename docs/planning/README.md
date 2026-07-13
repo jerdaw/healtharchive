@@ -110,6 +110,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Repository issue forms:
+  `implemented/2026-07-11-repository-issue-forms.md`
 - Autonomous overnight maintenance queue:
   `implemented/2026-06-28-autonomous-overnight-work-plan.md`
 - Storage budget and WARC promotion hardening:
@@ -117,6 +119,8 @@ Recently closed items:
 - Annual crawl storage guardrails:
   `implemented/2026-06-11-annual-crawl-storage-guardrails.md`
 - WARC compaction staging: `implemented/2026-06-05-warc-compaction-staging.md`
+- WARC-complete finalization failure alert:
+  `implemented/2026-07-10-warc-finalization-alert.md`
 - Public search and CIHR follow-through:
   `implemented/2026-05-05-public-search-and-cihr-followthrough.md`
 - Annual edition recovery handoff docs:

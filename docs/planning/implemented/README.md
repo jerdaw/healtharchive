@@ -4,10 +4,12 @@ This folder contains **historical implementation plans** that have already been 
 
 Implemented plans:
 
+- `2026-07-11-repository-issue-forms.md`
 - `2026-06-28-autonomous-overnight-work-plan.md`
 - `2026-06-11-storage-budget-and-warc-promotion-hardening.md`
 - `2026-06-11-annual-crawl-storage-guardrails.md`
 - `2026-06-05-warc-compaction-staging.md`
+- `2026-07-10-warc-finalization-alert.md`
 - `2026-05-05-public-search-and-cihr-followthrough.md`
 - `2026-04-29-annual-edition-recovery-handoff-docs.md`
 - `2026-04-24-repo-audit-truth-maintenance.md`
