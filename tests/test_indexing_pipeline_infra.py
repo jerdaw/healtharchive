@@ -6,10 +6,30 @@ from pathlib import Path
 from types import SimpleNamespace
 
 from ha_backend import db as db_module
+from ha_backend.archive_storage import WarcConsolidationProgress
 from ha_backend.db import Base, get_engine, get_session
+from ha_backend.indexing import pipeline as pipeline_module
 from ha_backend.indexing.pipeline import index_job
+from ha_backend.indexing.warc_reader import ArchiveRecord
 from ha_backend.models import ArchiveJob, Snapshot, Source
 from ha_backend.pages import PagesRebuildResult
+
+
+class FakeProgressReporter:
+    def __init__(self, job_id: int) -> None:
+        self.job_id = job_id
+        self.events: list[dict] = []
+        self.cleared = False
+        self.failed = False
+
+    def update(self, **values) -> None:
+        self.events.append(values)
+
+    def clear(self) -> None:
+        self.cleared = True
+
+    def mark_failed(self) -> None:
+        self.failed = True
 
 
 def _init_test_db(tmp_path: Path, monkeypatch) -> None:
@@ -58,9 +78,17 @@ def test_index_job_marks_index_failed_on_storage_infra_errno_107(tmp_path, monke
         return orig_stat(self, *args, **kwargs)
 
     monkeypatch.setattr(pathlib.Path, "stat", raising_stat)
+    reporter = FakeProgressReporter(job_id)
+    monkeypatch.setattr(
+        pipeline_module,
+        "IndexingProgressReporter",
+        lambda _job_id: reporter,
+    )
 
     rc = index_job(job_id)
     assert rc != 0
+    assert reporter.failed is True
+    assert reporter.cleared is False
 
     with get_session() as session:
         stored = session.get(ArchiveJob, job_id)
@@ -184,9 +212,29 @@ def test_index_job_logs_discovery_verification_and_per_warc_progress(
         session.flush()
         job_id = job.id
 
+    reporter = FakeProgressReporter(job_id)
+    monkeypatch.setattr(
+        pipeline_module,
+        "IndexingProgressReporter",
+        lambda _job_id: reporter,
+    )
+
+    def fake_consolidation(_job_id, _job, _output_dir, *, progress_callback=None) -> None:
+        assert progress_callback is not None
+        progress_callback(
+            WarcConsolidationProgress(
+                phase="hash",
+                warc_name="temp.warc.gz",
+                warc_index=1,
+                warc_total=1,
+                bytes_processed=10,
+                bytes_total=10,
+            )
+        )
+
     monkeypatch.setattr(
         "ha_backend.indexing.pipeline._ensure_stable_warcs_available",
-        lambda *_args, **_kwargs: None,
+        fake_consolidation,
     )
     monkeypatch.setattr(
         "ha_backend.indexing.pipeline.discover_warcs_for_job",
@@ -196,7 +244,28 @@ def test_index_job_logs_discovery_verification_and_per_warc_progress(
         "ha_backend.indexing.pipeline.verify_warcs",
         lambda *_args, **_kwargs: SimpleNamespace(warcs_failed=0, failures=[], warcs_checked=2),
     )
-    monkeypatch.setattr("ha_backend.indexing.pipeline.iter_html_records", lambda _path: iter(()))
+    monkeypatch.setattr(
+        "ha_backend.indexing.pipeline.iter_html_records",
+        lambda path: iter(
+            [
+                ArchiveRecord(
+                    url=f"https://example.test/{path.stem}",
+                    capture_timestamp=datetime(2026, 7, 10, tzinfo=timezone.utc),
+                    status_code=200,
+                    mime_type="text/html",
+                    headers={"content-language": "en"},
+                    body_bytes=b"<html><title>Example</title><body>Example body</body></html>",
+                    warc_record_id=f"record-{path.stem}",
+                    warc_path=path,
+                )
+            ]
+        ),
+    )
+    monkeypatch.setattr(
+        pipeline_module,
+        "inspect",
+        lambda _bind: SimpleNamespace(has_table=lambda _name: False),
+    )
     monkeypatch.setattr(
         "ha_backend.indexing.pipeline.compute_job_storage_stats",
         lambda **_kwargs: SimpleNamespace(
@@ -213,6 +282,16 @@ def test_index_job_logs_discovery_verification_and_per_warc_progress(
     rc = index_job(job_id)
 
     assert rc == 0
+    phases = [event["phase"] for event in reporter.events]
+    assert phases[0] == "starting"
+    assert "consolidate_warcs" in phases
+    assert "discover" in phases
+    assert "verify" in phases
+    assert phases.count("read_warc") >= 2
+    assert phases[-1] == "finalize"
+    assert any(event.get("records_processed") == 2 for event in reporter.events)
+    assert reporter.cleared is True
+    assert reporter.failed is False
     assert f"Indexing job {job_id} phase=discover warcs=2" in caplog.text
     assert f"Indexing job {job_id} phase=verify level=0 warcs=2" in caplog.text
     assert (

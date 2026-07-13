@@ -1,0 +1,82 @@
+name: Bug report
+description: Report a reproducible problem with HealthArchive
+title: "[Bug]: "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        GitHub issues are public. Do not include secrets, personal data, or personal health information.
+
+        Report security vulnerabilities privately by following https://github.com/jerdaw/healtharchive/security/policy.
+        Report broken snapshots, metadata errors, missing coverage, or takedown requests at https://healtharchive.ca/report.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Affected area
+      options:
+        - Backend API
+        - Crawler and archive tooling
+        - Frontend and public website
+        - Documentation
+        - CI and developer tooling
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: Clearly describe the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      description: Provide the smallest reliable sequence that demonstrates the problem.
+      placeholder: |
+        1. Run or open ...
+        2. Select or enter ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: version
+    attributes:
+      label: Version or commit
+      description: Provide a release, branch, or commit if known.
+  - type: textarea
+    id: environment
+    attributes:
+      label: Environment
+      description: Include relevant operating system, browser, Python, or Node.js versions.
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs or screenshots
+      description: Remove secrets and personal information before sharing public evidence.
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues for the same problem.
+          required: true
+        - label: I removed secrets, personal data, and personal health information.
+          required: true

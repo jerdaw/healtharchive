@@ -23,6 +23,8 @@ Choose the path that matches your role:
 | Need | Documentation |
 |------|---------------|
 | Architecture overview | [Architecture](architecture.md) |
+| Public project summary | [About HealthArchive](https://healtharchive.ca/about) |
+| Public changelog | [Project changelog](https://healtharchive.ca/changelog) |
 | Local development setup | [Dev Setup](development/dev-environment-setup.md) |
 | Search API | [API Documentation](api.md) |
 | Data releases | [Datasets](datasets-external/README.md) |
