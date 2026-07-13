@@ -112,6 +112,8 @@ Recently closed items:
 - Implemented plans archive: `implemented/README.md`
 - Deterministic documentation reference checks:
   `implemented/2026-07-11-deterministic-docs-references.md`
+- Repository issue forms:
+  `implemented/2026-07-11-repository-issue-forms.md`
 - Autonomous overnight maintenance queue:
   `implemented/2026-06-28-autonomous-overnight-work-plan.md`
 - Storage budget and WARC promotion hardening:

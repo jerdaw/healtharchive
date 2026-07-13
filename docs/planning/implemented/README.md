@@ -5,6 +5,7 @@ This folder contains **historical implementation plans** that have already been 
 Implemented plans:
 
 - `2026-07-11-deterministic-docs-references.md`
+- `2026-07-11-repository-issue-forms.md`
 - `2026-06-28-autonomous-overnight-work-plan.md`
 - `2026-06-11-storage-budget-and-warc-promotion-hardening.md`
 - `2026-06-11-annual-crawl-storage-guardrails.md`

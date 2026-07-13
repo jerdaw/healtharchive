@@ -24,7 +24,7 @@ HealthArchive welcomes contributions of all kinds:
 1. **Read the Code of Conduct** (below)
 2. **Complete the tutorial**: [Your First Contribution](docs/tutorials/first-contribution.md)
 3. **Browse good first issues**: [Good First Issues](https://github.com/jerdaw/healtharchive/issues?q=is:issue+is:open+label:%22good+first+issue%22)
-4. **Ask questions**: Use [GitHub Discussions](https://github.com/jerdaw/healtharchive/discussions)
+4. **Ask questions**: Use the [contact page](https://healtharchive.ca/contact)
 
 ---
 
@@ -419,6 +419,13 @@ Reviewers will check:
 
 ### Bug Report Template
 
+The [structured bug report form](https://github.com/jerdaw/healtharchive/issues/new/choose)
+supplies the prompts below. Security vulnerabilities must use
+the private email route in the
+[security policy](https://github.com/jerdaw/healtharchive/security/policy),
+and broken snapshots, metadata errors, missing coverage, or takedown requests
+must use the [archived-content report form](https://healtharchive.ca/report).
+
 When creating a bug report, include:
 
 ```markdown
@@ -454,6 +461,9 @@ Any other relevant information
 
 ### Feature Request Template
 
+The [structured feature request form](https://github.com/jerdaw/healtharchive/issues/new/choose)
+supplies the prompts below.
+
 ```markdown
 ## Problem
 What problem does this solve?
@@ -468,10 +478,10 @@ What other approaches did you consider?
 Mockups, examples, references
 ```
 
-### Feature Discussion
+### Feature Proposals
 
-- **Use Discussions** for ideas and brainstorming
-- **Create an Issue** when the feature is well-defined
+- **Open a feature request** for ideas and proposals
+- **Make the problem and desired outcome clear** before implementation
 - **Wait for feedback** before starting implementation
 - **Break large features** into smaller, incremental PRs
 
@@ -483,7 +493,7 @@ Mockups, examples, references
 
 For significant architectural changes:
 
-1. **Open a Discussion** - Get feedback early
+1. **Open a feature request** - Get feedback early
 2. **Write a decision record** - Document the choice (see `docs/decisions/`)
 3. **Create a roadmap** - For multi-step implementations (see `docs/planning/`)
 4. **Get consensus** - Especially for breaking changes
@@ -506,10 +516,9 @@ See `docs/_templates/decision-template.md` for the format.
 **DO NOT** open public issues for security vulnerabilities.
 
 Instead:
-1. Email the maintainers (check repo for contact info)
-2. Or use GitHub's private vulnerability reporting
-3. Provide details and reproduction steps
-4. Wait for acknowledgment before disclosing
+1. Read the [security policy](https://github.com/jerdaw/healtharchive/security/policy)
+2. Email `security@healtharchive.ca` with details and reproduction steps
+3. Wait for acknowledgment before disclosing
 
 ### Security Best Practices
 
@@ -599,10 +608,10 @@ We use labels to organize issues:
 
 | Type | Where |
 |------|-------|
-| **General questions** | [GitHub Discussions](https://github.com/jerdaw/healtharchive/discussions) |
-| **Bug reports** | [GitHub Issues](https://github.com/jerdaw/healtharchive/issues) |
-| **Feature requests** | [GitHub Issues](https://github.com/jerdaw/healtharchive/issues) |
-| **Security issues** | Private vulnerability reporting |
+| **General questions** | [Contact page](https://healtharchive.ca/contact) |
+| **Bug reports** | [Structured bug report form](https://github.com/jerdaw/healtharchive/issues/new/choose) |
+| **Feature requests** | [Structured feature request form](https://github.com/jerdaw/healtharchive/issues/new/choose) |
+| **Security issues** | [Security policy and private email route](https://github.com/jerdaw/healtharchive/security/policy) |
 
 ### Resources
 
@@ -640,6 +649,6 @@ healtharchive/
 
 Every contribution helps make HealthArchive better for researchers, journalists, and the public. Whether you're fixing a typo, reporting a bug, or implementing a feature, your effort is appreciated!
 
-**Questions?** Don't hesitate to ask in [Discussions](https://github.com/jerdaw/healtharchive/discussions).
+**Questions?** Use the [contact page](https://healtharchive.ca/contact).
 
 Happy contributing! 🎉
