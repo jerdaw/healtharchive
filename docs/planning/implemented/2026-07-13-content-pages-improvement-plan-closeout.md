@@ -31,13 +31,13 @@ context; it is not an active backlog.
 
 Pages in scope:
 
-- `/about` — `src/app/[locale]/about/page.tsx`
-- `/methods` — `src/app/[locale]/methods/page.tsx`
-- `/researchers` — `src/app/[locale]/researchers/page.tsx`
-- `/brief` — `src/app/[locale]/brief/page.tsx`
-- `/exports` — `src/app/[locale]/exports/page.tsx`
-- `/digest` — `src/app/[locale]/digest/page.tsx`
-- `/cite` — `src/app/[locale]/cite/page.tsx`
+- `/about` — `frontend/src/app/[locale]/about/page.tsx`
+- `/methods` — `frontend/src/app/[locale]/methods/page.tsx`
+- `/researchers` — `frontend/src/app/[locale]/researchers/page.tsx`
+- `/brief` — `frontend/src/app/[locale]/brief/page.tsx`
+- `/exports` — `frontend/src/app/[locale]/exports/page.tsx`
+- `/digest` — `frontend/src/app/[locale]/digest/page.tsx`
+- `/cite` — `frontend/src/app/[locale]/cite/page.tsx`
 
 Each improvement is labelled with a priority:
 
@@ -135,7 +135,7 @@ Example:
 
 Then use `className="ha-link"` at all call sites.
 
-**Improvement option B:** At minimum, define a `const linkCls = "text-ha-accent font-medium hover:text-blue-700"` at module scope in each page file (or in a shared `src/lib/styles.ts`) and spread it into className. This eliminates the repetition without requiring a CSS change.
+**Improvement option B:** At minimum, define a `const linkCls = "text-ha-accent font-medium hover:text-blue-700"` at module scope in each page file (or in a shared style helper) and spread it into className. This eliminates the repetition without requiring a CSS change.
 
 Option A is preferred because it keeps color tokens in CSS variables rather than Tailwind classes.
 
@@ -317,7 +317,7 @@ Line 251:
 <li>{siteCopy.whatThisSiteIs.forCurrent}.</li>
 ```
 
-If `siteCopy.whatThisSiteIs.forCurrent` already ends with a period (check `src/lib/siteCopy.ts`), this renders a double period. Remove the trailing `.` from the JSX if the string already terminates with punctuation, or ensure the copy string does not end with a period and always add it at the call site. Be consistent across `/brief`, `/digest`, and `/cite` which all use this string.
+If `siteCopy.whatThisSiteIs.forCurrent` already ends with a period (check `frontend/src/lib/siteCopy.ts`), this renders a double period. Remove the trailing `.` from the JSX if the string already terminates with punctuation, or ensure the copy string does not end with a period and always add it at the call site. Be consistent across `/brief`, `/digest`, and `/cite` which all use this string.
 
 ---
 
@@ -474,7 +474,7 @@ const localePrefix = locale === "fr" ? "/fr" : "";
 const snapshotUrl = `${SITE_BASE_URL}${localePrefix}/snapshot/${detail.id}`;
 ```
 
-This constructs a locale-prefixed absolute URL manually. If the locale routing logic changes (e.g., if English gains a `/en/` prefix), this will silently produce wrong URLs. Consider adding a `buildSnapshotUrl(locale, id)` utility in `src/lib/metadata.ts` or `src/lib/i18n.ts` that centralizes snapshot URL construction using the same locale logic as the `LocalizedLink` component.
+This constructs a locale-prefixed absolute URL manually. If the locale routing logic changes (e.g., if English gains a `/en/` prefix), this will silently produce wrong URLs. Consider adding a `buildSnapshotUrl(locale, id)` utility in `frontend/src/lib/metadata.ts` or `frontend/src/lib/i18n.ts` that centralizes snapshot URL construction using the same locale logic as the `LocalizedLink` component.
 
 ---
 
