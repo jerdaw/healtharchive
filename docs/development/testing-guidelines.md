@@ -43,6 +43,24 @@ The check is intentionally local and deterministic:
 - fetch, HTTP, redirect-loop, and page-limit failures identify both the target
   route and the page where it was discovered.
 
+### Frontend Lighthouse performance gate
+
+`make frontend-lighthouse` reuses an existing frontend production build and
+runs Lighthouse repeatedly against representative routes on a dynamically
+allocated loopback origin. Run `make frontend-ci` first when invoking it
+locally. Chrome or Chromium must be installed; set `CHROME_PATH` when it is not
+discoverable automatically.
+
+The gate starts the same standalone Next.js output used by the internal-link
+crawl and a temporary fail-fast API stub. It therefore measures deterministic
+bundled fallback content rather than production services or mutable live data.
+It enforces conservative performance, accessibility, best-practices, SEO, LCP,
+CLS, TBT, and transfer-size regression floors across the home, archive-search,
+and demo-snapshot surfaces. Reports remain in the ignored Lighthouse report
+directory under the frontend workspace; CI uploads them only when the audit
+fails, with three-day retention. Tighten budgets only after repeated runner
+evidence, not from a single unusually fast run.
+
 ## Change-scope local gates
 
 Use the narrowest gate that matches the files you changed while iterating, then
@@ -52,7 +70,7 @@ contracts or user-visible workflows.
 | Change scope | Local validation | CI/workflow parity |
 | --- | --- | --- |
 | Backend-only code or backend tests | `make backend-ci` | `.github/workflows/backend-ci.yml` fast backend gate |
-| Frontend-only code, UI tests, or frontend docs/build inputs | `make contract-check` and `make frontend-ci` (`npm run check` includes the post-build internal-link crawl) | `.github/workflows/frontend-ci.yml` contract + frontend jobs |
+| Frontend-only code, UI tests, or frontend docs/build inputs | `make contract-check` and `make frontend-ci` (`npm run check` includes the post-build internal-link crawl); add `make frontend-lighthouse` for performance-sensitive changes or explicit local browser validation | `.github/workflows/frontend-ci.yml` contract + frontend checks, including the Lighthouse gate |
 | Docs-only changes | `make docs-refs` and `make docs-coverage-strict`; add `make docs-build` for nav or rendered-page changes | `.github/workflows/docs.yml` docs build plus advisory docs reference/coverage checks |
 | Backend/frontend API contract changes | `make contract-sync`, `make contract-check`, and `make integration-e2e` | Backend and frontend CI plus integrated smoke |
 | Broad pre-push readiness | `make prepush`; use `make check-full` before deploys or stricter review | Local parity gate plus optional full backend suite |
@@ -86,8 +104,8 @@ The required ruleset contexts are `Backend CI / test`,
 `Backend CI / api-health`, `Frontend CI / contract-sync`, and
 `Frontend CI / lint-and-test`. Do not rename those jobs or path-filter their
 workflows without coordinating the repository ruleset in the same maintenance
-window. The e2e smoke failure bundle is the only uploaded CI artifact and
-expires after three days.
+window. E2E smoke and Lighthouse failure bundles are diagnostic-only CI
+artifacts and expire after three days.
 
 `Backend CI (Full)` and `Production Smoke` are escalation lanes. Use the full
 backend workflow for broader coverage/security evidence and production smoke

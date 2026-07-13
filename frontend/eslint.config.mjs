@@ -6,6 +6,7 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
   {
+    files: ["**/*.{js,jsx,mjs,ts,tsx,mts,cts}"],
     rules: {
       // Stricter accessibility rules for health information context (WCAG 2.1 AA target)
       // jsx-a11y plugin is already included in eslint-config-next

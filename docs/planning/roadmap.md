@@ -1,7 +1,8 @@
 # HealthArchive roadmap
 
 **Current state:** Repository implementation is stable; the aggregate
-data-integrity report and July maintenance/UX batches are complete.
+data-integrity report and July maintenance, UX, and performance batches are
+complete.
 **Last updated:** 2026-07-13
 **Immediate priority:** live integrity evidence, storage/capacity decisions,
 and external-validation proof.
@@ -23,7 +24,7 @@ It is intentionally **not** an implementation plan.
 | P1 | Improve large-job indexing only when live evidence warrants it | Conditional | Use durable progress history to choose checkpointing, detached execution, or an explicit all-at-once rationale |
 | P2 | Resolve WARC-finalization, raw-lookup, or page-search design questions | Decision required | Start a focused plan only after a measured user/operational need selects one option |
 | P2 | Maintain upstream dependency and advisory posture | Conditional maintenance | Act only when a compatible upstream fix exists or a concrete security regression appears |
-| P3 | Bilingual consolidation, Lighthouse automation, and public badges | Later/broad | Reassess after P0/P1 evidence work or when a bounded independent slice is justified |
+| P3 | Bilingual consolidation and public badges | Later/broad | Reassess after P0/P1 evidence work or when a bounded independent slice is justified |
 
 Selection rules:
 
@@ -537,8 +538,6 @@ Completed items were removed from this backlog and archived in:
       closed after its remaining correctness and design-system items landed;
       its copy-only rewrite remains deferred here rather than as a duplicate
       active plan.
-36. **Add automated performance/Lighthouse testing** (M: 1 day) — P3;
-    establish the budget, runner cost, and actionable thresholds first.
 38. **Add coverage badges to READMEs** (S: 1-2h) — P3; requires a durable,
     trustworthy coverage publication source rather than a static claim.
 

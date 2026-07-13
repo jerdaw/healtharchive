@@ -56,6 +56,7 @@ jobs:
   lint-and-test:
     name: Frontend CI / lint-and-test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     env:
       NEXT_PUBLIC_API_BASE_URL: http://127.0.0.1:8001
       NEXT_PUBLIC_SHOW_API_HEALTH_BANNER: "false"
@@ -81,6 +82,18 @@ jobs:
 
       - name: Check
         run: make frontend-ci
+
+      - name: Lighthouse performance budgets
+        run: make frontend-lighthouse
+
+      - name: Upload Lighthouse reports (on failure)
+        if: failure()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a
+        with:
+          name: frontend-lighthouse-reports
+          path: frontend/.lighthouseci/
+          if-no-files-found: ignore
+          retention-days: 3
 
   docker-build-smoke:
     name: Frontend CI / docker-build-smoke

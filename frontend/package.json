@@ -7,7 +7,7 @@
   },
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "build": "node scripts/build.mjs",
     "start": "next start",
     "generate:api-types": "openapi-typescript ../docs/openapi.json -o src/lib/api-contract.generated.ts && prettier --write src/lib/api-contract.generated.ts",
     "lint": "eslint --max-warnings=0",
@@ -16,6 +16,7 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "check:links": "node scripts/check-internal-links.mjs",
+    "check:lighthouse": "node scripts/run-lighthouse.mjs",
     "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build && npm run check:links",
     "test": "vitest run",
     "test:watch": "vitest",
@@ -28,6 +29,7 @@
     "react-dom": "19.2.5"
   },
   "devDependencies": {
+    "@lhci/cli": "0.15.1",
     "@tailwindcss/postcss": "^4",
     "@testing-library/dom": "^10",
     "@testing-library/jest-dom": "^6",

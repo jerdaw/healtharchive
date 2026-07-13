@@ -1,9 +1,3 @@
-import { spawn } from "node:child_process";
-import { cp, mkdir, rm } from "node:fs/promises";
-import { fileURLToPath } from "node:url";
-import http from "node:http";
-import net from "node:net";
-
 import {
   classifyPageResponse,
   extractInternalPaths,
@@ -11,8 +5,18 @@ import {
   resolveSameOriginRedirect,
   wouldExceedPageLimit,
 } from "./internal-link-check-lib.mjs";
+import {
+  LOOPBACK_HOST,
+  findAvailablePort,
+  prepareStandaloneAssets,
+  startFailFastApiStub as startSharedApiStub,
+  startStandaloneFrontend,
+  stopChildProcess,
+  stopHttpServer,
+  waitForServer as waitForSharedServer,
+} from "./local-production-server-lib.mjs";
 
-const HOST = "127.0.0.1";
+const HOST = LOOPBACK_HOST;
 const MAX_PAGES = readPositiveInteger("HEALTHARCHIVE_LINK_CHECK_MAX_PAGES", 100);
 const REQUEST_TIMEOUT_MS = readPositiveInteger(
   "HEALTHARCHIVE_LINK_CHECK_REQUEST_TIMEOUT_MS",
@@ -23,7 +27,6 @@ const STARTUP_TIMEOUT_MS = readPositiveInteger(
   60_000,
 );
 const MAX_REDIRECTS = 10;
-const SERVER_LOG_LIMIT = 20_000;
 
 function readPositiveInteger(name, fallback) {
   const raw = process.env[name];
@@ -38,23 +41,6 @@ function readPositiveInteger(name, fallback) {
   return value;
 }
 
-async function findAvailablePort() {
-  const socket = net.createServer();
-  await new Promise((resolve, reject) => {
-    socket.once("error", reject);
-    socket.listen(0, HOST, resolve);
-  });
-  const address = socket.address();
-  const port = typeof address === "object" && address !== null ? address.port : null;
-  await new Promise((resolve, reject) =>
-    socket.close((error) => (error ? reject(error) : resolve())),
-  );
-  if (port === null) {
-    throw new Error("Could not allocate a loopback port for the link checker");
-  }
-  return port;
-}
-
 async function startFailFastApiStub() {
   const apiBaseUrl =
     process.env.NEXT_PUBLIC_API_BASE_URL ??
@@ -67,78 +53,17 @@ async function startFailFastApiStub() {
     );
   }
 
-  const server = http.createServer((_request, response) => {
-    response.writeHead(503, {
-      "cache-control": "no-store",
-      "content-type": "application/json; charset=utf-8",
-    });
-    response.end('{"detail":"link-check backend stub"}');
-  });
-
-  return new Promise((resolve, reject) => {
-    const handleError = (error) => {
-      if (error?.code === "EADDRINUSE") {
-        resolve(null);
-        return;
-      }
-      reject(error);
-    };
-    server.once("error", handleError);
-    server.listen(target.port, target.host, () => {
-      server.removeListener("error", handleError);
-      resolve(server);
-    });
-  });
-}
-
-function appendBounded(current, chunk) {
-  return `${current}${chunk}`.slice(-SERVER_LOG_LIMIT);
+  try {
+    return await startSharedApiStub({ ...target, purpose: "link-check" });
+  } catch (error) {
+    if (error?.code === "EADDRINUSE") return null;
+    throw error;
+  }
 }
 
 async function startFrontend(port) {
-  const standaloneRoot = fileURLToPath(new URL("../.next/standalone/", import.meta.url));
-  const standaloneStatic = fileURLToPath(
-    new URL("../.next/standalone/.next/static/", import.meta.url),
-  );
-  const standalonePublic = fileURLToPath(new URL("../.next/standalone/public/", import.meta.url));
-
-  await rm(standaloneStatic, { recursive: true, force: true });
-  await rm(standalonePublic, { recursive: true, force: true });
-  await mkdir(fileURLToPath(new URL("../.next/standalone/.next/", import.meta.url)), {
-    recursive: true,
-  });
-  await cp(fileURLToPath(new URL("../.next/static/", import.meta.url)), standaloneStatic, {
-    recursive: true,
-  });
-  await cp(fileURLToPath(new URL("../public/", import.meta.url)), standalonePublic, {
-    recursive: true,
-  });
-
-  const child = spawn(
-    process.execPath,
-    [fileURLToPath(new URL("../.next/standalone/server.js", import.meta.url))],
-    {
-      cwd: standaloneRoot,
-      env: {
-        ...process.env,
-        HOSTNAME: HOST,
-        NEXT_TELEMETRY_DISABLED: "1",
-        NODE_ENV: "production",
-        PORT: String(port),
-      },
-      stdio: ["ignore", "pipe", "pipe"],
-    },
-  );
-
-  let logs = "";
-  child.stdout.on("data", (chunk) => {
-    logs = appendBounded(logs, chunk.toString());
-  });
-  child.stderr.on("data", (chunk) => {
-    logs = appendBounded(logs, chunk.toString());
-  });
-
-  return { child, getLogs: () => logs };
+  await prepareStandaloneAssets();
+  return startStandaloneFrontend({ port });
 }
 
 async function fetchWithTimeout(url, options = {}) {
@@ -149,24 +74,12 @@ async function fetchWithTimeout(url, options = {}) {
 }
 
 async function waitForServer(origin, child) {
-  const deadline = Date.now() + STARTUP_TIMEOUT_MS;
-  let lastError = "no response";
-
-  while (Date.now() < deadline) {
-    if (child.exitCode !== null) {
-      throw new Error(`Next server exited before readiness (code ${child.exitCode})`);
-    }
-
-    try {
-      await fetchWithTimeout(origin, { redirect: "manual" });
-      return;
-    } catch (error) {
-      lastError = boundedError(error);
-      await new Promise((resolve) => setTimeout(resolve, 250));
-    }
-  }
-
-  throw new Error(`Next server did not become ready: ${lastError}`);
+  return waitForSharedServer({
+    origin,
+    child,
+    startupTimeoutMs: STARTUP_TIMEOUT_MS,
+    requestTimeoutMs: REQUEST_TIMEOUT_MS,
+  });
 }
 
 async function fetchSameOrigin(startUrl, origin) {
@@ -257,25 +170,11 @@ async function crawl(origin) {
 }
 
 async function stopFrontend(child) {
-  if (child.exitCode !== null) {
-    return;
-  }
-
-  child.kill("SIGTERM");
-  await Promise.race([
-    new Promise((resolve) => child.once("exit", resolve)),
-    new Promise((resolve) => setTimeout(resolve, 5_000)),
-  ]);
-  if (child.exitCode === null) {
-    child.kill("SIGKILL");
-  }
+  return stopChildProcess(child);
 }
 
 async function stopApiStub(server) {
-  if (server === null) {
-    return;
-  }
-  await new Promise((resolve) => server.close(resolve));
+  return stopHttpServer(server);
 }
 
 async function main() {

@@ -6,6 +6,7 @@ Implemented plans:
 
 - `2026-07-13-content-page-correctness-and-design-closure.md`
 - `2026-07-13-content-pages-improvement-plan-closeout.md`
+- `2026-07-13-frontend-lighthouse-performance-gate.md`
 - `2026-07-13-archive-discovery-copy-catalog.md`
 - `2026-07-13-aggregate-data-integrity-report.md`
 - `2026-07-10-ci-free-tier-policy-closeout.md`

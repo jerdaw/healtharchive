@@ -1,4 +1,4 @@
-.PHONY: venv format format-check lint precommit typecheck test-fast test-all test security audit audit-ci migration-guard ci-api-health-local check check-full ci backend-ci frontend-install frontend-ci contract-sync contract-check integration-e2e monorepo-ci prepush docs-serve docs-build docs-build-strict docs-refs docs-coverage docs-coverage-strict docs-check
+.PHONY: venv format format-check lint precommit typecheck test-fast test-all test security audit audit-ci migration-guard ci-api-health-local check check-full ci backend-ci frontend-install frontend-ci frontend-lighthouse contract-sync contract-check integration-e2e monorepo-ci prepush docs-serve docs-build docs-build-strict docs-refs docs-coverage docs-coverage-strict docs-check
 
 VENV ?= .venv
 VENV_BIN := $(VENV)/bin
@@ -6,6 +6,7 @@ PYTHON ?= python3
 NPM ?= npm
 FRONTEND_DIR ?= frontend
 FRONTEND_TMPDIR ?= $(abspath .tmp/frontend-tmp)
+LIGHTHOUSE_TMPDIR ?= /tmp/healtharchive-lighthouse
 BACKEND_TMPDIR ?= $(abspath .tmp/backend-tmp)
 
 RUFF := $(if $(wildcard $(VENV_BIN)/ruff),$(VENV_BIN)/ruff,ruff)
@@ -152,6 +153,11 @@ frontend-ci:
 	mkdir -p $(FRONTEND_TMPDIR)
 	TMPDIR="$(FRONTEND_TMPDIR)" TMP="$(FRONTEND_TMPDIR)" TEMP="$(FRONTEND_TMPDIR)" \
 		$(NPM) --prefix $(FRONTEND_DIR) run check
+
+frontend-lighthouse:
+	mkdir -p $(LIGHTHOUSE_TMPDIR)
+	TMPDIR="$(LIGHTHOUSE_TMPDIR)" TMP="$(LIGHTHOUSE_TMPDIR)" TEMP="$(LIGHTHOUSE_TMPDIR)" \
+		$(NPM) --prefix $(FRONTEND_DIR) run check:lighthouse
 
 contract-sync:
 	PYTHONPATH=src $(PYTHON_RUN) scripts/export_openapi.py
