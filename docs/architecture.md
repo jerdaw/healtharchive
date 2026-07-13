@@ -732,10 +732,13 @@ The backend and ``archive_tool`` share a small but important contract:
 
 - **WARC discovery and cleanup**:
 
-  - `ha_backend.indexing.warc_discovery.discover_warcs_for_job` relies on
-    `archive_tool.state.CrawlState` and `archive_tool.utils.find_all_warc_files`
-    / `find_latest_temp_dir_fallback` for WARC discovery and temp dir
-    tracking.
+  - `ha_backend.indexing.warc_discovery.discover_all_warcs_for_output_dir`
+    owns the stable, state-tracked temp, and latest untracked fallback union,
+    including hardlink/manifest-source deduplication. Job indexing and the
+    read-only crawl content-cost report both delegate to that helper.
+  - `discover_warcs_for_job` loads tracked temp directories through
+    `archive_tool.state.CrawlState` and preserves the list-only API used by the
+    indexing pipeline.
   - `ha_backend.cli.cmd_cleanup_job` uses `CrawlState` and
     `archive_tool.utils.cleanup_temp_dirs` to remove `.tmp*` directories and
     `.archive_state.json` safely once jobs are indexed.
@@ -760,30 +763,43 @@ from archive_tool.utils import find_all_warc_files, find_latest_temp_dir_fallbac
 ```
 
 ```python
-def discover_warcs_for_job(
-    job: ArchiveJob,
+def discover_all_warcs_for_output_dir(
+    host_output_dir: Path,
     *,
+    temp_dirs: list[Path],
     allow_fallback: bool = True,
-) -> List[Path]:
+) -> WarcDiscoveryResult:
 ```
 
 Steps:
 
-1. Resolve `host_output_dir = Path(job.output_dir).resolve()`.
-2. Instantiate `CrawlState(host_output_dir, initial_workers=1)`:
-   - This loads `.archive_state.json` if present.
-3. Get `temp_dirs = state.get_temp_dir_paths()`:
-   - Returns only existing directories and prunes missing ones from state.
-4. If `temp_dirs` is empty and `allow_fallback`:
-   - Use `find_latest_temp_dir_fallback(host_output_dir)` to scan for `.tmp*`
-     directories.
-5. If still empty → return `[]`.
-6. Call `find_all_warc_files(temp_dirs)`:
-   - Returns a de‑duplicated list of `*.warc.gz` files under each
-     `collections/crawl-*/archive` directory.
+1. Discover non-empty stable files under the job's `warcs/` directory.
+2. Discover non-empty files under every supplied state-tracked temp directory.
+3. If fallback is allowed, include the latest `.tmp*` directory only when it
+   is not already state-tracked.
+4. Union the three source groups and prefer stable paths when files are
+   hardlinks or the consolidation manifest records a copied temp source.
+5. Parse the consolidation manifest only far enough to validate the root/entry
+   shape and collect copy-fallback source paths for deduplication.
+6. Return sorted paths, source counts, total count, bounded manifest status,
+   and a source label of `stable`, `temp`, `fallback`, `mixed`, or `none`.
 
-This ensures the backend uses **exactly the same** WARC discovery logic as
-`archive_tool` itself.
+`discover_all_warcs_for_job` obtains `temp_dirs` from `CrawlState` and delegates
+to this helper. `discover_warcs_for_job` returns only the result paths for the
+indexer. The read-only content-cost report supplies the temp paths from its
+already-loaded state snapshot, so operator counts cannot silently fall back to
+stable-only discovery.
+
+Manifest status is `missing`, `valid`, `invalid`, or `unreadable`.
+`manifest_valid` remains true for `missing`/`valid` and false for
+`invalid`/`unreadable`; a missing manifest is not a discovery error. Invalid
+results expose only bounded codes such as `invalid-json` or `invalid-entry`,
+not raw content, exception text, or paths. `list-warcs --json`, `show-job
+--warc-details`, and the read-only content-cost report surface the same fields.
+
+This lightweight parse status is not an integrity check. Use
+`healtharchive verify-warc-manifest --id JOB_ID` for presence/size validation or
+add `--level hash` for SHA-256 verification.
 
 ### 6.2 WARC reading (`warc_reader.py`)
 

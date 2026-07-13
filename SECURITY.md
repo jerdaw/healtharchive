@@ -8,10 +8,9 @@ Only the latest release on the `main` branch is actively supported with security
 
 **Please do not open public issues for security vulnerabilities.**
 
-We take security seriously and appreciate responsible disclosure. To report a vulnerability:
-
-1. **Preferred**: Use [GitHub private vulnerability reporting](https://github.com/jerdaw/healtharchive/security/advisories/new) to submit a report directly through GitHub.
-2. **Alternative**: Email `security@healtharchive.ca` with details of the vulnerability.
+We take security seriously and appreciate responsible disclosure. Report a
+vulnerability privately by emailing
+[security@healtharchive.ca](mailto:security@healtharchive.ca) with the details.
 
 ### What to Include
 

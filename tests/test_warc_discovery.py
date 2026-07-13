@@ -14,9 +14,12 @@ import os
 from pathlib import Path
 from unittest.mock import MagicMock
 
+import pytest
+
 from ha_backend.indexing.warc_discovery import (
     WarcDiscoveryResult,
     discover_all_warcs_for_job,
+    discover_all_warcs_for_output_dir,
     discover_temp_warcs_for_job,
     discover_warcs_for_job,
 )
@@ -27,6 +30,14 @@ def _create_job_mock(output_dir: Path) -> MagicMock:
     job = MagicMock()
     job.output_dir = str(output_dir)
     return job
+
+
+def test_discovery_result_preserves_legacy_positional_source_counts() -> None:
+    result = WarcDiscoveryResult([], "none", True, 0, {"stable": 1})
+
+    assert result.source_counts == {"stable": 1}
+    assert result.manifest_status == "missing"
+    assert result.manifest_error is None
 
 
 class TestDiscoverWarcsForJob:
@@ -319,7 +330,9 @@ class TestDiscoverAllWarcsForJob:
         result = discover_all_warcs_for_job(job, allow_fallback=True)
 
         assert result.source == "fallback"
-        assert result.manifest_valid is False
+        assert result.manifest_valid is True
+        assert result.manifest_status == "missing"
+        assert result.manifest_error is None
         assert result.count == 1
 
     def test_empty_discovery_result(self, tmp_path: Path):
@@ -387,6 +400,92 @@ class TestDiscoverAllWarcsForJob:
         assert result.count == 1
         assert result.warc_paths == [stable_warc.resolve()]
         assert result.source_counts == {"stable": 1}
+        assert result.manifest_valid is True
+        assert result.manifest_status == "missing"
+        assert result.manifest_error is None
+
+    @pytest.mark.parametrize(
+        ("manifest", "expected_error"),
+        [
+            ([], "invalid-root"),
+            ({"entries": {}}, "invalid-entries"),
+            ({"entries": [{}]}, "invalid-entry"),
+        ],
+    )
+    def test_manifest_shape_errors_are_bounded(
+        self,
+        tmp_path: Path,
+        manifest: object,
+        expected_error: str,
+    ) -> None:
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        (warcs_dir / "stable.warc.gz").write_bytes(b"stable")
+        (warcs_dir / "manifest.json").write_text(json.dumps(manifest), encoding="utf-8")
+
+        result = discover_all_warcs_for_output_dir(output_dir, temp_dirs=[])
+
+        assert result.manifest_valid is False
+        assert result.manifest_status == "invalid"
+        assert result.manifest_error == expected_error
+
+    def test_empty_manifest_root_is_valid(self, tmp_path: Path) -> None:
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        (warcs_dir / "stable.warc.gz").write_bytes(b"stable")
+        (warcs_dir / "manifest.json").write_text("{}", encoding="utf-8")
+
+        result = discover_all_warcs_for_output_dir(output_dir, temp_dirs=[])
+
+        assert result.manifest_valid is True
+        assert result.manifest_status == "valid"
+        assert result.manifest_error is None
+
+    def test_malformed_manifest_json_has_bounded_error(self, tmp_path: Path) -> None:
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        (warcs_dir / "stable.warc.gz").write_bytes(b"stable")
+        (warcs_dir / "manifest.json").write_text("{not-json", encoding="utf-8")
+
+        result = discover_all_warcs_for_output_dir(output_dir, temp_dirs=[])
+
+        assert result.manifest_valid is False
+        assert result.manifest_status == "invalid"
+        assert result.manifest_error == "invalid-json"
+
+    def test_unreadable_manifest_has_bounded_error(
+        self,
+        tmp_path: Path,
+        monkeypatch: pytest.MonkeyPatch,
+    ) -> None:
+        output_dir = tmp_path / "job-out"
+        warcs_dir = output_dir / "warcs"
+        warcs_dir.mkdir(parents=True)
+        (warcs_dir / "stable.warc.gz").write_bytes(b"stable")
+        manifest_path = warcs_dir / "manifest.json"
+        manifest_path.write_text('{"entries": []}', encoding="utf-8")
+        original_read_text = Path.read_text
+
+        def fail_manifest_read(
+            path: Path,
+            encoding: str | None = None,
+            errors: str | None = None,
+        ) -> str:
+            if path == manifest_path:
+                raise PermissionError("sensitive detail")
+            return original_read_text(path, encoding=encoding, errors=errors)
+
+        monkeypatch.setattr(Path, "read_text", fail_manifest_read)
+
+        result = discover_all_warcs_for_output_dir(output_dir, temp_dirs=[])
+
+        assert result.manifest_valid is False
+        assert result.manifest_status == "unreadable"
+        assert result.manifest_error == "read-error"
+        assert "sensitive detail" not in result.manifest_error
 
     def test_manifest_dedupes_copied_stable_warc_from_temp_source(self, tmp_path: Path):
         """Prefers stable WARC when manifest says a temp source was already copied."""
@@ -430,6 +529,9 @@ class TestDiscoverAllWarcsForJob:
         assert result.count == 1
         assert result.warc_paths == [stable_warc.resolve()]
         assert result.source_counts == {"stable": 1}
+        assert result.manifest_valid is True
+        assert result.manifest_status == "valid"
+        assert result.manifest_error is None
 
     def test_mixed_discovery_includes_untracked_fallback_temp_dir(self, tmp_path: Path):
         """Includes latest orphan temp WARCs even when state tracks older temp dirs."""

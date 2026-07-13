@@ -77,9 +77,10 @@ Closeout findings:
   this maintenance audit, so no plan was moved to `docs/planning/implemented/`
   and no roadmap item was silently expanded. Nonessential findings remain in
   this report's recommendations.
-- Ignored local environment assets such as `.env`, `.venv/`, `node_modules/`,
-  `private/`, and `frontend/.env.local` were intentionally preserved. Safe
-  generated cache/database artifacts were cleaned during closeout.
+- Ignored local environment assets such as environment override files, virtual
+  environments, dependency trees, private material, and frontend-local
+  overrides were intentionally preserved. Safe generated cache/database
+  artifacts were cleaned during closeout.
 - The maintenance changes were collected in human-authored local commits with
   no co-author trailer.
 
@@ -132,7 +133,8 @@ Excluded from manual review except for presence/consistency checks:
 - generated/cached artifacts: `__pycache__/`, `.pytest_cache/`, `.mypy_cache/`,
   `.ruff_cache/`, `.next/`, coverage outputs, `site/`, generated
   `docs/openapi.json`, generated `docs/llms.txt`;
-- dependency trees: `.venv/`, `frontend/node_modules/`;
+- dependency trees and local environments, including backend virtual
+  environments and frontend dependencies;
 - generated contract/lockfile internals except consistency checks:
   `frontend/src/lib/api-contract.generated.ts`, `frontend/package-lock.json`;
 - large binary/source assets except repo placement and public presentation:
