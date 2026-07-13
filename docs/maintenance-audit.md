@@ -291,12 +291,14 @@ Candidate findings considered:
 - Fixed: archive-root fallback lacked a regression test.
 - Fixed: compare-to-live URL guardrails were security-sensitive but only
   indirectly tested through API error mapping.
-- Deferred: existing TestClient/httpx deprecation warning is cross-suite
-  maintenance and should be handled separately.
+- Deferred at the time: the TestClient/httpx deprecation warning required a
+  cross-suite dependency migration. It was resolved by the later 2026-07-13
+  resource-hygiene pass using Starlette's supported TestClient transport.
 - Deferred at the time: Python `datetime.utcnow()`, SQLAlchemy `Query.get()`,
   and SQLite ResourceWarnings from prior full verification remained focused
   cleanup work. The `Query.get()` item was resolved by the later 2026-07-11
-  hygiene pass; the datetime and SQLite items remain open.
+  hygiene pass; the datetime and cached-test-engine items were resolved by the
+  later 2026-07-13 resource-hygiene pass.
 
 Tests added/updated:
 
@@ -619,8 +621,9 @@ Candidate findings considered:
   tests/docs.
 - Already satisfied: request-scoped DB sessions are closed immediately after
   route execution, before streaming bodies.
-- Deferred: SQLite ResourceWarnings seen during prior coverage indicate a
-  future test/session cleanup pass, not a correctness fix in this campaign.
+- Deferred at the time: SQLite ResourceWarnings seen during prior coverage
+  indicated a future test/session cleanup pass. The later 2026-07-13 pass
+  traced them to cached test engines and added centralized disposal.
 
 Data safety notes:
 
@@ -878,10 +881,9 @@ Comment-only wording:
 - Decide whether tracked VPS helper scripts should remain public as active
   operator scripts or be split into public-safe templates plus private
   implementations.
-- Investigate SQLite ResourceWarnings in full coverage runs and close any
-  session/TestClient lifecycle gaps.
-- Schedule a Python test hygiene pass for `datetime.utcnow()` and
-  Starlette/httpx TestClient deprecations.
+- Explicitly close the singleton lock handles in the four VPS recovery scripts
+  across every early-return path; keep that operator-script lifecycle change
+  separate from the completed test/capture resource pass.
 - Consider a focused optimization pass for same-day deduplication query shape
   if large duplicate groups show up in real datasets.
 - Consider a focused docs-policy pass for a public-safe env-var reference,
@@ -904,12 +906,41 @@ Comment-only wording:
 
 Remaining warnings:
 
-- Starlette/httpx TestClient deprecation warning.
-- Python `datetime.utcnow()` deprecation warnings in test fixtures.
-- SQLite `ResourceWarning` messages during coverage.
+- At the time: Starlette/httpx TestClient deprecation warning.
+- At the time: Python `datetime.utcnow()` deprecation warnings in test fixtures.
+- At the time: SQLite `ResourceWarning` messages during coverage.
 
-These were not introduced by this pass and are recorded as focused follow-up
-work rather than weakened or suppressed.
+These were not introduced by this pass. All three were resolved in the later
+2026-07-13 resource-hygiene pass without warning suppression.
+
+### 2026-07-13 Test And Capture Resource Follow-Up
+
+The consolidated follow-up replaced the fixture's naive UTC fallback, added
+Starlette's supported `httpx2` TestClient transport to both development
+dependency surfaces, and disposed cached SQLAlchemy test engines after each
+test. It also closed warcio record streams in both production capture backends
+and every tracked test/integration WARC writer, including the CI e2e seed,
+plus the directly owned Playwright test log sink.
+The final dependency gate also raised the docs-only Pillow floor to 12.3.0 for
+five advisories that the audit reported as fixed in that release.
+
+Validation evidence:
+
+- UTC warning RED/GREEN: 4 failed and 9 passed before; 13 passed after.
+- Affected resource/capture warning-as-error cluster: 87 passed.
+- Every TestClient-importing module with Starlette's deprecation as an error:
+  227 passed.
+- Normal full backend suite: 843 passed.
+- CI e2e seed smoke wrote and reread one response record.
+- Ruff format/lint, strict docs coverage, and strict MkDocs build passed.
+- Dependency audit reported no known vulnerabilities after the Pillow update.
+
+A broader strict inventory initially produced 49 failures and 794 passes. The
+remaining failures reduced to four VPS recovery scripts that intentionally
+hold singleton lock files for a process run but do not explicitly close their
+handles before returning in tests. Fixing every early-return path is retained
+as one separate operator-script lifecycle batch; the warning is not hidden or
+claimed resolved here.
 
 ## Final Diff Summary
 
