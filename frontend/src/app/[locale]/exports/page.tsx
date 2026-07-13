@@ -57,12 +57,12 @@ export default async function ExportsPage({ params }: { params: Promise<{ locale
               ? "Utilisez le manifeste des exports pour découvrir les formats et limites disponibles."
               : "Use the export manifest to discover available formats and limits."}
           </p>
-          <div className="ha-card ha-home-panel space-y-2 p-4 text-xs text-slate-800 sm:p-5 sm:text-sm">
+          <div className="ha-card-inset space-y-2">
             <p className="text-ha-muted">
               {locale === "fr" ? "Manifeste des exports" : "Export manifest"}
             </p>
             <a className="ha-link" href={manifestUrl}>
-              {manifestUrl}
+              {locale === "fr" ? "API du manifeste des exports" : "Export manifest API"}
             </a>
           </div>
           <div className="ha-callout">
@@ -177,9 +177,17 @@ export default async function ExportsPage({ params }: { params: Promise<{ locale
                 : "and corresponding UTC timestamps."}
             </li>
             <li>
-              <strong>change_type</strong>, <strong>summary</strong>, section/line counts, and
-              change
-              {locale === "fr" ? " ratio de changement." : " ratio."}
+              {locale === "fr" ? (
+                <>
+                  <strong>change_type</strong>, <strong>summary</strong>, nombres de sections et de
+                  lignes, et ratio de changement.
+                </>
+              ) : (
+                <>
+                  <strong>change_type</strong>, <strong>summary</strong>, section/line counts, and
+                  change ratio.
+                </>
+              )}
             </li>
             <li>
               {locale === "fr" ? "indicateurs " : ""}

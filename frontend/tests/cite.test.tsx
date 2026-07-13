@@ -8,7 +8,7 @@ describe("/cite", () => {
       params: Promise.resolve({ locale: "en" }),
       searchParams: Promise.resolve({}),
     });
-    render(ui);
+    const { container } = render(ui);
 
     expect(
       screen.getByRole("heading", { level: 1, name: "How to cite HealthArchive.ca" }),
@@ -20,6 +20,8 @@ describe("/cite", () => {
     expect(download).toHaveAttribute("href", "/partner-kit/healtharchive-citation.md");
 
     expect(screen.getByRole("heading", { name: "1) Cite a snapshot" })).toBeInTheDocument();
+    expect(container.querySelectorAll(".ha-card-inset")).toHaveLength(3);
+    expect(container.querySelector(".ha-home-panel")).not.toBeInTheDocument();
   });
 
   it("renders the French citation download link", async () => {

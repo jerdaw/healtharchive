@@ -89,6 +89,22 @@ describe("Static pages accessibility", () => {
       const { container } = render(ui);
       await expectNoA11yViolations(container);
     });
+
+    it.each([
+      ["en", "Request checklist"],
+      ["fr", "Liste de vérification pour une demande"],
+    ] as const)("uses inner-page styles for the %s research guidance", async (locale, heading) => {
+      const ui = await ResearchersPage({
+        params: Promise.resolve({ locale }),
+      });
+      const { container, getByRole } = render(ui);
+
+      expect(
+        getByRole("heading", { level: 3, name: heading }).classList.contains("ha-callout-title"),
+      ).toBe(true);
+      expect(container.querySelectorAll(".ha-card-inset")).toHaveLength(3);
+      expect(container.querySelector(".ha-home-panel")).toBeNull();
+    });
   });
 
   describe("Heading hierarchy", () => {
