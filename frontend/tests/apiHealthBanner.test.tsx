@@ -87,4 +87,25 @@ describe("ApiHealthBanner diagnostics", () => {
 
     warnSpy.mockRestore();
   });
+
+  it("preserves diagnostic code markup in French", async () => {
+    process.env.NEXT_PUBLIC_SHOW_API_HEALTH_BANNER = "true";
+    process.env.NEXT_PUBLIC_LOG_API_HEALTH_FAILURE = "false";
+    mockFetchHealth.mockRejectedValue(new Error("health failed"));
+
+    const [{ ApiHealthBanner }, { LocaleProvider }] = await Promise.all([
+      import("@/components/ApiHealthBanner"),
+      import("@/components/i18n/LocaleProvider"),
+    ]);
+    const { container } = render(
+      <LocaleProvider locale="fr">
+        <ApiHealthBanner />
+      </LocaleProvider>,
+    );
+
+    expect(await screen.findByText("Backend inaccessible")).toBeInTheDocument();
+    const code = Array.from(container.querySelectorAll("code")).map((node) => node.textContent);
+    expect(code).toEqual(["NEXT_PUBLIC_API_BASE_URL", "HEALTHARCHIVE_CORS_ORIGINS"]);
+    expect(screen.getByText(/La vérification de santé de l’API a échoué/)).toBeInTheDocument();
+  });
 });
