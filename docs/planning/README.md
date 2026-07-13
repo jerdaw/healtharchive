@@ -140,6 +140,8 @@ Recently closed items:
   `implemented/2026-07-10-snapshot-metadata-mobile.md`
 - Browse-by-source orientation and accessibility:
   `implemented/2026-07-10-browse-by-source-orientation.md`
+- Changes result orientation:
+  `implemented/2026-07-10-changes-result-orientation.md`
 - Autonomous overnight maintenance queue:
   `implemented/2026-06-28-autonomous-overnight-work-plan.md`
 - Storage budget and WARC promotion hardening:

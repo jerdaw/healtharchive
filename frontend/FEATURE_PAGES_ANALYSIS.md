@@ -55,7 +55,7 @@ Note: `formatDate`/`formatNumber` deduplication and `ha-home-hero` class swaps a
 4. ✅ The scope form's `<select>` elements use `defaultValue` correctly and the edition select is disabled when no editions are loaded.
 5. ✅ `ha-callout` is used appropriately for the three distinct error/empty states (unavailable, disabled, no results).
 6. ✅ Change events surface `changeType` and `highNoise` as `ha-tag` badges — visually clear.
-7. 🔧 The Scope form section heading is "Scope" / "Portée" — a very terse label. "Filter by source & edition" would be more self-explanatory to a first-time user.
+7. ✅ The filter section now uses the clearer bilingual heading "Filter by source & edition" / "Filtrer par source et édition" instead of the terse "Scope" / "Portée" label.
 8. 🔧 The form submits via native GET (no `action` attribute), which means on locale `/fr/changes` the form will submit to the root `/changes` path and lose the locale. The `action` should be set to the localised path or the redirect logic should handle it.
 9. 🔧 The "Update view" button is the only submit control but it looks like a primary action button while "View digest & RSS" is secondary — yet they sit side by side with no visual hierarchy. The digest link could move below the form.
 10. 🔧 The edition `<select>` label says "Edition (latest by default)" but the label's `for` attribute is implicit via wrapping — the `<select>` itself has no `id` for explicit `<label htmlFor>` association. The current pattern is valid HTML but less robust for assistive technology.
@@ -63,14 +63,14 @@ Note: `formatDate`/`formatNumber` deduplication and `ha-home-hero` class swaps a
 12. 🔧 The changes feed section heading "Changes feed" / "Fil des changements" uses `ha-section-heading` inside a `ha-content-section`, which is correct, but the `<h2>` for the feed and the `<h2>` for the callout below it ("Changes unavailable") are both `h2` — the callout heading should be `h3` for correct hierarchy since it is a sub-state of the section.
 13. 🔧 Change event cards use `ha-card` with no elevated variant — they are visually flat in a way that makes them harder to scan in a long list. `ha-card-elevated` or a subtle left-border treatment would improve scannability.
 14. ⚠️ The form relies on a full page reload (server component navigation) each time the user selects a different source or edition. There is no progressive enhancement, loading indicator, or hint that the page will reload — a user who changes the source dropdown may not realize they need to click "Update view."
-15. ⚠️ Total result count is never surfaced. The pagination row shows "Page N of M" but never "N changes total" — users cannot gauge the volume of activity for a given edition without doing math.
+15. ✅ The feed now surfaces the localized API total for successful enabled responses, including zero, the singular one-change case, and plural totals that span multiple pages.
 
 ### Top 5 Improvements
 
-1. **Surface total result count** — show "N changes" above or inside the pagination row so users understand volume without arithmetic.
+1. ✅ **Surface total result count** — the feed now shows the localized API total above its results for zero, singular, and multi-page result sets.
 2. **Fix form locale routing** — add `action` attribute pointing to the locale-aware path (e.g., `/fr/changes` for French) so form submissions do not drop the locale prefix.
 3. **Correct heading hierarchy in error states** — demote the `ha-callout-title` `<h2>` within the feed section to `<h3>` since the section already has an `<h2>`.
-4. **Rename section heading from "Scope"** — use "Filter by source & edition" / "Filtrer par source et édition" for clarity to new users.
+4. ✅ **Rename section heading from "Scope"** — the filter section now uses "Filter by source & edition" / "Filtrer par source et édition" for clearer bilingual orientation.
 5. **Encode edition job ID in pagination URLs** — wrap `selectedEdition?.jobId` in `encodeURIComponent` for defensive correctness.
 
 ---

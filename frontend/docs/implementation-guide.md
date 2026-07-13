@@ -891,6 +891,11 @@ All text is stable, but can be refined later.
   - `/compare` – compare two adjacent captures (uses `/api/changes/compare`).
   - `/digest` – digest overview + RSS links (uses `/api/changes/rss`).
 
+- `/changes` labels its filter section explicitly by source and edition. For a
+  successful enabled feed, it shows the localized API total above the results,
+  including when the total is zero. Disabled or unavailable feeds omit the
+  total so an operational state is not misrepresented as an empty result set.
+
 - Guardrail copy is required on all three pages:
   - “Descriptive only”, “not medical advice”, and “archived capture” messaging.
 
