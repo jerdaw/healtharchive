@@ -110,6 +110,10 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Existing public project pages contract:
+  `implemented/2026-07-10-public-project-pages-contract.md`
+- Accessibility audit baseline and statement reconciliation:
+  `implemented/2026-07-10-accessibility-audit-baseline.md`
 - Canonical architecture diagrams:
   `implemented/2026-07-10-canonical-architecture-diagrams.md`
 - Frontend internal link checking and canonical locale routing:

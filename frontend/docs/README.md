@@ -16,6 +16,9 @@ Shared VPS facts that are not specific to the frontend alone are canonical in:
   - `docs/frontend/` in the backend docs portal navigation
 - Main guide (architecture, design system, routes, deployment notes):
   - `implementation-guide.md`
+- Accessibility statement and dated evidence baseline:
+  - `accessibility.md`
+  - `accessibility-audit-2026-07-10.md`
 - Public changelog process:
   - `changelog-process.md`
 - Copy work (inventory, glossary, disclaimers):
