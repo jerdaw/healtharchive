@@ -133,9 +133,9 @@ Rating: ✅ Already good
 HowItWorks, AudienceSection, and FeaturedSources all use `ha-grid-3`. On wide viewports the three identical grid structures in a row may feel repetitive. A 2-column audience layout or a horizontal scroll treatment for sources would break the cadence.
 Rating: 🔧 Minor refinement possible
 
-**B7. FeaturedSources displays up to 5 sources but uses a 3-column grid.**
-`displaySources.slice(0, 5)` in a `ha-grid-3` grid produces a 3+2 row arrangement, leaving the second row visually unbalanced with two orphaned cards on the left. Using `slice(0, 3)` or `slice(0, 6)` would produce clean row fills.
-Rating: ⚠️ Needs attention
+**B7. FeaturedSources limits its 3-column grid to six sources.**
+`sources.slice(0, 6)` produces complete rows at the three-column breakpoint, so the documented five-card 3+2 grid concern does not apply to the current component.
+Rating: ✅ Already good
 
 **B8. ChangeShowcase is a 2-column side-by-side diff, which is the right layout for the content.**
 The `sm:grid-cols-2` split correctly mirrors how real diff views work. On mobile it stacks, which is readable if slightly verbose.
@@ -281,9 +281,9 @@ Rating: ✅ Already good
 The key `\`${item.type}-${item.id}\`` would not be unique if the same snapshot ID appeared as both a "capture" and "change" event in the same feed. This is unlikely with the current API but could be made more robust with a stricter compound key.
 Rating: 🔧 Minor refinement possible
 
-**E8. FeaturedSources "Browse" links have no distinguishing accessible label.**
-Each source card has a "Browse →" link. For screen reader users, repeated "Browse →" links without differentiation are ambiguous when navigating by link list. Adding `aria-label={`Browse ${source.sourceName}`}` would make each link uniquely identifiable.
-Rating: ⚠️ Needs attention
+**E8. FeaturedSources "Browse" links have distinguishing localized accessible names.**
+Each source card keeps the visible "Browse →" / "Parcourir →" text while exposing a source-specific English or French accessible name, so the repeated links are identifiable when navigating by link list.
+Rating: ✅ Complete
 
 **E9. RecentActivity dot indicators use `aria-hidden="true"` correctly.**
 The colored dot is purely decorative; the type information is conveyed via the text label ("captured" / "change detected"). The `aria-hidden` on the dot span is correct.
@@ -317,9 +317,9 @@ Rating: ✅ Already good
 `fetchArchiveStats`, `fetchSources`, and `fetchChanges` all fall back to demo data or empty state rather than throwing a build/render error. This makes the homepage resilient to backend outages.
 Rating: ✅ Already good
 
-**F4. Homepage API calls run serially, not in parallel.**
-`fetchArchiveStats()`, `fetchSources()`, and `fetchChanges()` are three separate `await` expressions in the server component body, executing sequentially. Using `Promise.all([fetchArchiveStats(), fetchSources(), fetchChanges()])` with individual `.catch(() => null)` wrappers would reduce total homepage fetch time by the combined latency of two of the three requests.
-Rating: ⚠️ Needs attention
+**F4. Homepage API calls start concurrently with independent failure guards.**
+`fetchArchiveStats()`, `fetchSources()`, and `fetchChanges()` start together in `Promise.all`, and each request retains its own `.catch(() => null)` fallback so one failure does not discard successful responses.
+Rating: ✅ Complete
 
 **F5. `AudienceSection`, `ExampleStory`, and `BottomCta` are inline in `page.tsx`.**
 These are non-trivial JSX blocks with their own logic and copy consumption. Extracting them to `src/components/home/` would keep `page.tsx` focused on data fetching and section composition, consistent with how `HowItWorks`, `FAQ`, `FeaturedSources`, `ChangeShowcase`, and `RecentActivity` are organized.
@@ -329,9 +329,9 @@ Rating: 🔧 Minor refinement possible
 The three SVG paths (clinician, researcher, public) are defined directly inside the `audiences` array definition. If the icons are ever reused or updated, they would need to be found inside this array rather than in a dedicated icon component.
 Rating: 🔧 Minor refinement possible
 
-**F7. `FeaturedSources` hardcodes a `slice(0, 5)` limit with no prop override.**
-The maximum displayed count is hardcoded at 5. Exposing a `maxSources` prop would make the component more reusable and allow easy correction of the grid orphan issue (see B7) from the call site.
-Rating: 🔧 Minor refinement possible
+**F7. `FeaturedSources` uses a six-source limit that matches its grid.**
+The component's `sources.slice(0, 6)` limit fills complete rows at the three-column breakpoint. A prop override is not needed for the current homepage-only use case.
+Rating: ✅ Already good
 
 **F8. `ChangeShowcase` diff example data is hardcoded in the component file, not in `homeCopy.ts`.**
 The `exampleDiff` constant is defined inside `ChangeShowcase.tsx` with both EN/FR variants. This is reasonable for a static demo, but it means diff copy lives in a different location from all other homepage copy. An editorial update to the demo text requires knowing to look in the component file rather than `homeCopy.ts`.
@@ -359,9 +359,9 @@ Rating: 🔧 Minor refinement possible
 
 | Priority | Ref | Category            | Rating | Description                                                                                                                                                  |
 | -------- | --- | ------------------- | ------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1        | F4  | Architecture        | ⚠️     | Convert three serial `await` API calls to `Promise.all` to reduce homepage TTFB by the combined latency of two sequential fetches                            |
-| 2        | B7  | Layout              | ⚠️     | Fix FeaturedSources grid: `slice(0, 5)` in a 3-column grid produces a ragged 3+2 layout; use `slice(0, 3)` or `slice(0, 6)` for clean row fills              |
-| 3        | E8  | Accessibility       | ⚠️     | Add `aria-label` to each "Browse →" link in FeaturedSources (e.g., `aria-label="Browse {source.sourceName}"`) to disambiguate repeated link text             |
+| 1        | F4  | Architecture        | ✅     | Complete: stats, sources, and recent changes now start concurrently with independent guarded fallbacks                                                       |
+| 2        | B7  | Layout              | ✅     | Already good: `FeaturedSources` already uses `slice(0, 6)`, producing complete rows at the three-column breakpoint                                           |
+| 3        | E8  | Accessibility       | ✅     | Complete: source links retain visible Browse/Parcourir text and expose unique localized accessible names                                                     |
 | 4        | A11 | Copy                | ⚠️     | Fix HowItWorks subtitle: "HealthArchive uses…" should be "HealthArchive.ca uses…" for brand name consistency                                                 |
 | 5        | A16 | Copy                | ⚠️     | Fix or qualify the FAQ citation guide reference — link to the actual `/methods` or citation page, or soften the copy if the guide does not yet exist         |
 | 6        | A17 | Copy                | ⚠️     | Add a hyperlink to the "Report an Issue form" reference in the FAQ archive-request answer                                                                    |

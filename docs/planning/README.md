@@ -118,6 +118,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Homepage fetch and source-link accessibility:
+  `implemented/2026-07-10-homepage-fetch-accessibility.md`
 - Test and capture resource hygiene:
   `implemented/2026-07-13-test-and-capture-resource-hygiene.md`
 - SQLAlchemy Query.get test hygiene:
@@ -140,6 +142,14 @@ Recently closed items:
   `implemented/2026-07-11-repository-issue-forms.md`
 - Unused MkDocs monorepo plugin removal:
   `implemented/2026-07-10-unused-mkdocs-monorepo-plugin.md`
+- Snapshot metadata mobile layout:
+  `implemented/2026-07-10-snapshot-metadata-mobile.md`
+- Browse-by-source orientation and accessibility:
+  `implemented/2026-07-10-browse-by-source-orientation.md`
+- Changes result orientation:
+  `implemented/2026-07-10-changes-result-orientation.md`
+- Status availability communication:
+  `implemented/2026-07-10-status-availability-communication.md`
 - Autonomous overnight maintenance queue:
   `implemented/2026-06-28-autonomous-overnight-work-plan.md`
 - Storage budget and WARC promotion hardening:
