@@ -205,18 +205,6 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 
 ### Crawling & indexing reliability (backend)
 
-- WARC discovery consistency follow-through.
-  - Delivered: indexing and the read-only crawl content-cost report share the
-    stable/state-tracked-temp/latest-fallback union and hardlink/manifest-source
-    deduplication; `vps-crawl-status.sh` delegates its recent-file view to the
-    same CLI discovery path.
-  - Remaining work: improve malformed/unreadable consolidation-manifest
-    diagnostics and surface that validation state consistently when new shard
-    tooling consumes discovery metadata.
-  - Historical context: `implemented/2026-01-29-warc-discovery-consistency.md`
-  - Already implemented: `implemented/2026-01-29-warc-manifest-verification.md`
-  - Operator-report alignment:
-    `implemented/2026-07-10-content-report-warc-union.md`
 - Annual edition/shard convergence follow-through.
   - First-pass implementation now models `{source, year}` as `AnnualEdition`,
     attaches legacy 2026 jobs as salvage shards, reconciles completed-job

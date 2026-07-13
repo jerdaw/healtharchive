@@ -84,7 +84,10 @@ from warcio.archiveiterator import ArchiveIterator
 from archive_tool.constants import HTTP_ERROR_PATTERNS, STATE_FILE_NAME, TIMEOUT_PATTERNS
 from ha_backend.crawl_stats import parse_crawl_log_progress
 from ha_backend.db import get_session
-from ha_backend.indexing.warc_discovery import discover_all_warcs_for_output_dir
+from ha_backend.indexing.warc_discovery import (
+    WarcDiscoveryResult,
+    discover_all_warcs_for_output_dir,
+)
 from ha_backend.models import ArchiveJob, Source
 
 URL_RE = re.compile(r"https?://[^\s\"'<>]+")
@@ -378,9 +381,9 @@ def summarize_recent_logs(
     return summary
 
 
-def discover_warcs_read_only(
+def discover_warcs_read_only_result(
     output_dir: Path, state_data: dict[str, Any]
-) -> tuple[list[Path], str]:
+) -> WarcDiscoveryResult:
     temp_dirs_raw = state_data.get("temp_dirs_host_paths", [])
     temp_dirs: list[Path] = []
     if isinstance(temp_dirs_raw, list):
@@ -395,10 +398,16 @@ def discover_warcs_read_only(
             except OSError:
                 continue
 
-    result = discover_all_warcs_for_output_dir(
+    return discover_all_warcs_for_output_dir(
         output_dir,
         temp_dirs=temp_dirs,
     )
+
+
+def discover_warcs_read_only(
+    output_dir: Path, state_data: dict[str, Any]
+) -> tuple[list[Path], str]:
+    result = discover_warcs_read_only_result(output_dir, state_data)
     return result.warc_paths, result.source
 
 
@@ -622,8 +631,11 @@ def generate_report(
         max_log_files=max_log_files,
         max_bytes_per_log=max_log_bytes,
     )
-    warc_paths, warc_source = discover_warcs_read_only(output_dir, state_data)
-    warc_summary = summarize_warc_content(warc_paths, max_warc_files=max_warc_files)
+    warc_discovery = discover_warcs_read_only_result(output_dir, state_data)
+    warc_summary = summarize_warc_content(
+        warc_discovery.warc_paths,
+        max_warc_files=max_warc_files,
+    )
 
     report: dict[str, Any] = {
         "report_version": 1,
@@ -643,7 +655,10 @@ def generate_report(
             "state_file_path": str(state_path),
             "state_file_ok": state_ok,
             "state_file_errno": state_errno,
-            "warc_discovery_source": warc_source,
+            "warc_discovery_source": warc_discovery.source,
+            "warc_manifest_valid": warc_discovery.manifest_valid,
+            "warc_manifest_status": warc_discovery.manifest_status,
+            "warc_manifest_error": warc_discovery.manifest_error,
         },
         "crawl_health_summary": {
             "container_restarts_done": int(state_data.get("container_restarts_done", 0) or 0),
@@ -669,6 +684,10 @@ def _print_human_summary(report: dict[str, Any]) -> None:
     print(f"combined_log={meta['combined_log_path'] or '(missing)'}")
     print(f"combined_log_count_total={meta['combined_log_count_total']}")
     print(f"warc_discovery_source={meta['warc_discovery_source']}")
+    print(f"warc_manifest_status={meta['warc_manifest_status']}")
+    print(f"warc_manifest_valid={str(meta['warc_manifest_valid']).lower()}")
+    if meta["warc_manifest_error"] is not None:
+        print(f"warc_manifest_error={meta['warc_manifest_error']}")
     print("")
     print("[crawl health]")
     print(f"container_restarts_done={health.get('container_restarts_done', 0)}")

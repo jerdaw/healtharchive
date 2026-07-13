@@ -244,6 +244,9 @@ def test_main_emits_json_report_without_mutating_state(
         json.dumps({"container_restarts_done": 4, "temp_dirs_host_paths": [str(tmp_dir)]}),
         encoding="utf-8",
     )
+    warcs_dir = output_dir / "warcs"
+    warcs_dir.mkdir(parents=True, exist_ok=True)
+    (warcs_dir / "manifest.json").write_text("{not-json", encoding="utf-8")
     original_state = state_path.read_text(encoding="utf-8")
 
     log_path = output_dir / "archive_resume_crawl_attempt_1.combined.log"
@@ -271,6 +274,9 @@ def test_main_emits_json_report_without_mutating_state(
     report = json.loads(json_out.read_text(encoding="utf-8"))
     assert report["job_metadata"]["job_id"] == job.id
     assert report["job_metadata"]["source"] == "phac"
+    assert report["job_metadata"]["warc_manifest_valid"] is False
+    assert report["job_metadata"]["warc_manifest_status"] == "invalid"
+    assert report["job_metadata"]["warc_manifest_error"] == "invalid-json"
     assert report["crawl_health_summary"]["container_restarts_done"] == 4
     assert report["content_cost_summary"]["warc_count_total"] == 1
     assert report["content_cost_summary"]["class_totals"]["document"]["count"] >= 1
@@ -281,6 +287,9 @@ def test_main_emits_json_report_without_mutating_state(
     out = capsys.readouterr().out
     assert "HealthArchive crawl content-cost report" in out
     assert "job_id=" in out
+    assert "warc_manifest_status=invalid" in out
+    assert "warc_manifest_error=invalid-json" in out
+    assert "not-json" not in out
 
 
 def test_report_scans_previous_logs_when_latest_log_is_quiet(

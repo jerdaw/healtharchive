@@ -11,6 +11,8 @@ from archive_tool.utils import find_all_warc_files, find_latest_temp_dir_fallbac
 from ha_backend.archive_storage import get_job_warc_manifest_path, get_job_warcs_dir
 from ha_backend.models import ArchiveJob
 
+ManifestStatus = Literal["missing", "valid", "invalid", "unreadable"]
+
 
 @dataclass
 class WarcDiscoveryResult:
@@ -21,6 +23,8 @@ class WarcDiscoveryResult:
         warc_paths: List of discovered WARC file paths
         source: Discovery source ("stable", "temp", "fallback", "mixed", or "none")
         manifest_valid: Whether the manifest (if any) is valid
+        manifest_status: Lightweight manifest parsing status
+        manifest_error: Bounded error code without exception/path detail
         count: Number of WARC files discovered
     """
 
@@ -29,6 +33,19 @@ class WarcDiscoveryResult:
     manifest_valid: bool
     count: int
     source_counts: dict[str, int] = field(default_factory=dict)
+    manifest_status: ManifestStatus = "missing"
+    manifest_error: str | None = None
+
+
+@dataclass(frozen=True)
+class _ManifestDiscoveryMetadata:
+    consolidated_source_paths: set[Path]
+    status: ManifestStatus
+    error: str | None = None
+
+    @property
+    def valid(self) -> bool:
+        return self.status in {"missing", "valid"}
 
 
 def _iter_warc_files(root: Path) -> list[Path]:
@@ -50,7 +67,9 @@ def _discover_stable_warcs_for_output_dir(host_output_dir: Path) -> list[Path]:
     return _iter_warc_files(stable_dir)
 
 
-def _manifest_consolidated_source_paths(host_output_dir: Path) -> set[Path]:
+def _read_manifest_discovery_metadata(
+    host_output_dir: Path,
+) -> _ManifestDiscoveryMetadata:
     """
     Return temp source paths that already have a stable WARC manifest entry.
 
@@ -60,24 +79,47 @@ def _manifest_consolidated_source_paths(host_output_dir: Path) -> set[Path]:
     """
     manifest_path = get_job_warc_manifest_path(host_output_dir)
     if not manifest_path.is_file():
-        return set()
+        return _ManifestDiscoveryMetadata(set(), "missing")
 
     stable_dir = get_job_warcs_dir(host_output_dir)
     try:
-        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
-    except (OSError, json.JSONDecodeError):
-        return set()
+        manifest_text = manifest_path.read_text(encoding="utf-8")
+    except OSError:
+        return _ManifestDiscoveryMetadata(set(), "unreadable", "read-error")
+    try:
+        manifest = json.loads(manifest_text)
+    except json.JSONDecodeError:
+        return _ManifestDiscoveryMetadata(set(), "invalid", "invalid-json")
+    if not isinstance(manifest, dict):
+        return _ManifestDiscoveryMetadata(set(), "invalid", "invalid-root")
+
+    entries = manifest.get("entries", [])
+    if not isinstance(entries, list):
+        return _ManifestDiscoveryMetadata(set(), "invalid", "invalid-entries")
 
     paths: set[Path] = set()
-    for entry in manifest.get("entries") or []:
-        source_path = str(entry.get("source_path") or "")
-        stable_name = str(entry.get("stable_name") or "")
-        if not source_path or not stable_name:
+    invalid_entry = False
+    for entry in entries:
+        if not isinstance(entry, dict):
+            invalid_entry = True
+            continue
+        source_path = entry.get("source_path")
+        stable_name = entry.get("stable_name")
+        if (
+            not isinstance(source_path, str)
+            or not source_path
+            or not isinstance(stable_name, str)
+            or not stable_name
+            or Path(stable_name).name != stable_name
+        ):
+            invalid_entry = True
             continue
         stable_path = stable_dir / stable_name
         if stable_path.is_file():
             paths.add(Path(source_path).resolve())
-    return paths
+    if invalid_entry:
+        return _ManifestDiscoveryMetadata(paths, "invalid", "invalid-entry")
+    return _ManifestDiscoveryMetadata(paths, "valid")
 
 
 def _dedupe_warc_paths_by_file_identity(
@@ -192,9 +234,10 @@ def discover_all_warcs_for_output_dir(
         ("temp", temp_warcs),
         ("fallback", fallback_warcs),
     ]
+    manifest_metadata = _read_manifest_discovery_metadata(host_output_dir)
     selected_warcs = _dedupe_warc_paths_by_file_identity(
         groups,
-        manifest_consolidated_sources=_manifest_consolidated_source_paths(host_output_dir),
+        manifest_consolidated_sources=manifest_metadata.consolidated_source_paths,
     )
     warc_paths = [path for _source, path in selected_warcs]
     source_counts = dict(sorted(Counter(source for source, _path in selected_warcs).items()))
@@ -209,8 +252,10 @@ def discover_all_warcs_for_output_dir(
         return WarcDiscoveryResult(
             warc_paths=warc_paths,
             source=source,
-            manifest_valid=not bool(fallback_warcs),
+            manifest_valid=manifest_metadata.valid,
             count=len(warc_paths),
+            manifest_status=manifest_metadata.status,
+            manifest_error=manifest_metadata.error,
             source_counts=source_counts,
         )
 
@@ -218,8 +263,10 @@ def discover_all_warcs_for_output_dir(
     return WarcDiscoveryResult(
         warc_paths=[],
         source="none",
-        manifest_valid=True,
+        manifest_valid=manifest_metadata.valid,
         count=0,
+        manifest_status=manifest_metadata.status,
+        manifest_error=manifest_metadata.error,
         source_counts={},
     )
 
@@ -244,5 +291,6 @@ __all__ = [
     "discover_warcs_for_job",
     "discover_all_warcs_for_job",
     "discover_all_warcs_for_output_dir",
+    "ManifestStatus",
     "WarcDiscoveryResult",
 ]
