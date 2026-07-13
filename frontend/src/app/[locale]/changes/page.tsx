@@ -4,7 +4,7 @@ import { LocalizedLink as Link } from "@/components/i18n/LocalizedLink";
 
 import { PageShell } from "@/components/layout/PageShell";
 import { fetchChanges, fetchSourceEditions, fetchSources, fetchSourcesLocalized } from "@/lib/api";
-import { formatDate } from "@/lib/format";
+import { formatDate, formatNumber } from "@/lib/format";
 import type { Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
@@ -17,6 +17,9 @@ function getChangesCopy(locale: Locale) {
       title: "Suivi des changements",
       intro:
         "Suivez les changements de texte entre des captures archivées. Ces changements reflètent des différences entre captures, et non des directives actuelles.",
+      filterHeading: "Filtrer par source et édition",
+      resultSummary: (formattedTotal: string, total: number) =>
+        `${formattedTotal} changement${total === 1 ? " trouvé" : "s trouvés"}.`,
     };
   }
 
@@ -25,6 +28,9 @@ function getChangesCopy(locale: Locale) {
     title: "Change tracking",
     intro:
       "Track text changes between archived captures. These changes reflect differences between snapshots, not current guidance.",
+    filterHeading: "Filter by source & edition",
+    resultSummary: (formattedTotal: string, total: number) =>
+      `${formattedTotal} change${total === 1 ? "" : "s"} found.`,
   };
 }
 
@@ -119,7 +125,7 @@ export default async function ChangesPage({
       </section>
 
       <section className="ha-content-section space-y-4">
-        <h2 className="ha-section-heading">{locale === "fr" ? "Portée" : "Scope"}</h2>
+        <h2 className="ha-section-heading">{copy.filterHeading}</h2>
         <form className="ha-card space-y-4">
           <div className="grid gap-3 md:grid-cols-2">
             <label className="text-ha-muted space-y-2 text-xs font-medium">
@@ -173,6 +179,11 @@ export default async function ChangesPage({
         <h2 className="ha-section-heading">
           {locale === "fr" ? "Fil des changements" : "Changes feed"}
         </h2>
+        {changes?.enabled && (
+          <p className="text-ha-muted text-sm">
+            {copy.resultSummary(formatNumber(locale, total), total)}
+          </p>
+        )}
         {!changes && (
           <div className="ha-callout">
             <h3 className="ha-callout-title">

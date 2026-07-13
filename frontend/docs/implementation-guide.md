@@ -656,7 +656,13 @@ All in `src/data/demo-records.ts`:
 ### 8.1 Home page `/` – `src/app/[locale]/page.tsx`
 
 - Fetches lightweight archive totals from `GET /api/stats` (via `fetchArchiveStats()` in `src/lib/api.ts`).
+- Starts archive-statistics, source-summary, and recent-change requests
+  concurrently. Each request has its own failure fallback, so an unavailable
+  endpoint does not discard successful responses from the others.
 - If the backend API is unreachable, falls back to the bundled offline sample dataset (`demoRecords`).
+- Featured-source links retain their visible "Browse →" / "Parcourir →"
+  copy and destinations while exposing source-specific English or French
+  accessible names.
 
 - Content:
   1. **Hero section:**
@@ -788,21 +794,29 @@ All in `src/data/demo-records.ts`:
 
 ### 8.3 Browse by source `/archive/browse-by-source` – `src/app/[locale]/archive/browse-by-source/page.tsx`
 
-- Server component that prefers backend `GET /api/sources` (via `fetchSources()`).
-- Falls back to `getSourcesSummary()` from the bundled offline sample dataset when the API is unreachable.
+- Server component that prefers backend `GET /api/sources`: English uses `fetchSources()`,
+  while French uses `fetchSourcesLocalized({ lang: "fr" })`.
+- Falls back to `getSourcesSummary()` from the bundled offline sample dataset only when the API request fails. A successful response with no public sources renders the empty result instead of demo data.
 
 - `<PageShell>` with:
   - Eyebrow: “Archive explorer”
   - Title: “Browse records by source”
 
+- Displays a localized source total before the results grid.
+- When no public sources remain, renders an explicit localized empty-state callout instead of an empty grid.
 - Displays a `.ha-grid-2` of cards, one per source:
+  - Each card is an `<article>` named with `aria-labelledby` from its visible source heading.
   - Card shows:
     - `sourceName`
     - “N snapshots captured between [first] and [last]”.
-      - Buttons:
-        - “Browse archived site” → `/browse/${entryRecordId}` (falls back to `latestRecordId`).
-        - “Browse records” → `/archive?source=${sourceCode}`
-        - Optional: “Open in replay ↗” → `entryBrowseUrl` (when replay is configured in the backend).
+      - Actions:
+        - A single primary CTA uses `entryBrowseUrl` when present; otherwise it uses
+          `/browse/${entryRecordId ?? latestRecordId}` when an ID exists.
+        - The primary label is “View archived site” / “Voir le site archivé” when
+          `entryRecordId` exists and “View latest snapshot” / “Voir la capture la plus récente”
+          otherwise.
+        - “Browse records” / “Parcourir les enregistrements” remains the separate source-filter
+          action → `/archive?source=${sourceCode}`.
 
 ### 8.4 Methods `/methods` – `src/app/[locale]/methods/page.tsx`
 
@@ -869,6 +883,10 @@ All text is stable, but can be refined later.
 
 - Both pages are server components that tolerate backend failures by showing
   a fallback callout instead of crashing.
+- `/status` renders its localized “Last checked” value in a `time` element with
+  an ISO `dateTime` attribute derived from the same render-time instant.
+- When usage metrics are absent or disabled, `/status` uses neutral public copy
+  in English or French rather than exposing an operator action.
 
 ### 8.11 Change tracking (`/changes`, `/compare`, `/digest`)
 
@@ -876,6 +894,11 @@ All text is stable, but can be refined later.
   - `/changes` – edition-aware change feed (uses `/api/changes`, `/api/sources`, `/api/sources/{source}/editions`).
   - `/compare` – compare two adjacent captures (uses `/api/changes/compare`).
   - `/digest` – digest overview + RSS links (uses `/api/changes/rss`).
+
+- `/changes` labels its filter section explicitly by source and edition. For a
+  successful enabled feed, it shows the localized API total above the results,
+  including when the total is zero. Disabled or unavailable feeds omit the
+  total so an operational state is not misrepresented as an empty result set.
 
 - Guardrail copy is required on all three pages:
   - “Descriptive only”, “not medical advice”, and “archived capture” messaging.

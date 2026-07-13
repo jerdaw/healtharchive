@@ -26,20 +26,20 @@ Note: `formatDate`/`formatNumber` deduplication and `ha-home-hero` class swaps a
 5. ✅ Preview images use `loading="lazy" decoding="async"` and a gradient overlay for dark mode.
 6. ✅ Bilingual source name and homepage URL resolution via `getLocalizedSourceName` / `getLocalizedSourceHomepage`.
 7. ✅ Two distinct CTA paths: external `entryBrowseUrl` (via `<a>`) vs. internal `/browse/:id` (via `LocalizedLink`).
-8. 🔧 The record-count string inside each card uses raw `new Intl.NumberFormat(...).format(...)` inline rather than `formatNumber(locale, ...)` from `@/lib/format`. This is an inconsistency — `formatNumber` is the project-standard helper and already handles the `null` guard and locale tag lookup.
+8. ✅ Source and snapshot totals use the shared `formatNumber(locale, ...)` helper, keeping number formatting aligned with the project-standard locale handling.
 9. 🔧 The plural/gender logic for French ("capturée" / "capturées") is inlined in JSX across two branches. A small helper (e.g., `formatSnapshotCount(locale, count)`) would centralise this and make the card template cleaner.
 10. 🔧 The "Important note" callout and the "Live API unavailable" callout both use inline ternary locale strings rather than `getSiteCopy` or the local `getBrowseBySourceCopy` pattern used elsewhere in the file. The `siteCopy.workflow.archiveSummary` content is already wired, but the callout title ("Important note" / "Note importante") is not.
 11. 🔧 Card `<h2>` uses `text-slate-900` directly. Other pages in the codebase use `ha-card-title` or inline Tailwind — the project does not currently define `.ha-card-title` as a CSS class, but the pattern `text-sm font-semibold text-slate-900` is repeated across every card on every page and is a candidate for extraction.
 12. 🔧 The `previewSrc` placeholder block ("Preview unavailable") has no dark-mode background colour class — it uses `dark:bg-[#0b0c0d]` (a raw hex), matching the card body colour but bypassing the CSS variable system.
-13. 🔧 No `<article>` `aria-label` ties the card to its source name, so screen reader users traversing landmark regions will encounter unlabelled articles.
+13. ✅ Each `<article>` is named with `aria-labelledby` from its visible source heading, so the card landmark and on-screen title share one accessible name.
 14. ⚠️ The "View archived site" / "View latest snapshot" label difference is driven by `entryRecordId` being set, but there is no visual distinction between the two states — both render as `ha-btn-primary`. A user cannot tell at a glance whether they will land on the curated entry page or just the most recent snapshot.
-15. ⚠️ The page has no record count summary ("N sources found") to orient users before they scroll into the grid, and no empty-state if `summaries` ends up empty after filtering.
+15. ✅ A localized source-count summary now orients users before the grid, and an explicit localized callout appears when no public sources remain after filtering. A successful empty API result stays empty instead of switching to demo data.
 
 ### Top 5 Improvements
 
-1. **Replace inline `Intl.NumberFormat` with `formatNumber`** — remove the two raw `new Intl.NumberFormat` calls in the card template and use `formatNumber(locale, source.recordCount)` consistently with the rest of the codebase.
-2. **Add `aria-label` to each `<article>`** — e.g., `aria-label={source.sourceName}` to give screen reader users a navigable card landmark.
-3. **Show a source count summary** — add a line above the grid (e.g., "Showing N sources") so users know the scope of coverage before scrolling.
+1. ✅ **Implemented 2026-07-10 — use `formatNumber` for displayed totals.** Source and snapshot counts now use the shared formatter consistently with the rest of the codebase.
+2. ✅ **Implemented 2026-07-10 — name each `<article>` from its visible heading.** `aria-labelledby` gives screen reader users a navigable card landmark without duplicating the source name in an `aria-label`.
+3. ✅ **Implemented 2026-07-10 — show source-count and empty-state orientation.** A localized summary appears before the grid, with a localized callout when no public sources are available.
 4. **Distinguish entry-point vs. latest-snapshot CTA visually** — use a lighter or secondary style for "View latest snapshot" vs. the primary style for "View archived site" so intent is clear.
 5. **Extract the French plural helper** — create `formatSnapshotCount(locale, count)` in `src/lib/format.ts` to replace the duplicated inline plural/gender string logic.
 
@@ -55,7 +55,7 @@ Note: `formatDate`/`formatNumber` deduplication and `ha-home-hero` class swaps a
 4. ✅ The scope form's `<select>` elements use `defaultValue` correctly and the edition select is disabled when no editions are loaded.
 5. ✅ `ha-callout` is used appropriately for the three distinct error/empty states (unavailable, disabled, no results).
 6. ✅ Change events surface `changeType` and `highNoise` as `ha-tag` badges — visually clear.
-7. 🔧 The Scope form section heading is "Scope" / "Portée" — a very terse label. "Filter by source & edition" would be more self-explanatory to a first-time user.
+7. ✅ The filter section now uses the clearer bilingual heading "Filter by source & edition" / "Filtrer par source et édition" instead of the terse "Scope" / "Portée" label.
 8. 🔧 The form submits via native GET (no `action` attribute), which means on locale `/fr/changes` the form will submit to the root `/changes` path and lose the locale. The `action` should be set to the localised path or the redirect logic should handle it.
 9. 🔧 The "Update view" button is the only submit control but it looks like a primary action button while "View digest & RSS" is secondary — yet they sit side by side with no visual hierarchy. The digest link could move below the form.
 10. 🔧 The edition `<select>` label says "Edition (latest by default)" but the label's `for` attribute is implicit via wrapping — the `<select>` itself has no `id` for explicit `<label htmlFor>` association. The current pattern is valid HTML but less robust for assistive technology.
@@ -63,14 +63,14 @@ Note: `formatDate`/`formatNumber` deduplication and `ha-home-hero` class swaps a
 12. 🔧 The changes feed section heading "Changes feed" / "Fil des changements" uses `ha-section-heading` inside a `ha-content-section`, which is correct, but the `<h2>` for the feed and the `<h2>` for the callout below it ("Changes unavailable") are both `h2` — the callout heading should be `h3` for correct hierarchy since it is a sub-state of the section.
 13. 🔧 Change event cards use `ha-card` with no elevated variant — they are visually flat in a way that makes them harder to scan in a long list. `ha-card-elevated` or a subtle left-border treatment would improve scannability.
 14. ⚠️ The form relies on a full page reload (server component navigation) each time the user selects a different source or edition. There is no progressive enhancement, loading indicator, or hint that the page will reload — a user who changes the source dropdown may not realize they need to click "Update view."
-15. ⚠️ Total result count is never surfaced. The pagination row shows "Page N of M" but never "N changes total" — users cannot gauge the volume of activity for a given edition without doing math.
+15. ✅ The feed now surfaces the localized API total for successful enabled responses, including zero, the singular one-change case, and plural totals that span multiple pages.
 
 ### Top 5 Improvements
 
-1. **Surface total result count** — show "N changes" above or inside the pagination row so users understand volume without arithmetic.
+1. ✅ **Surface total result count** — the feed now shows the localized API total above its results for zero, singular, and multi-page result sets.
 2. **Fix form locale routing** — add `action` attribute pointing to the locale-aware path (e.g., `/fr/changes` for French) so form submissions do not drop the locale prefix.
 3. **Correct heading hierarchy in error states** — demote the `ha-callout-title` `<h2>` within the feed section to `<h3>` since the section already has an `<h2>`.
-4. **Rename section heading from "Scope"** — use "Filter by source & edition" / "Filtrer par source et édition" for clarity to new users.
+4. ✅ **Rename section heading from "Scope"** — the filter section now uses "Filter by source & edition" / "Filtrer par source et édition" for clearer bilingual orientation.
 5. **Encode edition job ID in pagination URLs** — wrap `selectedEdition?.jobId` in `encodeURIComponent` for defensive correctness.
 
 ---
@@ -150,17 +150,17 @@ Note: `formatDate`/`formatNumber` deduplication and `ha-home-hero` class swaps a
 9. 🔧 `siteCopy.whatThisSiteIs.is` and `siteCopy.whatThisSiteIs.isNot` are concatenated inline in the status card with a `<span>` "Not:" separator. This is a fragile prose pattern; a `<dl>` or two separate `<p>` elements would be clearer and more accessible.
 10. 🔧 "Coverage snapshot" / "Aperçu de la couverture" is used as a section heading on both `/status` and `/impact`. The heading is identical on both pages, which is confusing if a user has both open. `/status` could say "Live coverage snapshot" to differentiate.
 11. 🔧 The per-source coverage grid (`ha-grid-2`) is purely informational duplicates of browse-by-source cards — but it also includes CTA buttons ("View archived site", "Browse records"). These CTAs make sense on a browse page but feel noisy on a status/metrics page. Consider a leaner card for this context (name + dates + snapshot count, no action buttons).
-12. 🔧 The "Usage snapshot" section conditionally renders nothing (beyond a callout) when usage is disabled. The callout message "Enable aggregated usage counts in the backend to display this section" is clearly developer-facing copy, not appropriate for public users who have no ability to change backend settings.
-13. 🔧 The status page has no `<time>` element with a `dateTime` attribute for the "Last checked" value. Assistive technologies and machine consumers would benefit from a structured timestamp.
+12. ✅ When usage metrics are absent or disabled, the "Usage snapshot" section now uses neutral public copy in English and French instead of telling visitors to change backend configuration.
+13. ✅ The localized "Last checked" value now uses a `<time>` element with an ISO `dateTime` attribute for assistive technologies and machine consumers.
 14. ⚠️ The page re-validates data entirely on load (server component, no caching hint). For a status page, `revalidate = 60` (or a short ISR window) would reduce backend load while keeping data reasonably fresh.
 15. ⚠️ There is no link from `/status` to the RSS feed or digest for change notifications — the "Monthly impact report" link is present, but users interested in ongoing status changes have no directed path to `/digest`.
 
 ### Top 5 Improvements
 
 1. **Colour-code the status label** — apply green/amber/red tinting to the status `ha-tag` based on the value (operational / degraded / unavailable) for immediate visual recognition.
-2. **Replace the developer-facing usage callout** — rewrite "Enable aggregated usage counts in the backend…" as user-appropriate copy ("Usage data is not available for this reporting period.").
+2. ✅ **Replace the developer-facing usage callout** — unavailable usage reporting now uses neutral public copy in English and French.
 3. **Add a link to `/digest` or RSS** — surface the change notifications feed from the status page for users who want to track ongoing changes.
-4. **Use `<time dateTime="...">` for the "Last checked" timestamp** — structured timestamp improves accessibility and machine readability.
+4. ✅ **Use `<time dateTime="...">` for the "Last checked" timestamp** — the localized value now includes the matching ISO timestamp for accessibility and machine readability.
 5. **Add a short ISR revalidation hint** — export `revalidate = 60` (or similar) to avoid re-fetching all four API endpoints on every page request during stable periods.
 
 ---
