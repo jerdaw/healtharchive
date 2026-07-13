@@ -8,24 +8,12 @@ Thank you for your interest in contributing to HealthArchive! This guide will he
 
 HealthArchive welcomes contributions of all kinds:
 
-- 🐛 **Report bugs** - Use the [bug report template](https://github.com/jerdaw/healtharchive/issues/new?template=bug_report.md)
-- 💡 **Suggest features** - Use the [feature request template](https://github.com/jerdaw/healtharchive/issues/new?template=feature_request.md)
+- 🐛 **Report bugs** - Found an issue? Let us know
+- 💡 **Suggest features** - Have ideas for improvements?
 - 📝 **Improve documentation** - Help make our docs better
 - 🔧 **Submit code changes** - Fix bugs or implement features
 - 🧪 **Add tests** - Increase test coverage
 - 👀 **Review pull requests** - Help review others' contributions
-
----
-
-## Before Opening an Issue
-
-- Search [existing issues](https://github.com/jerdaw/healtharchive/issues) and
-  the public roadmap before opening a duplicate.
-- Use the bug or feature template so reproduction, scope, and validation details
-  are reviewable.
-- Do not disclose vulnerabilities publicly; follow [SECURITY.md](SECURITY.md).
-- Remove secrets, tokens, environment values, private host/path details, and
-  unpublished data from descriptions, logs, and screenshots.
 
 ---
 

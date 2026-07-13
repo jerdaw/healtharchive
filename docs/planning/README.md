@@ -114,8 +114,6 @@ Recently closed items:
   `implemented/2026-07-10-ops-governance-backlog-truth.md`
 - RCDC backlog scope audit:
   `implemented/2026-07-10-rcdc-backlog-scope-audit.md`
-- Cross-repo issue templates:
-  `implemented/2026-07-10-cross-repo-issue-templates.md`
 - Existing public project pages contract:
   `implemented/2026-07-10-public-project-pages-contract.md`
 - Accessibility audit baseline and statement reconciliation:
