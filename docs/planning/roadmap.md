@@ -453,9 +453,6 @@ Completed items were removed from this backlog and archived in:
 ### Documentation and operations maturity
 
 26. **Create explicit data retention schedule table** (S: 2h)
-27. **Add disaster recovery SLOs (RTO/RPO)** (S: 1-2h)
-28. **Write first-responder / on-call runbook** (S: 2-3h)
-29. **Create change-management runbook** (S: 2-3h)
 30. **Formalize ethics/research exemption statement** (S: 1-2h)
 31. **Add error tracking integration (Sentry)** (M: 1 day)
 32. **Add automated uptime monitoring badge** (S: 1-2h) — external monitor (UptimeRobot) is described in the monitoring checklist but public badge and history page are not yet confirmed live as of 2026-03-25
