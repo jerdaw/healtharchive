@@ -1,7 +1,8 @@
 # HealthArchive roadmap
 
 **Current state:** Repository implementation is stable; the aggregate
-data-integrity report and July maintenance/UX batches are complete.
+data-integrity report and July maintenance, UX, and performance batches are
+complete.
 **Last updated:** 2026-07-13
 **Immediate priority:** live integrity evidence, storage/capacity decisions,
 and external-validation proof.
@@ -23,7 +24,7 @@ It is intentionally **not** an implementation plan.
 | P1 | Improve large-job indexing only when live evidence warrants it | Conditional | Use durable progress history to choose checkpointing, detached execution, or an explicit all-at-once rationale |
 | P2 | Resolve WARC-finalization, raw-lookup, or page-search design questions | Decision required | Start a focused plan only after a measured user/operational need selects one option |
 | P2 | Maintain upstream dependency and advisory posture | Conditional maintenance | Act only when a compatible upstream fix exists or a concrete security regression appears |
-| P3 | Bilingual consolidation, Lighthouse automation, and public badges | Later/broad | Reassess after P0/P1 evidence work or when a bounded independent slice is justified |
+| P3 | Bilingual consolidation and public badges | Later/broad | Reassess after P0/P1 evidence work or when a bounded independent slice is justified |
 
 Selection rules:
 
@@ -533,18 +534,8 @@ Completed items were removed from this backlog and archived in:
       do not reintroduce inline copy selection in the completed archive workflow.
     - This remains a broad P3 refactor; divide it by one user-visible surface
       when reselected.
-<!-- Item #36 removed 2026-07-13: the existing frontend CI build now runs a
-loopback-only Lighthouse regression gate over representative home, archive
-search, and demo-snapshot routes, with repeated samples, blocking budgets, and
-three-day failure reports. See
-`implemented/2026-07-13-frontend-lighthouse-performance-gate.md`. -->
 38. **Add coverage badges to READMEs** (S: 1-2h) — P3; requires a durable,
     trustworthy coverage publication source rather than a static claim.
-<!-- Item #42 removed 2026-07-13: `data-integrity-report` now produces
-public-safe aggregate JSON/Markdown with snapshot totals, canonical WARC
-counts, SHA-256 coverage, latest successful crawl metadata, explicit integrity
-status, and atomic artifact output. See
-`implemented/2026-07-13-aggregate-data-integrity-report.md`. -->
 
 ## Adjacent / optional (in this monorepo, not core HA)
 
