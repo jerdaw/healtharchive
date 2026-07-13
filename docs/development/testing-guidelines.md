@@ -56,10 +56,10 @@ crawl and a temporary fail-fast API stub. It therefore measures deterministic
 bundled fallback content rather than production services or mutable live data.
 It enforces conservative performance, accessibility, best-practices, SEO, LCP,
 CLS, TBT, and transfer-size regression floors across the home, archive-search,
-and demo-snapshot surfaces. Reports remain under the ignored
-`frontend/.lighthouseci/` directory; CI uploads them only when the audit fails,
-with three-day retention. Tighten budgets only after repeated runner evidence,
-not from a single unusually fast run.
+and demo-snapshot surfaces. Reports remain in the ignored Lighthouse report
+directory under the frontend workspace; CI uploads them only when the audit
+fails, with three-day retention. Tighten budgets only after repeated runner
+evidence, not from a single unusually fast run.
 
 ## Change-scope local gates
 
