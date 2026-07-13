@@ -201,6 +201,45 @@ def test_invalid_manifest_and_checksum_mismatch_fail_without_leaking_details(
     assert "not json" not in serialized
 
 
+def test_invalid_utf8_manifest_is_bounded_without_leaking_details(
+    db_session: Session, tmp_path: Path
+) -> None:
+    source = Source(code="hc", name="Health Canada")
+    db_session.add(source)
+    db_session.flush()
+    output_dir = tmp_path / "private-invalid-utf8"
+    (output_dir / "warcs").mkdir(parents=True)
+    (output_dir / "warcs" / "warc-000001.warc.gz").write_bytes(b"one")
+    (output_dir / "warcs" / "manifest.json").write_bytes(b"\xff\xfe")
+    _add_job(db_session, source, output_dir)
+    db_session.commit()
+
+    report = build_data_integrity_report(db_session, generated_at=GENERATED_AT)
+    serialized = serialize_data_integrity_json(report)
+
+    assert report["status"] == "fail"
+    assert report["summary"]["issues"] == {
+        "discovery-error": 1,
+        "manifest-invalid": 1,
+    }
+    assert str(tmp_path) not in serialized
+
+
+def test_markdown_escapes_untrusted_source_codes(
+    db_session: Session,
+) -> None:
+    source = Source(code="hc|bad\n<script>", name="Health Canada")
+    db_session.add(source)
+    db_session.commit()
+
+    report = build_data_integrity_report(db_session, generated_at=GENERATED_AT)
+    markdown = render_data_integrity_markdown(report)
+
+    assert "hc|bad" not in markdown
+    assert "<script>" not in markdown
+    assert "hc&#124;bad &lt;script&gt;" in markdown
+
+
 def test_discovery_errors_are_bounded_and_source_without_jobs_is_incomplete(
     db_session: Session, tmp_path: Path, monkeypatch
 ) -> None:

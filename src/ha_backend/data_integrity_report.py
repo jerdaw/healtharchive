@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import html
 import json
 import re
 from collections import Counter
@@ -58,6 +59,8 @@ def _read_manifest_summary(manifest_path: Path) -> tuple[str, int, int]:
         payload = json.loads(manifest_path.read_text(encoding="utf-8"))
     except OSError:
         return "unreadable", 0, 0
+    except UnicodeError:
+        return "invalid", 0, 0
     except json.JSONDecodeError:
         return "invalid", 0, 0
 
@@ -412,6 +415,12 @@ def serialize_data_integrity_json(report: dict[str, Any]) -> str:
     return json.dumps(report, indent=2, sort_keys=True, ensure_ascii=False) + "\n"
 
 
+def _escape_markdown_table_cell(value: object) -> str:
+    """Render untrusted text as one inert Markdown table cell."""
+    normalized = str(value).replace("\r", " ").replace("\n", " ")
+    return html.escape(normalized, quote=False).replace("|", "&#124;")
+
+
 def render_data_integrity_markdown(report: dict[str, Any]) -> str:
     """Render the aggregate report without exposing artifact or host paths."""
     summary = report["summary"]
@@ -446,8 +455,9 @@ def render_data_integrity_markdown(report: dict[str, Any]) -> str:
     for source in report["sources"]:
         latest = source["latest_successful_job"]
         latest_at = latest["finished_at"] if latest is not None else "—"
+        source_code = _escape_markdown_table_cell(source["code"])
         lines.append(
-            f"| {source['code']} | {str(source['status']).upper()} | "
+            f"| {source_code} | {str(source['status']).upper()} | "
             f"{source['snapshot_count']} | {source['successful_job_count']} | "
             f"{source['canonical_warc_files']} | {source['manifest_entries']} | "
             f"{source['checksum_verified_entries']} | {latest_at or '—'} |"
