@@ -1,9 +1,36 @@
 # 2026-02-06: Hot-Path Staleness Root-Cause Investigation
 
 **Plan Version**: v1.4
-**Status**: In Progress (Phases 0-2 implemented in repo; 2026 annual output topology conversion completed on production)
+**Status**: Paused pending a recurrence or an approved maintenance-window drill
+(Phases 0-2 implemented in repo; 2026 annual output topology conversion
+completed on production)
 **Scope**: Determine and mitigate underlying causes of recurring hot-path stale mount events (Errno 107).
 **Batched items**: #6
+
+## Evidence Review And Pause Decision (2026-07-10)
+
+A read-only review of tracked repository history, incident records, and planning
+evidence found no later real-world Errno 107 recurrence recorded after the
+2026-05-06 annual output topology conversion. No new event bundle supplies the
+two-event correlation evidence required by this plan's Phase 2 closure
+criteria.
+
+That absence does not prove the root cause is fixed. It means Phase 3 cannot
+select an evidence-backed mitigation without either inventing a conclusion or
+running an operator-owned production drill. The separate Storage Box retirement
+work also does not by itself satisfy this investigation's exit criteria, so the
+existing detection, recovery, and evidence-capture tooling remains in place.
+
+Reactivate this plan only when one of these triggers occurs:
+
+1. a new Errno 107 event is captured with the pre-repair evidence bundle;
+2. an operator approves a crawl-safe maintenance-window reproduction drill; or
+3. the storage architecture changes materially and the maintainer explicitly
+   decides whether to retire or resume this investigation.
+
+Until then, do not apply speculative sshfs/FUSE option changes or repeatedly
+select Phases 3-5 as autonomous backlog work. This review ran no production
+command and changed no runtime state.
 
 ## Current Operator Decision (as of 2026-05-06)
 
@@ -59,7 +86,8 @@ Verification evidence:
     Storage Box mount is readable.
   - This reduces persistent `HealthArchiveWarcTieringFailed` alert noise from
     historical oneshot unit failures.
-- **Phase 3-5**: Pending.
+- **Phase 3-5**: Paused until a reactivation trigger supplies the required
+  evidence or an approved maintenance window.
 
 ## Current State Summary
 

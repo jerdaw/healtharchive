@@ -11,6 +11,7 @@ Verifies:
 import errno
 import json
 import os
+from pathlib import Path
 from unittest.mock import patch
 
 import pytest
@@ -159,6 +160,67 @@ def test_consolidate_warcs_multiple_files(tmp_path):
     assert len(res.stable_warcs) == 3
     names = sorted([p.name for p in res.stable_warcs])
     assert names == ["warc-000001.warc.gz", "warc-000002.warc.gz", "warc-000003.warc.gz"]
+
+
+def test_consolidate_warcs_reports_hash_progress_for_each_warc(tmp_path):
+    src_dir = tmp_path / "crawl_tmps"
+    src_dir.mkdir()
+    first = src_dir / "first.warc.gz"
+    second = src_dir / "second.warc.gz"
+    first.write_bytes(b"first-data")
+    second.write_bytes(b"second-data")
+    events = []
+
+    result = consolidate_warcs(
+        output_dir=tmp_path / "job_out",
+        source_warc_paths=[first, second],
+        progress_callback=events.append,
+    )
+
+    assert result.created == 2
+    assert {(event.warc_index, event.warc_total) for event in events} >= {(1, 2), (2, 2)}
+    assert any(
+        event.phase == "hash"
+        and event.warc_name == "first.warc.gz"
+        and event.bytes_processed == event.bytes_total == len(b"first-data")
+        for event in events
+    )
+    assert all(Path(event.warc_name).name == event.warc_name for event in events)
+
+
+def test_consolidate_warcs_reports_reuse_and_copy_progress(tmp_path):
+    src_dir = tmp_path / "crawl_tmps"
+    src_dir.mkdir()
+    reused_warc = src_dir / "reused.warc.gz"
+    reused_warc.write_bytes(b"reused")
+    output_dir = tmp_path / "job_out"
+    consolidate_warcs(output_dir=output_dir, source_warc_paths=[reused_warc])
+
+    reuse_events = []
+    consolidate_warcs(
+        output_dir=output_dir,
+        source_warc_paths=[reused_warc],
+        progress_callback=reuse_events.append,
+    )
+    assert any(
+        event.phase == "reuse" and event.bytes_processed == event.bytes_total == len(b"reused")
+        for event in reuse_events
+    )
+
+    copied_warc = src_dir / "copied.warc.gz"
+    copied_warc.write_bytes(b"copied-data")
+    copy_events = []
+    with patch("os.link", side_effect=OSError(errno.EXDEV, "Cross-device link")):
+        consolidate_warcs(
+            output_dir=tmp_path / "copy-out",
+            source_warc_paths=[copied_warc],
+            allow_copy_fallback=True,
+            progress_callback=copy_events.append,
+        )
+    assert any(
+        event.phase == "copy" and event.bytes_processed == event.bytes_total == len(b"copied-data")
+        for event in copy_events
+    )
 
 
 def test_compute_job_storage_stats(tmp_path):

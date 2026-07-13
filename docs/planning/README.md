@@ -4,14 +4,20 @@
 
 - Future roadmap (what is *not* implemented yet): `roadmap.md`
 
-## Implementation plans (active)
+## Implementation plans
 
 Implementation plans live directly under `docs/planning/` while they are active.
 When complete, move them to `docs/planning/implemented/` and date them.
 
 Active plans:
 
+- None.
+
+Paused or conditional plans:
+
 - Hot-path staleness root-cause investigation: `2026-02-06-hotpath-staleness-root-cause-investigation.md`
+  - Reactivate only after a captured Errno 107 recurrence, an approved
+    maintenance-window drill, or an explicit storage-architecture disposition.
 
 ## Current priority sequence
 
@@ -51,6 +57,8 @@ Current known items:
     notes/baseline records match the deployed state.
 
 Recently closed items:
+
+- Frontend locale/global error recovery boundaries: `implemented/2026-07-10-frontend-error-boundaries.md`
 
 - 2026 CIHR WARC compaction closeout:
   - Current state: completed. The staged compacted WARC set was promoted after
@@ -122,6 +130,10 @@ Recently closed items:
   `implemented/2026-07-10-canonical-architecture-diagrams.md`
 - Frontend internal link checking and canonical locale routing:
   `implemented/2026-07-10-frontend-internal-link-check.md`
+- Deterministic documentation reference checks:
+  `implemented/2026-07-11-deterministic-docs-references.md`
+- Repository issue forms:
+  `implemented/2026-07-11-repository-issue-forms.md`
 - Autonomous overnight maintenance queue:
   `implemented/2026-06-28-autonomous-overnight-work-plan.md`
 - Storage budget and WARC promotion hardening:
@@ -129,6 +141,8 @@ Recently closed items:
 - Annual crawl storage guardrails:
   `implemented/2026-06-11-annual-crawl-storage-guardrails.md`
 - WARC compaction staging: `implemented/2026-06-05-warc-compaction-staging.md`
+- WARC-complete finalization failure alert:
+  `implemented/2026-07-10-warc-finalization-alert.md`
 - Public search and CIHR follow-through:
   `implemented/2026-05-05-public-search-and-cihr-followthrough.md`
 - Annual edition recovery handoff docs:
@@ -148,6 +162,8 @@ Recently closed items:
 - Disk usage investigation (48GB discrepancy): `implemented/2026-02-01-disk-usage-investigation.md`
 - WARC discovery consistency improvements (partial): `implemented/2026-01-29-warc-discovery-consistency.md`
 - WARC manifest verification: `implemented/2026-01-29-warc-manifest-verification.md`
+- Content report stable/temp/fallback WARC union: `implemented/2026-07-10-content-report-warc-union.md`
+- Bounded WARC manifest discovery status: `implemented/2026-07-10-warc-manifest-discovery-status.md`
 - Patch-job-config CLI + integration tests: `implemented/2026-01-28-patch-job-config-and-integration-tests.md`
 - archive_tool hardening + ops improvements: `implemented/2026-01-27-archive-tool-hardening-and-ops-improvements.md`
 - Annual crawl throughput and WARC-first artifacts: `implemented/2026-01-23-annual-crawl-throughput-and-artifacts.md`

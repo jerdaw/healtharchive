@@ -205,11 +205,6 @@ Keep this list short; prefer linking to the canonical doc that explains the item
 
 ### Crawling & indexing reliability (backend)
 
-- WARC discovery consistency follow-through (remaining work: keep non-indexing
-  operator scripts aligned with union stable/temp/fallback discovery as new
-  shard tooling matures).
-  - Historical context: `implemented/2026-01-29-warc-discovery-consistency.md`
-  - Already implemented: `implemented/2026-01-29-warc-manifest-verification.md`
 - Annual edition/shard convergence follow-through.
   - First-pass implementation now models `{source, year}` as `AnnualEdition`,
     attaches legacy 2026 jobs as salvage shards, reconciles completed-job
@@ -247,8 +242,6 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     - `annual-status` and `show-job` surface
       `warc-complete-finalization-failed` with an operator note
   - Remaining work:
-    - add a metric/alert for accepted WARC-complete finalization failures if
-      this state recurs in a future run
     - decide whether WARC-only jobs should suppress Zimit's internal
       `warc2zim` path, or tolerate that finalization failure only after WARC
       completeness is proven
@@ -262,18 +255,26 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     operators had to infer health from `/proc/<pid>/io`, `lsof`, CPU, and
     current open WARC paths because application logs and database-visible state
     did not show live progress.
+  - Delivered 2026-07-10:
+    - durable, throttled progress heartbeats during stable WARC consolidation
+      and indexing, including phase, current WARC basename, WARC index / total,
+      byte and record counters, elapsed time, and last-progress timestamp
+    - a separate short-transaction progress table that preserves the atomic
+      all-at-once snapshot transaction while making liveness database-visible
+    - operator output in `show-job` and `annual-status`; private `ha-check`
+      consumers inherit the annual-status payload
+    - low-cardinality `healtharchive_indexing_progress_*` metrics for heartbeat
+      age and numeric progress, with no WARC path/name label and no alert until
+      live history supports a reliable threshold
+    - handled failures retain their final progress row for diagnosis; successful
+      indexing clears it only after the snapshot transaction commits
+    - private operator guidance now correlates durable progress, client
+      ownership, exact `pg_stat_activity` evidence, blockers, rollback-safe
+      exact-backend-identity termination, and normal reconciliation recovery;
+      the procedure remains in the private/shared operations source of truth
   - Remaining work:
-    - add progress heartbeats/logging during stable WARC consolidation and long
-      WARC indexing runs, including current phase, current WARC, WARC index /
-      total, bytes or records processed where available, elapsed time, and
-      last-progress timestamp
-    - expose enough indexing progress outside the final all-at-once transaction
-      for `show-job`, `annual-status`, `ha-check`, and metrics to distinguish
-      "healthy but quiet" from "stalled"
     - evaluate safer transaction/checkpoint behavior for very large jobs, or
       document why the current all-at-once transaction remains required
-    - add clearer stale-transaction detection/remediation guidance for manual
-      reconciles
     - provide a first-class detached-run wrapper or runbook pattern for
       production `reconcile-completed-indexing`
     - ensure operators can distinguish healthy CPU-bound parsing from a stale
@@ -386,13 +387,13 @@ Completed items were removed from this backlog and archived in:
 3. **Add a code of conduct to all repos** (S: 1h)
 4. **Add LICENSE to datasets repo** (S: 30m) — confirmed still missing as of 2026-03-25
 5. **Add GitHub issue and PR templates across repos** (S: 2-3h) -
-   this monorepo has PR guidance; issue templates and remaining repo coverage
-   are still not confirmed.
+   this monorepo now has structured bug and feature issue forms, specialized
+   report routing, and PR guidance. Coverage in repositories outside this
+   checkout remains unverified.
 7. **Add changelog/release tags to backend and frontend** (M: 1 day)
 
 ### Reliability, security, and CI
 
-24. **Add frontend error boundary components** (M: 1 day)
 25. **Track the frontend Next/PostCSS production dependency advisory until an upstream-safe fix exists** (S: 1-2h)
     - Current evidence: `npm audit --omit=dev --json` on 2026-05-06 reports
       the PostCSS XSS advisory through `next@16.2.4` / bundled `postcss`;

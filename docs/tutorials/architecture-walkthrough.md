@@ -539,5 +539,6 @@ Now that you understand the architecture:
 - **How do I improve search ranking?** Review search logic in `routes_public.py:885-946`
 - **Where are WARCs stored long-term?** In the job's output directory under `archive_root`
 
-Still have questions? Open a GitHub Discussion or issue with the source,
-command, and local environment details needed to reproduce the problem.
+Still have questions? Use the [contact page](https://healtharchive.ca/contact).
+For a reproducible technical problem, open an issue with the source, command,
+and local environment details needed to reproduce it.
