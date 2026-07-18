@@ -94,11 +94,11 @@ security:
 	$(BANDIT) -r src/ha_backend -q -c pyproject.toml
 
 audit:
-	$(PYTHON_RUN) -m pip install --upgrade pip
+	$(PYTHON_RUN) -m pip install --upgrade pip "setuptools>=83.0.0"
 	$(PIP_AUDIT) --ignore-vuln CVE-2026-4539  # pygments, no fix available
 
 audit-ci:
-	$(PYTHON_RUN) -m pip install --upgrade pip
+	$(PYTHON_RUN) -m pip install --upgrade pip "setuptools>=83.0.0"
 	$(PIP_AUDIT) --ignore-vuln CVE-2026-4539  # pygments, no fix available
 
 migration-guard:
