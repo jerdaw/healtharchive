@@ -1,9 +1,9 @@
 # HealthArchive roadmap
 
 **Current state:** Repository implementation is stable; the aggregate
-data-integrity report and July maintenance, UX, and performance batches are
-complete.
-**Last updated:** 2026-07-13
+data-integrity report and July maintenance, UX, and performance batches,
+including the coverage-validated stats fast path, are complete.
+**Last updated:** 2026-07-18
 **Immediate priority:** live integrity evidence, storage/capacity decisions,
 and external-validation proof.
 **Repository-only execution queue:** empty until a trigger in the table below

@@ -17,6 +17,7 @@ export type HomeCopy = {
   projectSnapshot: {
     heading: string;
     liveSubtext: string;
+    partialLiveSubtext: string;
     offlineSubtext: string;
     archivedSnapshots: string;
     snapshotsUnit: string;
@@ -112,6 +113,8 @@ const homeCopyEn: HomeCopy = {
   projectSnapshot: {
     heading: "Project snapshot",
     liveSubtext: "Live metrics from the archive backend.",
+    partialLiveSubtext:
+      "Live source totals loaded; the unique-page total is temporarily unavailable.",
     offlineSubtext: "Showing a limited offline sample while the live API is unavailable.",
     archivedSnapshots: "Archived snapshots",
     snapshotsUnit: "snapshots",
@@ -252,6 +255,8 @@ const homeCopyFr: HomeCopy = {
   projectSnapshot: {
     heading: "Aper\u00e7u du projet",
     liveSubtext: "M\u00e9triques en direct depuis le backend de l\u2019archive.",
+    partialLiveSubtext:
+      "Les totaux des sources sont charg\u00e9s; le total des pages uniques est temporairement indisponible.",
     offlineSubtext:
       "Affichage d\u2019un \u00e9chantillon hors ligne limit\u00e9 pendant que l\u2019API en direct est indisponible.",
     archivedSnapshots: "Captures archiv\u00e9es",

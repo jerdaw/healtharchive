@@ -43,6 +43,14 @@ Some plans are "implemented in repo" but still require a short, operator-run mai
 
 Current known items:
 
+- Stats endpoint fast-path deployment and verification:
+  - Deploy the coverage-validated `pages` rollup fast path and homepage
+    partial-live fallback.
+  - Verify `/api/stats` stays within the frontend's eight-second request
+    budget across repeated samples, then confirm English and French aggregate
+    metrics after cache revalidation.
+  - Implementation record:
+    `implemented/2026-07-18-stats-fast-path-and-homepage-resilience.md`
 - Zero-new-spend storage/baseline wrap-up retrospective:
   - Timing: run about 24 hours after the production deploy and cache/baseline
     maintenance window.
@@ -118,6 +126,8 @@ Recently closed items:
 ## Implemented plans (history)
 
 - Implemented plans archive: `implemented/README.md`
+- Stats fast path and homepage resilience:
+  `implemented/2026-07-18-stats-fast-path-and-homepage-resilience.md`
 - Homepage fetch and source-link accessibility:
   `implemented/2026-07-10-homepage-fetch-accessibility.md`
 - Test and capture resource hygiene:
