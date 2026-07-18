@@ -1828,6 +1828,14 @@ Public Pydantic models:
     }
     ```
 
+  - Uses the maintained `pages` metadata rollup for page, source, and latest
+    capture totals when its summed snapshot coverage matches the authoritative
+    `snapshots` count.
+  - Falls back to exact canonical grouping over `snapshots` when the rollup is
+    absent or stale. This coverage guard prevents fast but incomplete public
+    totals while keeping the normal production path within the frontend request
+    budget.
+
 - `GET /api/sources`:
 
   - Aggregates `Snapshot` by `source_id`:
