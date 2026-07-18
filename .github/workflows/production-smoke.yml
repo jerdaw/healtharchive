@@ -22,7 +22,7 @@ jobs:
         run: |
           curl -sSI https://www.healtharchive.ca > www.headers
           grep -Eq '^HTTP/.* (301|308)' www.headers
-          grep -Eqi '^location: https://healtharchive\.ca/?$' www.headers
+          grep -Eqi '^location: https://healtharchive\.ca/?\r?$' www.headers
 
       - name: Verify API health
         run: |
