@@ -74,6 +74,7 @@ from ha_backend.models import (
     SnapshotChange,
     Source,
 )
+from ha_backend.pages import build_snapshot_page_group_key
 from ha_backend.rate_limiting import (
     RATE_LIMIT_EXPORTS,
     RATE_LIMIT_REPORTS,
@@ -3196,25 +3197,47 @@ def get_archive_stats(response: Response, db: Session = Depends(get_db)) -> Arch
 
     snapshots_total = int(db.query(func.count(Snapshot.id)).scalar() or 0)
 
-    distinct_pages = (
-        db.query(
-            Snapshot.source_id.label("source_id"),
-            func.coalesce(Snapshot.normalized_url_group, Snapshot.url).label("group_key"),
+    # The pages table is the maintained metadata rollup for public page-level
+    # browsing. Prefer it here as well: counting distinct URL groups directly
+    # across a large Snapshot corpus can exceed the frontend request budget.
+    #
+    # Guard the fast path with snapshot coverage so an absent, stale, or
+    # partially rebuilt rollup never produces plausible-but-incomplete public
+    # totals. The exact Snapshot query remains the compatibility fallback.
+    page_rollup = None
+    if _has_table(db, "pages"):
+        page_rollup = db.query(
+            func.count(Page.id),
+            func.coalesce(func.sum(Page.snapshot_count), 0),
+            func.count(func.distinct(Page.source_id)),
+            func.max(Page.last_capture_timestamp),
+        ).one()
+
+    if page_rollup is not None and int(page_rollup[1] or 0) == snapshots_total:
+        pages_total = int(page_rollup[0] or 0)
+        sources_total = int(page_rollup[2] or 0)
+        latest_capture_ts = page_rollup[3]
+    else:
+        group_key = build_snapshot_page_group_key(dialect_name=db.get_bind().dialect.name)
+        distinct_pages = (
+            db.query(
+                Snapshot.source_id.label("source_id"),
+                group_key.label("group_key"),
+            )
+            .filter(Snapshot.source_id.isnot(None))
+            .distinct()
+            .subquery()
         )
-        .filter(Snapshot.source_id.isnot(None))
-        .distinct()
-        .subquery()
-    )
-    pages_total = int(db.query(func.count()).select_from(distinct_pages).scalar() or 0)
+        pages_total = int(db.query(func.count()).select_from(distinct_pages).scalar() or 0)
 
-    sources_total = int(
-        db.query(func.count(func.distinct(Snapshot.source_id)))
-        .filter(Snapshot.source_id.isnot(None))
-        .scalar()
-        or 0
-    )
+        sources_total = int(
+            db.query(func.count(func.distinct(Snapshot.source_id)))
+            .filter(Snapshot.source_id.isnot(None))
+            .scalar()
+            or 0
+        )
 
-    latest_capture_ts = db.query(func.max(Snapshot.capture_timestamp)).scalar()
+        latest_capture_ts = db.query(func.max(Snapshot.capture_timestamp)).scalar()
     latest_capture_date: Optional[str] = None
     latest_capture_age_days: Optional[int] = None
     if latest_capture_ts:

@@ -659,7 +659,11 @@ All in `src/data/demo-records.ts`:
 - Starts archive-statistics, source-summary, and recent-change requests
   concurrently. Each request has its own failure fallback, so an unavailable
   endpoint does not discard successful responses from the others.
-- If the backend API is unreachable, falls back to the bundled offline sample dataset (`demoRecords`).
+- If archive statistics fail while source summaries succeed, keeps the live
+  source and snapshot totals, labels the state as partial, and omits the
+  unavailable unique-page metric.
+- If both archive statistics and source summaries are unreachable, falls back
+  to the bundled offline sample dataset (`demoRecords`).
 - Featured-source links retain their visible "Browse →" / "Parcourir →"
   copy and destinations while exposing source-specific English or French
   accessible names.

@@ -123,4 +123,23 @@ describe("Home page data", () => {
     expect(screen.getByText("Parallel Test Source")).toBeInTheDocument();
     expect(mockFetchChanges).toHaveBeenCalledWith({ pageSize: 5 });
   });
+
+  it("keeps accurate partial live metrics when only archive stats fail", async () => {
+    mockFetchArchiveStats.mockRejectedValue(new Error("stats unavailable"));
+    mockFetchSources.mockResolvedValue(sourcesFixture);
+    mockFetchChanges.mockRejectedValue(new Error("changes unavailable"));
+
+    const ui = await HomePage({ params: Promise.resolve({ locale: "en" }) });
+    render(<LocaleProvider locale="en">{ui}</LocaleProvider>);
+
+    expect(
+      screen.getByText(
+        "Live source totals loaded; the unique-page total is temporarily unavailable.",
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Archived snapshots")).toBeInTheDocument();
+    expect(screen.getByText("Sources tracked")).toBeInTheDocument();
+    expect(screen.queryByText("Unique pages")).not.toBeInTheDocument();
+    expect(screen.getByText("Parallel Test Source")).toBeInTheDocument();
+  });
 });

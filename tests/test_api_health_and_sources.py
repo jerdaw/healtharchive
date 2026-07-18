@@ -7,7 +7,7 @@ from fastapi.testclient import TestClient
 
 from ha_backend import db as db_module
 from ha_backend.db import Base, get_engine, get_session
-from ha_backend.models import ArchiveJob, Snapshot, Source
+from ha_backend.models import ArchiveJob, Page, Snapshot, Source
 
 
 def _init_test_app(tmp_path: Path, monkeypatch):
@@ -986,3 +986,189 @@ def test_stats_endpoint_with_data(tmp_path, monkeypatch) -> None:
         0,
         (datetime.now(timezone.utc).date() - datetime(2025, 2, 1, tzinfo=timezone.utc).date()).days,
     )
+
+
+def test_stats_endpoint_uses_complete_page_rollup(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    def fail_if_fallback_runs(*, dialect_name: str):
+        raise AssertionError(f"unexpected Snapshot fallback for {dialect_name}")
+
+    monkeypatch.setattr(
+        "ha_backend.api.routes_public.build_snapshot_page_group_key", fail_if_fallback_runs
+    )
+
+    with get_session() as session:
+        source = Source(code="hc", name="Health Canada", enabled=True)
+        session.add(source)
+        session.flush()
+
+        ts1 = datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc)
+        ts2 = datetime(2025, 2, 1, 12, 0, tzinfo=timezone.utc)
+        group = "https://www.canada.ca/en/health-canada.html"
+        snapshots = [
+            Snapshot(
+                source_id=source.id,
+                url=group,
+                normalized_url_group=group,
+                capture_timestamp=ts1,
+                mime_type="text/html",
+                status_code=200,
+                title="HC Home",
+                snippet="First capture",
+                language="en",
+                warc_path="/warcs/hc1.warc.gz",
+                warc_record_id="hc-1",
+            ),
+            Snapshot(
+                source_id=source.id,
+                url=f"{group}?updated=1",
+                normalized_url_group=group,
+                capture_timestamp=ts2,
+                mime_type="text/html",
+                status_code=200,
+                title="HC Home Updated",
+                snippet="Second capture",
+                language="en",
+                warc_path="/warcs/hc2.warc.gz",
+                warc_record_id="hc-2",
+            ),
+        ]
+        session.add_all(snapshots)
+        session.flush()
+        session.add(
+            Page(
+                source_id=source.id,
+                normalized_url_group=group,
+                first_capture_timestamp=ts1,
+                last_capture_timestamp=ts2,
+                snapshot_count=2,
+                latest_snapshot_id=snapshots[1].id,
+                latest_ok_snapshot_id=snapshots[1].id,
+            )
+        )
+
+    resp = client.get("/api/stats")
+    assert resp.status_code == 200
+    body = resp.json()
+
+    assert body["snapshotsTotal"] == 2
+    assert body["pagesTotal"] == 1
+    assert body["sourcesTotal"] == 1
+    assert body["latestCaptureDate"] == "2025-02-01"
+
+
+def test_stats_endpoint_falls_back_when_page_rollup_is_incomplete(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    with get_session() as session:
+        source = Source(code="hc", name="Health Canada", enabled=True)
+        session.add(source)
+        session.flush()
+
+        ts1 = datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc)
+        ts2 = datetime(2025, 2, 1, 12, 0, tzinfo=timezone.utc)
+        first_group = "https://www.canada.ca/en/health-canada.html"
+        second_group = "https://www.canada.ca/en/health-canada/services.html"
+        snapshots = [
+            Snapshot(
+                source_id=source.id,
+                url=first_group,
+                normalized_url_group=first_group,
+                capture_timestamp=ts1,
+                mime_type="text/html",
+                status_code=200,
+                title="HC Home",
+                snippet="First page",
+                language="en",
+                warc_path="/warcs/hc1.warc.gz",
+                warc_record_id="hc-1",
+            ),
+            Snapshot(
+                source_id=source.id,
+                url=second_group,
+                normalized_url_group=second_group,
+                capture_timestamp=ts2,
+                mime_type="text/html",
+                status_code=200,
+                title="HC Services",
+                snippet="Second page",
+                language="en",
+                warc_path="/warcs/hc2.warc.gz",
+                warc_record_id="hc-2",
+            ),
+        ]
+        session.add_all(snapshots)
+        session.flush()
+        session.add(
+            Page(
+                source_id=source.id,
+                normalized_url_group=first_group,
+                first_capture_timestamp=ts1,
+                last_capture_timestamp=ts1,
+                snapshot_count=1,
+                latest_snapshot_id=snapshots[0].id,
+                latest_ok_snapshot_id=snapshots[0].id,
+            )
+        )
+
+    resp = client.get("/api/stats")
+    assert resp.status_code == 200
+    body = resp.json()
+
+    assert body["snapshotsTotal"] == 2
+    assert body["pagesTotal"] == 2
+    assert body["sourcesTotal"] == 1
+    assert body["latestCaptureDate"] == "2025-02-01"
+
+
+def test_stats_endpoint_fallback_uses_canonical_page_grouping(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+
+    with get_session() as session:
+        source = Source(code="hc", name="Health Canada", enabled=True)
+        session.add(source)
+        session.flush()
+
+        ts1 = datetime(2025, 1, 1, 12, 0, tzinfo=timezone.utc)
+        ts2 = datetime(2025, 2, 1, 12, 0, tzinfo=timezone.utc)
+        base_url = "https://www.canada.ca/en/health-canada/services.html"
+        session.add_all(
+            [
+                Snapshot(
+                    source_id=source.id,
+                    url=f"{base_url}?topic=one",
+                    normalized_url_group=None,
+                    capture_timestamp=ts1,
+                    mime_type="text/html",
+                    status_code=200,
+                    title="HC Services",
+                    snippet="First capture",
+                    language="en",
+                    warc_path="/warcs/hc1.warc.gz",
+                    warc_record_id="hc-1",
+                ),
+                Snapshot(
+                    source_id=source.id,
+                    url=f"{base_url}#section",
+                    normalized_url_group=None,
+                    capture_timestamp=ts2,
+                    mime_type="text/html",
+                    status_code=200,
+                    title="HC Services",
+                    snippet="Second capture",
+                    language="en",
+                    warc_path="/warcs/hc2.warc.gz",
+                    warc_record_id="hc-2",
+                ),
+            ]
+        )
+
+    resp = client.get("/api/stats")
+    assert resp.status_code == 200
+    body = resp.json()
+
+    assert body["snapshotsTotal"] == 2
+    assert body["pagesTotal"] == 1
+    assert body["sourcesTotal"] == 1
+    assert body["latestCaptureDate"] == "2025-02-01"

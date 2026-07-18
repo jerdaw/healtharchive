@@ -23,7 +23,8 @@ IntegrityStatus = Literal["pass", "incomplete", "fail"]
 SCHEMA_VERSION = 1
 SUCCESSFUL_JOB_STATUSES = frozenset({"completed", "indexed"})
 _SHA256_RE = re.compile(r"^[0-9a-fA-F]{64}$")
-_STATUS_RANK: dict[IntegrityStatus, int] = {"pass": 0, "incomplete": 1, "fail": 2}
+_STATUS_ORDER: tuple[IntegrityStatus, ...] = ("pass", "incomplete", "fail")
+_STATUS_RANK = {status: rank for rank, status in enumerate(_STATUS_ORDER)}
 
 
 def _isoformat(value: datetime | None) -> str | None:

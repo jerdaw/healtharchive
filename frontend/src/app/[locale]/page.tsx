@@ -43,9 +43,14 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
   ]);
 
   const usingBackendStats = stats != null;
-  const recordCount = stats?.snapshotsTotal ?? fallbackRecordCount;
+  const usingPartialBackendStats = stats == null && apiSources != null;
+  const sourceRecordCount = apiSources?.reduce((total, source) => total + source.recordCount, 0);
+  const recordCount = stats?.snapshotsTotal ?? sourceRecordCount ?? fallbackRecordCount;
   const pageCount = stats?.pagesTotal ?? fallbackPageCount;
-  const sourceCount = stats?.sourcesTotal ?? 2;
+  const sourceCount = stats?.sourcesTotal ?? apiSources?.length ?? 2;
+  const snapshotMetricIds = usingPartialBackendStats
+    ? ["records", "sources"]
+    : ["records", "pages", "sources"];
 
   const featuredSources: SourceSummary[] =
     apiSources ??
@@ -94,7 +99,7 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
 
           {/* Side card — Project snapshot */}
           <div className="ha-card ha-card-elevated p-4 sm:p-5">
-            <ProjectSnapshotOrchestrator expectedIds={["records", "pages", "sources"]} />
+            <ProjectSnapshotOrchestrator expectedIds={snapshotMetricIds} />
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-[var(--text)]">
@@ -103,7 +108,9 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 <p className="text-ha-muted text-xs">
                   {usingBackendStats
                     ? copy.projectSnapshot.liveSubtext
-                    : copy.projectSnapshot.offlineSubtext}
+                    : usingPartialBackendStats
+                      ? copy.projectSnapshot.partialLiveSubtext
+                      : copy.projectSnapshot.offlineSubtext}
                 </p>
               </div>
             </div>
@@ -118,16 +125,18 @@ export default async function HomePage({ params }: { params: Promise<{ locale: s
                 startEvent="ha-trackchanges-finished"
                 completeEvent="ha-metric-finished"
               />
-              <AnimatedMetric
-                id="pages"
-                label={copy.projectSnapshot.uniquePages}
-                value={pageCount}
-                unit={copy.projectSnapshot.pagesUnit}
-                showBar={false}
-                start={false}
-                startEvent="ha-trackchanges-finished"
-                completeEvent="ha-metric-finished"
-              />
+              {!usingPartialBackendStats && (
+                <AnimatedMetric
+                  id="pages"
+                  label={copy.projectSnapshot.uniquePages}
+                  value={pageCount}
+                  unit={copy.projectSnapshot.pagesUnit}
+                  showBar={false}
+                  start={false}
+                  startEvent="ha-trackchanges-finished"
+                  completeEvent="ha-metric-finished"
+                />
+              )}
               <AnimatedMetric
                 id="sources"
                 label={copy.projectSnapshot.sourcesTracked}
