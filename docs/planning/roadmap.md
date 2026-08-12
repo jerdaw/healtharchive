@@ -13,7 +13,9 @@ Current dataset publication posture:
 `../decisions/2026-08-12-dataset-publication-and-stewardship.md`.
 
 **Rollout status (2026-08-12):** the prerequisite datasets controls are
-published and verified at `802a91168ef6d315d22c8e14a14a33182b354cd5`.
+published and verified through PR 15 at
+`802a91168ef6d315d22c8e14a14a33182b354cd5`; the time-robust rights wording is
+published at final datasets state `ba39fd13315d32db78edc47fbcd90c98109b6b22`.
 Scheduled publication and keepalive are absent, manual dispatch remains, the
 rights notice resolves, and the 15/24 schema guards pass. Monorepo PR 154 is the
 remaining normally reviewed, rollback-confirmed public-claim deployment.

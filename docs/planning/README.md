@@ -26,9 +26,11 @@ Treat the following as the current "what's next" order across roadmap docs:
 1. Complete monorepo PR 154 through normal review and the established safe
    deployment path.
    - The prerequisite datasets controls were published and verified on
-     2026-08-12 at `802a91168ef6d315d22c8e14a14a33182b354cd5`: schedules are
-     absent, manual dispatch remains, the conservative rights notice resolves,
-     and the 15-snapshot / 24-change schema guards pass.
+     2026-08-12 through PR 15 (`802a91168ef6d315d22c8e14a14a33182b354cd5`),
+     with the time-robust rights wording finalized through PR 16 at
+     `ba39fd13315d32db78edc47fbcd90c98109b6b22`. Schedules are absent, manual
+     dispatch remains, the conservative rights notice resolves, and the
+     15-snapshot / 24-change schema guards pass.
    - Merge the monorepo patch only after its required checks pass, then deploy
      only with a confirmed rollback and verify the English/French public
      claims, JSON-LD, rights links, and documentation surfaces.
