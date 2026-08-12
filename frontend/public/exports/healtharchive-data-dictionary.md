@@ -23,6 +23,8 @@ Fields:
 - `status_code` — HTTP status recorded during capture (if available).
 - `mime_type` — content type recorded during capture (if available).
 - `title` — extracted page title (if available).
+- `capture_backend` — capture-system identifier recorded by HealthArchive.
+- `capture_fidelity` — capture-fidelity label assigned by HealthArchive.
 - `job_id` — archive job ID (edition anchor, if available).
 - `job_name` — archive job name (edition label, if available).
 - `snapshot_url` — stable public URL to the snapshot detail page.

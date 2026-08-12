@@ -70,8 +70,9 @@ function GovernanceEnglishContent({ copy }: { copy: SiteCopy }) {
         </p>
         <ul className="text-ha-muted list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
           <li>
-            We prioritize federal sources such as the Public Health Agency of Canada and Health
-            Canada, plus other high-impact public health agencies as capacity allows.
+            The current corpus includes federal sources such as the Public Health Agency of Canada
+            and Health Canada. Adding any source requires a separately authorized data-continuity
+            decision.
           </li>
           <li>
             Sources must be publicly accessible, stable enough to capture with clear provenance
@@ -83,24 +84,28 @@ function GovernanceEnglishContent({ copy }: { copy: SiteCopy }) {
           </li>
         </ul>
         <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
-          Reliability and provenance take priority over expanding coverage. If a source cannot be
-          archived responsibly, it stays out of scope.
+          Reliability and provenance take priority over breadth. If a source cannot be archived
+          responsibly, it stays out of scope.
         </p>
       </section>
 
       <section className="ha-content-section space-y-5">
         <h2 className="ha-section-heading" id="cadence">
-          Capture cadence policy
+          Capture edition policy
         </h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
-          HealthArchive publishes annual capture editions by default and labels any ad-hoc captures
-          explicitly.
+          The existing corpus contains labeled annual editions and, where applicable, explicitly
+          labeled ad-hoc captures. This history does not establish a future cadence.
         </p>
         <ul className="text-ha-muted list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
-          <li>Annual editions are captured on Jan 01 (UTC) for each source.</li>
+          <li>Existing editions retain their actual capture dates and source labels.</li>
           <li>
-            Ad-hoc captures may occur after major events or operational needs and are labeled as
-            such.
+            Existing ad-hoc captures, where present, are explicitly labeled so they can be
+            distinguished from annual editions.
+          </li>
+          <li>
+            Any new scheduled or ad-hoc capture requires a separately authorized data-continuity
+            decision.
           </li>
           <li>
             Change feeds and digests are edition-aware and should not be read as real-time
@@ -142,8 +147,8 @@ function GovernanceEnglishContent({ copy }: { copy: SiteCopy }) {
           </li>
           <li>High-noise changes (layout shifts or boilerplate updates) are labeled explicitly.</li>
           <li>
-            Default feeds are edition-aware, reflecting the archive’s annual capture cadence rather
-            than implying “real-time” updates.
+            Default feeds are edition-aware and reflect labeled editions in the existing corpus
+            rather than implying real-time updates or a future annual cadence.
           </li>
         </ul>
       </section>
@@ -198,11 +203,11 @@ function GovernanceEnglishContent({ copy }: { copy: SiteCopy }) {
 
       <section className="ha-content-section space-y-5">
         <h2 className="ha-section-heading" id="advisory">
-          Advisory circle
+          Outside stewardship input
         </h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
-          HealthArchive is seeking a small advisory circle (2-4 people) to review scope, governance,
-          and risk posture.
+          HealthArchive may seek bounded, qualified input when a specific scope, governance, or risk
+          question is separately authorized and operator capacity is available.
         </p>
         <ul className="text-ha-muted list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
           <li>Digital preservation / library or archival expertise.</li>
@@ -210,8 +215,9 @@ function GovernanceEnglishContent({ copy }: { copy: SiteCopy }) {
           <li>Science communication or journalism background.</li>
         </ul>
         <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
-          Advisory participation is quarterly and policy-focused, not operational. If you are
-          interested, please reach out via the contact page.
+          No standing advisory recruitment or quarterly participation program is active. Inbound
+          feedback may be submitted through the contact page for assessment, without a commitment to
+          begin a review or collaboration.
         </p>
       </section>
 
@@ -266,8 +272,9 @@ export default async function GovernancePage({ params }: { params: Promise<{ loc
                 règles d’inclusion/exclusion explicites.
               </li>
               <li>
-                <strong>Cadence :</strong> éditions annuelles par défaut, avec captures ponctuelles
-                étiquetées.
+                <strong>Éditions :</strong> éditions annuelles et captures ponctuelles existantes
+                étiquetées; toute future capture nécessite une décision de continuité des données
+                autorisée séparément.
               </li>
               <li>
                 <strong>Provenance :</strong> horodatage (UTC), URL originale, et URL stable de

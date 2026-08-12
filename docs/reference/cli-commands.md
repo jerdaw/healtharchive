@@ -736,9 +736,19 @@ Seeded source: cihr (Canadian Institutes of Health Research)
 
 ## Annual Campaign
 
+!!! warning "Capability is not authorization"
+    These commands document available software behavior; they do not authorize
+    a capture campaign or establish an annual cadence. Before using any
+    mutating option such as `schedule-annual --apply` or
+    `plan-annual-shards --apply`, the maintainer must separately authorize a
+    data-continuity decision covering rights, storage, restore/replay,
+    automation reliability, and operator capacity. Without that decision, use
+    non-mutating inspection only and do not enqueue jobs.
+
 ### schedule-annual
 
-Plan or enqueue Jan 01 (UTC) annual campaign jobs for `hc`, `phac`, and `cihr`.
+Plan or enqueue Jan 01 (UTC) jobs for a separately authorized annual campaign
+covering `hc`, `phac`, and `cihr`.
 
 **Usage**:
 ```bash
@@ -752,7 +762,7 @@ healtharchive schedule-annual --year YEAR --apply --ack-storage-policy \
 # Show what would be created
 healtharchive schedule-annual --year 2026
 
-# Actually create jobs
+# After a separate data-continuity decision, create the authorized jobs
 healtharchive schedule-annual --year 2026 --apply --ack-storage-policy \
   --storage-budget-file annual-storage-budget-2026.json
 ```
@@ -903,7 +913,8 @@ healtharchive plan-annual-shards --year YEAR [--sources hc phac cihr] [--apply]
 ```
 
 Dry-run output lists the shard keys and seed URLs. `--apply` creates queued
-`ArchiveJob` rows tied to the annual edition.
+`ArchiveJob` rows tied to the annual edition. The section-level authorization
+warning applies to this mutating option.
 
 ### annual-edition-report
 

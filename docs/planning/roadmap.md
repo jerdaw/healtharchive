@@ -3,11 +3,22 @@
 **Current state:** Repository implementation is stable; the aggregate
 data-integrity report and July maintenance, UX, and performance batches,
 including the coverage-validated stats fast path, are complete.
-**Last updated:** 2026-07-18
-**Immediate priority:** live integrity evidence, storage/capacity decisions,
-and external-validation proof.
+**Last updated:** 2026-08-12
+**Immediate priority:** dataset rights/release containment and an explicit
+data-continuity disposition; there is no active conversion campaign.
 **Repository-only execution queue:** empty until a trigger in the table below
 is satisfied.
+
+Current dataset publication posture:
+`../decisions/2026-08-12-dataset-publication-and-stewardship.md`.
+
+**Rollout status (2026-08-12):** the prerequisite datasets controls are
+published and verified through PR 15 at
+`802a91168ef6d315d22c8e14a14a33182b354cd5`; the time-robust rights wording is
+published at final datasets state `ba39fd13315d32db78edc47fbcd90c98109b6b22`.
+Scheduled publication and keepalive are absent, manual dispatch remains, the
+rights notice resolves, and the 15/24 schema guards pass. Monorepo PR 154 is the
+remaining normally reviewed, rollback-confirmed public-claim deployment.
 
 This file tracks **not-yet-implemented** work and planned upgrades. Completed
 implementation records belong in `implemented/`, not in the active queue.
@@ -18,13 +29,14 @@ It is intentionally **not** an implementation plan.
 
 | Priority | Outcome | Readiness | Gate / next action |
 |----------|---------|-----------|--------------------|
-| P0 | Publish the first live aggregate data-integrity artifact | External/operator | Run the existing generator against the live corpus, review the artifact, and choose its public destination and cadence |
-| P0 | Choose the next annual storage and retention posture | Operator/policy decision | Complete capacity, replay, restore, and pre-promotion-original decisions before another annual campaign |
-| P1 | Establish repeatable external-validation evidence | External/human | Complete named partner/verifier, public citation, uptime, restore, and quarterly release evidence over real cycles |
+| P0 | Deploy and verify corrected public dataset claims | Owner/deployment gate | Dataset prerequisites are verified; merge PR 154 after required checks, confirm rollback, deploy through the established safe path, and verify EN/FR copy, JSON-LD, rights links, and docs |
+| P0 | Choose the next data-continuity posture | Owner/operational decision | Decide from rights, storage, restore, replay, automation reliability, and operator capacity before another capture campaign |
+| P1 | Preserve existing releases and archive data safely | Event-triggered maintenance | Act on a concrete integrity, security, backup, replay, schema, or public-claim defect; do not create a standing work quota |
+| P1 | Permit at most one later outside stewardship review | Conditional/capacity-gated | Proceed only after containment, with one defined question, qualified reviewer, attributable output, workload cap, and no competing external sprint |
 | P1 | Improve large-job indexing only when live evidence warrants it | Conditional | Use durable progress history to choose checkpointing, detached execution, or an explicit all-at-once rationale |
 | P2 | Resolve WARC-finalization, raw-lookup, or page-search design questions | Decision required | Start a focused plan only after a measured user/operational need selects one option |
 | P2 | Maintain upstream dependency and advisory posture | Conditional maintenance | Act only when a compatible upstream fix exists or a concrete security regression appears |
-| P3 | Bilingual consolidation and public badges | Later/broad | Reassess after P0/P1 evidence work or when a bounded independent slice is justified |
+| P3 | Bilingual consolidation and public badges | Later/broad | Reassess only when a bounded independent slice is justified |
 
 Selection rules:
 
@@ -33,8 +45,12 @@ Selection rules:
    speculative repository work.
 3. For conditional technical items, record the triggering measurement or
    incident in the implementation plan.
-4. Keep broad P3 work out of active plans while higher-value evidence gaps
-   remain.
+4. Do not reactivate scheduled dataset publication, DOI production, generic
+   outreach, or repeat-cycle adoption work without a new explicit decision.
+5. Do not describe accepted target controls as live before the ordered rollout
+   gate is verified.
+6. Keep broad P3 work out of active plans while containment or necessary
+   stewardship is unresolved.
 
 ## How to use this file (workflow)
 
@@ -44,58 +60,42 @@ Selection rules:
 4. Update canonical documentation so operators/users can run and maintain the result.
 5. Move the completed implementation plan to `docs/planning/implemented/` and date it.
 
-## External / IRL work (not implementable in git)
+## Outside work and publication (conditional, not active)
 
-These items are intentionally “external” and require ongoing human follow-through.
+There is no standing external-validation, adoption, DOI, methods-paper, or
+outbound partnership campaign. The former backlog entries for distribution
+partners, named verifiers/advisors, recurring citation collection, a Zenodo
+release, and scheduled integrity promotion are superseded as current work by
+the dataset publication and stewardship decision.
 
-Use this backlog as the public tracker for:
+The following facts and artifacts remain valid:
 
-- reconciling real source/snapshot coverage counts across public materials
-- updating the project summary/about page
-- adding public uptime history and status-page evidence
-- publishing the governance/ethics + data-retention summary
-- verifier/partner/advisor outreach
-- the methods paper + architecture diagram
-- the first formal dataset release with a DOI
+- Metadata-only public export endpoints and checksum-validated dataset release
+  tooling exist.
+- Existing releases remain available and are treated as immutable research
+  objects, subject to the bounded recovery path.
+- The aggregate data-integrity report generator is implemented and the July
+  maintenance, UX, and performance batches are complete.
+- Outreach templates, a partner kit, a mentions log, and a methods-note outline
+  remain historical/reference scaffolding. Their existence is not an
+  instruction to begin outreach or publication.
 
-Individual items:
+After rights/release/schema and data-continuity containment is complete, at
+most one outside stewardship review may be considered if all of these gates
+are met:
 
-- External outreach + verification execution (operator-only):
-  - Private execution procedure: private operations workspace
-  - Public materials: `../operations/outreach-templates.md`,
-    `../operations/partner-kit.md`, and `../operations/mentions-log.md`
-- Secure at least 1 distribution partner (permission to name them publicly).
-- Secure at least 1 verifier (permission to name them publicly).
-- Write and publish a methods paper (preprint + JOSS submission).
-  - Outline: `../operations/methods-note-outline.md`
-- Publish first formal dataset release with Zenodo DOI.
-  - Public contract: `../operations/export-integrity-contract.md`
-  - Private release procedure: private operations workspace
-- Maintain a public-safe mentions/citations log with real entries:
-  - `../operations/mentions-log.md` (links only; no private contact data)
-- Healthchecks.io alignment: keep private scheduler configuration, private
-  health-check environment configuration, and the external healthchecks UI in sync.
-  - Public tracking should expose only public-safe status evidence.
-- Publish the first live aggregate data-integrity artifact and establish its
-  operating cadence.
-  - Repo-side generator: `healtharchive data-integrity-report` (versioned
-    public-safe JSON/Markdown, checksum and snapshot-reference verification).
-  - Remaining external work: run it against the live corpus, review the first
-    artifact, choose the durable public destination/cadence, and configure the
-    environment-specific schedule in the private operations source of truth.
-- Investigate Ontario Health811 (https://health811.ontario.ca/static/guest/home/) to see what value our project has in relation to that service.
+1. Operator capacity is explicitly available and no other external review
+   sprint is active.
+2. One qualified reviewer and one concrete stewardship question are selected
+   in advance.
+3. The expected artifact and workload cap are defined before contact or work.
+4. A positive but noncommittal response does not expand the scope.
+5. The result is recorded as review or curation evidence; it does not imply
+   legal clearance, outside use, institutional adoption, or research impact.
 
-Track the current status and next actions in:
-
-- the private operations workspace for current ops posture, optional search
-  tuning, and routine quarterly evidence collection
-- this roadmap for external-validation and scholarly-output follow-through
-
-Supporting materials:
-
-- `../operations/outreach-templates.md`
-- `../operations/partner-kit.md`
-- private verification packet maintained outside public Git
+Concrete warm inbound use may be assessed under the same gates. Generic
+outreach, DOI production, methods-paper work, and routine promotion remain out
+of scope unless a later decision explicitly reactivates one bounded path.
 
 ## Transparency & public reporting (policy posture)
 
@@ -104,51 +104,18 @@ Supporting materials:
   - Decision record: `../decisions/2026-01-09-public-incident-disclosure-posture.md`
   - Revisit later: consider moving to “Option A” (always publish public-safe notes for sev0/sev1) once operations are demonstrably stable over multiple full campaign cycles.
 
-## Real-world validation maturity (priority backlog)
+## Superseded external-validation backlog
 
-Decision: these are all worth implementing because they materially improve external credibility, not just internal operations.
+The earlier four-gate target—distribution partner, named verifier, recurring
+citations, and repeat-cycle publication/operations evidence—is not an active
+work program. The same applies to the former advisory-circle and aggregate
+transparency promotion items.
 
-- 4-gate external validation target (cross-cutting):
-  - Gate 1 (distribution): at least 1 named distribution partner with a public link/embed.
-  - Gate 2 (verification): at least 1 named verifier with written confirmation and permission to name.
-  - Gate 3 (citations discipline): mentions/citations log maintained with real, permission-aware public artifacts.
-  - Gate 4 (repeatability evidence): quarterly dataset/recovery/automation/uptime artifacts show repeatable operations over multiple cycles.
-
-Outstanding work (not fully implemented yet):
-
-- Distribution partner proof (pending).
-  - Public scaffolding: `../operations/partner-kit.md`, `../operations/outreach-templates.md`, `../operations/mentions-log.md`
-  - Private procedure: private operations workspace
-  - Done when: one partner can be named publicly, with a durable public link/embed recorded in `../operations/mentions-log.md`.
-- Verifier proof (pending).
-  - Public scaffolding: `../operations/mentions-log.md`
-  - Private procedure: private verification packet maintained outside public Git
-  - Done when: one verifier provides written confirmation and permission to be named publicly.
-- Mentions/citations log discipline with real artifacts (partially implemented).
-  - Existing scaffolding: `../operations/mentions-log.md`, `../_templates/mentions-log-template.md`
-  - Done when: log has real dated entries tied to public links, and quarterly cadence updates are happening.
-- Quarterly dataset release impact trail (partially implemented; pipeline exists).
-  - Public scaffolding: `../operations/export-integrity-contract.md`
-  - Private procedure: private operations workspace
-  - Done when: at least two consecutive quarterly cycles have both (a) published dataset releases and (b) dated adoption-signal entries.
-- Restore-test discipline as repeated practice (partially implemented; first cycle done).
-  - Public state: tracked operations files are public-boundary stubs.
-  - Private procedure: private operations workspace
-  - Done when: restore-test logs exist for at least two consecutive quarterly cycles.
-- Automation discipline with evidence artifacts (partially implemented).
-  - Public state: tracked operations files are public-boundary stubs.
-  - Private procedure: private operations workspace
-  - Done when: quarterly posture snapshots and run evidence exist, and failures are visible in logs/monitoring.
-- External uptime/availability history (partially implemented).
-  - Existing backlog: item #32 and item #33 below.
-  - Done when: external monitor history is publicly visible (badge/status trend), not just current `/api/health`.
-- Transparency counts over time for reports/takedowns/resolution (new backlog item).
-  - Scope: publish aggregate-only periodic counts such as reports received, takedown-category reports, and resolved reports.
-  - Guardrails: no report text, no emails, no personal identifiers.
-  - Done when: a public surface exposes these aggregate trends with documented update cadence.
-- Advisory circle with named participants (new external backlog item).
-  - Scope: recruit 1-3 advisors/verifiers willing to be named publicly, with permission.
-  - Done when: named list + role description is published and refreshed at least annually.
+These outcomes may still be recorded if they arise from real, permission-aware
+outside use or necessary stewardship. They must not be manufactured through a
+standing campaign, treated as release gates, or used to justify routine work.
+Any later reactivation must compete under the conditional outside-review gates
+above and must identify a concrete owner, question, artifact, and stop rule.
 
 ## Technical backlog (candidates)
 
@@ -187,11 +154,13 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Public notes should describe user-facing retention policy only; private
     capacity planning and replay operations live in the private operations
     workspace.
-- Annual WARC capacity and storage-tier decision before the next campaign.
+- Annual WARC capacity and storage-tier decision before any separately
+  authorized future campaign.
   - Context: the 2026 annual crawl showed that stable WARC storage can be
-    dominated by accidentally retained large media, and that future annual
-    campaigns need an explicit storage budget before they are queued. Current
-    financial policy is no additional spend; the storage budget is a capacity
+    dominated by accidentally retained large media, and that any separately
+    authorized future annual campaign would need an explicit storage budget
+    before jobs are queued. Current financial policy is no additional spend;
+    the storage budget is a capacity
     envelope for already-paid storage, not approval to buy more.
   - Scope:
     - define hot replay, warm archival, and cold/offsite backup tiers
@@ -206,7 +175,8 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     (cold offload with replay impact documented, source/year hot-retention
     limits, or a separately approved paid-capacity change), the private
     operations record reflects the chosen path, and public docs describe only
-    the user-facing retention policy before any new annual jobs are queued.
+    the user-facing retention policy before any separately authorized annual
+    jobs are queued.
 - Operator-owned cold storage evaluation.
   - Scope: decide whether operator-owned storage should be used for cold WARC
     backups, pre-compaction originals, staged compaction outputs, disaster
@@ -225,12 +195,13 @@ Keep this list short; prefer linking to the canonical doc that explains the item
   - Current policy record: a private 2027 storage-budget record exists with
     positive per-source GiB capacity estimates and a zero-additional-spend
     policy note.
-  - Remaining work: maintain the detailed estimate inputs, host capacity
-    tables, and approval notes in the private operations workspace before each
-    annual campaign; tune future estimates using observed WARC growth.
-  - Done when: two consecutive annual/quarterly planning cycles have private
-    budget records that match observed storage outcomes closely enough to
-    support reliable capacity planning.
+  - Remaining work, only if a future campaign is separately authorized:
+    refresh the detailed estimate inputs, host capacity tables, and approval
+    notes in the private operations workspace; tune the estimate using observed
+    WARC growth.
+  - Done when: an explicitly approved planning cycle has a private budget
+    record, and subsequent observed storage outcomes are reconciled closely
+    enough to support that campaign's capacity decision.
 - Post-promotion original-retention and capacity-ledger discipline.
   - Implemented guardrail: `promote-compacted-warcs` validates staged compaction
     artifacts, promotes compacted WARCs with a rollback directory, and records
@@ -381,9 +352,9 @@ Keep this list short; prefer linking to the canonical doc that explains the item
     live-run monitoring and maintenance-window cutovers there rather than
     duplicating them in this public backlog.
   - Remaining work:
-    - decide whether PHAC should remain Browsertrix-first for future annual
-      campaigns or adopt a different default/fallback posture after reviewing
-      the indexed fallback coverage
+    - if a future campaign is separately authorized, decide whether PHAC should
+      remain Browsertrix-first or adopt a different default/fallback posture
+      after reviewing the indexed fallback coverage
     - determine whether any remaining Browsertrix-only compatibility work is
       worth doing now that the fallback run has been measured
     - decide whether the temporary exclusion is still needed once post-run PHAC
@@ -393,7 +364,9 @@ Keep this list short; prefer linking to the canonical doc that explains the item
       reconstruction
   - Related docs: public annual-campaign summary under `../operations/`; private
     run-specific guidance in the private operations workspace.
-- Continue crawl telemetry calibration from live annual-crawl runs, but use dashboard trends (crawl rate / phase churn / progress age) rather than direct throughput alerts.
+- If a future campaign is separately authorized, continue crawl telemetry
+  calibration from that live run, using dashboard trends (crawl rate / phase
+  churn / progress age) rather than direct throughput alerts.
   - Current focus: validate dashboard thresholds/visual cues and only promote a signal back into Alertmanager if it becomes clearly actionable.
   - Related docs: `../operations/monitoring-and-alerting.md`; private
     run-specific guidance in the private operations workspace.
@@ -426,8 +399,10 @@ Completed items were removed from this backlog and archived in:
 3. **Add a code of conduct to all repos** (S: 1h) — Later governance batch;
    select one shared policy and attribution posture before copying it across
    repositories.
-4. **Add LICENSE to datasets repo** (S: 30m) — Human/legal decision required;
-   the datasets roadmap now makes license selection its first explicit gate.
+4. **Resolve the datasets reuse/licensing posture only through qualified owner
+   review** (conditional) — No blanket licence selection is current work. A
+   future release or reuse-promotion decision remains gated on field-level
+   provenance, schema, and applicable-terms review.
 5. **Finish GitHub issue and PR template coverage across repos** (S: 1h) —
    CareConnect, HealthArchive, HealthArchive Datasets, VisitBrief, and WaitTime
    have intake templates. Platform Ops is the only workspace repo without

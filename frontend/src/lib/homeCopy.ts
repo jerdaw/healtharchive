@@ -108,7 +108,7 @@ const homeCopyEn: HomeCopy = {
     ctaSecondary: "How it works",
     inDevelopment: "In development",
     developmentNote:
-      "Coverage and features are expanding; archived content may be incomplete, outdated, or superseded.",
+      "Coverage is bounded to the current corpus; archived content may be incomplete, outdated, or superseded, and features may change.",
   },
   projectSnapshot: {
     heading: "Project snapshot",
@@ -151,7 +151,7 @@ const homeCopyEn: HomeCopy = {
       "HealthArchive uses modern web-archiving tools to capture, index, and replay public health pages.",
     step1Title: "Capture",
     step1Body:
-      "We crawl selected public health websites on a regular schedule, preserving full-page snapshots in the WARC archival format.",
+      "Selected public health websites were crawled to create the existing corpus, with full-page snapshots preserved in the WARC archival format.",
     step2Title: "Index",
     step2Body:
       "Each capture is time-stamped, language-detected, and indexed so it can be searched by keyword, source, or date range.",
@@ -161,7 +161,7 @@ const homeCopyEn: HomeCopy = {
   },
   featuredSources: {
     heading: "Sources we track",
-    subtitle: "Federal public health websites currently being archived.",
+    subtitle: "Federal public health websites represented in the current archive corpus.",
     seeAll: "See all sources \u2192",
     snapshotsLabel: "snapshots",
     latestCapture: "Latest capture",
@@ -201,11 +201,11 @@ const homeCopyEn: HomeCopy = {
       },
       {
         q: "How often are pages captured?",
-        a: "Capture frequency depends on the source and available resources. Major federal sources are currently captured on a regular schedule. Coverage and frequency are still expanding.",
+        a: "The existing corpus records source-specific capture dates and labeled editions. No future schedule is assumed; any new scheduled or ad-hoc capture requires a separately authorized data-continuity decision.",
       },
       {
-        q: "Can I request a page to be archived?",
-        a: "Yes. Use the Contact page to suggest new pages or sources for inclusion. We prioritize Canadian public health content.",
+        q: "Can I suggest a page or source?",
+        a: "Use the Contact page to share feedback for assessment. A suggestion does not commit the project to new capture work or broader coverage; any future inclusion requires a separately authorized data-continuity decision.",
       },
       {
         q: "How do I cite a snapshot?",
@@ -250,7 +250,7 @@ const homeCopyFr: HomeCopy = {
     ctaSecondary: "Comment \u00e7a marche",
     inDevelopment: "En d\u00e9veloppement",
     developmentNote:
-      "La couverture et les fonctionnalit\u00e9s s\u2019\u00e9largissent; le contenu archiv\u00e9 peut \u00eatre incomplet, p\u00e9rim\u00e9 ou remplac\u00e9.",
+      "La couverture est limit\u00e9e au corpus actuel; le contenu archiv\u00e9 peut \u00eatre incomplet, p\u00e9rim\u00e9 ou remplac\u00e9, et les fonctionnalit\u00e9s peuvent changer.",
   },
   projectSnapshot: {
     heading: "Aper\u00e7u du projet",
@@ -294,7 +294,7 @@ const homeCopyFr: HomeCopy = {
       "HealthArchive utilise des outils modernes d\u2019archivage Web pour capturer, indexer et relire des pages de sant\u00e9 publique.",
     step1Title: "Capturer",
     step1Body:
-      "Nous parcourons des sites de sant\u00e9 publique s\u00e9lectionn\u00e9s selon un calendrier r\u00e9gulier, en pr\u00e9servant des captures compl\u00e8tes au format d\u2019archivage WARC.",
+      "Des sites de sant\u00e9 publique s\u00e9lectionn\u00e9s ont \u00e9t\u00e9 parcourus pour cr\u00e9er le corpus existant, avec des captures compl\u00e8tes pr\u00e9serv\u00e9es au format d\u2019archivage WARC.",
     step2Title: "Indexer",
     step2Body:
       "Chaque capture est horodat\u00e9e, sa langue est d\u00e9tect\u00e9e et elle est index\u00e9e pour permettre la recherche par mot-cl\u00e9, source ou plage de dates.",
@@ -304,7 +304,8 @@ const homeCopyFr: HomeCopy = {
   },
   featuredSources: {
     heading: "Sources que nous suivons",
-    subtitle: "Sites Web f\u00e9d\u00e9raux de sant\u00e9 publique actuellement archiv\u00e9s.",
+    subtitle:
+      "Sites Web f\u00e9d\u00e9raux de sant\u00e9 publique repr\u00e9sent\u00e9s dans le corpus actuel.",
     seeAll: "Voir toutes les sources \u2192",
     snapshotsLabel: "captures",
     latestCapture: "Derni\u00e8re capture",
@@ -344,11 +345,11 @@ const homeCopyFr: HomeCopy = {
       },
       {
         q: "\u00c0 quelle fr\u00e9quence les pages sont-elles captur\u00e9es\u00a0?",
-        a: "La fr\u00e9quence de capture d\u00e9pend de la source et des ressources disponibles. Les principales sources f\u00e9d\u00e9rales sont actuellement captur\u00e9es selon un calendrier r\u00e9gulier. La couverture et la fr\u00e9quence s\u2019\u00e9largissent.",
+        a: "Le corpus existant consigne les dates de capture propres aux sources et les \u00e9ditions \u00e9tiquet\u00e9es. Aucune cadence future n\u2019est pr\u00e9sum\u00e9e; toute nouvelle capture planifi\u00e9e ou ponctuelle n\u00e9cessite une d\u00e9cision de continuit\u00e9 des donn\u00e9es autoris\u00e9e s\u00e9par\u00e9ment.",
       },
       {
-        q: "Puis-je demander l\u2019archivage d\u2019une page\u00a0?",
-        a: "Oui. Utilisez la page Contact pour sugg\u00e9rer de nouvelles pages ou sources. Nous priorisons le contenu canadien de sant\u00e9 publique.",
+        q: "Puis-je sugg\u00e9rer une page ou une source\u00a0?",
+        a: "Utilisez la page Contact pour transmettre un commentaire aux fins d\u2019\u00e9valuation. Une suggestion n\u2019engage pas le projet \u00e0 effectuer de nouvelles captures ni \u00e0 \u00e9largir la couverture; toute future inclusion n\u00e9cessite une d\u00e9cision de continuit\u00e9 des donn\u00e9es autoris\u00e9e s\u00e9par\u00e9ment.",
       },
       {
         q: "Comment citer une capture\u00a0?",

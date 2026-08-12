@@ -2,6 +2,7 @@ import { render } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 
 import { DatasetJsonLd } from "@/components/seo/DatasetJsonLd";
+import { getApiBaseUrl } from "@/lib/api";
 
 describe("DatasetJsonLd", () => {
   it("renders valid JSON-LD script with Dataset schema", () => {
@@ -20,20 +21,28 @@ describe("DatasetJsonLd", () => {
       // Verify required properties
       expect(jsonContent.name).toBe("HealthArchive.ca Metadata Exports");
       expect(jsonContent.description).toContain("Metadata-only exports");
-      expect(jsonContent.license).toBe("https://creativecommons.org/licenses/by/4.0/");
+      expect(jsonContent).not.toHaveProperty("license");
       expect(jsonContent.isAccessibleForFree).toBe(true);
 
       // Verify distribution formats
       expect(jsonContent.distribution).toBeInstanceOf(Array);
-      expect(jsonContent.distribution.length).toBeGreaterThan(0);
-
-      const firstDistribution = jsonContent.distribution[0];
-      expect(firstDistribution["@type"]).toBe("DataDownload");
-      expect(firstDistribution.encodingFormat).toBeTruthy();
-      expect(firstDistribution.contentUrl).toBeTruthy();
+      expect(
+        jsonContent.distribution.map(({ contentUrl }: { contentUrl: string }) => contentUrl),
+      ).toEqual([
+        `${getApiBaseUrl()}/api/exports`,
+        `${getApiBaseUrl()}/api/exports/snapshots?format=jsonl`,
+        `${getApiBaseUrl()}/api/exports/snapshots?format=csv`,
+        `${getApiBaseUrl()}/api/exports/changes?format=jsonl`,
+        `${getApiBaseUrl()}/api/exports/changes?format=csv`,
+      ]);
+      expect(
+        jsonContent.distribution.every(
+          (distribution: { "@type": string }) => distribution["@type"] === "DataDownload",
+        ),
+      ).toBe(true);
 
       // Verify coverage
-      expect(jsonContent.temporalCoverage).toBe("2024/..");
+      expect(jsonContent.temporalCoverage).toBe("2025-04-10/2026-05-03");
       expect(jsonContent.spatialCoverage).toHaveProperty("@type", "Place");
       expect(jsonContent.spatialCoverage).toHaveProperty("name", "Canada");
 

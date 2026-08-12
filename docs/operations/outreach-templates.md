@@ -1,7 +1,12 @@
-# Outreach Templates (draft, public-safe)
+# Outreach Templates (historical, inactive scaffold)
 
-Purpose: Ready-to-send templates for partner outreach. Keep these generic and
-non-committal until you have permission to name partners publicly.
+> **Inactive:** There is no current outbound partnership, adoption, or
+> validation campaign. These historical drafts are preserved as reference and
+> must not be sent or scheduled unless a later, bounded outside-review decision
+> satisfies the gates in the [current roadmap](../planning/roadmap.md).
+
+Historical purpose: generic, non-committal examples for a separately authorized
+partner contact with permission-aware public attribution.
 
 Do NOT add private contact details here.
 
@@ -78,7 +83,9 @@ Best,
 
 ---
 
-## Follow-up (1 week)
+## Historical follow-up example (inactive; one week)
+
+Do not schedule this follow-up under the current project posture.
 
 Subject: Re: HealthArchive.ca resource link
 
@@ -98,7 +105,9 @@ Thanks again for considering it.
 
 ---
 
-## Follow-up (2 weeks, final)
+## Historical follow-up example (inactive; two weeks)
+
+Do not schedule this follow-up under the current project posture.
 
 Subject: Closing the loop on HealthArchive.ca
 
@@ -112,7 +121,7 @@ Thank you,
 
 ---
 
-## Optional: Onboarding blurb (for partners to paste)
+## Historical optional onboarding blurb
 
 HealthArchive.ca is an independent, non-governmental archive of Canadian public
 health web pages. It preserves time-stamped snapshots and provides descriptive

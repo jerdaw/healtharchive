@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import csv
 import json
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
@@ -121,6 +122,43 @@ def _jsonl_rows(text: str) -> list[dict[str, Any]]:
     return [json.loads(line) for line in text.splitlines() if line.strip()]
 
 
+def _documented_export_fields(dictionary: Path, endpoint: str) -> set[str]:
+    text = dictionary.read_text(encoding="utf-8")
+    section = next(
+        candidate
+        for candidate in re.split(r"(?m)^## ", text)
+        if f"(`/api/exports/{endpoint}`)" in candidate
+    )
+    fields_block = re.search(
+        r"(?ms)^(?:Fields|Champs)\s*:\s*\n"
+        r"(?P<body>.*?)(?=^(?:Notes|Remarques)\s*:|^---\s*$|\Z)",
+        section,
+    )
+    assert fields_block is not None
+    return set(re.findall(r"(?m)^- `([^`]+)`", fields_block.group("body")))
+
+
+def test_documented_export_fields_excludes_endpoint_backticks(tmp_path) -> None:
+    dictionary = tmp_path / "dictionary.md"
+    dictionary.write_text(
+        """# Test dictionary
+
+## Snapshots export (`/api/exports/snapshots`)
+
+Fields:
+
+- `snapshot_id` — exported field.
+
+Notes:
+
+- `/api/exports/snapshots` is the endpoint path, not an exported field.
+""",
+        encoding="utf-8",
+    )
+
+    assert _documented_export_fields(dictionary, "snapshots") == {"snapshot_id"}
+
+
 def test_exports_manifest(tmp_path, monkeypatch) -> None:
     client = _init_test_app(tmp_path, monkeypatch)
 
@@ -219,6 +257,34 @@ def test_change_exports_csv(tmp_path, monkeypatch) -> None:
     assert rows
     assert "change_id" in rows[0]
     assert "compare_url" in rows[0]
+
+
+def test_public_data_dictionaries_match_actual_export_fields(tmp_path, monkeypatch) -> None:
+    client = _init_test_app(tmp_path, monkeypatch)
+    _seed_export_data()
+
+    expected_field_counts = {"snapshots": 15, "changes": 24}
+    actual_fields = {}
+    for endpoint in ("snapshots", "changes"):
+        response = client.get(
+            f"/api/exports/{endpoint}",
+            params={"format": "jsonl", "compressed": "false", "limit": 1},
+        )
+        assert response.status_code == 200
+        actual_fields[endpoint] = set(_jsonl_rows(response.text)[0])
+        assert len(actual_fields[endpoint]) == expected_field_counts[endpoint]
+
+    dictionary_dir = Path(__file__).resolve().parents[1] / "frontend" / "public" / "exports"
+    for filename in (
+        "healtharchive-data-dictionary.md",
+        "healtharchive-data-dictionary.fr.md",
+    ):
+        dictionary = dictionary_dir / filename
+        for endpoint, expected in actual_fields.items():
+            documented = _documented_export_fields(dictionary, endpoint)
+            assert f"/api/exports/{endpoint}" not in documented
+            assert len(documented) == expected_field_counts[endpoint]
+            assert documented == expected
 
 
 def test_snapshot_exports_empty_dataset_jsonl(tmp_path, monkeypatch) -> None:

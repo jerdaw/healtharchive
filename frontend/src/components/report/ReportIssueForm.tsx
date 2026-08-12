@@ -32,12 +32,12 @@ const ISSUE_CATEGORIES: IssueCategory[] = [
   {
     value: "missing_snapshot",
     label: {
-      en: "Missing snapshot / request a capture",
-      fr: "Capture manquante / demander une capture",
+      en: "Existing-corpus gap or missing snapshot",
+      fr: "Lacune du corpus existant ou capture manquante",
     },
     helper: {
-      en: "A page you expected is not in the archive yet.",
-      fr: "Une page attendue n’est pas encore dans l’archive.",
+      en: "A page or date you expected is absent from the existing corpus. Reporting the gap does not commit the project to a new capture or broader coverage.",
+      fr: "Une page ou une date attendue est absente du corpus existant. Signaler cette lacune n’engage pas le projet à effectuer une nouvelle capture ni à élargir la couverture.",
     },
   },
   {

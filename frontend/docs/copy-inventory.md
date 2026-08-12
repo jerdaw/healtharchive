@@ -83,9 +83,12 @@ Related artifacts:
 ## Research + partner-facing pages
 
 - Researchers: `src/app/[locale]/researchers/page.tsx`
-  - Research use cases, exports guidance, request checklist, citation block.
+  - Research use cases within the bounded corpus, metadata export/release
+    guidance, assessment-gated contact, and citation block. No custom export,
+    new capture, or response-time commitment.
 - Exports: `src/app/[locale]/exports/page.tsx`
-  - Export manifest, data dictionary, limitations, dataset releases link.
+  - Export manifest, data dictionary, limitations, and existing dataset release
+    link with the conditional/manual publication posture and rollout status.
 - Brief: `src/app/[locale]/brief/page.tsx`
   - Partner-friendly description + “what it is not” list.
 - Cite: `src/app/[locale]/cite/page.tsx`

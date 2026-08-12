@@ -25,6 +25,8 @@ Champs :
 - `status_code` — statut HTTP enregistré pendant la capture (si disponible).
 - `mime_type` — type de contenu enregistré pendant la capture (si disponible).
 - `title` — titre de page extrait (si disponible).
+- `capture_backend` — identifiant du système de capture enregistré par HealthArchive.
+- `capture_fidelity` — étiquette de fidélité de capture attribuée par HealthArchive.
 - `job_id` — ID de job d’archivage (ancre d’édition, si disponible).
 - `job_name` — nom de job d’archivage (étiquette d’édition, si disponible).
 - `snapshot_url` — URL publique stable vers la page de détail de la capture.

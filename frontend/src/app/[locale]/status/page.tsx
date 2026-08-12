@@ -295,8 +295,8 @@ export default async function StatusPage({ params }: { params: Promise<{ locale:
           </li>
           <li>
             {locale === "fr"
-              ? "Les éditions annuelles sont capturées le 1er janvier (UTC). Les captures ponctuelles sont étiquetées lorsqu’elles surviennent."
-              : "Annual editions are captured on Jan 01 (UTC). Ad-hoc captures are labeled when they occur."}
+              ? "Les éditions annuelles et ponctuelles du corpus existant conservent leurs étiquettes et dates de capture. Aucune cadence future n’est présumée; toute future capture nécessite une décision de continuité des données autorisée séparément."
+              : "Annual and ad-hoc editions in the existing corpus retain their labels and capture dates. No future cadence is assumed; any future capture requires a separately authorized data-continuity decision."}
           </li>
           <li>
             {locale === "fr"

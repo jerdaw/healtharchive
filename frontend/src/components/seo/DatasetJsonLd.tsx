@@ -1,6 +1,8 @@
+import { getApiBaseUrl } from "@/lib/api";
 import { SITE_BASE_URL } from "@/lib/metadata";
 
 export function DatasetJsonLd() {
+  const apiBase = getApiBaseUrl();
   const structuredData = {
     "@context": "https://schema.org",
     "@type": "Dataset",
@@ -13,40 +15,39 @@ export function DatasetJsonLd() {
       name: "HealthArchive.ca",
       url: SITE_BASE_URL,
     },
-    license: "https://creativecommons.org/licenses/by/4.0/",
     distribution: [
       {
         "@type": "DataDownload",
         encodingFormat: "application/json",
-        contentUrl: `${SITE_BASE_URL}/api/exports`,
+        contentUrl: `${apiBase}/api/exports`,
         description: "Export manifest listing available formats and limits",
       },
       {
         "@type": "DataDownload",
         encodingFormat: "application/x-ndjson",
-        contentUrl: `${SITE_BASE_URL}/api/snapshots/export`,
+        contentUrl: `${apiBase}/api/exports/snapshots?format=jsonl`,
         description: "Newline-delimited JSON export of snapshot metadata",
       },
       {
         "@type": "DataDownload",
         encodingFormat: "text/csv",
-        contentUrl: `${SITE_BASE_URL}/api/snapshots/export?format=csv`,
+        contentUrl: `${apiBase}/api/exports/snapshots?format=csv`,
         description: "CSV export of snapshot metadata",
       },
       {
         "@type": "DataDownload",
         encodingFormat: "application/x-ndjson",
-        contentUrl: `${SITE_BASE_URL}/api/changes/export`,
+        contentUrl: `${apiBase}/api/exports/changes?format=jsonl`,
         description: "Newline-delimited JSON export of change events",
       },
       {
         "@type": "DataDownload",
         encodingFormat: "text/csv",
-        contentUrl: `${SITE_BASE_URL}/api/changes/export?format=csv`,
+        contentUrl: `${apiBase}/api/exports/changes?format=csv`,
         description: "CSV export of change events",
       },
     ],
-    temporalCoverage: "2024/..",
+    temporalCoverage: "2025-04-10/2026-05-03",
     spatialCoverage: {
       "@type": "Place",
       name: "Canada",

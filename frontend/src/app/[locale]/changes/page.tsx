@@ -169,8 +169,8 @@ export default async function ChangesPage({
           </div>
           <p className="text-ha-muted text-xs">
             {locale === "fr"
-              ? "La vue par défaut tient compte des éditions et reflète les changements entre captures archivées, et non des mises à jour en temps réel. Les éditions annuelles sont capturées le 1er janvier (UTC), et les captures ponctuelles sont étiquetées lorsqu’elles surviennent."
-              : "The default view is edition-aware and reflects changes between archived captures, not real-time source updates. Annual editions are captured on Jan 01 (UTC), and ad-hoc captures are labeled when they occur."}
+              ? "La vue par défaut tient compte des éditions et reflète les changements entre les captures du corpus existant, et non des mises à jour en temps réel. Les éditions annuelles et ponctuelles existantes conservent leurs étiquettes et dates de capture; toute future capture nécessite une décision de continuité des données autorisée séparément."
+              : "The default view is edition-aware and reflects changes between captures in the existing corpus, not real-time source updates. Existing annual and ad-hoc editions retain their labels and capture dates; any future capture requires a separately authorized data-continuity decision."}
           </p>
         </form>
       </section>
