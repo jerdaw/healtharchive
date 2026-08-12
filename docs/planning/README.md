@@ -23,14 +23,15 @@ Paused or conditional plans:
 
 Treat the following as the current "what's next" order across roadmap docs:
 
-1. Complete the ordered dataset-control and public-claim rollout gate.
-   - As of 2026-08-12, the manual-release, rights-notice, schema-guard, and
-     monorepo claim changes are accepted local patches, not published controls.
-   - Review, merge, publish, and verify the datasets controls first: remove the
-     schedules while retaining manual dispatch, publish the conservative
-     rights notice, and enforce the 15-snapshot / 24-change schema boundary.
-   - Only after that verification may the dated rollout status be marked
-     verified and the monorepo public-claim patch be deployed and checked.
+1. Complete monorepo PR 154 through normal review and the established safe
+   deployment path.
+   - The prerequisite datasets controls were published and verified on
+     2026-08-12 at `802a91168ef6d315d22c8e14a14a33182b354cd5`: schedules are
+     absent, manual dispatch remains, the conservative rights notice resolves,
+     and the 15-snapshot / 24-change schema guards pass.
+   - Merge the monorepo patch only after its required checks pass, then deploy
+     only with a confirmed rollback and verify the English/French public
+     claims, JSON-LD, rights links, and documentation surfaces.
    - Decision record:
      `../decisions/2026-08-12-dataset-publication-and-stewardship.md`
 2. Complete the separate data-continuity disposition, then preserve existing

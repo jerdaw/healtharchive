@@ -152,7 +152,7 @@ See the [Project Overview](project.md) for detailed navigation.
 2. Inspect the public metadata API and available metadata-only releases in
    [healtharchive-datasets](https://github.com/jerdaw/healtharchive-datasets).
    These are not full-archive downloads, and availability does not grant
-   blanket reuse rights. Consult applicable source terms and, once the
-   coordinated rollout makes it available, the datasets repository's
-   RIGHTS.md notice.
+   blanket reuse rights. Consult applicable source terms and the datasets
+   repository's
+   [RIGHTS.md notice](https://github.com/jerdaw/healtharchive-datasets/blob/main/RIGHTS.md).
 3. Read about [Data Handling](operations/data-handling-retention.md)

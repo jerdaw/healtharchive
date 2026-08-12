@@ -56,28 +56,34 @@ describe("/exports", () => {
     {
       locale: "en",
       status:
-        "Accepted target posture: preserve existing releases with checksums, pause scheduled new publication during reuse and governance review, and require explicit maintainer approval and manual dispatch for any future release.",
+        "Current release posture: existing releases remain available with checksums; scheduled publication is paused, and any future release requires explicit maintainer approval, manual dispatch, and rights/schema review.",
       rollout:
-        "Rollout status as of 2026-08-12: those controls are not yet published. This public status must not be deployed until the datasets repository has published and verified its manual-only workflows, rights notice, and schema guards.",
+        "Dataset controls verified on 2026-08-12: the published workflows are manual-only, the rights notice resolves, and exact 15-snapshot / 24-change schema guards are active.",
+      rightsLink: "Dataset provenance and reuse notice",
       obsolete: "Quarterly metadata-only dataset releases",
     },
     {
       locale: "fr",
       status:
-        "Position cible acceptée : préserver les publications existantes avec leurs sommes de contrôle, suspendre les nouvelles publications planifiées pendant l’examen de la réutilisation et de la gouvernance, et exiger une approbation explicite du responsable ainsi qu’un lancement manuel pour toute publication future.",
+        "Position actuelle des publications : les publications existantes restent disponibles avec leurs sommes de contrôle; la publication planifiée est suspendue, et toute publication future exige une approbation explicite du responsable, un lancement manuel et un examen des droits et du schéma.",
       rollout:
-        "État du déploiement au 12 août 2026 : ces contrôles ne sont pas encore publiés. Ce statut public ne doit pas être déployé avant que le dépôt de jeux de données ait publié et vérifié ses flux de travail manuels seulement, son avis sur les droits et ses garde-fous de schéma.",
+        "Contrôles des jeux de données vérifiés le 12 août 2026 : les flux de travail publiés sont manuels seulement, l’avis sur les droits est accessible et les garde-fous de schéma exacts de 15 champs de capture et de 24 champs de changement sont actifs.",
+      rightsLink: "Avis sur la provenance et la réutilisation des jeux de données",
       obsolete: "publications trimestrielles",
     },
   ] as const)(
     "shows the conditional dataset release status on $locale public surfaces",
-    async ({ locale, status, rollout, obsolete }) => {
+    async ({ locale, status, rollout, rightsLink, obsolete }) => {
       for (const Page of [ExportsPage, ResearchersPage]) {
         const ui = await Page({ params: Promise.resolve({ locale }) });
         const { container, unmount } = render(ui);
 
         expect(container).toHaveTextContent(status);
         expect(container).toHaveTextContent(rollout);
+        expect(screen.getByRole("link", { name: rightsLink })).toHaveAttribute(
+          "href",
+          "https://github.com/jerdaw/healtharchive-datasets/blob/main/RIGHTS.md",
+        );
         expect(container).not.toHaveTextContent(obsolete);
         unmount();
       }

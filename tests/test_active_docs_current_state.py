@@ -200,9 +200,10 @@ def test_active_docs_do_not_reactivate_outreach_or_capture_programs() -> None:
     assert "GitHub release downloads" not in adoption_template
     assert "Capability is not authorization" in cli_reference
     assert "separately authorize a data-continuity decision" in cli_reference
-    assert "The accepted target is to pause scheduled new publication" in datasets_pointer
-    assert "those controls are not yet published" in datasets_pointer
-    assert "New publication is paused" not in datasets_pointer
+    assert "published workflows are manual-only" in datasets_pointer
+    assert "scheduled new publication is paused" in datasets_pointer
+    assert "controls are not yet published" not in datasets_pointer
+    assert "healtharchive-datasets/blob/main/RIGHTS.md" in datasets_pointer
     assert "does not grant blanket reuse or redistribution permission" in datasets_pointer
 
     for relative_path in (

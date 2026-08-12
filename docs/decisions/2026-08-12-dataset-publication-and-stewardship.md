@@ -2,8 +2,8 @@
 
 Decision status: accepted
 
-Rollout status: incomplete as of 2026-08-12; see the dated acceptance gate
-below.
+Rollout prerequisite status: verified on 2026-08-12; the datasets control gate
+is complete and monorepo PR 154 is the remaining public-claim rollout.
 
 ## Context
 
@@ -19,10 +19,10 @@ below.
 - Existing releases remain available and are treated as immutable research
   objects, subject only to the documented bounded recovery path for a partial
   or invalid release.
-- The accepted target is to pause automatic and scheduled publication of new
-  dataset releases. Once that control is published and verified, any future
-  release requires explicit maintainer approval and manual dispatch after the
-  field schema, provenance inventory, and reuse posture are reviewed together.
+- Automatic and scheduled publication of new dataset releases is paused. Any
+  future release requires explicit maintainer approval and manual dispatch
+  after the field schema, provenance inventory, and reuse posture are reviewed
+  together.
 - Near-term work is limited to rights and claim containment, schema-drift
   prevention, essential integrity/security stewardship, and an explicit
   data-continuity decision before another capture campaign or release.
@@ -33,7 +33,7 @@ below.
 
 ## Rationale
 
-Once rolled out, manual approval and a fail-closed schema boundary prevent an
+Manual approval and a fail-closed schema boundary prevent an
 unreviewed API change or unsupported reuse statement from silently entering a
 new release. Preserving existing releases avoids breaking citations and
 reproducibility while review remains open. A bounded stewardship posture also
@@ -60,8 +60,8 @@ promotion or research activity.
 ### Positive
 
 - Existing releases and citations remain stable.
-- Once rollout is complete, new publication fails closed on schema drift and
-  requires deliberate human approval.
+- New publication fails closed on schema drift and requires deliberate human
+  approval.
 - Public claims can distinguish availability from reuse permission, legal
   clearance, outside use, or institutional adoption.
 - Data-continuity decisions become explicit instead of following an assumed
@@ -74,38 +74,30 @@ promotion or research activity.
 - The accepted pause does not by itself decide whether or when future capture
   campaigns should run; that requires a separate continuity decision.
 
-## Dated rollout status and acceptance gate (2026-08-12)
+## Dated rollout verification and acceptance gate (2026-08-12)
 
-This decision defines the accepted target posture; it does not assert that the
-controls or corrected public claims are live. As of 2026-08-12:
+The prerequisite datasets control gate is verified:
 
-- The datasets repository's published main branch still contains scheduled
-  publication and keepalive triggers and does not yet publish the reviewed
-  `RIGHTS.md` notice or exact-field schema guards.
-- The datasets controls and the monorepo claim corrections exist only as
-  coordinated local, uncommitted patches. Existing live schedules and public
-  claims have not been corrected by those patches.
+- Dataset PR 15 merged to the published main branch as
+  `802a91168ef6d315d22c8e14a14a33182b354cd5`.
+- Dataset PR 16 then made the dictionary/deployment wording time-robust and
+  merged as `ba39fd13315d32db78edc47fbcd90c98109b6b22`.
+- Scheduled publication and keepalive triggers are absent; manual dispatch
+  remains available.
+- The conservative
+  [RIGHTS.md notice](https://github.com/jerdaw/healtharchive-datasets/blob/main/RIGHTS.md)
+  resolves from the published repository.
+- The release builder and validator enforce the reviewed 15-snapshot /
+  24-change exact-field sets, including fail-closed missing/unexpected-field
+  tests.
+- No dataset release, tag, or release asset was created or changed during this
+  control rollout.
 
-Rollout must occur in this order:
-
-1. Review the datasets patch as one control set: manual-dispatch-only
-   workflows, the conservative rights/provenance notice, and the 15-snapshot /
-   24-change exact-field guards.
-2. Merge and publish that datasets control set first. This gate does not
-   authorize a dataset release, tag, or release-asset change.
-3. Verify on the published datasets branch that scheduled triggers are absent,
-   manual dispatch remains available, `RIGHTS.md` resolves, and the schema
-   regression tests pass.
-4. Update this dated rollout status and the public rollout copy from pending to
-   verified, then confirm that any dataset-repository links resolve.
-5. Only then may the monorepo public-claim patch be merged and deployed. Verify
-   the English and French export/researcher pages, dataset JSON-LD, and linked
-   public documentation after deployment.
-
-The monorepo public-claim patch fails this acceptance gate if it is proposed
-for deployment before steps 1-4 are complete. This dated section must be
-updated or superseded during deployment review so a completed rollout is not
-left labelled as pending.
+Monorepo PR 154 contains the coordinated public-claim correction and is the
+remaining rollout. It may be merged and deployed only after its required
+checks pass and a safe rollback path is confirmed. After deployment, verify
+the English and French export and researcher pages, dataset JSON-LD, rights
+links, and linked public documentation.
 
 ## Verification / rollout
 
@@ -126,5 +118,5 @@ left labelled as pending.
 - Active roadmap: `../planning/roadmap.md`
 - Export integrity contract: `../operations/export-integrity-contract.md`
 - Dataset repository: https://github.com/jerdaw/healtharchive-datasets
-- Dataset provenance and reuse notice: the versioned `RIGHTS.md` in the
-  datasets repository after rollout gate 3 confirms that it is available.
+- Dataset provenance and reuse notice:
+  https://github.com/jerdaw/healtharchive-datasets/blob/main/RIGHTS.md

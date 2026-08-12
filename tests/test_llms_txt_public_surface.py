@@ -134,11 +134,13 @@ def test_dataset_guidance_does_not_overstate_archive_access_or_reuse() -> None:
     assert "metadata release artifacts" in lower_api_guide
     assert "do not contain the complete replay, warc, or archived-content" in lower_api_guide
     assert "blanket reuse or redistribution rights" in lower_api_guide
-    assert "repository's rights.md notice" in lower_api_guide
+    assert "repository's [rights.md notice]" in lower_api_guide
+    assert "healtharchive-datasets/blob/main/rights.md" in lower_api_guide
     assert "inspect the public metadata api" in lower_quickstart
     assert "not full-archive downloads" in lower_quickstart
     assert "blanket reuse rights" in lower_quickstart
-    assert "repository's rights.md notice" in lower_quickstart
+    assert "repository's [rights.md notice]" in lower_quickstart
+    assert "healtharchive-datasets/blob/main/rights.md" in lower_quickstart
     assert (
         "do not contain the complete replay, warc, or archived-content" in lower_generated_context
     )

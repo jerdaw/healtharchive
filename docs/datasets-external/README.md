@@ -10,10 +10,9 @@ mirror them.
 
 Operational dataset-release procedures are environment-specific and are kept
 outside the public docs portal. The datasets repository contains existing
-metadata-only release artifacts. The accepted target is to pause scheduled new
-publication; those controls are not yet published. After the coordinated
-rollout gate is complete, any future release is conditional on explicit
-maintainer approval plus rights and schema review. Artifact availability does
-not grant blanket reuse or redistribution permission; consult applicable source
-terms and, once published through that gate, the versioned RIGHTS.md notice in
-the datasets repository.
+metadata-only release artifacts. The published workflows are manual-only and
+scheduled new publication is paused. Any future release is conditional on
+explicit maintainer approval plus rights and schema review. Artifact
+availability does not grant blanket reuse or redistribution permission; consult
+applicable source terms and the versioned
+[RIGHTS.md notice](https://github.com/jerdaw/healtharchive-datasets/blob/main/RIGHTS.md).

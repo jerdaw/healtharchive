@@ -818,8 +818,8 @@ The datasets repository contains existing, bounded metadata release artifacts:
 
 These artifacts do not contain the complete replay, WARC, or archived-content
 corpus. Their availability does not grant blanket reuse or redistribution
-rights. Consult applicable source terms and, once the coordinated rollout makes
-it available, the versioned datasets repository's RIGHTS.md notice.
+rights. Consult applicable source terms and the versioned datasets repository's
+[RIGHTS.md notice](https://github.com/jerdaw/healtharchive-datasets/blob/main/RIGHTS.md).
 
 ### API vs Metadata Releases
 
@@ -911,8 +911,8 @@ To keep the API available for everyone:
 4. **Choose the bounded metadata surface**: Use the public metadata API or an
    existing metadata-only dataset release where appropriate. These are not
    full-archive downloads. Reuse remains subject to applicable source terms
-   and, once the coordinated rollout makes it available, the datasets
-   repository's RIGHTS.md notice.
+   and the datasets repository's
+   [RIGHTS.md notice](https://github.com/jerdaw/healtharchive-datasets/blob/main/RIGHTS.md).
 5. **Report issues**: If you encounter consistent errors, let us know
 
 ### Future Changes
@@ -935,8 +935,8 @@ A: Public endpoints require no authentication. Admin endpoints require a token.
 A: No. The public API and existing dataset releases expose bounded metadata,
 not the complete replay, WARC, or archived-content corpus. Availability does
 not grant permission to redistribute or reuse source material. Consult the
-applicable source terms and, once the coordinated rollout makes it available,
-the datasets repository's RIGHTS.md notice.
+applicable source terms and the datasets repository's
+[RIGHTS.md notice](https://github.com/jerdaw/healtharchive-datasets/blob/main/RIGHTS.md).
 
 **Q: How often is the archive updated?**
 A: The existing corpus contains labeled annual campaigns and, where applicable,

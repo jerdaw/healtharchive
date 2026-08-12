@@ -12,10 +12,11 @@ is satisfied.
 Current dataset publication posture:
 `../decisions/2026-08-12-dataset-publication-and-stewardship.md`.
 
-**Rollout status (2026-08-12):** the target posture is accepted but not live.
-The datasets controls must be reviewed, merged, published, and verified before
-the monorepo public-claim patch may be deployed. The decision record contains
-the ordered acceptance gate.
+**Rollout status (2026-08-12):** the prerequisite datasets controls are
+published and verified at `802a91168ef6d315d22c8e14a14a33182b354cd5`.
+Scheduled publication and keepalive are absent, manual dispatch remains, the
+rights notice resolves, and the 15/24 schema guards pass. Monorepo PR 154 is the
+remaining normally reviewed, rollback-confirmed public-claim deployment.
 
 This file tracks **not-yet-implemented** work and planned upgrades. Completed
 implementation records belong in `implemented/`, not in the active queue.
@@ -26,7 +27,7 @@ It is intentionally **not** an implementation plan.
 
 | Priority | Outcome | Readiness | Gate / next action |
 |----------|---------|-----------|--------------------|
-| P0 | Publish and verify dataset release controls, then correct public claims | Owner/qualified review | Land the datasets manual-only workflows, rights notice, and 15/24 schema guards first; only then update the dated rollout status and deploy the monorepo claim patch |
+| P0 | Deploy and verify corrected public dataset claims | Owner/deployment gate | Dataset prerequisites are verified; merge PR 154 after required checks, confirm rollback, deploy through the established safe path, and verify EN/FR copy, JSON-LD, rights links, and docs |
 | P0 | Choose the next data-continuity posture | Owner/operational decision | Decide from rights, storage, restore, replay, automation reliability, and operator capacity before another capture campaign |
 | P1 | Preserve existing releases and archive data safely | Event-triggered maintenance | Act on a concrete integrity, security, backup, replay, schema, or public-claim defect; do not create a standing work quota |
 | P1 | Permit at most one later outside stewardship review | Conditional/capacity-gated | Proceed only after containment, with one defined question, qualified reviewer, attributable output, workload cap, and no competing external sprint |

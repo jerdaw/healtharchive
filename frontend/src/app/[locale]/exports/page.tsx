@@ -8,7 +8,7 @@ import { getApiBaseUrl } from "@/lib/api";
 import type { Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
-import { getSiteCopy } from "@/lib/siteCopy";
+import { DATASET_RIGHTS_URL, getSiteCopy } from "@/lib/siteCopy";
 
 function getExportsCopy(locale: Locale) {
   if (locale === "fr") {
@@ -82,6 +82,10 @@ export default async function ExportsPage({ params }: { params: Promise<{ locale
                 {locale === "fr"
                   ? "Publications de jeux de données HealthArchive"
                   : "HealthArchive dataset releases"}
+              </Link>
+              {" · "}
+              <Link className="ha-link" href={DATASET_RIGHTS_URL}>
+                {siteCopy.datasetReleases.rightsLinkLabel}
               </Link>
             </p>
           </div>
