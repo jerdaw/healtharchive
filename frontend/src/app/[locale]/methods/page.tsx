@@ -11,7 +11,7 @@ function getMethodsCopy(locale: Locale) {
       eyebrow: "Méthodes et couverture",
       title: "Comment HealthArchive.ca est développé",
       intro:
-        "Cette page décrit comment HealthArchive.ca capture, préserve, indexe et relit des instantanés de contenu Web de santé publique. Le projet est en développement et la couverture s’élargit encore, mais le pipeline d’archivage de base est déjà en place.",
+        "Cette page décrit comment les instantanés du corpus actuel de contenu Web de santé publique de HealthArchive.ca ont été capturés et sont préservés, indexés et relus. La couverture est limitée au corpus existant; toute future capture ou extension nécessite une décision de continuité des données autorisée séparément.",
     };
   }
 
@@ -19,7 +19,7 @@ function getMethodsCopy(locale: Locale) {
     eyebrow: "Methods & coverage",
     title: "How HealthArchive.ca is being built",
     intro:
-      "This page outlines how HealthArchive.ca captures, preserves, indexes, and replays snapshots of public health web content. The project is in development and coverage is still expanding, but the core archive pipeline is already in place.",
+      "This page outlines how snapshots in HealthArchive.ca’s current public health web corpus were captured and are preserved, indexed, and replayed. Coverage is bounded to the existing corpus; any future capture or expansion requires a separately authorized data-continuity decision.",
   };
 }
 
@@ -41,9 +41,7 @@ export default async function MethodsPage({ params }: { params: Promise<{ locale
     <PageShell eyebrow={copy.eyebrow} title={copy.title} intro={copy.intro}>
       <section className="ha-content-section-lead space-y-5">
         <h2 className="ha-section-heading">
-          {locale === "fr"
-            ? "Portée de l’archive (phase initiale)"
-            : "Scope of the archive (early phase)"}
+          {locale === "fr" ? "Portée actuelle de l’archive" : "Current archive scope"}
         </h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           {locale === "fr"
@@ -64,8 +62,8 @@ export default async function MethodsPage({ params }: { params: Promise<{ locale
         </ul>
         <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
           {locale === "fr"
-            ? "Les itérations futures pourraient envisager des sources provinciales/territoriales ou certains comparateurs internationaux lorsque c’est pertinent, mais l’ossature restera l’information canadienne de santé publique."
-            : "Future iterations may consider provincial/territorial sources or selected international comparators where appropriate, but the backbone will remain Canadian public health information."}
+            ? "Les sources provinciales, territoriales et internationales se trouvent hors de la portée actuelle. L’examen de toute source supplémentaire nécessiterait une décision de continuité des données autorisée séparément; aucune extension n’est présumée."
+            : "Provincial, territorial, and international sources are outside the current scope. Considering any additional source would require a separately authorized data-continuity decision; no expansion is assumed."}
         </p>
         <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
           {locale === "fr"
@@ -73,22 +71,9 @@ export default async function MethodsPage({ params }: { params: Promise<{ locale
             : "Scope is intentionally constrained and defined with explicit inclusion and exclusion rules per source so the project can prioritize reliable provenance over breadth."}
         </p>
         <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
-          {locale === "fr" ? (
-            <>
-              La cadence de capture par défaut est une « édition » annuelle capturée le{" "}
-              <span className="font-medium">1er janvier (UTC)</span> pour chaque source, avec des
-              captures ponctuelles lorsque des événements majeurs ou des besoins opérationnels le
-              justifient. Les captures ponctuelles sont explicitement étiquetées afin que les
-              lecteurs puissent les distinguer de l’édition annuelle.
-            </>
-          ) : (
-            <>
-              The default capture cadence is an annual “edition” captured on{" "}
-              <span className="font-medium">Jan 01 (UTC)</span> for each source, with occasional
-              ad-hoc captures when major events or operational needs justify it. Ad-hoc captures are
-              explicitly labeled so readers can distinguish them from the annual edition.
-            </>
-          )}
+          {locale === "fr"
+            ? "Le corpus existant comprend des éditions annuelles étiquetées et, lorsque pertinent, des captures ponctuelles explicitement étiquetées. Il n’existe aucune cadence de capture future par défaut : toute nouvelle campagne annuelle ou ponctuelle nécessite une décision de continuité des données autorisée séparément."
+            : "The existing corpus includes labeled annual editions and, where applicable, explicitly labeled ad-hoc captures. There is no default future capture cadence: any new annual or ad-hoc campaign requires a separately authorized data-continuity decision."}
         </p>
       </section>
 
@@ -185,8 +170,8 @@ export default async function MethodsPage({ params }: { params: Promise<{ locale
           </li>
           <li>
             {locale === "fr"
-              ? "Les flux de changements tiennent compte des éditions par défaut, reflétant la cadence annuelle de capture de l’archive."
-              : "Change feeds are edition-aware by default, reflecting the archive’s annual capture cadence."}
+              ? "Les flux de changements tiennent compte des éditions par défaut et reflètent les éditions étiquetées du corpus existant, sans engagement envers une future cadence annuelle."
+              : "Change feeds are edition-aware by default and reflect labeled editions in the existing corpus rather than committing to a future annual cadence."}
           </li>
         </ul>
       </section>

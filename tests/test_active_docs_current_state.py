@@ -187,3 +187,29 @@ def test_agent_docs_keep_symlink_and_authorship_guardrails_current() -> None:
     assert "github-actions[bot]" in root_agents
     assert "dependabot[bot]" in frontend_agents
     assert "github-actions[bot]" in frontend_agents
+
+
+def test_active_docs_do_not_reactivate_outreach_or_capture_programs() -> None:
+    adoption_template = _read("docs/_templates/adoption-signals-log-template.md")
+    cli_reference = " ".join(_read("docs/reference/cli-commands.md").split())
+    datasets_pointer = " ".join(_read("docs/datasets-external/README.md").split())
+
+    assert "Inactive by default" in adoption_template
+    assert "There is no scheduled cadence" in adoption_template
+    assert "Release tags published this quarter" not in adoption_template
+    assert "GitHub release downloads" not in adoption_template
+    assert "Capability is not authorization" in cli_reference
+    assert "separately authorize a data-continuity decision" in cli_reference
+    assert "The accepted target is to pause scheduled new publication" in datasets_pointer
+    assert "those controls are not yet published" in datasets_pointer
+    assert "New publication is paused" not in datasets_pointer
+    assert "does not grant blanket reuse or redistribution permission" in datasets_pointer
+
+    for relative_path in (
+        "docs/operations/outreach-templates.md",
+        "docs/operations/partner-kit.md",
+        "docs/operations/methods-note-outline.md",
+    ):
+        text = _read(relative_path)
+        assert "Inactive" in text
+        assert "current roadmap" in text

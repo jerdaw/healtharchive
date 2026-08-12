@@ -234,7 +234,8 @@ const archiveCopyEn: Omit<ArchiveCopy, "meta"> & {
     noResultsLead:
       "No records match the current filters. Try removing some filters, using broader keywords, or",
     resetSearch: "resetting the search",
-    earlyRelease: "Early release: coverage and features are still expanding.",
+    earlyRelease:
+      "Early release: coverage is bounded to the current corpus, and features may change.",
   },
   pagination: {
     page: (current, total) => `Page ${current} of ${total}`,
@@ -281,7 +282,7 @@ const archiveCopyEn: Omit<ArchiveCopy, "meta"> & {
     eyebrow: "Archive explorer",
     title: "Browse records by source",
     intro:
-      "Browse coverage by source and jump into an archived site or the full record list. Coverage and features are still expanding.",
+      "Browse the bounded current corpus by source and jump into an archived site or the full record list. Features may change.",
     sourceSummary: (formattedCount, count) =>
       `Showing ${formattedCount} source${count === 1 ? "" : "s"}.`,
     emptyTitle: "No sources available",
@@ -380,7 +381,7 @@ const archiveCopyFr: Omit<ArchiveCopy, "meta"> & {
       "Aucun enregistrement ne correspond aux filtres actuels. Essayez de retirer certains filtres, d’utiliser des mots-clés plus généraux ou de",
     resetSearch: "réinitialiser la recherche",
     earlyRelease:
-      "Version préliminaire : la couverture et les fonctionnalités sont encore en expansion.",
+      "Version préliminaire : la couverture est limitée au corpus actuel et les fonctionnalités peuvent changer.",
   },
   pagination: {
     page: (current, total) => `Page ${current} sur ${total}`,
@@ -427,7 +428,7 @@ const archiveCopyFr: Omit<ArchiveCopy, "meta"> & {
     eyebrow: "Explorateur d’archives",
     title: "Parcourir les sources",
     intro:
-      "Parcourez la couverture par source et accédez à un site archivé ou à la liste complète des enregistrements. La couverture et les fonctionnalités sont encore en expansion.",
+      "Parcourez le corpus actuel délimité par source et accédez à un site archivé ou à la liste complète des enregistrements. Les fonctionnalités peuvent changer.",
     sourceSummary: (formattedCount, count) =>
       `Affichage de ${formattedCount} source${count === 1 ? "" : "s"}.`,
     emptyTitle: "Aucune source disponible",

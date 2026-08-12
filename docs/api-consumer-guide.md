@@ -544,12 +544,13 @@ X-RateLimit-Remaining: 57
 - Implement exponential backoff when you receive 429 responses
 - Cache responses when appropriate to reduce request volume
 - Use `pageSize` wisely (larger pages = slower but fewer requests)
-- For bulk exports, use the `/api/exports/*` endpoints instead of paginating search
+- For bounded metadata exports, use the `/api/exports/*` endpoints instead of
+  paginating search. API availability does not determine reuse rights.
 - Contact the maintainers if you need higher limits for legitimate research
 
 ### Pagination Best Practices
 
-**For complete datasets**:
+**For paginated metadata queries**:
 ```python
 import requests
 
@@ -737,9 +738,11 @@ for source in ["hc", "phac"]:
     print(f"{source.upper()}: {total} snapshots mention '{topic}'")
 ```
 
-### 3. Bulk Download Metadata
+### 3. Collect Metadata for Offline Analysis
 
-**Goal**: Export all metadata for offline analysis
+**Goal**: Collect the metadata returned by a public API query for offline
+analysis. This does not download archived page content or establish reuse
+permission.
 
 ```python
 import requests
@@ -777,6 +780,10 @@ print(f"Exported {len(all_snapshots)} snapshots")
 
 ## Citation & Attribution
 
+The examples below describe how to identify HealthArchive and individual
+snapshots in a citation. Citation does not replace attribution required by an
+original source or establish permission to reuse archived content.
+
 ### Citing HealthArchive
 
 When using HealthArchive data in research:
@@ -796,29 +803,33 @@ Original URL: https://www.canada.ca/en/health-canada/services/drugs-health-produ
 
 ---
 
-## Data Access & Datasets
+## Data Access & Metadata Releases
 
-### Bulk Data Downloads
+### Existing Metadata Release Artifacts
 
-For large-scale research, consider using dataset releases:
+The datasets repository contains existing, bounded metadata release artifacts:
 
 **Datasets Repository**: [github.com/jerdaw/healtharchive-datasets](https://github.com/jerdaw/healtharchive-datasets)
 
-**Benefits**:
-- Pre-packaged metadata exports
+**Available release properties**:
+- Pre-packaged, metadata-only snapshot and change records
 - Checksums for integrity verification
-- Version-controlled releases
-- Citable DOIs (future)
+- Versioned existing release files
 
-### API vs Datasets
+These artifacts do not contain the complete replay, WARC, or archived-content
+corpus. Their availability does not grant blanket reuse or redistribution
+rights. Consult applicable source terms and, once the coordinated rollout makes
+it available, the versioned datasets repository's RIGHTS.md notice.
 
-| Use Case | Use API | Use Dataset |
-|----------|---------|-------------|
-| Real-time search | ✅ | ❌ |
-| Small queries (< 1000 results) | ✅ | ❌ |
-| Complete metadata export | ❌ | ✅ |
-| Reproducible research | ~ | ✅ |
-| Offline analysis | ❌ | ✅ |
+### API vs Metadata Releases
+
+| Use Case | Use API | Inspect a Metadata Release |
+|----------|---------|----------------------------|
+| Current filtered metadata search | ✅ | ❌ |
+| Small metadata queries (< 1000 results) | ✅ | ❌ |
+| Versioned snapshot/change release fields | ❌ | ✅ |
+| Verify a published file against its checksum | ❌ | ✅ |
+| Analyze the fields in an existing release offline | ❌ | ✅ |
 
 ---
 
@@ -897,7 +908,11 @@ To keep the API available for everyone:
 1. **Cache aggressively**: Don't request the same data repeatedly
 2. **Use appropriate page sizes**: Don't always use `pageSize=100` if you only need 20
 3. **Implement backoff**: Retry with exponential backoff on errors
-4. **Consider datasets**: For bulk access, use dataset releases instead of paginating through API
+4. **Choose the bounded metadata surface**: Use the public metadata API or an
+   existing metadata-only dataset release where appropriate. These are not
+   full-archive downloads. Reuse remains subject to applicable source terms
+   and, once the coordinated rollout makes it available, the datasets
+   repository's RIGHTS.md notice.
 5. **Report issues**: If you encounter consistent errors, let us know
 
 ### Future Changes
@@ -917,16 +932,24 @@ We may introduce:
 A: Public endpoints require no authentication. Admin endpoints require a token.
 
 **Q: Can I download the entire archive?**
-A: Use dataset releases for bulk access. API is designed for queries, not full dumps.
+A: No. The public API and existing dataset releases expose bounded metadata,
+not the complete replay, WARC, or archived-content corpus. Availability does
+not grant permission to redistribute or reuse source material. Consult the
+applicable source terms and, once the coordinated rollout makes it available,
+the datasets repository's RIGHTS.md notice.
 
 **Q: How often is the archive updated?**
-A: Annual full crawls, with potential ad-hoc crawls for significant events.
+A: The existing corpus contains labeled annual campaigns and, where applicable,
+ad-hoc captures. No future crawl cadence is assumed; any new scheduled or
+ad-hoc campaign requires a separately authorized data-continuity decision.
 
 **Q: What if a snapshot I need is missing?**
 A: Check the capture dates via `/api/sources`. We can only provide what was archived.
 
 **Q: Can I request a specific page be archived?**
-A: Currently no on-demand archiving. Future feature under consideration.
+A: There is no on-demand archiving. Feedback can be submitted for assessment,
+but it does not commit the project to a new capture or broader coverage. Any
+future capture requires a separately authorized data-continuity decision.
 
 **Q: How long are snapshots retained?**
 A: Snapshots are intended to be retained long term, subject to storage,
@@ -936,7 +959,11 @@ integrity, takedown, and sustainability constraints.
 A: Not yet. REST/JSON only for now.
 
 **Q: Can I embed archived pages in my site?**
-A: Yes, use `<iframe src="https://api.healtharchive.ca/api/snapshots/raw/{id}"></iframe>`. Attribute HealthArchive.
+A: This guide does not grant permission to embed or redistribute archived
+content. Assess the original source terms, third-party assets, privacy and
+security considerations, and other applicable rights before reuse. Stable
+snapshot links may be used for citation where appropriate, but HealthArchive
+does not provide blanket legal clearance.
 
 ---
 
@@ -951,6 +978,8 @@ A: Yes, use `<iframe src="https://api.healtharchive.ca/api/snapshots/raw/{id}"><
 ## Next Steps
 
 - **Explore the API**: Try [interactive documentation](https://api.healtharchive.ca/docs)
-- **Download datasets**: Visit [healtharchive-datasets](https://github.com/jerdaw/healtharchive-datasets)
+- **Review metadata releases**: Visit
+  [healtharchive-datasets](https://github.com/jerdaw/healtharchive-datasets)
+  for existing metadata-only release artifacts and their current notices
 - **Read the architecture**: [Architecture Guide](architecture.md)
 - **Stay updated**: Watch the [backend repo](https://github.com/jerdaw/healtharchive) for changes

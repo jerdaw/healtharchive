@@ -29,7 +29,8 @@ Related:
 
 - Backlog items and implementation steps (use `../planning/`).
 - Incident timelines and recovery notes (use `../operations/incidents/`).
-- Routine ops logs (restore tests, adoption signals; use `<service-data-root>/ops/...`).
+- Routine ops logs and event-triggered organic evidence records. These are not
+  decision records; adoption evidence has no standing collection cadence.
 
 ---
 
@@ -57,6 +58,7 @@ If a decision changes later, create a new decision record and mark the old one a
 
 ## Decision records
 
+- `2026-08-12-dataset-publication-and-stewardship.md`
 - `2026-06-11-annual-crawl-media-retention-policy.md`
 - `2026-06-11-solo-operator-alert-paging-policy.md`
 - `2026-05-26-frontend-cache-externalization-and-docker-runtime-metrics.md`

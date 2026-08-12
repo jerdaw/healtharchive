@@ -197,11 +197,12 @@ Located in `docs/_templates/`:
 | `../_templates/incident-template.md` | Post-mortems | 4 incidents |
 | `../_templates/decision-template.md` | ADR-lite records | 1 decision |
 | `../_templates/restore-test-log-template.md` | Restore verification | VPS logs |
-| `../_templates/adoption-signals-log-template.md` | Adoption tracking | VPS logs |
+| `../_templates/adoption-signals-log-template.md` | Organic public evidence | Event-triggered only; inactive by default |
 | `../_templates/mentions-log-template.md` | Mentions tracking | VPS logs |
 | `../_templates/ops-ui-friction-log-template.md` | UX issues | VPS logs |
 
-**Status**: ✅ **Well-used templates ensure consistency**
+**Status**: ✅ **Templates are available where durable records are warranted;
+the organic-evidence template does not create a standing collection program.**
 
 ---
 

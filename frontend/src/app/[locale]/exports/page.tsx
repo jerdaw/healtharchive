@@ -8,6 +8,7 @@ import { getApiBaseUrl } from "@/lib/api";
 import type { Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
+import { getSiteCopy } from "@/lib/siteCopy";
 
 function getExportsCopy(locale: Locale) {
   if (locale === "fr") {
@@ -40,6 +41,7 @@ export async function generateMetadata({
 export default async function ExportsPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getExportsCopy(locale);
+  const siteCopy = getSiteCopy(locale);
   const apiBase = getApiBaseUrl();
   const manifestUrl = `${apiBase}/api/exports`;
   const datasetReleasesUrl = "https://github.com/jerdaw/healtharchive-datasets/releases";
@@ -70,9 +72,10 @@ export default async function ExportsPage({ params }: { params: Promise<{ locale
               {locale === "fr" ? "Publications de jeux de données" : "Dataset releases"}
             </h3>
             <p className="mt-2 text-xs leading-relaxed sm:text-sm">
-              {locale === "fr"
-                ? "Des publications trimestrielles de jeux de données (métadonnées seulement) sont publiées sur GitHub avec des sommes de contrôle."
-                : "Quarterly metadata-only dataset releases are published on GitHub with checksums."}
+              {siteCopy.datasetReleases.status}
+            </p>
+            <p className="mt-2 text-xs leading-relaxed sm:text-sm">
+              {siteCopy.datasetReleases.rolloutStatus}
             </p>
             <p className="mt-3 text-xs leading-relaxed sm:text-sm">
               <Link className="ha-link" href={datasetReleasesUrl}>
@@ -140,6 +143,12 @@ export default async function ExportsPage({ params }: { params: Promise<{ locale
               <strong>language</strong>, <strong>status_code</strong>, <strong>mime_type</strong>,
               <strong>title</strong>:{" "}
               {locale === "fr" ? "métadonnées lorsque disponibles." : "metadata when available."}
+            </li>
+            <li>
+              <strong>capture_backend / capture_fidelity</strong>:{" "}
+              {locale === "fr"
+                ? "étiquettes du système de capture et de fidélité."
+                : "capture-system and fidelity labels."}
             </li>
             <li>
               <strong>job_id / job_name</strong>:{" "}
@@ -228,15 +237,6 @@ export default async function ExportsPage({ params }: { params: Promise<{ locale
                 : "Replay fidelity varies by site and asset type."}
             </li>
           </ul>
-          <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
-            {locale === "fr"
-              ? "Pour des exports en lot ou sur mesure, voir la "
-              : "For bulk or custom exports, see the "}{" "}
-            <Link className="ha-link" href="/researchers">
-              {locale === "fr" ? "page Recherche" : "researchers page"}
-            </Link>{" "}
-            {locale === "fr" ? "pour le processus de demande." : "for the request workflow."}
-          </p>
         </section>
       </PageShell>
     </>

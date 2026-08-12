@@ -1,12 +1,18 @@
 # Methods Note Outline (public-safe)
 
-This outline is designed to become a poster, short preprint, or blog-style methods write-up that is:
+> **Inactive:** No methods paper, poster, preprint, or promotional write-up is
+> active. This historical outline is preserved as reference and may be
+> reactivated only through a later bounded decision satisfying the gates in the
+> [current roadmap](../planning/roadmap.md).
+
+This historical outline describes a possible poster, short preprint, or
+blog-style methods write-up that would be:
 
 - Descriptive (not interpretive).
 - Explicitly **not medical advice** and **not current guidance**.
 - Reproducibility-focused: “what was published, when, and how we preserve it”.
 
-It is intentionally “outline-first” so it can be quickly adapted to different venues without rewriting the project.
+It is not a publication plan or evidence of outside validation.
 
 ## Working title options
 
@@ -163,10 +169,10 @@ Suggested content:
 ## Conclusion
 
 - Reiterate that the contribution is infrastructure for temporal provenance and discoverability.
-- State planned work at a high level:
-  - more sources within scope,
-  - improved diff quality,
-  - versioned dataset releases (if/when adopted).
+- Do not present source expansion, future captures, dataset publication, or
+  methodological work as planned. If this outline is ever reactivated,
+  distinguish current-corpus facts from work that would require separate
+  data-continuity, rights/release, and capacity decisions.
 
 ## Figures / tables (plan)
 

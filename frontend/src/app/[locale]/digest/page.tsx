@@ -63,8 +63,8 @@ export default async function DigestPage({ params }: { params: Promise<{ locale:
           </p>
           <p className="mt-2 text-xs leading-relaxed sm:text-sm">
             {locale === "fr"
-              ? "Les bulletins reflètent des changements d’édition à édition. Les éditions annuelles sont capturées le 1er janvier (UTC) et les captures ponctuelles sont étiquetées lorsqu’elles surviennent. Cela n’implique pas une surveillance en temps réel."
-              : "Digests reflect edition-to-edition changes. Annual editions are captured on Jan 01 (UTC), and any ad-hoc captures are labeled when they occur. This does not imply real-time monitoring."}
+              ? "Les bulletins reflètent les changements entre les éditions étiquetées du corpus existant. Cela n’implique ni surveillance en temps réel ni cadence future; toute future capture nécessite une décision de continuité des données autorisée séparément."
+              : "Digests reflect changes between labeled editions in the existing corpus. This implies neither real-time monitoring nor a future cadence; any future capture requires a separately authorized data-continuity decision."}
           </p>
           <p className="mt-3 text-xs leading-relaxed sm:text-sm">
             {locale === "fr" ? "Pour des conseils de citation, voir" : "For citation guidance, see"}{" "}

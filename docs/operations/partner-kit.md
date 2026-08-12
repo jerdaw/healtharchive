@@ -1,6 +1,11 @@
 # Partner Kit (public-safe reference)
 
-Purpose: A lightweight, partner-ready kit that makes it easy to link to
+> **Inactive:** There is no current partner-distribution or outreach campaign.
+> This historical kit is preserved as reference and may be used only after a
+> later bounded outside-review decision satisfies the gates in the
+> [current roadmap](../planning/roadmap.md).
+
+Historical purpose: a lightweight kit for describing or linking to
 HealthArchive without implying endorsement or medical guidance.
 
 Do not include private emails or contact lists here.
@@ -32,9 +37,10 @@ Suggested links:
 
 ---
 
-## 2) Screenshot checklist (for partner kit)
+## 2) Historical screenshot checklist (inactive)
 
-Save files with consistent names so they can be attached to outreach emails.
+Do not prepare screenshots under the current posture. If a separately approved
+use reactivates this scaffold, use consistent names for any necessary assets.
 
 - 01-home.png (Home page with "What this is/is not" block)
 - 02-archive.png (/archive with search + filters)

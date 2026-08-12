@@ -91,8 +91,8 @@ describe("Static pages accessibility", () => {
     });
 
     it.each([
-      ["en", "Request checklist"],
-      ["fr", "Liste de vérification pour une demande"],
+      ["en", "Information for an access assessment"],
+      ["fr", "Renseignements pour une évaluation d’accès"],
     ] as const)("uses inner-page styles for the %s research guidance", async (locale, heading) => {
       const ui = await ResearchersPage({
         params: Promise.resolve({ locale }),

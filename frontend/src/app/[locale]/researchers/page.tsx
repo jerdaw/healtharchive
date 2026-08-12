@@ -7,6 +7,7 @@ import { getApiBaseUrl } from "@/lib/api";
 import type { Locale } from "@/lib/i18n";
 import { buildPageMetadata } from "@/lib/metadata";
 import { resolveLocale } from "@/lib/resolveLocale";
+import { getSiteCopy } from "@/lib/siteCopy";
 
 function getResearchersCopy(locale: Locale) {
   if (locale === "fr") {
@@ -38,6 +39,7 @@ export async function generateMetadata({
 export default async function ResearchersPage({ params }: { params: Promise<{ locale: string }> }) {
   const locale = await resolveLocale(params);
   const copy = getResearchersCopy(locale);
+  const siteCopy = getSiteCopy(locale);
   const apiBase = getApiBaseUrl();
   const exportsManifestUrl = `${apiBase}/api/exports`;
   const datasetReleasesUrl = "https://github.com/jerdaw/healtharchive-datasets/releases";
@@ -118,8 +120,8 @@ export default async function ResearchersPage({ params }: { params: Promise<{ lo
         </h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           {locale === "fr"
-            ? "L’explorateur d’archives et le visualiseur de captures sont conçus pour soutenir des flux de recherche, mais l’interface évolue encore. La couverture s’élargit, et certaines pages peuvent manquer ou être incomplètes."
-            : "The archive explorer and snapshot viewer are designed to support research workflows, but the interface is still evolving. Coverage is expanding, and some pages may be missing or incomplete."}
+            ? "L’explorateur d’archives et le visualiseur de captures soutiennent la recherche au sein du corpus existant et délimité. La couverture se limite aux sources, aux dates et aux captures réussies déjà archivées; certaines pages ou ressources peuvent manquer ou être incomplètes."
+            : "The archive explorer and snapshot viewer support research within the existing, bounded corpus. Coverage is limited to selected sources, dates, and successful captures; some pages or assets may be missing or incomplete."}
         </p>
         <ul className="text-ha-muted list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
           <li>
@@ -149,9 +151,28 @@ export default async function ResearchersPage({ params }: { params: Promise<{ lo
           </li>
         </ul>
         <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
-          {locale === "fr"
-            ? "Si vous avez besoin d’un accès en lot, d’exportations reproductibles ou d’une couverture de captures spécifique pour une étude, veuillez nous contacter via la page Contact."
-            : "If you need bulk access, reproducible exports, or specific capture coverage for a study, please reach out via the contact page."}
+          {locale === "fr" ? (
+            <>
+              Les questions visant à savoir si le corpus existant couvre une source ou une date
+              peuvent être soumises par la page{" "}
+              <Link className="ha-link" href="/contact">
+                Contact
+              </Link>{" "}
+              pour évaluation. Cette prise de contact n’engage pas le projet à effectuer de
+              nouvelles captures, à élargir la couverture ou à produire une exportation
+              personnalisée.
+            </>
+          ) : (
+            <>
+              Questions about whether the existing corpus covers a source or date may be sent
+              through the{" "}
+              <Link className="ha-link" href="/contact">
+                contact page
+              </Link>{" "}
+              for assessment. Contact does not commit the project to new capture work, broader
+              coverage, or a custom export.
+            </>
+          )}
         </p>
       </section>
 
@@ -179,9 +200,10 @@ export default async function ResearchersPage({ params }: { params: Promise<{ lo
             {locale === "fr" ? "Publications de jeux de données" : "Dataset releases"}
           </h3>
           <p className="mt-2 text-xs leading-relaxed sm:text-sm">
-            {locale === "fr"
-              ? "Des publications trimestrielles de jeux de données (métadonnées seulement) sont publiées sur GitHub avec des sommes de contrôle."
-              : "Quarterly metadata-only dataset releases are published on GitHub with checksums."}
+            {siteCopy.datasetReleases.status}
+          </p>
+          <p className="mt-2 text-xs leading-relaxed sm:text-sm">
+            {siteCopy.datasetReleases.rolloutStatus}
           </p>
           <p className="mt-3 text-xs leading-relaxed sm:text-sm">
             <Link className="ha-link" href={datasetReleasesUrl}>
@@ -201,7 +223,9 @@ export default async function ResearchersPage({ params }: { params: Promise<{ lo
           .
         </p>
         <h3 className="ha-callout-title">
-          {locale === "fr" ? "Liste de vérification pour une demande" : "Request checklist"}
+          {locale === "fr"
+            ? "Renseignements pour une évaluation d’accès"
+            : "Information for an access assessment"}
         </h3>
         <ul className="text-ha-muted list-disc space-y-1 pl-5 text-sm leading-relaxed sm:text-base">
           <li>
@@ -226,29 +250,30 @@ export default async function ResearchersPage({ params }: { params: Promise<{ lo
           </li>
           <li>
             {locale === "fr"
-              ? "Format souhaité (CSV ou JSONL) et toute échéance."
-              : "Preferred format (CSV or JSONL) and any deadline."}
+              ? "Format existant souhaité (CSV ou JSONL), s’il y a lieu."
+              : "Preferred existing format (CSV or JSONL), if relevant."}
           </li>
         </ul>
         <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
           {locale === "fr" ? (
             <>
-              Pour des exportations en lot ou des demandes personnalisées, contactez les
-              responsables du projet via la page{" "}
+              Les questions sur les capacités existantes d’accès en lot ou d’exportation peuvent
+              être soumises aux responsables du projet par la page{" "}
               <Link className="ha-link" href="/contact">
                 Contact
-              </Link>
-              . Nous visons une réponse sous 7 jours, mais cela peut prendre plus de temps selon la
-              charge de travail (précisez toute échéance).
+              </Link>{" "}
+              pour évaluation. Toute réponse dépend de la capacité disponible; aucune exportation
+              personnalisée, nouvelle capture ou échéance de réponse n’est promise.
             </>
           ) : (
             <>
-              For bulk exports or custom requests, contact the project maintainers via the{" "}
+              Questions about existing bulk-access or export capabilities may be sent to the project
+              maintainers through the{" "}
               <Link className="ha-link" href="/contact">
                 contact page
-              </Link>
-              . We aim to respond within 7 days, but it may take longer depending on workload
-              (include any deadline).
+              </Link>{" "}
+              for assessment. Responses depend on available capacity; no custom export, new capture
+              work, or response time is promised.
             </>
           )}
         </p>

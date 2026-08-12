@@ -110,7 +110,8 @@ Available templates:
 - `_templates/incident-template.md` — For incident postmortems
 - `_templates/decision-template.md` — For architectural decisions
 - `_templates/restore-test-log-template.md` — For quarterly restore test logs
-- `_templates/adoption-signals-log-template.md` — For quarterly adoption signals
+- `_templates/adoption-signals-log-template.md` — For event-triggered,
+  independently observable public evidence; inactive by default
 - `_templates/mentions-log-template.md` — For mentions log entries
 - `_templates/ops-ui-friction-log-template.md` — For internal friction logging
 
@@ -206,7 +207,9 @@ Our existing document types map to Diátaxis categories:
 These support but don't replace the four main types:
 
 - **Index (`README.md`)**: Navigation only; points to canonical docs
-- **Log/record**: Dated, append-only operational evidence (restore tests, adoption signals)
+- **Log/record**: Dated, append-only operational or organic public evidence;
+  adoption evidence is recorded only when a verifiable event occurs, not on a
+  standing cadence
 - **Template**: Scaffolds in `docs/_templates/`
 - **Bridge/alias**: Short files or bridge paths that surface canonical docs without duplicating ownership (for example `docs/frontend/` and legacy compatibility aliases)
 

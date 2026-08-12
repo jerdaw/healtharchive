@@ -838,17 +838,24 @@ All text is stable, but can be refined later.
   - Use cases:
     - Policy/guideline history, reproducibility, media studies, audit/accountability.
 
-  - Working with demo archive:
-    - Small curated dataset + search interface + snapshot stubs.
+  - Working with the existing archive corpus:
+    - Search and snapshot-viewer access to the bounded current corpus, with
+      explicit coverage and replay limitations.
 
   - Research access and exports:
-    - Export manifest link + request checklist for bulk needs.
+    - Export manifest and existing metadata-release links, plus information for
+      assessing whether current access capabilities fit a question.
+    - Contact is assessment-gated and does not promise custom exports, new
+      capture work, or a response time.
 
   - Citation guidance:
     - Provides a suggested citation format.
 
-  - Planned future capabilities (callout):
-    - Dataset release cadence and larger custom exports.
+  - Dataset release posture:
+    - Existing releases are preserved. The accepted target pauses scheduled
+      publication and requires manual approval plus rights/schema review for
+      any future release; that target remains subject to the ordered rollout
+      gate in the active roadmap.
 
 ### 8.6 Exports `/exports` – `src/app/[locale]/exports/page.tsx`
 

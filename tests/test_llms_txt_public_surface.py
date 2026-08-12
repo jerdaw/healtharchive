@@ -55,6 +55,15 @@ FORBIDDEN_PUBLIC_CONTEXT_PREFIXES = (
     "tmp/",
 )
 
+FORBIDDEN_DATASET_RIGHTS_CLAIMS = (
+    "citable dois (future)",
+    "complete metadata export",
+    "for large-scale research, consider using dataset releases",
+    "use dataset releases for bulk access",
+    "attribute healtharchive",
+    "download datasets",
+)
+
 
 def test_llms_txt_public_context_allowlist_excludes_private_docs() -> None:
     public_docs = set(generate_llms_txt.PUBLIC_CONTEXT_DOCS)
@@ -104,3 +113,32 @@ def test_llms_txt_generated_content_uses_public_context_sections_only() -> None:
     lower_content = content.lower()
     for term in FORBIDDEN_PUBLIC_CONTEXT_TERMS:
         assert term not in lower_content
+
+
+def test_dataset_guidance_does_not_overstate_archive_access_or_reuse() -> None:
+    api_guide = (REPO_ROOT / "docs/api-consumer-guide.md").read_text(encoding="utf-8")
+    quickstart = (REPO_ROOT / "docs/quickstart.md").read_text(encoding="utf-8")
+    generated_context = generate_llms_txt.build_llms_txt(repo_root=REPO_ROOT)
+
+    for text in (api_guide, quickstart, generated_context):
+        lower_text = text.lower()
+        assert "metadata-only" in lower_text
+        for claim in FORBIDDEN_DATASET_RIGHTS_CLAIMS:
+            assert claim not in lower_text
+
+    lower_api_guide = re.sub(r"\s+", " ", api_guide.lower())
+    lower_quickstart = re.sub(r"\s+", " ", quickstart.lower())
+    lower_generated_context = re.sub(r"\s+", " ", generated_context.lower())
+
+    assert "does not grant permission to embed or redistribute" in lower_api_guide
+    assert "metadata release artifacts" in lower_api_guide
+    assert "do not contain the complete replay, warc, or archived-content" in lower_api_guide
+    assert "blanket reuse or redistribution rights" in lower_api_guide
+    assert "repository's rights.md notice" in lower_api_guide
+    assert "inspect the public metadata api" in lower_quickstart
+    assert "not full-archive downloads" in lower_quickstart
+    assert "blanket reuse rights" in lower_quickstart
+    assert "repository's rights.md notice" in lower_quickstart
+    assert (
+        "do not contain the complete replay, warc, or archived-content" in lower_generated_context
+    )

@@ -109,8 +109,8 @@ export default async function ImpactPage({ params }: { params: Promise<{ locale:
         </h2>
         <p className="text-ha-muted text-sm leading-relaxed">
           {locale === "fr"
-            ? "L’état du service et les métriques de couverture en direct sont disponibles sur la page Statut. Ce projet est encore en développement actif; des lacunes intermittentes de couverture ou de fidélité de relecture sont à prévoir à mesure que l’archive s’étend."
-            : "Live service health and coverage metrics are available on the status page. This project is still in active development; intermittent gaps in coverage or replay fidelity are expected as the archive expands."}
+            ? "L’état du service et les métriques de couverture en direct sont disponibles sur la page Statut. Le corpus existant peut présenter des lacunes de couverture ou de fidélité de relecture. Aucune extension future n’est présumée; elle nécessiterait une décision de continuité des données autorisée séparément."
+            : "Live service health and coverage metrics are available on the status page. The existing corpus may have gaps in coverage or replay fidelity. Future expansion is not assumed and would require a separately authorized data-continuity decision."}
         </p>
         <p className="text-ha-muted text-sm leading-relaxed">
           <Link href="/status" className="ha-link">
@@ -190,18 +190,18 @@ export default async function ImpactPage({ params }: { params: Promise<{ locale:
         <ul className="text-ha-muted list-disc space-y-1 pl-5 text-sm leading-relaxed">
           <li>
             {locale === "fr"
-              ? "Étendre la couverture à d’autres sources canadiennes de santé publique."
-              : "Expand coverage across additional Canadian public health sources."}
+              ? "Résoudre les décisions de gouvernance des publications et de continuité des données avant toute future modification de la couverture."
+              : "Resolve release-governance and data-continuity decisions before any future coverage change."}
           </li>
           <li>
             {locale === "fr"
-              ? "Améliorer la fiabilité de relecture pour les pages complexes riches en JavaScript."
-              : "Improve replay reliability for complex, JavaScript-heavy pages."}
+              ? "Maintenir la fiabilité de relecture pour le corpus actuel."
+              : "Maintain replay reliability for the current corpus."}
           </li>
           <li>
             {locale === "fr"
-              ? "Renforcer la documentation publique, la gouvernance et le soutien bilingue."
-              : "Strengthen public-facing documentation, governance, and bilingual support."}
+              ? "Maintenir l’exactitude de la documentation publique, de la gouvernance et du soutien bilingue."
+              : "Keep public-facing documentation, governance, and bilingual support accurate."}
           </li>
         </ul>
       </section>

@@ -23,15 +23,30 @@ Paused or conditional plans:
 
 Treat the following as the current "what's next" order across roadmap docs:
 
-1. After the crawl/ops path is stabilized, the main project emphasis is
-   external validation, public methodology, and dataset-release work.
-   - Track concrete follow-through in the roadmap and current work tracker.
-2. Optional broad `q=...&view=pages` DB/index-plan tuning remains a future
+1. Complete the ordered dataset-control and public-claim rollout gate.
+   - As of 2026-08-12, the manual-release, rights-notice, schema-guard, and
+     monorepo claim changes are accepted local patches, not published controls.
+   - Review, merge, publish, and verify the datasets controls first: remove the
+     schedules while retaining manual dispatch, publish the conservative
+     rights notice, and enforce the 15-snapshot / 24-change schema boundary.
+   - Only after that verification may the dated rollout status be marked
+     verified and the monorepo public-claim patch be deployed and checked.
+   - Decision record:
+     `../decisions/2026-08-12-dataset-publication-and-stewardship.md`
+2. Complete the separate data-continuity disposition, then preserve existing
+   releases and archive data through event-triggered
+   integrity/security stewardship. Make any future capture-campaign decision
+   explicitly from rights, capacity, storage, restore, replay, and automation
+   evidence rather than an assumed calendar.
+3. After containment and only when capacity is available, consider at most one
+   bounded outside stewardship review. There is no active conversion,
+   adoption, DOI, or general outreach campaign.
+4. Optional broad `q=...&view=pages` DB/index-plan tuning remains a future
    backend/search backlog item if repeated warm-cache samples exceed the
    desired response target.
    - Canonical tracker: private operations workspace for live tuning notes;
      public backlog entries stay in `roadmap.md`.
-3. Any docs-site migration planning should use the archived prep inventory as
+5. Any docs-site migration planning should use the archived prep inventory as
    the starting point, but the actual generator swap remains a separate change
    series.
    - Canonical reference:

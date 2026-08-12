@@ -12,7 +12,7 @@ This directory contains templates for creating consistent documentation across t
 | `decision-template.md` | Architectural/policy decisions | `docs/decisions/` |
 | `annual-campaign-closeout-report-template.md` | Annual campaign closeout report | `docs/operations/reports/` |
 | `restore-test-log-template.md` | Quarterly restore test logs | `<service-data-root>/ops/restore-tests/` (VPS) |
-| `adoption-signals-log-template.md` | Quarterly adoption signals | `<service-data-root>/ops/adoption/` (VPS) |
+| `adoption-signals-log-template.md` | Event-triggered organic public evidence; inactive by default | Approved evidence record only when a verifiable event occurs |
 | `mentions-log-template.md` | Public mentions log entries | `docs/operations/mentions-log.md` |
 | `ops-ui-friction-log-template.md` | Internal friction tracking | Local ops notes (not git) |
 

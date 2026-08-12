@@ -77,8 +77,8 @@ export default async function AboutPage({ params }: { params: Promise<{ locale: 
         </h2>
         <p className="ha-section-subtitle ha-section-lede leading-relaxed">
           {locale === "fr"
-            ? "HealthArchive.ca est en développement. Le site capture et indexe déjà des instantanés provenant de sources canadiennes de santé publique sélectionnées, et la couverture s’élargira avec le temps. Les fonctionnalités de recherche, de relecture et de curation évoluent et peuvent changer à mesure que l’archive mûrit."
-            : "HealthArchive.ca is in development. The site is already capturing and indexing snapshots from selected Canadian public health sources, and coverage will expand over time. Search, replay, and curation features are evolving and may change as the archive matures."}
+            ? "HealthArchive.ca est en développement. Le site indexe et sert des instantanés déjà capturés provenant de sources canadiennes de santé publique sélectionnées. La couverture est limitée au corpus actuel; toute future campagne de capture ou extension nécessite une décision de continuité des données autorisée séparément. Les fonctionnalités de recherche, de relecture et de curation peuvent changer à mesure que l’archive mûrit."
+            : "HealthArchive.ca is in development. The site indexes and serves snapshots already captured from selected Canadian public health sources. Coverage is bounded to the current corpus; any future capture campaign or expansion requires a separately authorized data-continuity decision. Search, replay, and curation features may change as the archive matures."}
         </p>
         <p className="text-ha-muted text-sm leading-relaxed sm:text-base">
           {locale === "fr"
