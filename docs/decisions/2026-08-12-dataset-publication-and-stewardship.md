@@ -2,8 +2,11 @@
 
 Decision status: accepted
 
-Rollout prerequisite status: verified on 2026-08-12; the datasets control gate
-is complete and monorepo PR 154 is the remaining public-claim rollout.
+Rollout status: complete and verified on 2026-08-12. The datasets control gate
+is published at `ba39fd13315d32db78edc47fbcd90c98109b6b22`; the coordinated
+public-claim correction merged at
+`443edd97278cf0c21bb525f24696dce2ddb61cad`, and frontend release
+`ac4e88cb1775` is live.
 
 ## Context
 
@@ -74,7 +77,7 @@ promotion or research activity.
 - The accepted pause does not by itself decide whether or when future capture
   campaigns should run; that requires a separate continuity decision.
 
-## Dated rollout verification and acceptance gate (2026-08-12)
+## Completed rollout verification (2026-08-12)
 
 The prerequisite datasets control gate is verified:
 
@@ -93,20 +96,53 @@ The prerequisite datasets control gate is verified:
 - No dataset release, tag, or release asset was created or changed during this
   control rollout.
 
-Monorepo PR 154 contains the coordinated public-claim correction and is the
-remaining rollout. It may be merged and deployed only after its required
-checks pass and a safe rollback path is confirmed. After deployment, verify
-the English and French export and researcher pages, dataset JSON-LD, rights
-links, and linked public documentation.
+The coordinated monorepo correction then completed:
 
-## Verification / rollout
+- PR 154 merged as `443edd97278cf0c21bb525f24696dce2ddb61cad`.
+- Frontend release `ac4e88cb1775` was deployed with the prior release retained
+  as the rollback target.
+- English and French export and researcher pages, dataset JSON-LD, rights
+  links, and linked public documentation were verified.
+- Independent post-rollout review found no remaining claim, rights-boundary,
+  continuity-language, or rollout defect.
+- The rollout did not change the backend, database, worker, crawl state,
+  archive storage, or dataset release assets.
+
+## Terminal stewardship handoff (2026-08-15)
+
+The project-local containment queue is empty. Routine work is event-triggered,
+not quota-driven. Existing releases remain available, new publication remains
+manual and paused, and the current corpus remains bounded unless a later owner
+decision explicitly changes one of those postures.
+
+Resume work only for one of these concrete triggers:
+
+1. A release-integrity, security, schema, rights-notice, or public-claim defect
+   is reported or reproduced.
+2. The maintainer authorizes a named qualified reviewer to answer the bounded
+   questions in the datasets repository's
+   [RIGHTS.md review packet](https://github.com/jerdaw/healtharchive-datasets/blob/main/RIGHTS.md).
+   Preparing that packet does not authorize contact.
+3. The maintainer opens a separate data-continuity decision using current
+   rights, storage, restore/replay, automation-reliability, and capacity
+   evidence. Without that decision, no future capture campaign is assumed.
+4. A future release is separately approved after the rights, schema, and
+   continuity gates are satisfied; manual dispatch remains an execution step,
+   not approval by itself.
+
+Stop rather than expand scope when a trigger lacks a named owner, bounded
+question, required evidence, workload limit, or explicit approval. A reviewer
+being unavailable, a question requiring broader legal work, or an operational
+prerequisite being unverified leaves publication and capture paused; it does
+not create a new project.
+
+## Ongoing invariants
 
 - Acceptance requires the datasets repository to keep release publication and
   keepalive workflows manual-only and to reject unexpected or missing export
   fields against its reviewed schema and provenance inventory.
-- Before monorepo deployment, the updated public export and researcher pages
-  must state the verified manual, conditional release posture and must not
-  publish a blanket dataset licence.
+- Public export and researcher pages must retain the verified manual,
+  conditional release posture and must not publish a blanket dataset licence.
 - The active roadmap contains no standing quarterly release, DOI, adoption, or
   outbound validation campaign.
 - Reinstating a schedule or approving a new release requires an explicit owner

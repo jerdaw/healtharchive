@@ -214,3 +214,23 @@ def test_active_docs_do_not_reactivate_outreach_or_capture_programs() -> None:
         text = _read(relative_path)
         assert "Inactive" in text
         assert "current roadmap" in text
+
+
+def test_dataset_containment_rollout_is_terminal_and_owner_gated() -> None:
+    decision = " ".join(
+        _read("docs/decisions/2026-08-12-dataset-publication-and-stewardship.md").split()
+    )
+    planning_index = " ".join(_read("docs/planning/README.md").split())
+    roadmap = " ".join(_read("docs/planning/roadmap.md").split())
+
+    for text in (decision, planning_index, roadmap):
+        assert "443edd97278cf0c21bb525f24696dce2ddb61cad" in text
+        assert "ac4e88cb1775" in text
+        assert "PR 154 is the remaining" not in text
+        assert "Complete monorepo PR 154" not in text
+
+    assert "project-local containment queue is empty" in decision
+    assert "Preparing that packet does not authorize contact" in decision
+    assert "repository execution queue" in planning_index
+    assert "packet preparation does not authorize contact" in roadmap
+    assert "no future campaign is assumed" in planning_index
