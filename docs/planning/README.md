@@ -23,33 +23,36 @@ Paused or conditional plans:
 
 Treat the following as the current "what's next" order across roadmap docs:
 
-1. Complete monorepo PR 154 through normal review and the established safe
-   deployment path.
-   - The prerequisite datasets controls were published and verified on
-     2026-08-12 through PR 15 (`802a91168ef6d315d22c8e14a14a33182b354cd5`),
-     with the time-robust rights wording finalized through PR 16 at
-     `ba39fd13315d32db78edc47fbcd90c98109b6b22`. Schedules are absent, manual
-     dispatch remains, the conservative rights notice resolves, and the
-     15-snapshot / 24-change schema guards pass.
-   - Merge the monorepo patch only after its required checks pass, then deploy
-     only with a confirmed rollback and verify the English/French public
-     claims, JSON-LD, rights links, and documentation surfaces.
-   - Decision record:
+1. Dataset release and public-claim containment is complete.
+   - Dataset controls are published at
+     `ba39fd13315d32db78edc47fbcd90c98109b6b22`; schedules are absent, manual
+     dispatch remains, the rights notice resolves, and the 15-snapshot /
+     24-change schema guards pass.
+   - Monorepo PR 154 merged as
+     `443edd97278cf0c21bb525f24696dce2ddb61cad`; frontend release
+     `ac4e88cb1775` is live, the bilingual claims and linked documentation were
+     verified, and the prior frontend release remains available for rollback.
+   - Decision and terminal handoff:
      `../decisions/2026-08-12-dataset-publication-and-stewardship.md`
-2. Complete the separate data-continuity disposition, then preserve existing
-   releases and archive data through event-triggered
-   integrity/security stewardship. Make any future capture-campaign decision
-   explicitly from rights, capacity, storage, restore, replay, and automation
-   evidence rather than an assumed calendar.
-3. After containment and only when capacity is available, consider at most one
-   bounded outside stewardship review. There is no active conversion,
-   adoption, DOI, or general outreach campaign.
-4. Optional broad `q=...&view=pages` DB/index-plan tuning remains a future
+2. Preserve existing releases and archive data through event-triggered
+   integrity, security, schema, and public-claim stewardship. There is no
+   standing maintenance quota or repository execution queue.
+3. A future data-continuity disposition is owner-triggered, not current work.
+   Any proposal must use then-current rights, capacity, storage,
+   restore/replay, automation, and operator evidence; absent an approved
+   decision, the corpus remains bounded and no future campaign is assumed.
+4. The factual packet for one qualified rights review is prepared in the
+   datasets repository's
+   [RIGHTS.md](https://github.com/jerdaw/healtharchive-datasets/blob/main/RIGHTS.md),
+   but no contact is authorized. Any review requires a named reviewer, exact
+   question, output, workload cap, and maintainer approval. There is no active
+   conversion, adoption, DOI, or general outreach campaign.
+5. Optional broad `q=...&view=pages` DB/index-plan tuning remains a future
    backend/search backlog item if repeated warm-cache samples exceed the
    desired response target.
    - Canonical tracker: private operations workspace for live tuning notes;
      public backlog entries stay in `roadmap.md`.
-5. Any docs-site migration planning should use the archived prep inventory as
+6. Any docs-site migration planning should use the archived prep inventory as
    the starting point, but the actual generator swap remains a separate change
    series.
    - Canonical reference:

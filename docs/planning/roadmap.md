@@ -3,9 +3,9 @@
 **Current state:** Repository implementation is stable; the aggregate
 data-integrity report and July maintenance, UX, and performance batches,
 including the coverage-validated stats fast path, are complete.
-**Last updated:** 2026-08-12
-**Immediate priority:** dataset rights/release containment and an explicit
-data-continuity disposition; there is no active conversion campaign.
+**Last updated:** 2026-08-15
+**Immediate priority:** none; dataset rights/release containment is complete
+and stewardship is event-triggered. There is no active conversion campaign.
 **Repository-only execution queue:** empty until a trigger in the table below
 is satisfied.
 
@@ -17,8 +17,10 @@ published and verified through PR 15 at
 `802a91168ef6d315d22c8e14a14a33182b354cd5`; the time-robust rights wording is
 published at final datasets state `ba39fd13315d32db78edc47fbcd90c98109b6b22`.
 Scheduled publication and keepalive are absent, manual dispatch remains, the
-rights notice resolves, and the 15/24 schema guards pass. Monorepo PR 154 is the
-remaining normally reviewed, rollback-confirmed public-claim deployment.
+rights notice resolves, and the 15/24 schema guards pass. Monorepo PR 154
+merged as `443edd97278cf0c21bb525f24696dce2ddb61cad`; frontend release
+`ac4e88cb1775` is live, the bilingual public surfaces were verified, and the
+prior release remains the rollback target. The containment rollout is closed.
 
 This file tracks **not-yet-implemented** work and planned upgrades. Completed
 implementation records belong in `implemented/`, not in the active queue.
@@ -29,10 +31,10 @@ It is intentionally **not** an implementation plan.
 
 | Priority | Outcome | Readiness | Gate / next action |
 |----------|---------|-----------|--------------------|
-| P0 | Deploy and verify corrected public dataset claims | Owner/deployment gate | Dataset prerequisites are verified; merge PR 154 after required checks, confirm rollback, deploy through the established safe path, and verify EN/FR copy, JSON-LD, rights links, and docs |
-| P0 | Choose the next data-continuity posture | Owner/operational decision | Decide from rights, storage, restore, replay, automation reliability, and operator capacity before another capture campaign |
+| Gate | Choose any future data-continuity posture | Owner-triggered; inactive | Open a separate decision using current rights, storage, restore/replay, automation reliability, and operator capacity evidence; absent approval, keep the corpus bounded and historical |
 | P1 | Preserve existing releases and archive data safely | Event-triggered maintenance | Act on a concrete integrity, security, backup, replay, schema, or public-claim defect; do not create a standing work quota |
-| P1 | Permit at most one later outside stewardship review | Conditional/capacity-gated | Proceed only after containment, with one defined question, qualified reviewer, attributable output, workload cap, and no competing external sprint |
+| Gate | Request one qualified rights review | Owner-triggered; packet prepared | Use the datasets [RIGHTS.md](https://github.com/jerdaw/healtharchive-datasets/blob/main/RIGHTS.md) packet only after a named reviewer, exact question, written output, workload cap, and maintainer approval are recorded; packet preparation does not authorize contact |
+| P1 | Permit at most one later outside stewardship review | Conditional/capacity-gated | Proceed only after a separate decision, with one defined question, qualified reviewer, attributable output, workload cap, and no competing external sprint |
 | P1 | Improve large-job indexing only when live evidence warrants it | Conditional | Use durable progress history to choose checkpointing, detached execution, or an explicit all-at-once rationale |
 | P2 | Resolve WARC-finalization, raw-lookup, or page-search design questions | Decision required | Start a focused plan only after a measured user/operational need selects one option |
 | P2 | Maintain upstream dependency and advisory posture | Conditional maintenance | Act only when a compatible upstream fix exists or a concrete security regression appears |
@@ -49,8 +51,8 @@ Selection rules:
    outreach, or repeat-cycle adoption work without a new explicit decision.
 5. Do not describe accepted target controls as live before the ordered rollout
    gate is verified.
-6. Keep broad P3 work out of active plans while containment or necessary
-   stewardship is unresolved.
+6. Keep the repository execution queue empty while the owner and event gates
+   above remain unchanged; do not turn a prepared packet into standing work.
 
 ## How to use this file (workflow)
 
