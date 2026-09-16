@@ -204,9 +204,10 @@ bash scripts/setup-hooks.sh
     then applies the Lighthouse performance budgets to that production build.
   - `Frontend CI / docker-build-smoke` builds the production frontend image
     after the first two jobs pass.
-- The frontend workflow does **not** currently run `npm audit` or any other
-  dedicated dependency-audit step. Treat dependency audits as a manual or
-  separately scheduled follow-up until a blocking job is added intentionally.
+- The frontend workflow runs `npm audit --omit=dev --audit-level=high` after
+  installing the lockfile. This blocks high- and critical-severity production
+  dependency advisories; development-only dependency audits remain a separate
+  maintenance concern.
 
 - Ensure `NEXT_PUBLIC_API_BASE_URL` is set for the active runtime.
 - If you need to override replay links, set `NEXT_PUBLIC_REPLAY_BASE_URL`.

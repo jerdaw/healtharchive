@@ -24,7 +24,7 @@
   },
   "dependencies": {
     "diff": "^8.0.4",
-    "next": "^16.2.9",
+    "next": "^16.3.5",
     "react": "^19.2.5",
     "react-dom": "19.2.5"
   },
@@ -38,14 +38,14 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "eslint": "^10.5.0",
-    "eslint-config-next": "^16.2.9",
+    "eslint-config-next": "^16.3.5",
     "eslint-plugin-react": "^7.37.5",
     "jsdom": "^29",
     "openapi-typescript": "^7.13.0",
     "patch-package": "^8.0.0",
     "prettier": "^3.8.4",
     "prettier-plugin-tailwindcss": "^0.7.2",
-    "postcss": "8.5.15",
+    "postcss": "8.5.28",
     "tailwindcss": "^4",
     "typescript": "5.9.3",
     "vitest": "^4",
@@ -53,6 +53,6 @@
   },
   "overrides": {
     "eslint-plugin-react": "^7.37.5",
-    "postcss": "8.5.15"
+    "postcss": "8.5.28"
   }
 }

@@ -80,6 +80,10 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Production dependency audit
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
       - name: Check
         run: make frontend-ci
 
