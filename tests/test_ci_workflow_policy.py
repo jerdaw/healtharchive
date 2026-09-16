@@ -60,6 +60,20 @@ def test_ruleset_required_job_names_stay_stable() -> None:
         assert required_names <= configured_names
 
 
+def test_frontend_ci_audits_production_dependencies() -> None:
+    workflow = load_workflow("frontend-ci.yml")
+    lint_job = next(
+        job for job in workflow["jobs"].values() if job.get("name") == "Frontend CI / lint-and-test"
+    )
+    audit_steps = [
+        step.get("run")
+        for step in lint_job.get("steps", [])
+        if isinstance(step, dict) and step.get("name") == "Production dependency audit"
+    ]
+
+    assert audit_steps == ["npm audit --omit=dev --audit-level=high"]
+
+
 def test_uploaded_artifacts_expire_within_three_days() -> None:
     upload_steps: list[tuple[str, dict]] = []
 
