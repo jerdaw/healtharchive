@@ -122,8 +122,14 @@ Then edit `.env.local` and set:
 NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001
 ```
 
-Set `NEXT_PUBLIC_API_BASE_URL` in the frontend runtime environment. Recommended
-values:
+Next.js compiles `NEXT_PUBLIC_*` values into the browser bundle at build time;
+changing only the container runtime env file cannot repair a bundle built with
+the wrong API or replay URL. The production Dockerfile defaults these public
+URLs to the HealthArchive API and replay hosts. For another public deployment,
+override them with `--build-arg NEXT_PUBLIC_API_BASE_URL=...` and
+`--build-arg NEXT_PUBLIC_REPLAY_BASE_URL=...`. These values are public; never
+pass secrets as `NEXT_PUBLIC_*` variables or Docker build args. Keep matching
+runtime values where server-side code also reads them. Recommended values:
 
 | Environment | Frontend URL               | Backend URL                    | `NEXT_PUBLIC_API_BASE_URL`     |
 | ----------- | -------------------------- | ------------------------------ | ------------------------------ |
@@ -134,9 +140,11 @@ values:
 > history or rollback notes, but they are not part of the current production
 > path.
 
-> `NEXT_PUBLIC_BACKEND_URL` is still supported for backward-compatibility, but
-> `NEXT_PUBLIC_API_BASE_URL` is the preferred and documented way to configure
-> the API base.
+> The application and direct `npm run build` path still accept the legacy
+> `NEXT_PUBLIC_BACKEND_URL` alias when `NEXT_PUBLIC_API_BASE_URL` is unset. The
+> Dockerfile supplies the preferred API variable by default, so a legacy-only
+> Docker build arg does not override it; Docker builds must use
+> `NEXT_PUBLIC_API_BASE_URL` for custom hosts.
 
 ### 3. Run the dev server
 
@@ -209,8 +217,9 @@ bash scripts/setup-hooks.sh
   dependency advisories; development-only dependency audits remain a separate
   maintenance concern.
 
-- Ensure `NEXT_PUBLIC_API_BASE_URL` is set for the active runtime.
-- If you need to override replay links, set `NEXT_PUBLIC_REPLAY_BASE_URL`.
+- Set `NEXT_PUBLIC_API_BASE_URL` and, if needed,
+  `NEXT_PUBLIC_REPLAY_BASE_URL` at Docker build time; runtime env alone does
+  not alter the compiled browser bundle.
 - Optional diagnostics envs (`NEXT_PUBLIC_SHOW_API_HEALTH_BANNER`,
   `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE`, `NEXT_PUBLIC_SHOW_API_BASE_HINT`) are
   normally disabled in CI and production to keep logs quiet.
@@ -310,11 +319,17 @@ Production image build:
 docker build -t healtharchive-frontend:local .
 ```
 
-Private deployment proof helper:
+Production-default deployment proof helper:
 
 ```bash
 ./scripts/deploy-vps-proof.sh <frontend-env-file>
 ```
+
+This helper builds with the Dockerfile's production public-URL defaults. It
+does not translate `NEXT_PUBLIC_*` entries in the runtime env file into Docker
+build args; that file cannot select staging or custom browser URLs. Use a
+separately reviewed build invocation with explicit public build args for those
+cases.
 
 By default, the helper mounts `/app/.next/cache` as a named Docker volume
 derived from the container name, for example

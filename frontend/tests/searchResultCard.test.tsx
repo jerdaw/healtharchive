@@ -1,5 +1,5 @@
 import { render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   SearchResultCard,
@@ -29,5 +29,30 @@ describe("SearchResultCard", () => {
     expect(screen.getByRole("link", { name: "Toutes les captures" })).toBeInTheDocument();
     expect(screen.getByText("URL d’origine")).toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Copier l’URL d’origine" })).toBeInTheDocument();
+  });
+
+  it("builds a replay link from the configured replay origin", () => {
+    vi.stubEnv("NEXT_PUBLIC_REPLAY_BASE_URL", "https://replay.healtharchive.ca");
+    try {
+      render(
+        <SearchResultCard
+          record={{
+            ...record,
+            jobId: 17,
+            captureTimestamp: "2025-01-02T03:04:05Z",
+          }}
+          view="pages"
+          query=""
+          locale="en"
+        />,
+      );
+
+      expect(screen.getByRole("link", { name: "Vaccination guidance" })).toHaveAttribute(
+        "href",
+        "https://replay.healtharchive.ca/job-17/20250102030405/https://example.ca/guidance#ha_snapshot=42",
+      );
+    } finally {
+      vi.unstubAllEnvs();
+    }
   });
 });

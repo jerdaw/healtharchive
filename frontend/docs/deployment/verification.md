@@ -29,21 +29,65 @@ Shared-host ownership note:
 
 ---
 
-## 1. Confirm frontend runtime environment
+## 1. Confirm frontend build and runtime configuration
 
-For the deployed frontend runtime, set:
+Next.js compiles `NEXT_PUBLIC_*` values into the browser bundle at build time.
+For the production Dockerfile, the public API and replay URL defaults are
+`https://api.healtharchive.ca` and `https://replay.healtharchive.ca`. For a
+different public deployment, pass the matching `NEXT_PUBLIC_API_BASE_URL` and
+`NEXT_PUBLIC_REPLAY_BASE_URL` as Docker build args. Setting them only in the
+container runtime env file does not change the built browser bundle. These
+values are public; do not pass secrets as `NEXT_PUBLIC_*` variables or build
+args.
+
+The Docker image smoke in frontend CI starts the production-default image in a
+bounded, read-only, non-root container with networking disabled. It checks the
+canonical English and French exports/status responses for expected public API
+references and rejects the known localhost and sentinel values. Status-page
+archive links may be API-provided external replay URLs or the locale-canonical
+internal `/browse/{numeric-id}` fallback. Every external archived-site anchor
+is checked independently; only `/browse/{positive-id}` in English and
+`/fr/browse/{positive-id}` in French are accepted as internal fallbacks. An
+API-unavailable page with no such links is valid only when it has the canonical
+status-page structure. This is not proof of every client/server request or a
+live service check.
+Independently of backend data, the smoke resolves the archive page through
+Next's app-path manifest and checks its directly referenced server chunks for
+compiled-literal evidence of the replay origin, rejecting the known sentinel
+and unresolved runtime variable. This is not a full rendered-link proof or a
+complete search for every possible origin in the application. The Dockerfile
+contract test checks the declared build defaults and stage assignments.
+
+The application and direct `npm run build` path retain the legacy
+`NEXT_PUBLIC_BACKEND_URL` fallback. The Dockerfile's production default sets
+`NEXT_PUBLIC_API_BASE_URL`, so Docker builds must use that preferred build arg
+to select a custom API host; a legacy-only Docker arg does not override it.
+
+`scripts/deploy-vps-proof.sh` runs `docker build` without public build args and
+is supported only with the Dockerfile's production defaults. Its runtime env
+file cannot select staging or custom browser URLs; do not use that helper for
+those builds.
+
+If these values are also retained in the deployed frontend runtime env file,
+keep them aligned for clarity; runtime values do not override the compiled
+browser bundle:
 
 ```env
 NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca
 NEXT_PUBLIC_REPLAY_BASE_URL=https://replay.healtharchive.ca
 ```
 
-Optional diagnostics envs should normally remain disabled in production:
+Optional diagnostics remain disabled by default in the production Dockerfile.
+Because these flags are also inlined at build time, enable one only in a
+separately built diagnostic image with explicit Docker build args; setting a
+runtime env-file value alone has no effect on the browser bundle. Example:
 
-```env
-NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=true
-NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true
-NEXT_PUBLIC_SHOW_API_BASE_HINT=true
+```bash
+docker build \
+  --build-arg NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=true \
+  --build-arg NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true \
+  --build-arg NEXT_PUBLIC_SHOW_API_BASE_HINT=true \
+  -t healtharchive-frontend:diagnostic .
 ```
 
 Confirm the runtime cache is externalized from the Docker writable layer:

@@ -1,6 +1,6 @@
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 
@@ -96,6 +96,38 @@ describe("local performance server utilities", () => {
 });
 
 describe("production build contract", () => {
+  it("provides public production configuration to Next in the Docker build and runner", async () => {
+    const dockerfile = await readFile(path.resolve("Dockerfile"), "utf8");
+    const dockerignore = await readFile(path.resolve(".dockerignore"), "utf8");
+    const builderStart = dockerfile.indexOf("FROM base AS builder");
+    const runnerStart = dockerfile.indexOf("FROM node:20-bookworm-slim AS runner");
+    expect(builderStart).toBeGreaterThan(-1);
+    expect(runnerStart).toBeGreaterThan(builderStart);
+
+    const builderStage = dockerfile.slice(builderStart, runnerStart);
+    const runnerStage = dockerfile.slice(runnerStart);
+    const publicDefaults = [
+      ["NEXT_PUBLIC_API_BASE_URL", "https://api.healtharchive.ca"],
+      ["NEXT_PUBLIC_REPLAY_BASE_URL", "https://replay.healtharchive.ca"],
+      ["NEXT_PUBLIC_SHOW_API_HEALTH_BANNER", "false"],
+      ["NEXT_PUBLIC_LOG_API_HEALTH_FAILURE", "false"],
+      ["NEXT_PUBLIC_SHOW_API_BASE_HINT", "false"],
+    ];
+
+    for (const [name, value] of publicDefaults) {
+      expect(dockerfile).toContain(`ARG ${name}=${value}`);
+      const envAssignment = "ENV " + name + "=${" + name + "}";
+      for (const stage of [builderStage, runnerStage]) {
+        expect(stage).toContain(`ARG ${name}\n`);
+        expect(stage).toContain(envAssignment);
+      }
+    }
+
+    expect(dockerignore.split(/\r?\n/)).toContain(".env");
+    expect(dockerignore.split(/\r?\n/)).toContain(".env.*");
+    expect(dockerfile).not.toContain("http://localhost:8001");
+  });
+
   it("records and reads the exact API base compiled into the build", async () => {
     const directory = await mkdtemp(path.join(os.tmpdir(), "healtharchive-build-contract-"));
     const filePath = path.join(directory, "metadata.json");

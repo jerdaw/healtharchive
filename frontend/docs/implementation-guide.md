@@ -87,7 +87,7 @@ npm run check
 
 ### Environment variables
 
-- `NEXT_PUBLIC_API_BASE_URL` – base URL for the backend API (e.g., `http://localhost:8001` for local dev, `https://api.healtharchive.ca` for Preview/Production). If unset, the API client falls back to `http://localhost:8001`.
+- `NEXT_PUBLIC_API_BASE_URL` – base URL for the backend API (e.g., `http://localhost:8001` for local dev, `https://api.healtharchive.ca` for Preview/Production). Next.js inlines this browser-facing value at build time; if unset, the API client falls back to `http://localhost:8001`.
 - `NEXT_PUBLIC_SHOW_API_HEALTH_BANNER` – when set to `true`, shows a small banner in the UI if `/api/health` fails (dev helper).
 - `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE` – when set to `true`, logs a console warning if `/api/health` fails (dev helper).
 - `NEXT_PUBLIC_SHOW_API_BASE_HINT` – when set to `true` in development, logs the effective API base URL to the browser console via `ApiHealthBanner` (dev-only helper; silenced in tests and production). This should remain disabled in production and CI to avoid noisy logs.
@@ -186,15 +186,26 @@ that distinction: treating the internal pass as a public request creates a
 self-redirect loop on every English route. Focused proxy tests and the rendered
 link crawl cover both the canonical redirect and the internal rewrite path.
 
-### Deployment env expectations (local / hosted runtime)
+### Deployment env expectations (local / hosted build and runtime)
 
-- `NEXT_PUBLIC_API_BASE_URL` must point at the backend for the environment.
+- `NEXT_PUBLIC_API_BASE_URL` must point at the backend for the environment at
+  build time because Next.js inlines `NEXT_PUBLIC_*` values into the browser
+  bundle. The production Dockerfile defaults it to the public HealthArchive API.
 
   Suggested values:
   - **Local dev:** `NEXT_PUBLIC_API_BASE_URL=http://127.0.0.1:8001`
   - **Production:** `NEXT_PUBLIC_API_BASE_URL=https://api.healtharchive.ca`
 
-- Optional diagnostics (usually enabled in development, disabled in production/CI):
+- For Docker builds, override public URLs with `--build-arg` when needed; a
+  container runtime env file alone cannot change the already-built client
+  bundle. These values are public and must never contain secrets.
+  The legacy `NEXT_PUBLIC_BACKEND_URL` fallback remains supported by the
+  application and direct npm builds, but Docker's preferred API default masks
+  a legacy-only override; use `NEXT_PUBLIC_API_BASE_URL` as the Docker build arg.
+
+- Optional diagnostics (usually enabled in development, disabled in production/CI;
+  Docker builds must set these as build args because runtime env alone cannot
+  change the client bundle):
   - `NEXT_PUBLIC_SHOW_API_HEALTH_BANNER=true` to surface a UI banner on health failures.
   - `NEXT_PUBLIC_LOG_API_HEALTH_FAILURE=true` to log health failures to the console.
   - `NEXT_PUBLIC_SHOW_API_BASE_HINT=true` to log the effective API base URL once in the browser console (via `ApiHealthBanner`).
