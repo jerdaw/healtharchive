@@ -2296,12 +2296,12 @@ def cmd_refresh_snapshot_metadata(args: argparse.Namespace) -> None:
         print(f"Refreshing snapshot metadata for job {job_id} ({len(warc_paths_sorted)} WARC(s))…")
 
         for warc_path_str in warc_paths_sorted:
-            warc_path = Path(warc_path_str)
-            if not warc_path.is_file():
-                print(f"WARNING: WARC not found: {warc_path}", file=sys.stderr)
+            warc_path_obj = Path(warc_path_str)
+            if not warc_path_obj.is_file():
+                print(f"WARNING: WARC not found: {warc_path_obj}", file=sys.stderr)
                 continue
 
-            for rec in iter_html_records(warc_path):
+            for rec in iter_html_records(warc_path_obj):
                 processed_records += 1
                 if limit is not None and processed_records > limit:
                     break
@@ -2473,12 +2473,12 @@ def cmd_backfill_outlinks(args: argparse.Namespace) -> None:
         processed_records = 0
 
         for warc_path_str in warc_paths_sorted:
-            warc_path = Path(warc_path_str)
-            if not warc_path.is_file():
-                print(f"WARNING: WARC not found: {warc_path}", file=sys.stderr)
+            warc_path_obj = Path(warc_path_str)
+            if not warc_path_obj.is_file():
+                print(f"WARNING: WARC not found: {warc_path_obj}", file=sys.stderr)
                 continue
 
-            for rec in iter_html_records(warc_path):
+            for rec in iter_html_records(warc_path_obj):
                 processed_records += 1
                 if limit is not None and processed_records > limit:
                     break
