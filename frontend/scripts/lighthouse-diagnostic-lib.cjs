@@ -8,12 +8,140 @@ const ROUTES = new Map([
 
 const ANSI_ESCAPE = /\u001b\[[0-?]*[ -/]*[@-~]/g;
 const MAX_PENDING_CHARS = 8_192;
+const GATHER_PHASES = new Map([
+  ["startInstrumentation", "start-instrumentation"],
+  ["startSensitiveInstrumentation", "start-sensitive-instrumentation"],
+  ["stopSensitiveInstrumentation", "stop-sensitive-instrumentation"],
+  ["stopInstrumentation", "stop-instrumentation"],
+  ["getArtifact", "get-artifact"],
+]);
+const GATHERER_IDS = new Map([
+  ["DevtoolsLog", "devtools-log"],
+  ["Trace", "trace"],
+  ["Accessibility", "accessibility"],
+  ["AnchorElements", "anchor-elements"],
+  ["CacheContents", "cache-contents"],
+  ["ConsoleMessages", "console-messages"],
+  ["CSSUsage", "css-usage"],
+  ["Doctype", "doctype"],
+  ["DOMStats", "dom-stats"],
+  ["FontSize", "font-size"],
+  ["Inputs", "inputs"],
+  ["IFrameElements", "iframe-elements"],
+  ["ImageElements", "image-elements"],
+  ["InspectorIssues", "inspector-issues"],
+  ["JsUsage", "js-usage"],
+  ["LinkElements", "link-elements"],
+  ["MainDocumentContent", "main-document-content"],
+  ["MetaElements", "meta-elements"],
+  ["NetworkUserAgent", "network-user-agent"],
+  ["OptimizedImages", "optimized-images"],
+  ["ResponseCompression", "response-compression"],
+  ["RobotsTxt", "robots-txt"],
+  ["Scripts", "scripts"],
+  ["SourceMaps", "source-maps"],
+  ["Stacks", "stacks"],
+  ["Stylesheets", "stylesheets"],
+  ["TraceElements", "trace-elements"],
+  ["ViewportDimensions", "viewport-dimensions"],
+  ["devtoolsLogs", "devtools-logs"],
+  ["traces", "traces"],
+  ["FullPageScreenshot", "full-page-screenshot"],
+  ["BFCacheFailures", "bf-cache-failures"],
+]);
+const SAFE_GATHER_DIAGNOSTIC_PHASES = new Set(
+  [...GATHER_PHASES.values()].flatMap((phase) =>
+    [...GATHERER_IDS.values()].map((gatherer) => ["gather-", phase, "-", gatherer].join("")),
+  ),
+);
+const MAX_CHILD_DIAGNOSTIC_PHASES = 192;
+const DIAGNOSTIC_TRUNCATED_PHASE = "lighthouse-diagnostic-truncated";
+const SAFE_CHILD_DIAGNOSTIC_PHASES = new Set([
+  "chrome-starting",
+  "chrome-ready",
+  "chrome-start-failed",
+  "chrome-profile-warning",
+  "chrome-kill-failed",
+  "devtools-connect-started",
+  "devtools-connect-completed",
+  "devtools-connect-failed",
+  "navigation-setup-started",
+  "navigation-setup-completed",
+  "network-setup-started",
+  "network-setup-completed",
+  "navigation-started",
+  "navigation-completed",
+  "audit-started",
+  "audit-completed",
+  "results-started",
+  "results-completed",
+  "lighthouse-runtime-error",
+  "lighthouse-cli-started",
+  "lighthouse-cli-exit-zero",
+  "lighthouse-cli-exit-nonzero",
+  ...SAFE_GATHER_DIAGNOSTIC_PHASES,
+]);
 
 function boundedChunkText(chunk) {
   if (Buffer.isBuffer(chunk)) {
     return chunk.toString("utf8", Math.max(0, chunk.length - MAX_PENDING_CHARS));
   }
   return String(chunk).slice(-MAX_PENDING_CHARS);
+}
+
+function splitBoundedLines(pending, chunk, maxPendingChars = MAX_PENDING_CHARS) {
+  const chunkText = Buffer.isBuffer(chunk) ? chunk.toString("utf8") : String(chunk);
+  const lines = (pending + chunkText).split(/\r?\n/);
+  const incomplete = lines.pop() ?? "";
+  return { lines, pending: incomplete.slice(-maxPendingChars) };
+}
+
+function parseDiagnosticMarkerChunk(
+  pending,
+  chunk,
+  allowlist,
+  maxPendingChars = MAX_PENDING_CHARS,
+) {
+  const split = splitBoundedLines(pending, chunk, maxPendingChars);
+  const phases = [];
+  for (const line of split.lines) {
+    const match = line.match(/^HA_LIGHTHOUSE_DIAGNOSTIC phase=([a-z-]+)$/);
+    if (match && allowlist.has(match[1])) phases.push(match[1]);
+  }
+  return { phases, pending: split.pending };
+}
+
+function createBoundedDiagnosticPhaseEmitter(
+  phases,
+  writeMarker,
+  maxPhases = MAX_CHILD_DIAGNOSTIC_PHASES,
+) {
+  const phaseLimit = Number.isSafeInteger(maxPhases)
+    ? Math.min(MAX_CHILD_DIAGNOSTIC_PHASES, Math.max(2, maxPhases))
+    : MAX_CHILD_DIAGNOSTIC_PHASES;
+  let truncated = phases.includes(DIAGNOSTIC_TRUNCATED_PHASE);
+
+  return (phase) => {
+    if (!SAFE_CHILD_DIAGNOSTIC_PHASES.has(phase) || truncated) return;
+    if (phases[phases.length - 1] === phase) return;
+    if (phases.length >= phaseLimit) return;
+    const isTerminalPhase =
+      phase === "lighthouse-cli-exit-zero" || phase === "lighthouse-cli-exit-nonzero";
+    if (phases.length === phaseLimit - 1 && !isTerminalPhase) {
+      phases.push(DIAGNOSTIC_TRUNCATED_PHASE);
+      truncated = true;
+      writeMarker(DIAGNOSTIC_TRUNCATED_PHASE);
+      return;
+    }
+
+    phases.push(phase);
+    writeMarker(phase);
+  };
+}
+
+function finishDiagnosticRun(parser, emitPhase, exitCode) {
+  for (const phase of parser.flushStderr()) emitPhase(phase);
+  emitPhase(exitCode === 0 ? "lighthouse-cli-exit-zero" : "lighthouse-cli-exit-nonzero");
 }
 
 function routeNameFromLine(line) {
@@ -121,6 +249,14 @@ class LighthouseDiagnosticParser {
   classifyDiagnosticLine(rawLine) {
     const line = rawLine.replace(ANSI_ESCAPE, "");
     const events = [];
+    const gatherMatch = line.match(
+      /(?:^|\s)LH:artifacts:([A-Za-z]+):verbose\s+([A-Za-z]+)\s+\+\d+(?:\.\d+)?ms\s*$/,
+    );
+    if (gatherMatch) {
+      const phase = GATHER_PHASES.get(gatherMatch[1]);
+      const gatherer = GATHERER_IDS.get(gatherMatch[2]);
+      if (phase && gatherer) events.push(["gather-", phase, "-", gatherer].join(""));
+    }
     if (/Debugger protocol timed out while connecting to Chrome\.?/.test(line)) {
       events.push("devtools-connect-failed");
     } else if (/Unable to connect to Chrome\b/.test(line)) {
@@ -179,4 +315,13 @@ function formatProgressEvent(event) {
   return null;
 }
 
-module.exports = { LighthouseDiagnosticParser, formatProgressEvent };
+module.exports = {
+  createBoundedDiagnosticPhaseEmitter,
+  finishDiagnosticRun,
+  LighthouseDiagnosticParser,
+  MAX_CHILD_DIAGNOSTIC_PHASES,
+  parseDiagnosticMarkerChunk,
+  SAFE_GATHER_DIAGNOSTIC_PHASES,
+  formatProgressEvent,
+  splitBoundedLines,
+};

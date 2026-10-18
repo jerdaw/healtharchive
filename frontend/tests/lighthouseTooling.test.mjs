@@ -28,7 +28,12 @@ const {
   requireLoopbackOrigin,
 } = require("../scripts/lighthouse-config.cjs");
 const {
+  createBoundedDiagnosticPhaseEmitter,
+  finishDiagnosticRun,
   LighthouseDiagnosticParser,
+  MAX_CHILD_DIAGNOSTIC_PHASES,
+  parseDiagnosticMarkerChunk,
+  SAFE_GATHER_DIAGNOSTIC_PHASES,
   formatProgressEvent,
 } = require("../scripts/lighthouse-diagnostic-lib.cjs");
 
@@ -148,9 +153,84 @@ describe("bounded Lighthouse phase diagnostics", () => {
     expect(oversized.flushStderr()).toEqual([]);
   });
 
+  it("classifies only known Lighthouse gatherer boundaries into fixed safe enums", () => {
+    const parser = new LighthouseDiagnosticParser();
+    const events = parser.pushStderr(
+      [
+        "  LH:artifacts:stopSensitiveInstrumentation:verbose Trace +1ms",
+        "  LH:artifacts:getArtifact:verbose FullPageScreenshot +123ms",
+        "  LH:artifacts:unknownPhase:verbose Trace +2ms",
+        "  LH:artifacts:getArtifact:verbose PrivateGatherer +3ms",
+        "  LH:artifacts:getArtifact:verbose Trace https://private.example/path +4ms",
+      ].join("\n"),
+    );
+
+    expect(events).toEqual([
+      "gather-stop-sensitive-instrumentation-trace",
+      "gather-get-artifact-full-page-screenshot",
+    ]);
+    expect(SAFE_GATHER_DIAGNOSTIC_PHASES.size).toBe(160);
+    expect(events.every((event) => SAFE_GATHER_DIAGNOSTIC_PHASES.has(event))).toBe(true);
+    expect(events.join(" ")).not.toMatch(/private|https?:|FullPageScreenshot|Trace/);
+  });
+
+  it("recognizes a gatherer boundary split across stderr chunks", () => {
+    const parser = new LighthouseDiagnosticParser();
+    expect(parser.pushStderr(" LH:artifacts:getArtifact:verbose Trace +")).toEqual([]);
+    expect(parser.pushStderr("1ms\n")).toEqual(["gather-get-artifact-trace"]);
+  });
+
+  it("reserves the final child marker slot for a fixed truncation signal", () => {
+    const phases = [];
+    const emitted = [];
+    const emit = createBoundedDiagnosticPhaseEmitter(phases, (phase) => emitted.push(phase), 4);
+    emit("chrome-starting");
+    emit("chrome-ready");
+    emit("navigation-started");
+    emit("audit-started");
+    emit("results-started");
+
+    expect(MAX_CHILD_DIAGNOSTIC_PHASES).toBe(192);
+    expect(phases).toEqual([
+      "chrome-starting",
+      "chrome-ready",
+      "navigation-started",
+      "lighthouse-diagnostic-truncated",
+    ]);
+    expect(emitted).toEqual(phases);
+  });
+
+  it("flushes an unterminated child stderr marker before its exit marker", () => {
+    const parser = new LighthouseDiagnosticParser();
+    const phases = [];
+    const emitted = [];
+    const emit = createBoundedDiagnosticPhaseEmitter(phases, (phase) => emitted.push(phase));
+    expect(parser.pushStderr(" LH:artifacts:getArtifact:verbose Trace +1ms")).toEqual([]);
+
+    finishDiagnosticRun(parser, emit, 0);
+
+    expect(phases).toEqual(["gather-get-artifact-trace", "lighthouse-cli-exit-zero"]);
+    expect(emitted).toEqual(phases);
+  });
+
+  it("keeps all complete outer marker lines and bounds only the incomplete tail", () => {
+    const complete = "HA_LIGHTHOUSE_DIAGNOSTIC phase=chrome-ready\n";
+    const chunk = complete.repeat(300) + "HA_LIGHTHOUSE_DIAGNOSTIC phase=" + "x".repeat(1000);
+    const parsed = parseDiagnosticMarkerChunk("", chunk, new Set(["chrome-ready"]), 32);
+
+    expect(parsed.phases).toHaveLength(300);
+    expect(parsed.phases.every((phase) => phase === "chrome-ready")).toBe(true);
+    expect(parsed.pending).toHaveLength(32);
+    expect(parsed.pending).toBe("x".repeat(32));
+  });
+
   it("keeps diagnostics gated, bounded, and separate from the Lighthouse JSON result", async () => {
     const runner = await readFile(path.resolve("scripts/run-lighthouse.mjs"), "utf8");
     const patch = await readFile(path.resolve("patches/@lhci+cli+0.15.1.patch"), "utf8");
+    const diagnostics = await readFile(
+      path.resolve("scripts/lighthouse-diagnostic-lib.cjs"),
+      "utf8",
+    );
     const cli = await readFile(
       path.resolve("node_modules/@lhci/cli/src/collect/node-runner.js"),
       "utf8",
@@ -161,6 +241,8 @@ describe("bounded Lighthouse phase diagnostics", () => {
     expect(runner).toContain("diagnostic details suppressed.");
     expect(runner).toContain("attempt=${currentAttempt}");
     expect(runner).toContain('"lighthouse-cli-exit-nonzero"');
+    expect(runner).toContain("...diagnosticLib.SAFE_GATHER_DIAGNOSTIC_PHASES");
+    expect(runner).toContain("diagnosticLib.parseDiagnosticMarkerChunk");
     expect(runner).toContain('HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS: "1"');
     expect(runner).toContain('stdio: ["ignore", "pipe", "pipe"]');
     expect(runner).toContain(
@@ -168,9 +250,13 @@ describe("bounded Lighthouse phase diagnostics", () => {
     );
     expect(runner).not.toContain("Running three Lighthouse samples for each route at");
     expect(patch).toContain("DIAGNOSTICS_ENABLED");
+    expect(patch).toContain("createBoundedDiagnosticPhaseEmitter");
+    expect(patch).toContain("finishDiagnosticRun");
     expect(cli).toContain("if (DIAGNOSTICS_ENABLED) lhArgs.push('--verbose');");
     expect(cli).toContain("HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-cli-started");
-    expect(cli).toContain("lighthouse-cli-exit-nonzero");
+    expect(diagnostics).toContain("lighthouse-cli-exit-nonzero");
+    expect(cli).toContain("createBoundedDiagnosticPhaseEmitter");
+    expect(cli).toContain("finishDiagnosticRun(diagnosticParser, emitDiagnosticPhase, code)");
     expect(cli).toContain("error.stdout = DIAGNOSTICS_ENABLED ? '' : stdout;");
     expect(cli).toContain("raw Lighthouse output suppressed by the bounded diagnostic mode");
   });

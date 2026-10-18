@@ -52,6 +52,8 @@ const SAFE_DIAGNOSTIC_PHASES = new Set([
   "results-started",
   "results-completed",
   "lighthouse-runtime-error",
+  ...diagnosticLib.SAFE_GATHER_DIAGNOSTIC_PHASES,
+  "lighthouse-diagnostic-truncated",
 ]);
 
 let activeCommand = null;
@@ -97,13 +99,13 @@ function runCommand(args, { env }) {
     });
     child.stderr.on("data", (chunk) => {
       if (timedOut) return;
-      markerPending = `${markerPending}${chunk.toString()}`.slice(-8_192);
-      const lines = markerPending.split(/\r?\n/);
-      markerPending = lines.pop() ?? "";
-      for (const line of lines) {
-        const match = line.match(/^HA_LIGHTHOUSE_DIAGNOSTIC phase=([a-z-]+)$/);
-        if (match) writeDiagnosticPhase(match[1]);
-      }
+      const parsed = diagnosticLib.parseDiagnosticMarkerChunk(
+        markerPending,
+        chunk,
+        SAFE_DIAGNOSTIC_PHASES,
+      );
+      markerPending = parsed.pending;
+      for (const phase of parsed.phases) writeDiagnosticPhase(phase);
     });
     const timeout = setTimeout(() => {
       timedOut = true;
