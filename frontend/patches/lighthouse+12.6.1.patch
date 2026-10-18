@@ -1,0 +1,52 @@
+diff --git a/node_modules/lighthouse/core/gather/session.js b/node_modules/lighthouse/core/gather/session.js
+index 8d9bd24..6afe823 100644
+--- a/node_modules/lighthouse/core/gather/session.js
++++ b/node_modules/lighthouse/core/gather/session.js
+@@ -5,6 +5,7 @@
+  */
+ 
+ import EventEmitter from 'events';
++import {createRequire} from 'node:module';
+ 
+ import log from 'lighthouse-logger';
+ 
+@@ -13,6 +14,14 @@ import {LighthouseError} from '../lib/lh-error.js';
+ // Controls how long to wait for a response after sending a DevTools protocol command.
+ const DEFAULT_PROTOCOL_TIMEOUT = 30000;
+ const PPTR_BUFFER = 50;
++const DIAGNOSTICS_ENABLED = process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS === '1';
++const DiagnosticTools = DIAGNOSTICS_ENABLED
++  ? createRequire(import.meta.url)('../../../../scripts/lighthouse-diagnostic-lib.cjs')
++  : null;
++const emitCdpFailureDiagnostic = DIAGNOSTICS_ENABLED
++  ? DiagnosticTools.createCdpFailureDiagnosticWriter()
++  : null;
++let browserVersionDiagnosticEmitted = false;
+ 
+ /**
+  * Puppeteer timeouts must fit into an int32 and the maximum timeout for `setTimeout` is a *signed*
+@@ -133,7 +142,23 @@ class ProtocolSession extends CrdpEventEmitter {
+     const resultWithTimeoutPromise =
+       Promise.race([resultPromise, timeoutPromise, this._targetCrashedPromise]);
+ 
+-    return resultWithTimeoutPromise.finally(() => {
++    const instrumentedPromise = DIAGNOSTICS_ENABLED
++      ? resultWithTimeoutPromise.then(
++          result => {
++            if (method === 'Browser.getVersion' && !browserVersionDiagnosticEmitted) {
++              browserVersionDiagnosticEmitted = true;
++              DiagnosticTools.writeBrowserVersionDiagnostic(result?.product);
++            }
++            return result;
++          },
++          error => {
++            emitCdpFailureDiagnostic(method, error);
++            throw error;
++          }
++        )
++      : resultWithTimeoutPromise;
++
++    return instrumentedPromise.finally(() => {
+       if (timeout) clearTimeout(timeout);
+     });
+   }

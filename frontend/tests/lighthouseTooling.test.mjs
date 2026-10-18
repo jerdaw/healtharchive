@@ -1,7 +1,7 @@
 import { createRequire } from "node:module";
 import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
@@ -35,11 +35,19 @@ const {
 } = require("../scripts/lighthouse-config.cjs");
 const {
   createBoundedDiagnosticPhaseEmitter,
+  createBoundedDiagnosticEventEmitter,
+  createCdpFailureDiagnosticWriter,
+  dispatchDiagnosticEvents,
+  browserVersionDiagnosticEvent,
+  cdpFailureDiagnosticEvent,
+  formatDiagnosticTelemetryMarker,
   finishDiagnosticRun,
+  MAX_CHILD_CDP_FAILURE_MARKERS,
   LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
   LighthouseDiagnosticParser,
   MAX_CHILD_DIAGNOSTIC_PHASES,
   parseDiagnosticMarkerChunk,
+  SAFE_CDP_METHODS,
   SAFE_GATHER_DIAGNOSTIC_PHASES,
   formatProgressEvent,
   runtimeErrorDiagnosticPhase,
@@ -60,6 +68,113 @@ function runPinnedLighthouseGatherLogger({ colors }) {
     stdio: ["ignore", "pipe", "pipe"],
     timeout: 5_000,
   });
+}
+
+function runPinnedProtocolSession({ mode, diagnostics = true }) {
+  const sessionUrl = pathToFileURL(
+    path.resolve("node_modules/lighthouse/core/gather/session.js"),
+  ).href;
+  const source = `
+    import { EventEmitter } from 'node:events';
+    import logger from ${JSON.stringify(pathToFileURL(lighthouseLoggerPath).href)};
+    import { ProtocolSession } from ${JSON.stringify(sessionUrl)};
+
+    logger.setLevel('silent');
+    const mode = ${JSON.stringify(mode)};
+    const hostile = 'HOSTILE_CDP_SECRET_SENTINEL /private/should-not-appear';
+
+    class FakeCDPSession extends EventEmitter {
+      constructor() {
+        super();
+        this.calls = 0;
+      }
+      id() { return 'test-session'; }
+      detach() { return Promise.resolve(); }
+      send(method) {
+        this.calls += 1;
+        if (mode === 'browser') {
+          return Promise.resolve({
+            product: 'Chrome/155.0.8059.39',
+            userAgent: hostile,
+            revision: hostile,
+            jsVersion: hostile,
+          });
+        }
+        if (mode === 'hostile-browser') {
+          return Promise.resolve({ product: 'Chrome/155.0.8059.39\\n' + hostile });
+        }
+        if (mode === 'ordinary-rejection') {
+          return Promise.reject(Object.assign(new Error(hostile), { data: hostile }));
+        }
+        if (mode === 'timeout' || mode === 'target-crashed') {
+          return new Promise(() => {});
+        }
+        if (mode === 'unknown-method') {
+          return Promise.reject(Object.assign(new Error(hostile), { data: hostile }));
+        }
+        return Promise.resolve({ ok: true });
+      }
+    }
+
+    const fake = new FakeCDPSession();
+    const session = new ProtocolSession(fake);
+    const method = mode === 'browser' || mode === 'hostile-browser'
+      ? 'Browser.getVersion'
+      : mode === 'unknown-method' ? 'Private.token' : 'Page.navigate';
+    if (mode === 'timeout') session.setNextProtocolTimeout(8);
+
+    let result;
+    const operation = session.sendCommand(method).then(
+      value => ({ outcome: 'resolved', callCount: fake.calls, resultOk: value?.ok === true }),
+      error => ({
+        outcome: 'rejected',
+        callCount: fake.calls,
+        errorName: error?.name ?? 'other',
+        errorCode: error?.code ?? 'none',
+        protocolMethodPreserved: error?.protocolMethod === method,
+        protocolErrorPreserved: error?.protocolError === hostile,
+      }),
+    );
+    if (mode === 'target-crashed') {
+      setImmediate(() => fake.emit('*', 'Inspector.targetCrashed', {}));
+    }
+    result = await operation;
+    process.stdout.write(JSON.stringify(result));
+  `;
+
+  return spawnSync(process.execPath, ["--input-type=module", "-e", source], {
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS: diagnostics ? "1" : "0",
+    },
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: 5_000,
+  });
+}
+
+async function pinnedLighthouseCdpMethods() {
+  const root = path.resolve("node_modules/lighthouse/core");
+  const files = [];
+  async function walk(directory) {
+    for (const entry of await readdir(directory, { withFileTypes: true })) {
+      const file = path.join(directory, entry.name);
+      if (entry.isDirectory()) await walk(file);
+      else if (entry.isFile() && file.endsWith(".js")) files.push(file);
+    }
+  }
+
+  await walk(root);
+  const methods = new Set();
+  for (const file of files) {
+    const source = await readFile(file, "utf8");
+    for (const match of source.matchAll(
+      /\.sendCommand(?:AndIgnore)?\(\s*['"`]([A-Za-z][A-Za-z0-9]*\.[A-Za-z][A-Za-z0-9]*)['"`]/g,
+    )) {
+      methods.add(match[1]);
+    }
+  }
+  return methods;
 }
 
 describe("Lighthouse configuration", () => {
@@ -448,6 +563,7 @@ describe("bounded Lighthouse phase diagnostics", () => {
   it("keeps diagnostics gated, bounded, and separate from the Lighthouse JSON result", async () => {
     const runner = await readFile(path.resolve("scripts/run-lighthouse.mjs"), "utf8");
     const patch = await readFile(path.resolve("patches/@lhci+cli+0.15.1.patch"), "utf8");
+    const lighthousePatch = await readFile(path.resolve("patches/lighthouse+12.6.1.patch"), "utf8");
     const diagnostics = await readFile(
       path.resolve("scripts/lighthouse-diagnostic-lib.cjs"),
       "utf8",
@@ -464,6 +580,8 @@ describe("bounded Lighthouse phase diagnostics", () => {
     expect(runner).toContain('"lighthouse-cli-exit-nonzero"');
     expect(runner).toContain("...diagnosticLib.SAFE_GATHER_DIAGNOSTIC_PHASES");
     expect(runner).toContain("diagnosticLib.parseDiagnosticMarkerChunk");
+    expect(runner).toContain("diagnosticLib.dispatchDiagnosticEvents(parsed.events");
+    expect(runner).toContain("attribution=best-effort");
     expect(runner).toContain('HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS: "1"');
     expect(runner).toContain('stdio: ["ignore", "pipe", "pipe"]');
     expect(runner).toContain("...diagnosticLib.LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES");
@@ -474,22 +592,341 @@ describe("bounded Lighthouse phase diagnostics", () => {
     expect(patch).toContain("DIAGNOSTICS_ENABLED");
     expect(patch).toContain("createBoundedDiagnosticPhaseEmitter");
     expect(patch).toContain("finishDiagnosticRun");
+    expect(lighthousePatch).toContain("resultWithTimeoutPromise.then(");
+    expect(lighthousePatch).toContain("throw error;");
+    expect(lighthousePatch).toContain("createCdpFailureDiagnosticWriter");
+    expect(lighthousePatch).not.toMatch(/error\.message|userAgent|revision|jsVersion/);
     expect(cli).toContain("if (DIAGNOSTICS_ENABLED) lhArgs.push('--verbose');");
     expect(cli).toContain("HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-cli-started");
-    expect(cli).toContain("child.once('close', code => {");
-    expect(cli.indexOf("child.once('close', code => {")).toBeLessThan(
-      cli.indexOf("DiagnosticTools.runtimeErrorDiagnosticPhase(stdout)"),
-    );
+    expect(cli).toContain("child.once(DIAGNOSTICS_ENABLED ? 'close' : 'exit', code => {");
+    expect(
+      cli.indexOf("child.once(DIAGNOSTICS_ENABLED ? 'close' : 'exit', code => {"),
+    ).toBeLessThan(cli.indexOf("DiagnosticTools.runtimeErrorDiagnosticPhase(stdout)"));
     expect(cli).toContain("DiagnosticTools.shouldTolerateWindowsChromeCleanupExit({");
     expect(cli.indexOf("DiagnosticTools.shouldTolerateWindowsChromeCleanupExit(")).toBeLessThan(
       cli.indexOf("DiagnosticTools.runtimeErrorDiagnosticPhase(stdout)"),
     );
     expect(diagnostics).toContain("lighthouse-cli-exit-nonzero");
     expect(cli).toContain("createBoundedDiagnosticPhaseEmitter");
+    expect(cli).toContain("createBoundedDiagnosticEventEmitter");
+    expect(cli).toContain("for (const event of diagnosticParser.pushStderr(chunk))");
     expect(cli).toContain("DiagnosticTools.finishDiagnosticRun(");
     expect(cli).toContain("runtimeErrorPhase,");
     expect(cli).toContain("error.stdout = DIAGNOSTICS_ENABLED ? '' : stdout;");
     expect(cli).toContain("raw Lighthouse output suppressed by the bounded diagnostic mode");
+  });
+});
+
+describe("bounded Lighthouse browser and CDP diagnostics", () => {
+  it("allowlists exactly the literal CDP methods used by pinned Lighthouse core", async () => {
+    const sourceMethods = await pinnedLighthouseCdpMethods();
+    expect(sourceMethods.size).toBeGreaterThan(0);
+    expect([...SAFE_CDP_METHODS].sort()).toEqual([...sourceMethods].sort());
+  });
+
+  it("captures only a fixed browser product enum and a strict dotted numeric version", () => {
+    expect(browserVersionDiagnosticEvent("Chrome/155.0.8059.39")).toEqual({
+      type: "browser-version",
+      product: "chrome",
+      version: "155.0.8059.39",
+    });
+    expect(browserVersionDiagnosticEvent("Chromium/155.0.8059.0")).toEqual({
+      type: "browser-version",
+      product: "chromium",
+      version: "155.0.8059.0",
+    });
+    for (const hostile of [
+      "Chrome/155.0.8059.39\nTOKEN_SECRET_SENTINEL",
+      "Google Chrome 155.0.8059.39",
+      "Chrome/155.0.8059.39 /private/profile",
+      "Brave/155.0.8059.39",
+      "Chrome/155.0.8059",
+    ]) {
+      expect(browserVersionDiagnosticEvent(hostile)).toEqual({
+        type: "browser-version",
+        product: "unavailable-or-other",
+        version: "unavailable-or-other",
+      });
+    }
+  });
+
+  it("maps unknown methods and failure classes to fixed enums without echoing hostile text", () => {
+    const secret = "TOKEN_SECRET_SENTINEL /private/profile https://private.invalid";
+    expect(cdpFailureDiagnosticEvent("Page.navigate", { code: "PROTOCOL_TIMEOUT" })).toEqual({
+      type: "cdp-failure",
+      method: "Page.navigate",
+      failureClass: "protocol-timeout",
+    });
+    expect(cdpFailureDiagnosticEvent("Page.navigate", { code: "TARGET_CRASHED" })).toEqual({
+      type: "cdp-failure",
+      method: "Page.navigate",
+      failureClass: "target-crashed",
+    });
+    expect(
+      cdpFailureDiagnosticEvent("Page.navigate", {
+        protocolMethod: "Page.navigate",
+        message: secret,
+      }),
+    ).toEqual({
+      type: "cdp-failure",
+      method: "Page.navigate",
+      failureClass: "command-rejected",
+    });
+
+    const unknown = cdpFailureDiagnosticEvent(`Page.navigate ${secret}`, {
+      protocolMethod: `Page.navigate ${secret}`,
+      message: secret,
+    });
+    expect(unknown).toEqual({
+      type: "cdp-failure",
+      method: "unavailable-or-other",
+      failureClass: "command-rejected",
+    });
+    expect(formatDiagnosticTelemetryMarker(unknown)).not.toContain(secret);
+  });
+
+  it("parses split and coalesced telemetry markers, rejecting hostile and overlong fields", () => {
+    const parser = new LighthouseDiagnosticParser();
+    const browserMarker = "HA_LIGHTHOUSE_DIAGNOSTIC browser product=chrome version=155.0.8059.39\n";
+    const cdpMarker =
+      "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=Debugger.getScriptSource class=protocol-timeout\n";
+    expect(parser.pushStderr(browserMarker.slice(0, 33))).toEqual([]);
+    expect(parser.pushStderr(browserMarker.slice(33) + cdpMarker)).toEqual([
+      { type: "browser-version", product: "chrome", version: "155.0.8059.39" },
+      {
+        type: "cdp-failure",
+        method: "Debugger.getScriptSource",
+        failureClass: "protocol-timeout",
+      },
+    ]);
+
+    const hostile = "TOKEN_SECRET_SENTINEL /private/profile https://private.invalid";
+    expect(
+      parser.pushStderr(
+        `HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=${hostile} class=${hostile}\n` +
+          `HA_LIGHTHOUSE_DIAGNOSTIC browser product=Chrome version=${hostile}\n`,
+      ),
+    ).toEqual([
+      {
+        type: "cdp-failure",
+        method: "unavailable-or-other",
+        failureClass: "unavailable-or-other",
+      },
+      {
+        type: "browser-version",
+        product: "unavailable-or-other",
+        version: "unavailable-or-other",
+      },
+    ]);
+    expect(JSON.stringify(parser.pushStderr(`${hostile.repeat(200)}\n`))).not.toContain(hostile);
+
+    const overlong = parseDiagnosticMarkerChunk(
+      "",
+      `HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=${"X".repeat(200)} class=command-rejected\n`,
+      new Set(),
+    );
+    expect(overlong.cdpFailures).toEqual([
+      {
+        type: "cdp-failure",
+        method: "unavailable-or-other",
+        failureClass: "unavailable-or-other",
+      },
+    ]);
+    expect(JSON.stringify(overlong)).not.toContain("X".repeat(200));
+
+    const partial = parseDiagnosticMarkerChunk(
+      "",
+      `HA_LIGHTHOUSE_DIAGNOSTIC ${"x".repeat(9000)}`,
+      new Set(),
+      128,
+    );
+    expect(partial.pending).toHaveLength(128);
+  });
+
+  it("preserves same-stream marker order across retry boundaries", () => {
+    const allowlist = new Set(["lighthouse-cli-started"]);
+    const chunk = [
+      "HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-cli-started",
+      "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=Page.navigate class=protocol-timeout",
+      "HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-cli-started",
+      "HA_LIGHTHOUSE_DIAGNOSTIC browser product=chrome version=155.0.8059.39",
+      "",
+    ].join("\n");
+    const parsed = parseDiagnosticMarkerChunk("", chunk, allowlist);
+    const observed = [];
+    let attempt = 0;
+
+    dispatchDiagnosticEvents(parsed.events, {
+      emitPhase: (phase) => {
+        if (phase === "lighthouse-cli-started") attempt += 1;
+      },
+      emitTelemetry: (event) => observed.push({ attempt, event }),
+    });
+
+    expect(observed).toEqual([
+      {
+        attempt: 1,
+        event: {
+          type: "cdp-failure",
+          method: "Page.navigate",
+          failureClass: "protocol-timeout",
+        },
+      },
+      {
+        attempt: 2,
+        event: { type: "browser-version", product: "chrome", version: "155.0.8059.39" },
+      },
+    ]);
+  });
+
+  it("caps CDP markers separately so phase saturation cannot consume failure or terminal evidence", () => {
+    const phases = [];
+    const markers = [];
+    const emitPhase = createBoundedDiagnosticPhaseEmitter(
+      phases,
+      (phase) => markers.push(`phase=${phase}`),
+      4,
+    );
+    const emitEvent = createBoundedDiagnosticEventEmitter(
+      emitPhase,
+      (marker) => markers.push(marker.trim()),
+      2,
+    );
+    for (let index = 0; index < 50; index += 1) {
+      emitEvent(index % 2 === 0 ? "chrome-starting" : "chrome-ready");
+    }
+    emitEvent({ type: "browser-version", product: "chrome", version: "155.0.8059.39" });
+    emitEvent({
+      type: "cdp-failure",
+      method: "Page.navigate",
+      failureClass: "protocol-timeout",
+    });
+    emitEvent({
+      type: "cdp-failure",
+      method: "Debugger.getScriptSource",
+      failureClass: "command-rejected",
+    });
+    emitEvent({
+      type: "cdp-failure",
+      method: "Network.enable",
+      failureClass: "command-rejected",
+    });
+    finishDiagnosticRun(
+      new LighthouseDiagnosticParser(),
+      emitEvent,
+      1,
+      "lighthouse-runtime-error-code-protocol-timeout",
+    );
+
+    expect(phases).toEqual([
+      "chrome-starting",
+      "lighthouse-diagnostic-truncated",
+      "lighthouse-runtime-error-code-protocol-timeout",
+      "lighthouse-cli-exit-nonzero",
+    ]);
+    expect(markers).toContain(
+      "HA_LIGHTHOUSE_DIAGNOSTIC browser product=chrome version=155.0.8059.39",
+    );
+    expect(markers).toContain(
+      "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=Page.navigate class=protocol-timeout",
+    );
+    expect(markers).toContain(
+      "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=Debugger.getScriptSource class=command-rejected",
+    );
+    expect(markers).not.toContain(
+      "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=Network.enable class=command-rejected",
+    );
+  });
+
+  it("caps the protocol writer and emits only one fixed unavailable event for unknown methods", () => {
+    const markers = [];
+    const write = createCdpFailureDiagnosticWriter((marker) => markers.push(marker), 3);
+    for (const method of [
+      "Page.navigate",
+      "Debugger.getScriptSource",
+      "Private.token",
+      "Private.other",
+    ]) {
+      write(method, { protocolMethod: method });
+    }
+
+    expect(MAX_CHILD_CDP_FAILURE_MARKERS).toBe(16);
+    expect(markers).toHaveLength(3);
+    expect(markers.at(-1)).toBe(
+      "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=unavailable-or-other class=command-rejected\n",
+    );
+    expect(markers.join("")).not.toMatch(/Private\.|token/);
+  });
+
+  it("exercises the pinned ProtocolSession for success, rejection, timeout, crash, and diagnostics-off", () => {
+    const browser = runPinnedProtocolSession({ mode: "browser" });
+    expect(browser.error).toBeUndefined();
+    expect(browser.status).toBe(0);
+    expect(JSON.parse(browser.stdout)).toEqual({
+      outcome: "resolved",
+      callCount: 1,
+      resultOk: false,
+    });
+    expect(browser.stderr).toBe(
+      "HA_LIGHTHOUSE_DIAGNOSTIC browser product=chrome version=155.0.8059.39\n",
+    );
+    expect(browser.stderr).not.toMatch(/HOSTILE_CDP_SECRET_SENTINEL|revision|jsVersion|userAgent/);
+
+    const hostileBrowser = runPinnedProtocolSession({ mode: "hostile-browser" });
+    expect(hostileBrowser.status).toBe(0);
+    expect(hostileBrowser.stderr).toBe(
+      "HA_LIGHTHOUSE_DIAGNOSTIC browser product=unavailable-or-other version=unavailable-or-other\n",
+    );
+    expect(hostileBrowser.stderr).not.toContain("HOSTILE_CDP_SECRET_SENTINEL");
+
+    const ordinary = runPinnedProtocolSession({ mode: "ordinary-rejection" });
+    expect(ordinary.status).toBe(0);
+    expect(JSON.parse(ordinary.stdout)).toMatchObject({
+      outcome: "rejected",
+      errorName: "Error",
+      protocolMethodPreserved: true,
+      protocolErrorPreserved: true,
+    });
+    expect(ordinary.stderr).toBe(
+      "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=Page.navigate class=command-rejected\n",
+    );
+    expect(ordinary.stderr).not.toContain("HOSTILE_CDP_SECRET_SENTINEL");
+
+    const timeout = runPinnedProtocolSession({ mode: "timeout" });
+    expect(timeout.status).toBe(0);
+    expect(JSON.parse(timeout.stdout)).toMatchObject({
+      outcome: "rejected",
+      errorCode: "PROTOCOL_TIMEOUT",
+    });
+    expect(timeout.stderr).toBe(
+      "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=Page.navigate class=protocol-timeout\n",
+    );
+
+    const crashed = runPinnedProtocolSession({ mode: "target-crashed" });
+    expect(crashed.status).toBe(0);
+    expect(JSON.parse(crashed.stdout)).toMatchObject({
+      outcome: "rejected",
+      errorCode: "TARGET_CRASHED",
+    });
+    expect(crashed.stderr).toBe(
+      "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=Page.navigate class=target-crashed\n",
+    );
+
+    const success = runPinnedProtocolSession({ mode: "success" });
+    expect(success.status).toBe(0);
+    expect(success.stderr).toBe("");
+
+    const unknownMethod = runPinnedProtocolSession({ mode: "unknown-method" });
+    expect(unknownMethod.status).toBe(0);
+    expect(unknownMethod.stderr).toBe(
+      "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=unavailable-or-other class=command-rejected\n",
+    );
+    expect(unknownMethod.stderr).not.toMatch(/Private\.|token|HOSTILE_CDP_SECRET_SENTINEL/);
+
+    const disabled = runPinnedProtocolSession({ mode: "ordinary-rejection", diagnostics: false });
+    expect(disabled.status).toBe(0);
+    expect(disabled.stdout).toBe(ordinary.stdout);
+    expect(disabled.stderr).not.toContain("HA_LIGHTHOUSE_DIAGNOSTIC");
   });
 });
 

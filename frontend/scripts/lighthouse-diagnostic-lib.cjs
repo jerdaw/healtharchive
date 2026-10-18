@@ -8,6 +8,99 @@ const ROUTES = new Map([
 
 const ANSI_ESCAPE = /\u001b\[[0-?]*[ -/]*[@-~]/g;
 const MAX_PENDING_CHARS = 8_192;
+const MAX_CHILD_CDP_FAILURE_MARKERS = 16;
+const DIAGNOSTIC_UNAVAILABLE = "unavailable-or-other";
+const BROWSER_PRODUCTS = new Map([
+  ["Chrome", "chrome"],
+  ["Chromium", "chromium"],
+  ["HeadlessChrome", "headless-chrome"],
+]);
+const BROWSER_PRODUCT_VERSION =
+  /^(Chrome|Chromium|HeadlessChrome)\/(\d{1,3}\.\d{1,3}\.\d{1,6}\.\d{1,6})$/;
+const CDP_FAILURE_CLASSES = new Set([
+  "protocol-timeout",
+  "target-crashed",
+  "command-rejected",
+  DIAGNOSTIC_UNAVAILABLE,
+]);
+// Fixed to the literal CDP methods called by the pinned Lighthouse 12.6.1 core sources.
+const SAFE_CDP_METHODS = new Set([
+  "Animation.disable",
+  "Animation.enable",
+  "Audits.disable",
+  "Audits.enable",
+  "Audits.getEncodedResponse",
+  "Browser.getVersion",
+  "CSS.disable",
+  "CSS.enable",
+  "CSS.getMatchedStylesForNode",
+  "CSS.getStyleSheetText",
+  "CSS.startRuleUsageTracking",
+  "CSS.stopRuleUsageTracking",
+  "DOM.disable",
+  "DOM.enable",
+  "DOM.getDocument",
+  "DOM.pushNodeByPathToFrontend",
+  "DOM.pushNodesByBackendIdsToFrontend",
+  "DOM.resolveNode",
+  "DOMDebugger.getEventListeners",
+  "DOMSnapshot.captureSnapshot",
+  "DOMSnapshot.disable",
+  "DOMSnapshot.enable",
+  "Debugger.disable",
+  "Debugger.enable",
+  "Debugger.getScriptSource",
+  "Debugger.resume",
+  "Debugger.setAsyncCallStackDepth",
+  "Debugger.setSkipAllPauses",
+  "Emulation.setCPUThrottlingRate",
+  "Emulation.setDeviceMetricsOverride",
+  "Emulation.setScriptExecutionDisabled",
+  "Emulation.setTouchEmulationEnabled",
+  "IO.read",
+  "Log.disable",
+  "Log.enable",
+  "Log.startViolationsReport",
+  "Log.stopViolationsReport",
+  "Network.clearBrowserCache",
+  "Network.emulateNetworkConditions",
+  "Network.enable",
+  "Network.getResponseBody",
+  "Network.loadNetworkResource",
+  "Network.setBlockedURLs",
+  "Network.setCacheDisabled",
+  "Network.setExtraHTTPHeaders",
+  "Network.setUserAgentOverride",
+  "Page.addScriptToEvaluateOnNewDocument",
+  "Page.captureScreenshot",
+  "Page.createIsolatedWorld",
+  "Page.enable",
+  "Page.getFrameTree",
+  "Page.getLayoutMetrics",
+  "Page.getNavigationHistory",
+  "Page.handleJavaScriptDialog",
+  "Page.navigate",
+  "Page.navigateToHistoryEntry",
+  "Page.setLifecycleEventsEnabled",
+  "Profiler.disable",
+  "Profiler.enable",
+  "Profiler.startPreciseCoverage",
+  "Profiler.stopPreciseCoverage",
+  "Profiler.takePreciseCoverage",
+  "Runtime.callFunctionOn",
+  "Runtime.disable",
+  "Runtime.enable",
+  "Runtime.evaluate",
+  "Runtime.runIfWaitingForDebugger",
+  "Runtime.terminateExecution",
+  "Storage.clearDataForOrigin",
+  "Storage.getUsageAndQuota",
+  "Target.getTargetInfo",
+  "Target.setAutoAttach",
+  "Tracing.end",
+  "Tracing.recordClockSyncMarker",
+  "Tracing.start",
+]);
 const GATHER_PHASES = new Map([
   ["startInstrumentation", "start-instrumentation"],
   ["startSensitiveInstrumentation", "start-sensitive-instrumentation"],
@@ -136,11 +229,195 @@ function parseDiagnosticMarkerChunk(
 ) {
   const split = splitBoundedLines(pending, chunk, maxPendingChars);
   const phases = [];
+  const browserVersions = [];
+  const cdpFailures = [];
+  const events = [];
   for (const line of split.lines) {
     const match = line.match(/^HA_LIGHTHOUSE_DIAGNOSTIC phase=([a-z-]+)$/);
-    if (match && allowlist.has(match[1])) phases.push(match[1]);
+    if (match && allowlist.has(match[1])) {
+      phases.push(match[1]);
+      events.push(match[1]);
+      continue;
+    }
+
+    const browserPrefix = "HA_LIGHTHOUSE_DIAGNOSTIC browser ";
+    if (line.startsWith(browserPrefix)) {
+      const browserMatch = line.match(
+        /^HA_LIGHTHOUSE_DIAGNOSTIC browser product=(chrome|chromium|headless-chrome|unavailable-or-other) version=(\d{1,3}\.\d{1,3}\.\d{1,6}\.\d{1,6}|unavailable-or-other)$/,
+      );
+      const event = browserMatch
+        ? { type: "browser-version", product: browserMatch[1], version: browserMatch[2] }
+        : {
+            type: "browser-version",
+            product: DIAGNOSTIC_UNAVAILABLE,
+            version: DIAGNOSTIC_UNAVAILABLE,
+          };
+      browserVersions.push(event);
+      events.push(event);
+      continue;
+    }
+
+    const cdpPrefix = "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure ";
+    if (line.startsWith(cdpPrefix)) {
+      const cdpMatch = line.match(
+        /^HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=([^\s]{1,128}) class=([a-z-]{1,32})$/,
+      );
+      const method =
+        cdpMatch && SAFE_CDP_METHODS.has(cdpMatch[1]) ? cdpMatch[1] : DIAGNOSTIC_UNAVAILABLE;
+      const failureClass =
+        cdpMatch && CDP_FAILURE_CLASSES.has(cdpMatch[2]) ? cdpMatch[2] : DIAGNOSTIC_UNAVAILABLE;
+      const event = { type: "cdp-failure", method, failureClass };
+      cdpFailures.push(event);
+      events.push(event);
+    }
   }
-  return { phases, pending: split.pending };
+  return { phases, browserVersions, cdpFailures, events, pending: split.pending };
+}
+
+function dispatchDiagnosticEvents(events, { emitPhase, emitTelemetry }) {
+  for (const event of events) {
+    if (typeof event === "string") emitPhase(event);
+    else emitTelemetry(event);
+  }
+}
+
+function browserVersionDiagnosticEvent(product) {
+  if (typeof product !== "string") {
+    return {
+      type: "browser-version",
+      product: DIAGNOSTIC_UNAVAILABLE,
+      version: DIAGNOSTIC_UNAVAILABLE,
+    };
+  }
+
+  const match = product.match(BROWSER_PRODUCT_VERSION);
+  if (!match) {
+    return {
+      type: "browser-version",
+      product: DIAGNOSTIC_UNAVAILABLE,
+      version: DIAGNOSTIC_UNAVAILABLE,
+    };
+  }
+
+  return {
+    type: "browser-version",
+    product: BROWSER_PRODUCTS.get(match[1]),
+    version: match[2],
+  };
+}
+
+function cdpFailureDiagnosticEvent(method, error) {
+  let failureClass = DIAGNOSTIC_UNAVAILABLE;
+  if (error?.code === "PROTOCOL_TIMEOUT") {
+    failureClass = "protocol-timeout";
+  } else if (error?.code === "TARGET_CRASHED") {
+    failureClass = "target-crashed";
+  } else {
+    failureClass = "command-rejected";
+  }
+
+  return {
+    type: "cdp-failure",
+    method: SAFE_CDP_METHODS.has(method) ? method : DIAGNOSTIC_UNAVAILABLE,
+    failureClass,
+  };
+}
+
+function formatDiagnosticTelemetryMarker(event) {
+  if (event?.type === "browser-version") {
+    const validProduct = [...BROWSER_PRODUCTS.values()].includes(event.product);
+    const validVersion =
+      typeof event.version === "string" &&
+      /^\d{1,3}\.\d{1,3}\.\d{1,6}\.\d{1,6}$/.test(event.version);
+    const safeEvent =
+      validProduct && validVersion
+        ? event
+        : {
+            type: "browser-version",
+            product: DIAGNOSTIC_UNAVAILABLE,
+            version: DIAGNOSTIC_UNAVAILABLE,
+          };
+    return `HA_LIGHTHOUSE_DIAGNOSTIC browser product=${safeEvent.product} version=${safeEvent.version}`;
+  }
+  if (event?.type === "cdp-failure") {
+    const method = SAFE_CDP_METHODS.has(event.method) ? event.method : DIAGNOSTIC_UNAVAILABLE;
+    const failureClass = CDP_FAILURE_CLASSES.has(event.failureClass)
+      ? event.failureClass
+      : DIAGNOSTIC_UNAVAILABLE;
+    return `HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=${method} class=${failureClass}`;
+  }
+  return null;
+}
+
+function writeBrowserVersionDiagnostic(product, write = (line) => process.stderr.write(line)) {
+  try {
+    const line = formatDiagnosticTelemetryMarker(browserVersionDiagnosticEvent(product));
+    if (line !== null) write(`${line}\n`);
+  } catch {
+    // Diagnostics must never alter Lighthouse result semantics.
+  }
+}
+
+function createCdpFailureDiagnosticWriter(
+  write = (line) => process.stderr.write(line),
+  maxMarkers = MAX_CHILD_CDP_FAILURE_MARKERS,
+) {
+  const reported = new Set();
+  const limit = Number.isSafeInteger(maxMarkers)
+    ? Math.min(MAX_CHILD_CDP_FAILURE_MARKERS, Math.max(0, maxMarkers))
+    : MAX_CHILD_CDP_FAILURE_MARKERS;
+  return (method, error) => {
+    try {
+      const event = cdpFailureDiagnosticEvent(method, error);
+      const key = `${event.method}:${event.failureClass}`;
+      if (reported.has(key) || reported.size >= limit) return;
+      reported.add(key);
+      const line = formatDiagnosticTelemetryMarker(event);
+      if (line !== null) write(`${line}\n`);
+    } catch {
+      // Diagnostics must never alter Lighthouse result semantics.
+    }
+  };
+}
+
+function createBoundedDiagnosticEventEmitter(
+  emitPhase,
+  writeMarker,
+  maxCdpFailureMarkers = MAX_CHILD_CDP_FAILURE_MARKERS,
+) {
+  let browserVersionReported = false;
+  const reportedCdpFailures = new Set();
+  const limit = Number.isSafeInteger(maxCdpFailureMarkers)
+    ? Math.min(MAX_CHILD_CDP_FAILURE_MARKERS, Math.max(0, maxCdpFailureMarkers))
+    : MAX_CHILD_CDP_FAILURE_MARKERS;
+
+  return (event) => {
+    if (typeof event === "string") {
+      emitPhase(event);
+      return;
+    }
+    if (event?.type === "browser-version") {
+      if (browserVersionReported) return;
+      browserVersionReported = true;
+    } else if (event?.type === "cdp-failure") {
+      const normalized = {
+        ...event,
+        method: SAFE_CDP_METHODS.has(event.method) ? event.method : DIAGNOSTIC_UNAVAILABLE,
+        failureClass: CDP_FAILURE_CLASSES.has(event.failureClass)
+          ? event.failureClass
+          : DIAGNOSTIC_UNAVAILABLE,
+      };
+      const key = `${normalized.method}:${normalized.failureClass}`;
+      if (reportedCdpFailures.has(key) || reportedCdpFailures.size >= limit) return;
+      reportedCdpFailures.add(key);
+      event = normalized;
+    } else {
+      return;
+    }
+
+    const marker = formatDiagnosticTelemetryMarker(event);
+    if (marker !== null) writeMarker(`${marker}\n`);
+  };
 }
 
 function createBoundedDiagnosticPhaseEmitter(
@@ -200,7 +477,7 @@ function runtimeErrorDiagnosticPhase(stdout) {
 }
 
 function finishDiagnosticRun(parser, emitPhase, exitCode, runtimeErrorPhase = null) {
-  for (const phase of parser.flushStderr()) emitPhase(phase);
+  for (const event of parser.flushStderr()) emitPhase(event);
   if (runtimeErrorPhase !== null) emitPhase(runtimeErrorPhase);
   emitPhase(exitCode === 0 ? "lighthouse-cli-exit-zero" : "lighthouse-cli-exit-nonzero");
 }
@@ -325,6 +602,31 @@ class LighthouseDiagnosticParser {
   classifyDiagnosticLine(rawLine) {
     const line = rawLine.replace(ANSI_ESCAPE, "");
     const events = [];
+    const browserPrefix = "HA_LIGHTHOUSE_DIAGNOSTIC browser ";
+    if (line.startsWith(browserPrefix)) {
+      const match = line.match(
+        /^HA_LIGHTHOUSE_DIAGNOSTIC browser product=(chrome|chromium|headless-chrome|unavailable-or-other) version=(\d{1,3}\.\d{1,3}\.\d{1,6}\.\d{1,6}|unavailable-or-other)$/,
+      );
+      events.push(
+        match
+          ? { type: "browser-version", product: match[1], version: match[2] }
+          : browserVersionDiagnosticEvent(null),
+      );
+      return events;
+    }
+    const cdpPrefix = "HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure ";
+    if (line.startsWith(cdpPrefix)) {
+      const match = line.match(
+        /^HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=([^\s]{1,128}) class=([a-z-]{1,32})$/,
+      );
+      events.push({
+        type: "cdp-failure",
+        method: match && SAFE_CDP_METHODS.has(match[1]) ? match[1] : DIAGNOSTIC_UNAVAILABLE,
+        failureClass:
+          match && CDP_FAILURE_CLASSES.has(match[2]) ? match[2] : DIAGNOSTIC_UNAVAILABLE,
+      });
+      return events;
+    }
     const gatherMatch = line.match(
       /(?:^|\s)LH:artifacts:([A-Za-z]+):verbose\s+([A-Za-z]+)(?:\s+\+\d+(?:\.\d+)?(?:ms|s|m|h|d))?\s*$/,
     );
@@ -392,7 +694,18 @@ function formatProgressEvent(event) {
 }
 
 module.exports = {
+  BROWSER_PRODUCTS,
+  CDP_FAILURE_CLASSES,
+  DIAGNOSTIC_UNAVAILABLE,
+  MAX_CHILD_CDP_FAILURE_MARKERS,
+  SAFE_CDP_METHODS,
+  browserVersionDiagnosticEvent,
+  cdpFailureDiagnosticEvent,
+  createBoundedDiagnosticEventEmitter,
+  createCdpFailureDiagnosticWriter,
+  dispatchDiagnosticEvents,
   createBoundedDiagnosticPhaseEmitter,
+  formatDiagnosticTelemetryMarker,
   finishDiagnosticRun,
   LighthouseDiagnosticParser,
   LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
@@ -403,4 +716,5 @@ module.exports = {
   runtimeErrorDiagnosticPhase,
   shouldTolerateWindowsChromeCleanupExit,
   splitBoundedLines,
+  writeBrowserVersionDiagnostic,
 };

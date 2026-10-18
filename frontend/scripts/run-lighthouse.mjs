@@ -67,21 +67,53 @@ function runCommand(args, { env }) {
     let currentRoute = "unknown";
     let currentRun = "unknown";
     let currentAttempt = 0;
+    let telemetryRunKey = "";
+    let reportedCdpFailures = new Set();
+    let browserVersionReported = false;
+    const resetTelemetryBudget = () => {
+      const key = `${currentRoute}:${currentRun}:${currentAttempt}`;
+      if (key === telemetryRunKey) return;
+      telemetryRunKey = key;
+      reportedCdpFailures = new Set();
+      browserVersionReported = false;
+    };
     const writeProgress = (event) => {
       const line = diagnosticLib.formatProgressEvent(event);
       if (line === null) return;
       currentRoute = event.route;
       currentRun = event.kind === "run" ? event.run : "unknown";
       currentAttempt = 0;
+      resetTelemetryBudget();
       lastPhase = event.kind === "run" ? `collection-${event.state}` : "route-started";
       console.log(`Lighthouse diagnostic: ${line} elapsedSec=${elapsedSeconds(commandStartedAt)}`);
     };
     const writeDiagnosticPhase = (phase) => {
       if (!SAFE_DIAGNOSTIC_PHASES.has(phase)) return;
       if (phase === "lighthouse-cli-started") currentAttempt = Math.min(3, currentAttempt + 1);
+      resetTelemetryBudget();
       lastPhase = phase;
       console.log(
         `Lighthouse diagnostic: phase=${phase} route=${currentRoute} run=${currentRun} attempt=${currentAttempt} elapsedSec=${elapsedSeconds(commandStartedAt)}`,
+      );
+    };
+    const writeDiagnosticTelemetry = (event) => {
+      resetTelemetryBudget();
+      // LHCI progress uses stdout and child markers use stderr; attribution is best-effort across streams.
+      const context = `route=${currentRoute} run=${currentRun} attempt=${currentAttempt} attribution=best-effort elapsedSec=${elapsedSeconds(commandStartedAt)}`;
+      if (event.type === "browser-version") {
+        if (browserVersionReported) return;
+        browserVersionReported = true;
+        console.log(
+          `Lighthouse diagnostic: browser=${event.product} version=${event.version} ${context}`,
+        );
+        return;
+      }
+      if (event.type !== "cdp-failure") return;
+      const key = `${event.method}:${event.failureClass}`;
+      if (reportedCdpFailures.has(key) || reportedCdpFailures.size >= 16) return;
+      reportedCdpFailures.add(key);
+      console.log(
+        `Lighthouse diagnostic: cdpFailure=${event.method} class=${event.failureClass} ${context}`,
       );
     };
     const child = spawn(process.execPath, args, {
@@ -106,7 +138,10 @@ function runCommand(args, { env }) {
         SAFE_DIAGNOSTIC_PHASES,
       );
       markerPending = parsed.pending;
-      for (const phase of parsed.phases) writeDiagnosticPhase(phase);
+      diagnosticLib.dispatchDiagnosticEvents(parsed.events, {
+        emitPhase: writeDiagnosticPhase,
+        emitTelemetry: writeDiagnosticTelemetry,
+      });
     });
     const timeout = setTimeout(() => {
       timedOut = true;
