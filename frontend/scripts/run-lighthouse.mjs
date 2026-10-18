@@ -70,12 +70,14 @@ function runCommand(args, { env }) {
     let telemetryRunKey = "";
     let reportedCdpFailures = new Set();
     let browserVersionReported = false;
+    let spawnFailureReported = false;
     const resetTelemetryBudget = () => {
       const key = `${currentRoute}:${currentRun}:${currentAttempt}`;
       if (key === telemetryRunKey) return;
       telemetryRunKey = key;
       reportedCdpFailures = new Set();
       browserVersionReported = false;
+      spawnFailureReported = false;
     };
     const writeProgress = (event) => {
       const line = diagnosticLib.formatProgressEvent(event);
@@ -106,6 +108,15 @@ function runCommand(args, { env }) {
         console.log(
           `Lighthouse diagnostic: browser=${event.product} version=${event.version} ${context}`,
         );
+        return;
+      }
+      if (event.type === "spawn-failure") {
+        if (spawnFailureReported) return;
+        spawnFailureReported = true;
+        const failureClass = diagnosticLib.CHILD_SPAWN_FAILURE_CLASSES.has(event.failureClass)
+          ? event.failureClass
+          : "other";
+        console.log(`Lighthouse diagnostic: spawnFailure=${failureClass} ${context}`);
         return;
       }
       if (event.type !== "cdp-failure") return;

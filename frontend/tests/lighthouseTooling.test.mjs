@@ -1,12 +1,12 @@
 import { createRequire } from "node:module";
 import { spawn, spawnSync } from "node:child_process";
-import { once } from "node:events";
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { EventEmitter, once } from "node:events";
+import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import {
   LOOPBACK_HOST,
@@ -15,6 +15,11 @@ import {
   stopHttpServer,
   stopChildProcess,
 } from "../scripts/local-production-server-lib.mjs";
+import {
+  createInterruptController,
+  registerInterruptCleanup,
+  stopOwnedProcessGroup,
+} from "../scripts/lighthouse-process-safety-lib.mjs";
 import {
   isWslEnvironment,
   readBuildMetadata,
@@ -40,10 +45,13 @@ const {
   dispatchDiagnosticEvents,
   browserVersionDiagnosticEvent,
   cdpFailureDiagnosticEvent,
+  childSpawnFailureDiagnosticEvent,
+  CHILD_SPAWN_FAILURE_CLASSES,
   formatDiagnosticTelemetryMarker,
   finishDiagnosticRun,
   MAX_CHILD_CDP_FAILURE_MARKERS,
   LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
+  LIGHTHOUSE_RUNTIME_ERROR_CODES,
   LighthouseDiagnosticParser,
   MAX_CHILD_DIAGNOSTIC_PHASES,
   parseDiagnosticMarkerChunk,
@@ -51,7 +59,12 @@ const {
   SAFE_GATHER_DIAGNOSTIC_PHASES,
   formatProgressEvent,
   runtimeErrorDiagnosticPhase,
+  runtimeErrorDiagnosticEvent,
+  runtimeErrorCodeDiagnosticPhase,
+  formatRuntimeErrorDiagnosticMarker,
+  homeSampleOutcome,
   shouldTolerateWindowsChromeCleanupExit,
+  spawnPinnedNode,
 } = require("../scripts/lighthouse-diagnostic-lib.cjs");
 
 function runPinnedLighthouseGatherLogger({ colors }) {
@@ -384,6 +397,12 @@ describe("bounded Lighthouse phase diagnostics", () => {
     ["NO_NAVSTART", "no-navstart"],
     ["NO_FCP", "no-fcp"],
     ["NO_DCL", "no-dcl"],
+    ["NO_FMP", "no-fmp"],
+    ["NO_LCP", "no-lcp"],
+    ["NO_LCP_ALL_FRAMES", "no-lcp-all-frames"],
+    ["UNSUPPORTED_OLD_CHROME", "unsupported-old-chrome"],
+    ["NO_TTI_CPU_IDLE_PERIOD", "no-tti-cpu-idle-period"],
+    ["NO_TTI_NETWORK_IDLE_PERIOD", "no-tti-network-idle-period"],
     ["NO_DOCUMENT_REQUEST", "no-document-request"],
     ["FAILED_DOCUMENT_REQUEST", "failed-document-request"],
     ["ERRORED_DOCUMENT_REQUEST", "errored-document-request"],
@@ -398,6 +417,9 @@ describe("bounded Lighthouse phase diagnostics", () => {
     ["DNS_FAILURE", "dns-failure"],
     ["CRI_TIMEOUT", "cri-timeout"],
     ["TARGET_CRASHED", "target-crashed"],
+    ["INVALID_URL", "invalid-url"],
+    ["MISSING_REQUIRED_ARTIFACT", "missing-required-artifact"],
+    ["ERRORED_REQUIRED_ARTIFACT", "errored-required-artifact"],
   ])("maps only the allowlisted Lighthouse runtime code %s", (code, codeId) => {
     expect(runtimeErrorDiagnosticPhase(JSON.stringify({ runtimeError: { code } }))).toBe(
       `lighthouse-runtime-error-code-${codeId}`,
@@ -416,7 +438,7 @@ describe("bounded Lighthouse phase diagnostics", () => {
     ];
     const phases = cases.map(runtimeErrorDiagnosticPhase);
 
-    expect(LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES.size).toBe(24);
+    expect(LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES.size).toBe(33);
     expect(phases).toEqual(Array(cases.length).fill(unavailablePhase));
     expect(JSON.stringify(phases)).not.toContain(sentinel);
     expect(
@@ -428,6 +450,80 @@ describe("bounded Lighthouse phase diagnostics", () => {
         }),
       ),
     ).toBe("lighthouse-runtime-error-code-dns-failure");
+  });
+
+  it("maps an early Lighthouse error object through the fixed code enum only", () => {
+    const sentinel = "PRIVATE_MESSAGE_SENTINEL_DO_NOT_EMIT";
+    const phase = runtimeErrorCodeDiagnosticPhase("UNSUPPORTED_OLD_CHROME");
+    const parsed = parseDiagnosticMarkerChunk(
+      "",
+      `HA_LIGHTHOUSE_DIAGNOSTIC phase=${phase}\n`,
+      LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
+    );
+    const unknown = runtimeErrorCodeDiagnosticPhase(sentinel);
+
+    expect(phase).toBe("lighthouse-runtime-error-code-unsupported-old-chrome");
+    expect(parsed.events).toEqual([phase]);
+    expect(unknown).toBe("lighthouse-runtime-error-code-unavailable-or-other");
+    expect(`${phase} ${unknown}`).not.toContain(sentinel);
+  });
+
+  it("captures only bounded runtime-error class, code-presence, and known-code enums", () => {
+    const sentinel = "HOSTILE_RUNTIME_NAME_CODE_MESSAGE_SENTINEL";
+    const error = Object.assign(new TypeError(sentinel), {
+      name: "TypeError",
+      code: "NO_FCP",
+      stack: sentinel,
+    });
+    const marker = formatRuntimeErrorDiagnosticMarker(error);
+    const parser = new LighthouseDiagnosticParser();
+    const parsed = parser.pushStderr(`${marker}\n`);
+    const unknown = runtimeErrorDiagnosticEvent({
+      name: sentinel,
+      code: sentinel,
+      message: sentinel,
+    });
+    const missing = runtimeErrorDiagnosticEvent({ name: "Error", message: sentinel });
+
+    expect(parsed).toEqual([
+      {
+        type: "runtime-error",
+        nameClass: "type-error",
+        codePresent: true,
+        codePhase: "lighthouse-runtime-error-code-no-fcp",
+      },
+    ]);
+    expect(unknown).toEqual({
+      type: "runtime-error",
+      nameClass: "unavailable-or-other",
+      codePresent: true,
+      codePhase: "lighthouse-runtime-error-code-unavailable-or-other",
+    });
+    expect(missing.codePresent).toBe(false);
+    expect(`${marker} ${JSON.stringify(unknown)}`).not.toContain(sentinel);
+    const hostileMarker = parser.pushStderr(
+      `HA_LIGHTHOUSE_DIAGNOSTIC runtime-error class=${sentinel} code-present=true code-phase=${sentinel}\n`,
+    );
+    expect(hostileMarker).toEqual([
+      {
+        type: "runtime-error",
+        nameClass: "unavailable-or-other",
+        codePresent: false,
+        codePhase: "lighthouse-runtime-error-code-unavailable-or-other",
+      },
+    ]);
+    expect(JSON.stringify(hostileMarker)).not.toContain(sentinel);
+  });
+
+  it("covers every error code in the pinned Lighthouse package", async () => {
+    const lighthousePath = pathToFileURL(
+      path.resolve("node_modules/lighthouse/core/lib/lh-error.js"),
+    ).href;
+    const { LighthouseError } = await import(lighthousePath);
+
+    expect([...LIGHTHOUSE_RUNTIME_ERROR_CODES.keys()].sort()).toEqual(
+      Object.keys(LighthouseError.errors).sort(),
+    );
   });
 
   it("waits for trailing child stdout before extracting the runtime code", async () => {
@@ -562,8 +658,16 @@ describe("bounded Lighthouse phase diagnostics", () => {
 
   it("keeps diagnostics gated, bounded, and separate from the Lighthouse JSON result", async () => {
     const runner = await readFile(path.resolve("scripts/run-lighthouse.mjs"), "utf8");
+    const homeRunner = await readFile(
+      path.resolve("scripts/run-lighthouse-home-diagnostic.mjs"),
+      "utf8",
+    );
     const patch = await readFile(path.resolve("patches/@lhci+cli+0.15.1.patch"), "utf8");
     const lighthousePatch = await readFile(path.resolve("patches/lighthouse+12.6.1.patch"), "utf8");
+    const chromeLauncherPatch = await readFile(
+      path.resolve("patches/lighthouse++chrome-launcher+1.2.1.patch"),
+      "utf8",
+    );
     const diagnostics = await readFile(
       path.resolve("scripts/lighthouse-diagnostic-lib.cjs"),
       "utf8",
@@ -596,6 +700,14 @@ describe("bounded Lighthouse phase diagnostics", () => {
     expect(lighthousePatch).toContain("throw error;");
     expect(lighthousePatch).toContain("createCdpFailureDiagnosticWriter");
     expect(lighthousePatch).not.toMatch(/error\.message|userAgent|revision|jsVersion/);
+    expect(lighthousePatch).toContain("formatRuntimeErrorDiagnosticMarker(err)");
+    expect(lighthousePatch).toContain("HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTIC_HELPER");
+    const earlyErrorHook = lighthousePatch.slice(
+      lighthousePatch.indexOf(
+        "+      const marker = DiagnosticTools.formatRuntimeErrorDiagnosticMarker(err);",
+      ),
+    );
+    expect(earlyErrorHook.slice(0, 300)).not.toMatch(/err\.(message|stack|friendlyMessage)/);
     expect(cli).toContain("if (DIAGNOSTICS_ENABLED) lhArgs.push('--verbose');");
     expect(cli).toContain("HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-cli-started");
     expect(cli).toContain("child.once(DIAGNOSTICS_ENABLED ? 'close' : 'exit', code => {");
@@ -614,6 +726,191 @@ describe("bounded Lighthouse phase diagnostics", () => {
     expect(cli).toContain("runtimeErrorPhase,");
     expect(cli).toContain("error.stdout = DIAGNOSTICS_ENABLED ? '' : stdout;");
     expect(cli).toContain("raw Lighthouse output suppressed by the bounded diagnostic mode");
+    expect(patch).toContain("HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTIC_HELPER");
+    expect(patch).toContain("earlyRuntimeCodeReported");
+    expect(patch).toContain("earlyRuntimeErrorCodeReported = true");
+    expect(patch).toContain(
+      "DiagnosticTools.spawnPinnedNode(childProcess, [LH_CLI_PATH, ...args], {env})",
+    );
+    expect(patch).toContain("child.once('error', failToStart);");
+    expect(patch).toContain("DiagnosticTools.childSpawnFailureDiagnosticEvent(error)");
+    expect(patch).toContain("Lighthouse child process could not be started");
+    expect(runner).toContain('event.type === "spawn-failure"');
+    expect(homeRunner).toContain("spawnFailure=${failureClass}");
+    expect(patch).toContain("HEALTHARCHIVE_LIGHTHOUSE_SINGLE_ATTEMPT === '1'");
+    expect(runner).not.toContain("HEALTHARCHIVE_LIGHTHOUSE_SINGLE_ATTEMPT");
+
+    expect(homeRunner).toContain("config.ci.collect.numberOfRuns = 1;");
+    expect(homeRunner).toContain('HEALTHARCHIVE_LIGHTHOUSE_SINGLE_ATTEMPT: "1"');
+    expect(homeRunner).toContain('config.ci.collect.url = [new URL("/", `${origin}/`).href];');
+    expect(homeRunner).toContain("--no-proxy-server");
+    expect(homeRunner).toContain("const MAX_SAMPLE_MS = 120_000;");
+    expect(homeRunner).toContain("await cp(standaloneSource, runtimeRoot");
+    expect(homeRunner).not.toContain("prepareStandaloneAssets");
+    expect(homeRunner).not.toContain('rm(path.join(frontendRoot, ".lighthouseci"');
+    expect(homeRunner).toContain("existing-lighthouse-reports-present");
+    expect(homeRunner).toContain("cwd: lighthouseCwd,");
+    expect(homeRunner).toContain("await assertEmptyExistingReports(frontendRoot);");
+    expect(homeRunner).toContain("await hashBuildInputs(frontendRoot, runtimeRoot, scratchRoot);");
+    expect(homeRunner).toContain("stopOwnedProcessGroup(lighthouseChild)");
+    expect(homeRunner).toContain("interruptController.throwIfInterrupted();");
+    expect(homeRunner).toContain("const outcome = diagnosticLib.homeSampleOutcome(result.status);");
+    expect(homeRunner).toContain("if (!outcome.completed) process.exitCode = outcome.exitCode;");
+    expect(homeRunner).toContain("homeSampleCompleted=${outcome.completed}");
+    expect(homeRunner).not.toContain("source=99970c1");
+    expect(chromeLauncherPatch).toContain(
+      "detached: process.platform !== 'win32' && process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS !== '1',",
+    );
+    expect(chromeLauncherPatch).toContain("process.kill(this.chromeProcess.pid, 'SIGKILL');");
+  });
+});
+
+describe("one-shot diagnostic cancellation and process-group cleanup", () => {
+  it("blocks launch when an early signal reaches the next preflight checkpoint", () => {
+    const interruption = createInterruptController();
+    let launches = 0;
+
+    interruption.request("SIGINT");
+    expect(() => {
+      interruption.throwIfInterrupted();
+      launches += 1;
+    }).toThrow("diagnostic-interrupted");
+    expect(launches).toBe(0);
+    expect(interruption.exitCode).toBe(130);
+  });
+
+  it("keeps signal handlers installed and starts async cleanup only once", () => {
+    const signalTarget = new EventEmitter();
+    let finishCleanup;
+    const cleanup = vi.fn(() => new Promise((resolve) => (finishCleanup = resolve)));
+    const interruption = createInterruptController();
+    const dispose = registerInterruptCleanup({
+      signalTarget,
+      interruptController: interruption,
+      cleanup,
+      isSetup: () => true,
+    });
+
+    signalTarget.emit("SIGINT");
+    signalTarget.emit("SIGINT");
+    signalTarget.emit("SIGTERM");
+
+    expect(interruption.exitCode).toBe(130);
+    expect(signalTarget.exitCode).toBe(130);
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    expect(cleanup).toHaveBeenCalledWith({ removeScratch: false });
+    expect(signalTarget.listenerCount("SIGINT")).toBe(1);
+    expect(signalTarget.listenerCount("SIGTERM")).toBe(1);
+
+    finishCleanup([]);
+    dispose();
+    expect(signalTarget.listenerCount("SIGINT")).toBe(0);
+    expect(signalTarget.listenerCount("SIGTERM")).toBe(0);
+  });
+
+  it("returns nonzero for every non-completed Home sample state", () => {
+    expect(homeSampleOutcome("completed")).toEqual({ completed: true, exitCode: 0 });
+    for (const status of ["failed", "timeout", "blocked", "spawn-error", "unknown"]) {
+      expect(homeSampleOutcome(status)).toEqual({ completed: false, exitCode: 4 });
+    }
+  });
+
+  it.skipIf(process.platform !== "linux")(
+    "stops only a registered isolated Lighthouse process group before scratch cleanup",
+    async () => {
+      const child = spawn(
+        process.execPath,
+        [
+          "-e",
+          "const { spawn } = require('node:child_process'); spawn(process.execPath, ['-e', 'setInterval(() => {}, 1000)'], { stdio: 'ignore' }); process.stdout.write('ready\\n'); setInterval(() => {}, 1000);",
+        ],
+        { detached: true, stdio: ["ignore", "pipe", "ignore"] },
+      );
+      child.healtharchiveProcessGroup = true;
+      const ready = once(child.stdout, "data");
+      const closed = once(child, "close");
+
+      await ready;
+      await stopOwnedProcessGroup(child);
+      await closed;
+      expect(child.exitCode !== null || child.signalCode !== null).toBe(true);
+      expect(() => process.kill(-child.pid, 0)).toThrow();
+    },
+  );
+
+  it("refuses to signal a process group without the owned-group marker", async () => {
+    const kill = vi.fn();
+    await expect(
+      stopOwnedProcessGroup({ pid: 424242, healtharchiveProcessGroup: false }, { kill }),
+    ).rejects.toThrow("owned-process-group-proof-missing");
+    expect(kill).not.toHaveBeenCalled();
+  });
+
+  it("refuses to manage process groups outside the supported Linux runtime", async () => {
+    const kill = vi.fn();
+    await expect(
+      stopOwnedProcessGroup(
+        { pid: 424242, healtharchiveProcessGroup: true },
+        { kill, platform: "darwin" },
+      ),
+    ).rejects.toThrow("owned-process-group-proof-missing");
+    expect(kill).not.toHaveBeenCalled();
+  });
+
+  it("signals only the registered process group and accepts its confirmed exit", async () => {
+    const calls = [];
+    let groupAlive = true;
+    const kill = (pid, signal) => {
+      calls.push([pid, signal]);
+      if (pid !== -424242) throw new Error("unexpected-process-group");
+      if (signal === "SIGTERM") {
+        groupAlive = false;
+        return;
+      }
+      if (signal === 0 && !groupAlive) {
+        throw Object.assign(new Error("group-exited"), { code: "ESRCH" });
+      }
+      throw new Error("unexpected-signal");
+    };
+
+    await stopOwnedProcessGroup(
+      { pid: 424242, healtharchiveProcessGroup: true },
+      {
+        kill,
+        platform: "linux",
+      },
+    );
+
+    expect(calls).toEqual([
+      [-424242, "SIGTERM"],
+      [-424242, 0],
+    ]);
+  });
+
+  it("isolates LHCI intermediate report clearing from the source report directory", async () => {
+    const parent = await mkdtemp(path.join(os.tmpdir(), "healtharchive-lhci-cwd-test-"));
+    const sourceRoot = path.join(parent, "source");
+    const scratchRoot = path.join(parent, "scratch");
+    const sourceReport = path.join(sourceRoot, ".lighthouseci", "lhr-123.json");
+    const scratchReport = path.join(scratchRoot, ".lighthouseci", "lhr-456.json");
+    const savedReportsPath = require.resolve("@lhci/utils/src/saved-reports.js");
+    try {
+      await mkdir(path.dirname(sourceReport), { recursive: true });
+      await mkdir(path.dirname(scratchReport), { recursive: true });
+      await writeFile(sourceReport, "source-report-sentinel", "utf8");
+      await writeFile(scratchReport, "scratch-report-sentinel", "utf8");
+      const result = spawnSync(
+        process.execPath,
+        ["-e", `require(${JSON.stringify(savedReportsPath)}).clearSavedReportsAndLHRs();`],
+        { cwd: scratchRoot, encoding: "utf8", timeout: 5_000 },
+      );
+
+      expect(result.status).toBe(0);
+      await expect(readFile(sourceReport, "utf8")).resolves.toBe("source-report-sentinel");
+      await expect(readdir(path.join(scratchRoot, ".lighthouseci"))).resolves.toEqual([]);
+    } finally {
+      await rm(parent, { recursive: true, force: true });
+    }
   });
 });
 
@@ -741,6 +1038,98 @@ describe("bounded Lighthouse browser and CDP diagnostics", () => {
       128,
     );
     expect(partial.pending).toHaveLength(128);
+  });
+
+  it("classifies child spawn failures into a fixed non-disclosing enum", () => {
+    const secret = "TOKEN_SECRET_SENTINEL /private/profile /usr/local/bin/node";
+    const cases = [
+      ["ENOENT", "not-found"],
+      ["EACCES", "permission-denied"],
+      ["EPERM", "permission-denied"],
+      ["EMFILE", "resource-limit"],
+      ["ENFILE", "resource-limit"],
+      ["E2BIG", "argument-limit"],
+      [secret, "other"],
+    ];
+
+    for (const [code, failureClass] of cases) {
+      const event = childSpawnFailureDiagnosticEvent({
+        code,
+        message: secret,
+        path: secret,
+        env: { TOKEN: secret },
+      });
+      expect(event).toEqual({ type: "spawn-failure", failureClass });
+      expect(CHILD_SPAWN_FAILURE_CLASSES.has(event.failureClass)).toBe(true);
+      expect(formatDiagnosticTelemetryMarker(event)).toBe(
+        `HA_LIGHTHOUSE_DIAGNOSTIC spawn-failure class=${failureClass}`,
+      );
+      expect(formatDiagnosticTelemetryMarker(event)).not.toContain(secret);
+    }
+
+    const hostileLine =
+      `HA_LIGHTHOUSE_DIAGNOSTIC spawn-failure class=${secret}\n` +
+      "HA_LIGHTHOUSE_DIAGNOSTIC spawn-failure class=not-found\n";
+    const parsed = parseDiagnosticMarkerChunk("", hostileLine, new Set());
+    expect(parsed.spawnFailures).toEqual([{ type: "spawn-failure", failureClass: "other" }]);
+    expect(JSON.stringify(parsed)).not.toContain(secret);
+
+    const emitted = [];
+    const emitEvent = createBoundedDiagnosticEventEmitter(
+      () => {},
+      (marker) => emitted.push(marker),
+    );
+    emitEvent(childSpawnFailureDiagnosticEvent({ code: "ENOENT", message: secret }));
+    emitEvent(childSpawnFailureDiagnosticEvent({ code: "EACCES", message: secret }));
+    expect(emitted).toEqual(["HA_LIGHTHOUSE_DIAGNOSTIC spawn-failure class=not-found\n"]);
+  });
+
+  it("uses process.execPath when PATH has no node or a conflicting node", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "ha-pinned-node-spawn-"));
+    const noNodePath = path.join(root, "empty-path");
+    const conflictPath = path.join(root, "conflict-path");
+    const sentinel = path.join(root, "conflicting-node-ran");
+    await mkdir(noNodePath);
+    await mkdir(conflictPath);
+
+    const calls = [];
+    const injectedChildProcess = {
+      spawn(command, args, options) {
+        calls.push(command);
+        return spawnSync(command, args, {
+          ...options,
+          encoding: "utf8",
+          timeout: 5_000,
+        });
+      },
+    };
+    const runPinnedChild = (env) =>
+      spawnPinnedNode(injectedChildProcess, ["-e", "process.stdout.write(process.execPath)"], {
+        env: { ...process.env, ...env },
+        stdio: ["ignore", "pipe", "pipe"],
+      });
+
+    try {
+      const missing = runPinnedChild({ PATH: noNodePath });
+      expect(missing.status).toBe(0);
+      expect(missing.stdout).toBe(process.execPath);
+
+      const conflictingNode = path.join(conflictPath, "node");
+      await writeFile(
+        conflictingNode,
+        `#!/bin/sh\nprintf 'ran' > ${JSON.stringify(sentinel)}\nexit 93\n`,
+        { mode: 0o700 },
+      );
+      await chmod(conflictingNode, 0o700);
+      const conflicting = runPinnedChild({ PATH: conflictPath });
+      expect(conflicting.status).toBe(0);
+      expect(conflicting.stdout).toBe(process.execPath);
+      expect(await readdir(conflictPath)).toEqual(["node"]);
+      expect(await readdir(root)).not.toContain("conflicting-node-ran");
+      expect(calls).toEqual([process.execPath, process.execPath]);
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
   });
 
   it("preserves same-stream marker order across retry boundaries", () => {

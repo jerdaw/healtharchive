@@ -50,3 +50,28 @@ index 8d9bd24..6afe823 100644
        if (timeout) clearTimeout(timeout);
      });
    }
+
+diff --git a/node_modules/lighthouse/cli/run.js b/node_modules/lighthouse/cli/run.js
+index 51e6b6332743116ee10822e32f6a1e9173ea91ec..77636163552d8a0946196f9f4b5aaf18b4a12735 100644
+--- a/node_modules/lighthouse/cli/run.js
++++ b/node_modules/lighthouse/cli/run.js
+@@ -10,0 +11,1 @@
++import {createRequire} from 'node:module';
+@@ -21,0 +23,8 @@
++const DIAGNOSTICS_ENABLED = process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS === '1';
++const DiagnosticTools = DIAGNOSTICS_ENABLED
++  ? createRequire(import.meta.url)(
++      process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTIC_HELPER ||
++        '../../../scripts/lighthouse-diagnostic-lib.cjs',
++    )
++  : null;
++
+@@ -109,0 +119,8 @@
++  if (DIAGNOSTICS_ENABLED) {
++    try {
++      const marker = DiagnosticTools.formatRuntimeErrorDiagnosticMarker(err);
++      process.stderr.write(marker + '\n');
++    } catch {
++      // Diagnostic emission must never alter Lighthouse result semantics.
++    }
++  }

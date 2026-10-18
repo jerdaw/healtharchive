@@ -1,5 +1,5 @@
 diff --git a/node_modules/lighthouse/node_modules/chrome-launcher/dist/chrome-launcher.js b/node_modules/lighthouse/node_modules/chrome-launcher/dist/chrome-launcher.js
-index d7fb4cf..73a7999 100644
+index d7fb4cf..154224d178a6ce677941593ddb7d5ab6672e1ec7 100644
 --- a/node_modules/lighthouse/node_modules/chrome-launcher/dist/chrome-launcher.js
 +++ b/node_modules/lighthouse/node_modules/chrome-launcher/dist/chrome-launcher.js
 @@ -117,7 +117,8 @@ class Launcher {
@@ -12,8 +12,33 @@ index d7fb4cf..73a7999 100644
          }
          if (process.env.HEADLESS)
              flags.push('--headless');
+@@ -236,10 +237,10 @@ class Launcher {
+             this.chromeProcess = this.spawn(execPath, this.flags, {
+                 // On non-windows platforms, `detached: true` makes child process a leader of a new
+                 // process group, making it possible to kill child process tree with `.kill(-pid)` command.
+                 // @see https://nodejs.org/api/child_process.html#child_process_options_detached
+-                detached: process.platform !== 'win32',
++                detached: process.platform !== 'win32' && process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS !== '1',
+                 stdio: this.useRemoteDebuggingPipe ?
+                     ['ignore', this.outFile, this.errFile, 'pipe', 'pipe'] :
+                     ['ignore', this.outFile, this.errFile],
+                 env: this.envVars
+             });
+@@ -340,7 +341,11 @@ class Launcher {
+             }
+             else {
+                 if (this.chromeProcess.pid) {
+-                    process.kill(-this.chromeProcess.pid, 'SIGKILL');
++                    if (process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS === '1') {
++                        process.kill(this.chromeProcess.pid, 'SIGKILL');
++                    } else {
++                        process.kill(-this.chromeProcess.pid, 'SIGKILL');
++                    }
+                 }
+             }
+         }
 diff --git a/node_modules/lighthouse/node_modules/chrome-launcher/dist/utils.js b/node_modules/lighthouse/node_modules/chrome-launcher/dist/utils.js
-index 038d0dc..8ee7712 100644
+index 038d0dc..494b6483afa17900172b7f7c898c639f92d86f6a 100644
 --- a/node_modules/lighthouse/node_modules/chrome-launcher/dist/utils.js
 +++ b/node_modules/lighthouse/node_modules/chrome-launcher/dist/utils.js
 @@ -60,6 +60,8 @@ export function makeTmpDir() {

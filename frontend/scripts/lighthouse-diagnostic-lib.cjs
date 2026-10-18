@@ -10,6 +10,13 @@ const ANSI_ESCAPE = /\u001b\[[0-?]*[ -/]*[@-~]/g;
 const MAX_PENDING_CHARS = 8_192;
 const MAX_CHILD_CDP_FAILURE_MARKERS = 16;
 const DIAGNOSTIC_UNAVAILABLE = "unavailable-or-other";
+const CHILD_SPAWN_FAILURE_CLASSES = new Set([
+  "not-found",
+  "permission-denied",
+  "resource-limit",
+  "argument-limit",
+  "other",
+]);
 const BROWSER_PRODUCTS = new Map([
   ["Chrome", "chrome"],
   ["Chromium", "chromium"],
@@ -159,6 +166,12 @@ const LIGHTHOUSE_RUNTIME_ERROR_CODES = new Map([
   ["NO_NAVSTART", "no-navstart"],
   ["NO_FCP", "no-fcp"],
   ["NO_DCL", "no-dcl"],
+  ["NO_FMP", "no-fmp"],
+  ["NO_LCP", "no-lcp"],
+  ["NO_LCP_ALL_FRAMES", "no-lcp-all-frames"],
+  ["UNSUPPORTED_OLD_CHROME", "unsupported-old-chrome"],
+  ["NO_TTI_CPU_IDLE_PERIOD", "no-tti-cpu-idle-period"],
+  ["NO_TTI_NETWORK_IDLE_PERIOD", "no-tti-network-idle-period"],
   ["NO_DOCUMENT_REQUEST", "no-document-request"],
   ["FAILED_DOCUMENT_REQUEST", "failed-document-request"],
   ["ERRORED_DOCUMENT_REQUEST", "errored-document-request"],
@@ -173,8 +186,25 @@ const LIGHTHOUSE_RUNTIME_ERROR_CODES = new Map([
   ["DNS_FAILURE", "dns-failure"],
   ["CRI_TIMEOUT", "cri-timeout"],
   ["TARGET_CRASHED", "target-crashed"],
+  ["INVALID_URL", "invalid-url"],
+  ["MISSING_REQUIRED_ARTIFACT", "missing-required-artifact"],
+  ["ERRORED_REQUIRED_ARTIFACT", "errored-required-artifact"],
 ]);
 const LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE = "unavailable-or-other";
+const LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASSES = new Map([
+  ["Error", "error"],
+  ["TypeError", "type-error"],
+  ["RangeError", "range-error"],
+  ["ReferenceError", "reference-error"],
+  ["SyntaxError", "syntax-error"],
+  ["URIError", "uri-error"],
+  ["EvalError", "eval-error"],
+  ["AggregateError", "aggregate-error"],
+]);
+const LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASS_VALUES = new Set([
+  ...LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASSES.values(),
+  LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE,
+]);
 const LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES = new Set([
   ...[...LIGHTHOUSE_RUNTIME_ERROR_CODES.values(), LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE].map(
     (code) => `lighthouse-runtime-error-code-${code}`,
@@ -231,12 +261,18 @@ function parseDiagnosticMarkerChunk(
   const phases = [];
   const browserVersions = [];
   const cdpFailures = [];
+  const spawnFailures = [];
   const events = [];
   for (const line of split.lines) {
     const match = line.match(/^HA_LIGHTHOUSE_DIAGNOSTIC phase=([a-z-]+)$/);
     if (match && allowlist.has(match[1])) {
       phases.push(match[1]);
       events.push(match[1]);
+      continue;
+    }
+
+    if (line.startsWith("HA_LIGHTHOUSE_DIAGNOSTIC runtime-error ")) {
+      events.push(parseRuntimeErrorDiagnosticMarker(line));
       continue;
     }
 
@@ -269,9 +305,22 @@ function parseDiagnosticMarkerChunk(
       const event = { type: "cdp-failure", method, failureClass };
       cdpFailures.push(event);
       events.push(event);
+      continue;
+    }
+
+    const spawnFailurePrefix = "HA_LIGHTHOUSE_DIAGNOSTIC spawn-failure ";
+    if (spawnFailures.length === 0 && line.startsWith(spawnFailurePrefix)) {
+      const spawnMatch = line.match(
+        /^HA_LIGHTHOUSE_DIAGNOSTIC spawn-failure class=([a-z-]{1,32})$/,
+      );
+      const failureClass =
+        spawnMatch && CHILD_SPAWN_FAILURE_CLASSES.has(spawnMatch[1]) ? spawnMatch[1] : "other";
+      const event = { type: "spawn-failure", failureClass };
+      spawnFailures.push(event);
+      events.push(event);
     }
   }
-  return { phases, browserVersions, cdpFailures, events, pending: split.pending };
+  return { phases, browserVersions, cdpFailures, spawnFailures, events, pending: split.pending };
 }
 
 function dispatchDiagnosticEvents(events, { emitPhase, emitTelemetry }) {
@@ -323,6 +372,33 @@ function cdpFailureDiagnosticEvent(method, error) {
   };
 }
 
+function childSpawnFailureDiagnosticEvent(error) {
+  let code = null;
+  try {
+    if (typeof error?.code === "string") code = error.code;
+  } catch {
+    // Child-process diagnostics are best-effort and never inspect arbitrary error text.
+  }
+  const failureClass =
+    code === "ENOENT"
+      ? "not-found"
+      : code === "EACCES" || code === "EPERM"
+        ? "permission-denied"
+        : code === "EMFILE" || code === "ENFILE"
+          ? "resource-limit"
+          : code === "E2BIG"
+            ? "argument-limit"
+            : "other";
+  return { type: "spawn-failure", failureClass };
+}
+
+function spawnPinnedNode(childProcess, args, options) {
+  if (!childProcess || typeof childProcess.spawn !== "function") {
+    throw new TypeError("child-process-spawn-required");
+  }
+  return childProcess.spawn(process.execPath, args, options);
+}
+
 function formatDiagnosticTelemetryMarker(event) {
   if (event?.type === "browser-version") {
     const validProduct = [...BROWSER_PRODUCTS.values()].includes(event.product);
@@ -345,6 +421,12 @@ function formatDiagnosticTelemetryMarker(event) {
       ? event.failureClass
       : DIAGNOSTIC_UNAVAILABLE;
     return `HA_LIGHTHOUSE_DIAGNOSTIC cdp-failure method=${method} class=${failureClass}`;
+  }
+  if (event?.type === "spawn-failure") {
+    const failureClass = CHILD_SPAWN_FAILURE_CLASSES.has(event.failureClass)
+      ? event.failureClass
+      : "other";
+    return `HA_LIGHTHOUSE_DIAGNOSTIC spawn-failure class=${failureClass}`;
   }
   return null;
 }
@@ -386,6 +468,8 @@ function createBoundedDiagnosticEventEmitter(
   maxCdpFailureMarkers = MAX_CHILD_CDP_FAILURE_MARKERS,
 ) {
   let browserVersionReported = false;
+  let runtimeErrorReported = false;
+  let spawnFailureReported = false;
   const reportedCdpFailures = new Set();
   const limit = Number.isSafeInteger(maxCdpFailureMarkers)
     ? Math.min(MAX_CHILD_CDP_FAILURE_MARKERS, Math.max(0, maxCdpFailureMarkers))
@@ -399,6 +483,12 @@ function createBoundedDiagnosticEventEmitter(
     if (event?.type === "browser-version") {
       if (browserVersionReported) return;
       browserVersionReported = true;
+    } else if (event?.type === "runtime-error") {
+      if (runtimeErrorReported) return;
+      runtimeErrorReported = true;
+      const normalized = normalizeRuntimeErrorDiagnosticEvent(event);
+      writeMarker(`${formatRuntimeErrorDiagnosticMarker(normalized)}\n`);
+      return;
     } else if (event?.type === "cdp-failure") {
       const normalized = {
         ...event,
@@ -411,6 +501,15 @@ function createBoundedDiagnosticEventEmitter(
       if (reportedCdpFailures.has(key) || reportedCdpFailures.size >= limit) return;
       reportedCdpFailures.add(key);
       event = normalized;
+    } else if (event?.type === "spawn-failure") {
+      if (spawnFailureReported) return;
+      spawnFailureReported = true;
+      event = {
+        type: "spawn-failure",
+        failureClass: CHILD_SPAWN_FAILURE_CLASSES.has(event.failureClass)
+          ? event.failureClass
+          : "other",
+      };
     } else {
       return;
     }
@@ -458,6 +557,70 @@ function createBoundedDiagnosticPhaseEmitter(
   };
 }
 
+function runtimeErrorCodeDiagnosticPhase(runtimeErrorCode) {
+  const code =
+    typeof runtimeErrorCode === "string"
+      ? (LIGHTHOUSE_RUNTIME_ERROR_CODES.get(runtimeErrorCode) ??
+        LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE)
+      : LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE;
+  return `lighthouse-runtime-error-code-${code}`;
+}
+
+function runtimeErrorDiagnosticEvent(error) {
+  const errorName = typeof error?.name === "string" ? error.name : null;
+  return {
+    type: "runtime-error",
+    nameClass:
+      LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASSES.get(errorName) ?? LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE,
+    codePresent: error?.code !== undefined && error?.code !== null,
+    codePhase: runtimeErrorCodeDiagnosticPhase(error?.code),
+  };
+}
+
+function formatRuntimeErrorDiagnosticMarker(error) {
+  const event =
+    error?.type === "runtime-error"
+      ? normalizeRuntimeErrorDiagnosticEvent(error)
+      : runtimeErrorDiagnosticEvent(error);
+  return [
+    "HA_LIGHTHOUSE_DIAGNOSTIC runtime-error",
+    `class=${event.nameClass}`,
+    `code-present=${event.codePresent}`,
+    `code-phase=${event.codePhase}`,
+  ].join(" ");
+}
+
+function normalizeRuntimeErrorDiagnosticEvent(event) {
+  return {
+    type: "runtime-error",
+    nameClass: LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASS_VALUES.has(event?.nameClass)
+      ? event.nameClass
+      : LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE,
+    codePresent: event?.codePresent === true,
+    codePhase: LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES.has(event?.codePhase)
+      ? event.codePhase
+      : runtimeErrorCodeDiagnosticPhase(null),
+  };
+}
+
+function parseRuntimeErrorDiagnosticMarker(line) {
+  const match = line.match(
+    /^HA_LIGHTHOUSE_DIAGNOSTIC runtime-error class=([a-z-]+) code-present=(true|false) code-phase=(lighthouse-runtime-error-code-[a-z-]+)$/,
+  );
+  return {
+    type: "runtime-error",
+    nameClass:
+      match && LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASS_VALUES.has(match[1])
+        ? match[1]
+        : LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE,
+    codePresent: match ? match[2] === "true" : false,
+    codePhase:
+      match && LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES.has(match[3])
+        ? match[3]
+        : runtimeErrorCodeDiagnosticPhase(null),
+  };
+}
+
 function runtimeErrorDiagnosticPhase(stdout) {
   let runtimeErrorCode = null;
   try {
@@ -468,12 +631,12 @@ function runtimeErrorDiagnosticPhase(stdout) {
     // A malformed or incomplete Lighthouse result has no safe code to report.
   }
 
-  const code =
-    typeof runtimeErrorCode === "string"
-      ? (LIGHTHOUSE_RUNTIME_ERROR_CODES.get(runtimeErrorCode) ??
-        LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE)
-      : LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE;
-  return `lighthouse-runtime-error-code-${code}`;
+  return runtimeErrorCodeDiagnosticPhase(runtimeErrorCode);
+}
+
+function homeSampleOutcome(status) {
+  const completed = status === "completed";
+  return { completed, exitCode: completed ? 0 : 4 };
 }
 
 function finishDiagnosticRun(parser, emitPhase, exitCode, runtimeErrorPhase = null) {
@@ -602,6 +765,10 @@ class LighthouseDiagnosticParser {
   classifyDiagnosticLine(rawLine) {
     const line = rawLine.replace(ANSI_ESCAPE, "");
     const events = [];
+    if (line.startsWith("HA_LIGHTHOUSE_DIAGNOSTIC runtime-error ")) {
+      events.push(parseRuntimeErrorDiagnosticMarker(line));
+      return events;
+    }
     const browserPrefix = "HA_LIGHTHOUSE_DIAGNOSTIC browser ";
     if (line.startsWith(browserPrefix)) {
       const match = line.match(
@@ -696,11 +863,13 @@ function formatProgressEvent(event) {
 module.exports = {
   BROWSER_PRODUCTS,
   CDP_FAILURE_CLASSES,
+  CHILD_SPAWN_FAILURE_CLASSES,
   DIAGNOSTIC_UNAVAILABLE,
   MAX_CHILD_CDP_FAILURE_MARKERS,
   SAFE_CDP_METHODS,
   browserVersionDiagnosticEvent,
   cdpFailureDiagnosticEvent,
+  childSpawnFailureDiagnosticEvent,
   createBoundedDiagnosticEventEmitter,
   createCdpFailureDiagnosticWriter,
   dispatchDiagnosticEvents,
@@ -708,13 +877,20 @@ module.exports = {
   formatDiagnosticTelemetryMarker,
   finishDiagnosticRun,
   LighthouseDiagnosticParser,
+  LIGHTHOUSE_RUNTIME_ERROR_CODES,
   LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
+  LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASSES,
   MAX_CHILD_DIAGNOSTIC_PHASES,
   parseDiagnosticMarkerChunk,
   SAFE_GATHER_DIAGNOSTIC_PHASES,
   formatProgressEvent,
+  homeSampleOutcome,
   runtimeErrorDiagnosticPhase,
+  runtimeErrorDiagnosticEvent,
+  runtimeErrorCodeDiagnosticPhase,
+  formatRuntimeErrorDiagnosticMarker,
   shouldTolerateWindowsChromeCleanupExit,
+  spawnPinnedNode,
   splitBoundedLines,
   writeBrowserVersionDiagnostic,
 };
