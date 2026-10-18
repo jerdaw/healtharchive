@@ -1,9 +1,10 @@
 import { createRequire } from "node:module";
-import { spawn } from "node:child_process";
+import { spawn, spawnSync } from "node:child_process";
 import { once } from "node:events";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 
 import { describe, expect, it } from "vitest";
 
@@ -23,6 +24,10 @@ import {
 } from "../scripts/build-metadata-lib.mjs";
 
 const require = createRequire(import.meta.url);
+const lighthouseRequire = createRequire(
+  path.resolve("node_modules/lighthouse/core/gather/runner-helpers.js"),
+);
+const lighthouseLoggerPath = lighthouseRequire.resolve("lighthouse-logger");
 const {
   AUDIT_PATHS,
   createLighthouseConfig,
@@ -40,6 +45,22 @@ const {
   runtimeErrorDiagnosticPhase,
   shouldTolerateWindowsChromeCleanupExit,
 } = require("../scripts/lighthouse-diagnostic-lib.cjs");
+
+function runPinnedLighthouseGatherLogger({ colors }) {
+  const source = `
+    import logger from ${JSON.stringify(pathToFileURL(lighthouseLoggerPath).href)};
+    process.stdout.write(process.stderr.isTTY ? "tty" : "pipe");
+    logger.setLevel("verbose");
+    logger.verbose("artifacts:startInstrumentation", "Trace");
+  `;
+
+  return spawnSync(process.execPath, ["--input-type=module", "-e", source], {
+    encoding: "utf8",
+    env: { ...process.env, DEBUG_COLORS: colors ? "yes" : "no" },
+    stdio: ["ignore", "pipe", "pipe"],
+    timeout: 5_000,
+  });
+}
 
 describe("Lighthouse configuration", () => {
   it("builds three representative local audit URLs with three runs", () => {
@@ -178,10 +199,64 @@ describe("bounded Lighthouse phase diagnostics", () => {
     expect(events.join(" ")).not.toMatch(/private|https?:|FullPageScreenshot|Trace/);
   });
 
+  it("recognizes the pinned Lighthouse logger's non-TTY gather line without timing", () => {
+    const child = runPinnedLighthouseGatherLogger({ colors: false });
+    const parser = new LighthouseDiagnosticParser();
+
+    expect(child.error).toBeUndefined();
+    expect(child.status).toBe(0);
+    expect(child.stdout).toBe("pipe");
+    expect(child.stderr.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")).not.toMatch(
+      /\s\+\d+(?:\.\d+)?(?:ms|s|m|h|d)\s*$/,
+    );
+    expect(parser.pushStderr(child.stderr)).toEqual(["gather-start-instrumentation-trace"]);
+  });
+
+  it("recognizes colored logger timing units and rejects arbitrary suffixes", () => {
+    const coloredChild = runPinnedLighthouseGatherLogger({ colors: true });
+    const parser = new LighthouseDiagnosticParser();
+    const invalidSuffixes = [
+      " LH:artifacts:getArtifact:verbose Trace +45s private-value",
+      " LH:artifacts:getArtifact:verbose Trace +45fortnights",
+    ].join("\n");
+    const secondsFixture =
+      "\u001b[32m  LH:artifacts:getArtifact:verbose Trace\u001b[0m \u001b[32m+45s\u001b[0m\n";
+
+    expect(coloredChild.error).toBeUndefined();
+    expect(coloredChild.status).toBe(0);
+    expect(coloredChild.stdout).toBe("pipe");
+    expect(coloredChild.stderr).toContain("\u001b[");
+    expect(coloredChild.stderr.replace(/\u001b\[[0-?]*[ -/]*[@-~]/g, "")).toMatch(
+      /\s\+\d+(?:\.\d+)?(?:ms|s|m|h|d)\s*$/,
+    );
+    expect(parser.pushStderr(coloredChild.stderr)).toEqual(["gather-start-instrumentation-trace"]);
+    expect(parser.pushStderr(secondsFixture)).toEqual(["gather-get-artifact-trace"]);
+    expect(parser.pushStderr(invalidSuffixes)).toEqual([]);
+  });
+
   it("recognizes a gatherer boundary split across stderr chunks", () => {
     const parser = new LighthouseDiagnosticParser();
     expect(parser.pushStderr(" LH:artifacts:getArtifact:verbose Trace +")).toEqual([]);
     expect(parser.pushStderr("1ms\n")).toEqual(["gather-get-artifact-trace"]);
+  });
+
+  it("processes complete gatherer lines before bounding a coalesced stderr chunk", () => {
+    const parser = new LighthouseDiagnosticParser();
+    const phases = parser.pushStderr(
+      [
+        " LH:artifacts:startInstrumentation:verbose Trace +1ms",
+        "x".repeat(9_000),
+        " LH:artifacts:getArtifact:verbose FullPageScreenshot +123ms",
+        "tail".repeat(3_000),
+      ].join("\n"),
+    );
+
+    expect(phases).toEqual([
+      "gather-start-instrumentation-trace",
+      "gather-get-artifact-full-page-screenshot",
+    ]);
+    expect(parser.stderrPending).toHaveLength(8_192);
+    expect(parser.flushStderr()).toEqual([]);
   });
 
   it.each([

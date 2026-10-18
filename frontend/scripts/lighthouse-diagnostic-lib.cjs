@@ -311,12 +311,9 @@ class LighthouseDiagnosticParser {
   }
 
   pushStderr(chunk) {
-    this.stderrPending = `${this.stderrPending}${boundedChunkText(chunk)}`.slice(
-      -MAX_PENDING_CHARS,
-    );
-    const lines = this.stderrPending.split(/\r?\n/);
-    this.stderrPending = lines.pop() ?? "";
-    return lines.flatMap((line) => this.classifyDiagnosticLine(line));
+    const split = splitBoundedLines(this.stderrPending, chunk);
+    this.stderrPending = split.pending;
+    return split.lines.flatMap((line) => this.classifyDiagnosticLine(line));
   }
 
   flushStderr() {
@@ -329,7 +326,7 @@ class LighthouseDiagnosticParser {
     const line = rawLine.replace(ANSI_ESCAPE, "");
     const events = [];
     const gatherMatch = line.match(
-      /(?:^|\s)LH:artifacts:([A-Za-z]+):verbose\s+([A-Za-z]+)\s+\+\d+(?:\.\d+)?ms\s*$/,
+      /(?:^|\s)LH:artifacts:([A-Za-z]+):verbose\s+([A-Za-z]+)(?:\s+\+\d+(?:\.\d+)?(?:ms|s|m|h|d))?\s*$/,
     );
     if (gatherMatch) {
       const phase = GATHER_PHASES.get(gatherMatch[1]);
