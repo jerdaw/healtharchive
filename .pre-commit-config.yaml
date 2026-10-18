@@ -4,7 +4,9 @@ repos:
     rev: v6.0.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^frontend/patches/[^/]+\.patch$
       - id: end-of-file-fixer
+        exclude: ^frontend/patches/[^/]+\.patch$
       - id: check-yaml
         exclude: ^mkdocs\.yml$
       - id: check-toml

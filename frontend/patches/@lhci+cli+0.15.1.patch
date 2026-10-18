@@ -1,0 +1,90 @@
+diff --git a/node_modules/@lhci/cli/src/collect/node-runner.js b/node_modules/@lhci/cli/src/collect/node-runner.js
+index cda78e9..608c4f1 100644
+--- a/node_modules/@lhci/cli/src/collect/node-runner.js
++++ b/node_modules/@lhci/cli/src/collect/node-runner.js
+@@ -13,6 +13,10 @@ const childProcess = require('child_process');
+ const {getSavedReportsDirectory} = require('@lhci/utils/src/saved-reports.js');
+ 
+ const LH_CLI_PATH = path.join(require.resolve('lighthouse'), '../../cli/index.js');
++const DIAGNOSTICS_ENABLED = process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS === '1';
++const DiagnosticParser = DIAGNOSTICS_ENABLED
++  ? require(path.resolve(process.cwd(), 'scripts/lighthouse-diagnostic-lib.cjs')).LighthouseDiagnosticParser
++  : null;
+ 
+ class LighthouseRunner {
+   /** @param {string} output */
+@@ -60,6 +64,7 @@ class LighthouseRunner {
+ 
+     let cleanupFn = () => {};
+     const lhArgs = [url, '--output', 'json', '--output-path', 'stdout'];
++    if (DIAGNOSTICS_ENABLED) lhArgs.push('--verbose');
+ 
+     if (Object.keys(settings).length) {
+       const flagsFilename = `flags-${uuid.v4()}.json`;
+@@ -92,15 +97,40 @@ class LighthouseRunner {
+ 
+     let stdout = '';
+     let stderr = '';
++    const diagnosticPhases = [];
++    const diagnosticParser = DIAGNOSTICS_ENABLED ? new DiagnosticParser() : null;
++    const emitDiagnosticPhase = phase => {
++      if (diagnosticPhases.length >= 64 || diagnosticPhases[diagnosticPhases.length - 1] === phase) return;
++      diagnosticPhases.push(phase);
++      process.stderr.write(`HA_LIGHTHOUSE_DIAGNOSTIC phase=${phase}\n`);
++    };
+ 
+     const env = {...process.env, CHROME_PATH: options.chromePath || process.env.CHROME_PATH};
+     const {args, cleanupFn} = LighthouseRunner.computeArgumentsAndCleanup(url, options);
++    if (DIAGNOSTICS_ENABLED) process.stderr.write('HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-cli-started\n');
+     const child = childProcess.spawn('node', [LH_CLI_PATH, ...args], {env});
+ 
+     child.stdout.on('data', chunk => (stdout += chunk.toString()));
+-    child.stderr.on('data', chunk => (stderr += chunk.toString()));
++    child.stderr.on('data', chunk => {
++      if (!diagnosticParser) {
++        stderr += chunk.toString();
++        return;
++      }
++
++      for (const phase of diagnosticParser.pushStderr(chunk)) {
++        emitDiagnosticPhase(phase);
++      }
++    });
+ 
+     child.on('exit', code => {
++      if (DIAGNOSTICS_ENABLED) {
++        emitDiagnosticPhase(code === 0 ? 'lighthouse-cli-exit-zero' : 'lighthouse-cli-exit-nonzero');
++      }
++      if (diagnosticParser) {
++        for (const phase of diagnosticParser.flushStderr()) {
++          emitDiagnosticPhase(phase);
++        }
++      }
+       cleanupFn();
+       if (code === 0) return resolve(stdout);
+ 
+@@ -110,16 +140,20 @@ class LighthouseRunner {
+         code === 1 &&
+         os.platform() === 'win32' &&
+         LighthouseRunner.isOutputLhrLike(stdout.trim()) &&
+-        stderr.includes('Generating results...') &&
+-        stderr.includes('Chrome could not be killed')
++        (DIAGNOSTICS_ENABLED
++          ? diagnosticPhases.includes('results-started') &&
++            diagnosticPhases.includes('chrome-kill-failed')
++          : stderr.includes('Generating results...') && stderr.includes('Chrome could not be killed'))
+       ) {
+         return resolve(stdout);
+       }
+ 
+       /** @type {any} */
+       const error = new Error(`Lighthouse failed with exit code ${code}`);
+-      error.stdout = stdout;
+-      error.stderr = stderr;
++      error.stdout = DIAGNOSTICS_ENABLED ? '' : stdout;
++      error.stderr = DIAGNOSTICS_ENABLED
++        ? '[raw Lighthouse output suppressed by the bounded diagnostic mode]'
++        : stderr;
+       reject(error);
+     });
+ 

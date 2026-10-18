@@ -27,6 +27,10 @@ const {
   createLighthouseConfig,
   requireLoopbackOrigin,
 } = require("../scripts/lighthouse-config.cjs");
+const {
+  LighthouseDiagnosticParser,
+  formatProgressEvent,
+} = require("../scripts/lighthouse-diagnostic-lib.cjs");
 
 describe("Lighthouse configuration", () => {
   it("builds three representative local audit URLs with three runs", () => {
@@ -51,6 +55,124 @@ describe("Lighthouse configuration", () => {
     "not a URL",
   ])("rejects unsafe audit origin %s", (origin) => {
     expect(() => requireLoopbackOrigin(origin)).toThrow();
+  });
+});
+
+describe("bounded Lighthouse phase diagnostics", () => {
+  it("reports only allowlisted route and sample ordinals from LHCI progress", () => {
+    const parser = new LighthouseDiagnosticParser();
+    const events = [
+      ...parser.pushStdout("Running Lighthouse 3 time(s) on http://127.0.0.1:44451/\nRun #1..."),
+      ...parser.pushStdout("done.\n"),
+      ...parser.pushStdout(
+        "Running Lighthouse 3 time(s) on http://127.0.0.1:44451/archive?q=health\nRun #2...done.\n",
+      ),
+      ...parser.pushStdout(
+        "Running Lighthouse 3 time(s) on http://127.0.0.1:44451/snapshot/phac-2025-02-15-covid-epi\n",
+      ),
+    ];
+
+    expect(events.map(formatProgressEvent)).toEqual([
+      "route=home state=started",
+      "route=home run=1 state=started",
+      "route=home run=1 state=completed",
+      "route=archive state=started",
+      "route=archive run=2 state=completed",
+      "route=snapshot state=started",
+    ]);
+  });
+
+  it("rejects non-loopback, unconfigured, or non-three-run collection targets", () => {
+    const parser = new LighthouseDiagnosticParser();
+    const events = parser.pushStdout(
+      [
+        "Running Lighthouse 3 time(s) on https://example.invalid/",
+        "Run #1...done.",
+        "Running Lighthouse 2 time(s) on http://127.0.0.1:44451/",
+        "Run #1...done.",
+        "Running Lighthouse 3 time(s) on http://127.0.0.1:44451/private-path",
+        "Run #1...done.",
+      ].join("\n"),
+    );
+    expect(events).toEqual([]);
+  });
+
+  it("classifies Chrome, DevTools, navigation, and audit phases without forwarding raw text", () => {
+    const parser = new LighthouseDiagnosticParser();
+    const input = [
+      "  LH:ChromeLauncher Waiting for browser.. +1ms",
+      "  LH:ChromeLauncher Waiting for browser....\u001b[32m✓\u001b[0m +3ms",
+      "  LH:status Connecting to browser +4ms",
+      "  LH:status Navigating to http://127.0.0.1:44451/?token=private-value +5ms",
+      "  LH:statusEnd:verbose Navigating to http://127.0.0.1:44451/?token=private-value +6ms",
+      "  LH:status Analyzing and running audits... +7ms",
+      "  LH:statusEnd:verbose Analyzing and running audits... +8ms",
+      "  LH:status Generating results... +9ms",
+      "  LH:statusEnd:verbose Generating results... +10ms",
+      "  LH:ChromeLauncher:error Chrome could not be killed for /private/profile --token=private-value",
+      "  LH:ChromeLauncher:error Failed to set browser prefs for /private/profile",
+      "Unable to connect to Chrome at /private/chrome --token=private-value",
+      "Runtime error encountered: body=private-value",
+      "  LH:ChromeLauncher Launching with command: /private/path --proxy-server=secret",
+      "  LH:status Raw response body contains private-value",
+    ].join("\n");
+    const events = parser.pushStderr(input);
+    const output = events.join(" ");
+
+    expect(events).toEqual([
+      "chrome-starting",
+      "chrome-ready",
+      "devtools-connect-started",
+      "navigation-started",
+      "navigation-completed",
+      "audit-started",
+      "audit-completed",
+      "results-started",
+      "results-completed",
+      "chrome-kill-failed",
+      "chrome-profile-warning",
+      "devtools-connect-failed",
+      "lighthouse-runtime-error",
+    ]);
+    expect(output).not.toMatch(/private-value|secret|127\.0\.0\.1|\/private\/path|Raw response/);
+  });
+
+  it("handles split diagnostic messages and bounds retained partial text", () => {
+    const parser = new LighthouseDiagnosticParser();
+    expect(parser.pushStderr(" LH:status Navigating to http://127.0.0.1:44")).toEqual([]);
+    expect(parser.pushStderr("451/?secret=never-print +12ms")).toEqual([]);
+    expect(parser.flushStderr()).toEqual(["navigation-started"]);
+
+    const oversized = new LighthouseDiagnosticParser();
+    expect(oversized.pushStderr("x".repeat(20_000))).toEqual([]);
+    expect(oversized.flushStderr()).toEqual([]);
+  });
+
+  it("keeps diagnostics gated, bounded, and separate from the Lighthouse JSON result", async () => {
+    const runner = await readFile(path.resolve("scripts/run-lighthouse.mjs"), "utf8");
+    const patch = await readFile(path.resolve("patches/@lhci+cli+0.15.1.patch"), "utf8");
+    const cli = await readFile(
+      path.resolve("node_modules/@lhci/cli/src/collect/node-runner.js"),
+      "utf8",
+    );
+
+    expect(runner).toContain("const COMMAND_TIMEOUT_MS = 5 * 60_000;");
+    expect(runner).toContain("stopChildProcess(child).then(");
+    expect(runner).toContain("diagnostic details suppressed.");
+    expect(runner).toContain("attempt=${currentAttempt}");
+    expect(runner).toContain('"lighthouse-cli-exit-nonzero"');
+    expect(runner).toContain('HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS: "1"');
+    expect(runner).toContain('stdio: ["ignore", "pipe", "pipe"]');
+    expect(runner).toContain(
+      'console.log("Running three Lighthouse samples for each configured route.");',
+    );
+    expect(runner).not.toContain("Running three Lighthouse samples for each route at");
+    expect(patch).toContain("DIAGNOSTICS_ENABLED");
+    expect(cli).toContain("if (DIAGNOSTICS_ENABLED) lhArgs.push('--verbose');");
+    expect(cli).toContain("HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-cli-started");
+    expect(cli).toContain("lighthouse-cli-exit-nonzero");
+    expect(cli).toContain("error.stdout = DIAGNOSTICS_ENABLED ? '' : stdout;");
+    expect(cli).toContain("raw Lighthouse output suppressed by the bounded diagnostic mode");
   });
 });
 

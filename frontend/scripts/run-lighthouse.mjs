@@ -20,6 +20,7 @@ import {
   stopHttpServer,
   waitForServer,
 } from "./local-production-server-lib.mjs";
+import diagnosticLib from "./lighthouse-diagnostic-lib.cjs";
 
 const frontendRoot = fileURLToPath(new URL("../", import.meta.url));
 const lhciCli = fileURLToPath(new URL("../node_modules/@lhci/cli/src/cli.js", import.meta.url));
@@ -28,26 +29,91 @@ const metadataPath = fileURLToPath(
   new URL("../.next/healtharchive-build-metadata.json", import.meta.url),
 );
 const COMMAND_TIMEOUT_MS = 5 * 60_000;
+const SAFE_DIAGNOSTIC_PHASES = new Set([
+  "lighthouse-cli-started",
+  "lighthouse-cli-exit-zero",
+  "lighthouse-cli-exit-nonzero",
+  "chrome-starting",
+  "chrome-ready",
+  "chrome-start-failed",
+  "chrome-profile-warning",
+  "chrome-kill-failed",
+  "devtools-connect-started",
+  "devtools-connect-completed",
+  "devtools-connect-failed",
+  "navigation-setup-started",
+  "navigation-setup-completed",
+  "network-setup-started",
+  "network-setup-completed",
+  "navigation-started",
+  "navigation-completed",
+  "audit-started",
+  "audit-completed",
+  "results-started",
+  "results-completed",
+  "lighthouse-runtime-error",
+]);
 
 let activeCommand = null;
 
 function runCommand(args, { env }) {
   return new Promise((resolve, reject) => {
+    const progress = new diagnosticLib.LighthouseDiagnosticParser();
+    const commandStartedAt = process.hrtime.bigint();
+    let lastPhase = "lhci-started";
+    let currentRoute = "unknown";
+    let currentRun = "unknown";
+    let currentAttempt = 0;
+    const writeProgress = (event) => {
+      const line = diagnosticLib.formatProgressEvent(event);
+      if (line === null) return;
+      currentRoute = event.route;
+      currentRun = event.kind === "run" ? event.run : "unknown";
+      currentAttempt = 0;
+      lastPhase = event.kind === "run" ? `collection-${event.state}` : "route-started";
+      console.log(`Lighthouse diagnostic: ${line} elapsedSec=${elapsedSeconds(commandStartedAt)}`);
+    };
+    const writeDiagnosticPhase = (phase) => {
+      if (!SAFE_DIAGNOSTIC_PHASES.has(phase)) return;
+      if (phase === "lighthouse-cli-started") currentAttempt = Math.min(3, currentAttempt + 1);
+      lastPhase = phase;
+      console.log(
+        `Lighthouse diagnostic: phase=${phase} route=${currentRoute} run=${currentRun} attempt=${currentAttempt} elapsedSec=${elapsedSeconds(commandStartedAt)}`,
+      );
+    };
     const child = spawn(process.execPath, args, {
       cwd: frontendRoot,
       detached: process.platform !== "win32",
       env,
-      stdio: "inherit",
+      stdio: ["ignore", "pipe", "pipe"],
     });
     child.healtharchiveProcessGroup = process.platform !== "win32";
     activeCommand = child;
     let timedOut = false;
+    let markerPending = "";
+    child.stdout.on("data", (chunk) => {
+      if (timedOut) return;
+      for (const event of progress.pushStdout(chunk)) writeProgress(event);
+    });
+    child.stderr.on("data", (chunk) => {
+      if (timedOut) return;
+      markerPending = `${markerPending}${chunk.toString()}`.slice(-8_192);
+      const lines = markerPending.split(/\r?\n/);
+      markerPending = lines.pop() ?? "";
+      for (const line of lines) {
+        const match = line.match(/^HA_LIGHTHOUSE_DIAGNOSTIC phase=([a-z-]+)$/);
+        if (match) writeDiagnosticPhase(match[1]);
+      }
+    });
     const timeout = setTimeout(() => {
       timedOut = true;
-      void stopChildProcess(child).then(
-        () => reject(new Error(`${args[0]} exceeded the five-minute command timeout`)),
-        reject,
-      );
+      void stopChildProcess(child).then(() => {
+        reject(
+          new Error(
+            `Lighthouse command exceeded the five-minute timeout; lastPhase=${lastPhase} route=${currentRoute} run=${currentRun} attempt=${currentAttempt} elapsedSec=${elapsedSeconds(commandStartedAt)}`,
+          ),
+        );
+      }, reject);
     }, COMMAND_TIMEOUT_MS);
     child.once("error", (error) => {
       clearTimeout(timeout);
@@ -64,17 +130,29 @@ function runCommand(args, { env }) {
       }
       reject(
         new Error(
-          `${args[0]} failed${signal === null ? ` with exit code ${code}` : ` on ${signal}`}`,
+          `Lighthouse CI command failed${signal === null ? ` with exit code ${code}` : ` on ${signal}`}`,
         ),
       );
     });
   });
 }
 
-function boundedError(error) {
-  return (error instanceof Error ? error.message : "unknown error")
-    .replaceAll(/\s+/g, " ")
-    .slice(0, 500);
+function elapsedSeconds(startedAt) {
+  const elapsed = Number(process.hrtime.bigint() - startedAt) / 1_000_000_000;
+  return Math.min(300, Math.max(0, Math.floor(elapsed)));
+}
+
+function safeFailureSummary(error) {
+  const message = error instanceof Error ? error.message : "";
+  const timeout = message.match(
+    /^Lighthouse command exceeded the five-minute timeout; lastPhase=([a-z-]+) route=(home|archive|snapshot|unknown) run=([1-3]|unknown) attempt=([0-3]) elapsedSec=(\d{1,3})$/,
+  );
+  if (timeout) {
+    return `Lighthouse command exceeded the five-minute timeout; lastPhase=${timeout[1]} route=${timeout[2]} run=${timeout[3]} attempt=${timeout[4]} elapsedSec=${timeout[5]}`;
+  }
+  const exit = message.match(/^Lighthouse CI command failed (with exit code \d+|on SIG[A-Z]+)$/);
+  if (exit) return `Lighthouse CI command failed ${exit[1]}`;
+  return "Lighthouse performance gate failed; diagnostic details suppressed.";
 }
 
 let apiStub = null;
@@ -113,19 +191,15 @@ try {
   }
   const runtimeApiBaseUrl = resolveBuildApiBaseUrl();
   if (runtimeApiBaseUrl !== apiBaseUrl) {
-    throw new Error(
-      `Runtime API base ${runtimeApiBaseUrl} does not match the existing build contract ${apiBaseUrl}`,
-    );
+    throw new Error("Runtime API base does not match the existing build contract.");
   }
   try {
     apiStub = await startFailFastApiStub({ ...apiTarget, purpose: "lighthouse" });
   } catch (error) {
     if (error?.code === "EADDRINUSE") {
-      throw new Error(
-        `Cannot start the Lighthouse API stub at ${apiBaseUrl}: the configured port is already in use`,
-      );
+      throw new Error("Cannot start the local Lighthouse API stub: configured port is in use.");
     }
-    throw error;
+    throw new Error("Cannot start the local Lighthouse API stub.");
   }
   const env = {
     ...process.env,
@@ -144,24 +218,26 @@ try {
   const origin = `http://${LOOPBACK_HOST}:${frontendPort}`;
   try {
     await prepareStandaloneAssets();
-  } catch (error) {
-    throw new Error(
-      `A production standalone build is required; run npm run build first (${boundedError(error)})`,
-    );
+  } catch {
+    throw new Error("A production standalone build is required; run npm run build first.");
   }
   frontend = startStandaloneFrontend({ port: frontendPort, env });
   await waitForServer({ origin, child: frontend.child });
 
   await rm(reportDirectory, { recursive: true, force: true });
-  console.log(`Running three Lighthouse samples for each route at ${origin}.`);
+  console.log("Running three Lighthouse samples for each configured route.");
   await runCommand([lhciCli, "autorun", "--config=.lighthouserc.cjs"], {
-    env: { ...env, HEALTHARCHIVE_LIGHTHOUSE_ORIGIN: origin },
+    env: {
+      ...env,
+      HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS: "1",
+      HEALTHARCHIVE_LIGHTHOUSE_ORIGIN: origin,
+    },
   });
-  console.log(`Lighthouse reports written to ${reportDirectory}`);
+  console.log("Lighthouse reports written.");
 } catch (error) {
-  console.error(`Lighthouse performance gate failed: ${boundedError(error)}`);
+  console.error(safeFailureSummary(error));
   const logs = frontend?.getLogs().trim() ?? "";
-  if (logs !== "") console.error(`Bounded Next server output:\n${logs}`);
+  if (logs !== "") console.error("Next server diagnostic output captured and suppressed.");
   process.exitCode = 1;
 } finally {
   await stop();
