@@ -52,6 +52,7 @@ const SAFE_DIAGNOSTIC_PHASES = new Set([
   "results-started",
   "results-completed",
   "lighthouse-runtime-error",
+  ...diagnosticLib.LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
   ...diagnosticLib.SAFE_GATHER_DIAGNOSTIC_PHASES,
   "lighthouse-diagnostic-truncated",
 ]);

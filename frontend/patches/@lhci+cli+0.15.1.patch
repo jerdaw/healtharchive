@@ -1,5 +1,5 @@
 diff --git a/node_modules/@lhci/cli/src/collect/node-runner.js b/node_modules/@lhci/cli/src/collect/node-runner.js
-index cda78e9..951ab8d 100644
+index cda78e9..b0757b6 100644
 --- a/node_modules/@lhci/cli/src/collect/node-runner.js
 +++ b/node_modules/@lhci/cli/src/collect/node-runner.js
 @@ -13,6 +13,11 @@ const childProcess = require('child_process');
@@ -22,7 +22,7 @@ index cda78e9..951ab8d 100644
  
      if (Object.keys(settings).length) {
        const flagsFilename = `flags-${uuid.v4()}.json`;
-@@ -92,15 +98,36 @@ class LighthouseRunner {
+@@ -92,34 +98,72 @@ class LighthouseRunner {
  
      let stdout = '';
      let stderr = '';
@@ -47,32 +47,55 @@ index cda78e9..951ab8d 100644
 +        stderr += chunk.toString();
 +        return;
 +      }
-+
 +      for (const phase of diagnosticParser.pushStderr(chunk)) {
 +        emitDiagnosticPhase(phase);
 +      }
 +    });
  
-     child.on('exit', code => {
+-    child.on('exit', code => {
++    child.once('close', code => {
++      const hasLhr = LighthouseRunner.isOutputLhrLike(stdout.trim());
++      const tolerateChromeCleanupExit = DIAGNOSTICS_ENABLED
++        ? DiagnosticTools.shouldTolerateWindowsChromeCleanupExit({
++            exitCode: code,
++            platform: os.platform(),
++            hasLhr,
++            parser: diagnosticParser,
++            emitPhase: emitDiagnosticPhase,
++            phases: diagnosticPhases,
++          })
++        : code === 1 &&
++          os.platform() === 'win32' &&
++          hasLhr &&
++          stderr.includes('Generating results...') &&
++          stderr.includes('Chrome could not be killed');
 +      if (diagnosticParser) {
-+        DiagnosticTools.finishDiagnosticRun(diagnosticParser, emitDiagnosticPhase, code);
++        const runtimeErrorPhase =
++          code !== 0 && !tolerateChromeCleanupExit
++            ? DiagnosticTools.runtimeErrorDiagnosticPhase(stdout)
++            : null;
++        DiagnosticTools.finishDiagnosticRun(
++          diagnosticParser,
++          emitDiagnosticPhase,
++          code,
++          runtimeErrorPhase,
++        );
 +      }
        cleanupFn();
        if (code === 0) return resolve(stdout);
  
-@@ -110,16 +137,20 @@ class LighthouseRunner {
-         code === 1 &&
-         os.platform() === 'win32' &&
-         LighthouseRunner.isOutputLhrLike(stdout.trim()) &&
+       // On Windows killing Chrome is extraordinarily flaky.
+       // If it looks like we got an LHR and we only died because of killing Chrome, ignore it.
+-      if (
+-        code === 1 &&
+-        os.platform() === 'win32' &&
+-        LighthouseRunner.isOutputLhrLike(stdout.trim()) &&
 -        stderr.includes('Generating results...') &&
 -        stderr.includes('Chrome could not be killed')
-+        (DIAGNOSTICS_ENABLED
-+          ? diagnosticPhases.includes('results-started') &&
-+            diagnosticPhases.includes('chrome-kill-failed')
-+          : stderr.includes('Generating results...') && stderr.includes('Chrome could not be killed'))
-       ) {
-         return resolve(stdout);
-       }
+-      ) {
+-        return resolve(stdout);
+-      }
++      if (tolerateChromeCleanupExit) return resolve(stdout);
  
        /** @type {any} */
        const error = new Error(`Lighthouse failed with exit code ${code}`);

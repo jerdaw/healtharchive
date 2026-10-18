@@ -56,6 +56,37 @@ const SAFE_GATHER_DIAGNOSTIC_PHASES = new Set(
 );
 const MAX_CHILD_DIAGNOSTIC_PHASES = 192;
 const DIAGNOSTIC_TRUNCATED_PHASE = "lighthouse-diagnostic-truncated";
+const LIGHTHOUSE_RUNTIME_ERROR_CODES = new Map([
+  ["NO_SPEEDLINE_FRAMES", "no-speedline-frames"],
+  ["SPEEDINDEX_OF_ZERO", "speedindex-of-zero"],
+  ["NO_SCREENSHOTS", "no-screenshots"],
+  ["INVALID_SPEEDLINE", "invalid-speedline"],
+  ["NO_TRACING_STARTED", "no-tracing-started"],
+  ["NO_RESOURCE_REQUEST", "no-resource-request"],
+  ["NO_NAVSTART", "no-navstart"],
+  ["NO_FCP", "no-fcp"],
+  ["NO_DCL", "no-dcl"],
+  ["NO_DOCUMENT_REQUEST", "no-document-request"],
+  ["FAILED_DOCUMENT_REQUEST", "failed-document-request"],
+  ["ERRORED_DOCUMENT_REQUEST", "errored-document-request"],
+  ["INSECURE_DOCUMENT_REQUEST", "insecure-document-request"],
+  ["CHROME_INTERSTITIAL_ERROR", "chrome-interstitial-error"],
+  ["PAGE_HUNG", "page-hung"],
+  ["NOT_HTML", "not-html"],
+  ["TRACING_ALREADY_STARTED", "tracing-already-started"],
+  ["PARSING_PROBLEM", "parsing-problem"],
+  ["READ_FAILED", "read-failed"],
+  ["PROTOCOL_TIMEOUT", "protocol-timeout"],
+  ["DNS_FAILURE", "dns-failure"],
+  ["CRI_TIMEOUT", "cri-timeout"],
+  ["TARGET_CRASHED", "target-crashed"],
+]);
+const LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE = "unavailable-or-other";
+const LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES = new Set([
+  ...[...LIGHTHOUSE_RUNTIME_ERROR_CODES.values(), LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE].map(
+    (code) => `lighthouse-runtime-error-code-${code}`,
+  ),
+]);
 const SAFE_CHILD_DIAGNOSTIC_PHASES = new Set([
   "chrome-starting",
   "chrome-ready",
@@ -76,6 +107,7 @@ const SAFE_CHILD_DIAGNOSTIC_PHASES = new Set([
   "results-started",
   "results-completed",
   "lighthouse-runtime-error",
+  ...LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
   "lighthouse-cli-started",
   "lighthouse-cli-exit-zero",
   "lighthouse-cli-exit-nonzero",
@@ -117,17 +149,27 @@ function createBoundedDiagnosticPhaseEmitter(
   maxPhases = MAX_CHILD_DIAGNOSTIC_PHASES,
 ) {
   const phaseLimit = Number.isSafeInteger(maxPhases)
-    ? Math.min(MAX_CHILD_DIAGNOSTIC_PHASES, Math.max(2, maxPhases))
+    ? Math.min(MAX_CHILD_DIAGNOSTIC_PHASES, Math.max(4, maxPhases))
     : MAX_CHILD_DIAGNOSTIC_PHASES;
+  const detailLimit = phaseLimit - 3;
   let truncated = phases.includes(DIAGNOSTIC_TRUNCATED_PHASE);
 
   return (phase) => {
-    if (!SAFE_CHILD_DIAGNOSTIC_PHASES.has(phase) || truncated) return;
-    if (phases[phases.length - 1] === phase) return;
-    if (phases.length >= phaseLimit) return;
+    if (!SAFE_CHILD_DIAGNOSTIC_PHASES.has(phase)) return;
     const isTerminalPhase =
-      phase === "lighthouse-cli-exit-zero" || phase === "lighthouse-cli-exit-nonzero";
-    if (phases.length === phaseLimit - 1 && !isTerminalPhase) {
+      phase === "lighthouse-cli-exit-zero" ||
+      phase === "lighthouse-cli-exit-nonzero" ||
+      LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES.has(phase);
+    if (isTerminalPhase) {
+      if (phases.includes(phase)) return;
+      if (phases.length >= phaseLimit) return;
+      phases.push(phase);
+      writeMarker(phase);
+      return;
+    }
+
+    if (truncated || phases[phases.length - 1] === phase) return;
+    if (phases.length >= detailLimit) {
       phases.push(DIAGNOSTIC_TRUNCATED_PHASE);
       truncated = true;
       writeMarker(DIAGNOSTIC_TRUNCATED_PHASE);
@@ -139,9 +181,46 @@ function createBoundedDiagnosticPhaseEmitter(
   };
 }
 
-function finishDiagnosticRun(parser, emitPhase, exitCode) {
+function runtimeErrorDiagnosticPhase(stdout) {
+  let runtimeErrorCode = null;
+  try {
+    if (typeof stdout === "string") {
+      runtimeErrorCode = JSON.parse(stdout)?.runtimeError?.code ?? null;
+    }
+  } catch {
+    // A malformed or incomplete Lighthouse result has no safe code to report.
+  }
+
+  const code =
+    typeof runtimeErrorCode === "string"
+      ? (LIGHTHOUSE_RUNTIME_ERROR_CODES.get(runtimeErrorCode) ??
+        LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE)
+      : LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE;
+  return `lighthouse-runtime-error-code-${code}`;
+}
+
+function finishDiagnosticRun(parser, emitPhase, exitCode, runtimeErrorPhase = null) {
   for (const phase of parser.flushStderr()) emitPhase(phase);
+  if (runtimeErrorPhase !== null) emitPhase(runtimeErrorPhase);
   emitPhase(exitCode === 0 ? "lighthouse-cli-exit-zero" : "lighthouse-cli-exit-nonzero");
+}
+
+function shouldTolerateWindowsChromeCleanupExit({
+  exitCode,
+  platform,
+  hasLhr,
+  parser,
+  emitPhase,
+  phases,
+}) {
+  for (const phase of parser.flushStderr()) emitPhase(phase);
+  return (
+    exitCode === 1 &&
+    platform === "win32" &&
+    hasLhr &&
+    phases.includes("results-started") &&
+    phases.includes("chrome-kill-failed")
+  );
 }
 
 function routeNameFromLine(line) {
@@ -319,9 +398,12 @@ module.exports = {
   createBoundedDiagnosticPhaseEmitter,
   finishDiagnosticRun,
   LighthouseDiagnosticParser,
+  LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
   MAX_CHILD_DIAGNOSTIC_PHASES,
   parseDiagnosticMarkerChunk,
   SAFE_GATHER_DIAGNOSTIC_PHASES,
   formatProgressEvent,
+  runtimeErrorDiagnosticPhase,
+  shouldTolerateWindowsChromeCleanupExit,
   splitBoundedLines,
 };

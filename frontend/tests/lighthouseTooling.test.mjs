@@ -1,5 +1,6 @@
 import { createRequire } from "node:module";
 import { spawn } from "node:child_process";
+import { once } from "node:events";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
@@ -30,11 +31,14 @@ const {
 const {
   createBoundedDiagnosticPhaseEmitter,
   finishDiagnosticRun,
+  LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
   LighthouseDiagnosticParser,
   MAX_CHILD_DIAGNOSTIC_PHASES,
   parseDiagnosticMarkerChunk,
   SAFE_GATHER_DIAGNOSTIC_PHASES,
   formatProgressEvent,
+  runtimeErrorDiagnosticPhase,
+  shouldTolerateWindowsChromeCleanupExit,
 } = require("../scripts/lighthouse-diagnostic-lib.cjs");
 
 describe("Lighthouse configuration", () => {
@@ -180,23 +184,165 @@ describe("bounded Lighthouse phase diagnostics", () => {
     expect(parser.pushStderr("1ms\n")).toEqual(["gather-get-artifact-trace"]);
   });
 
-  it("reserves the final child marker slot for a fixed truncation signal", () => {
+  it.each([
+    ["NO_SPEEDLINE_FRAMES", "no-speedline-frames"],
+    ["SPEEDINDEX_OF_ZERO", "speedindex-of-zero"],
+    ["NO_SCREENSHOTS", "no-screenshots"],
+    ["INVALID_SPEEDLINE", "invalid-speedline"],
+    ["NO_TRACING_STARTED", "no-tracing-started"],
+    ["NO_RESOURCE_REQUEST", "no-resource-request"],
+    ["NO_NAVSTART", "no-navstart"],
+    ["NO_FCP", "no-fcp"],
+    ["NO_DCL", "no-dcl"],
+    ["NO_DOCUMENT_REQUEST", "no-document-request"],
+    ["FAILED_DOCUMENT_REQUEST", "failed-document-request"],
+    ["ERRORED_DOCUMENT_REQUEST", "errored-document-request"],
+    ["INSECURE_DOCUMENT_REQUEST", "insecure-document-request"],
+    ["CHROME_INTERSTITIAL_ERROR", "chrome-interstitial-error"],
+    ["PAGE_HUNG", "page-hung"],
+    ["NOT_HTML", "not-html"],
+    ["TRACING_ALREADY_STARTED", "tracing-already-started"],
+    ["PARSING_PROBLEM", "parsing-problem"],
+    ["READ_FAILED", "read-failed"],
+    ["PROTOCOL_TIMEOUT", "protocol-timeout"],
+    ["DNS_FAILURE", "dns-failure"],
+    ["CRI_TIMEOUT", "cri-timeout"],
+    ["TARGET_CRASHED", "target-crashed"],
+  ])("maps only the allowlisted Lighthouse runtime code %s", (code, codeId) => {
+    expect(runtimeErrorDiagnosticPhase(JSON.stringify({ runtimeError: { code } }))).toBe(
+      `lighthouse-runtime-error-code-${codeId}`,
+    );
+  });
+
+  it("maps malformed, missing, unknown, and non-top-level codes to one safe enum", () => {
+    const sentinel = "HOSTILE_RUNTIME_ERROR_SENTINEL_DO_NOT_EMIT";
+    const unavailablePhase = "lighthouse-runtime-error-code-unavailable-or-other";
+    const cases = [
+      "not valid JSON",
+      JSON.stringify({}),
+      JSON.stringify({ runtimeError: { message: sentinel } }),
+      JSON.stringify({ runtimeError: { code: sentinel } }),
+      JSON.stringify({ audits: { runtimeError: { code: "DNS_FAILURE" } } }),
+    ];
+    const phases = cases.map(runtimeErrorDiagnosticPhase);
+
+    expect(LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES.size).toBe(24);
+    expect(phases).toEqual(Array(cases.length).fill(unavailablePhase));
+    expect(JSON.stringify(phases)).not.toContain(sentinel);
+    expect(
+      runtimeErrorDiagnosticPhase(
+        JSON.stringify({
+          runtimeError: { code: "DNS_FAILURE", message: sentinel },
+          requestedUrl: sentinel,
+          audits: { body: sentinel },
+        }),
+      ),
+    ).toBe("lighthouse-runtime-error-code-dns-failure");
+  });
+
+  it("waits for trailing child stdout before extracting the runtime code", async () => {
+    const lhr = JSON.stringify({
+      lighthouseVersion: "12.6.1",
+      runtimeError: { code: "TARGET_CRASHED" },
+    });
+    const child = spawn(
+      process.execPath,
+      ["-e", `process.stdout.write(${JSON.stringify(lhr)}); process.exit(1);`],
+      { stdio: ["ignore", "pipe", "ignore"] },
+    );
+    let stdout = "";
+    let stdoutAtExit = null;
+    child.stdout.on("data", (chunk) => {
+      stdout += chunk.toString();
+    });
+    child.stdout.pause();
+    child.once("exit", () => {
+      stdoutAtExit = stdout;
+      child.stdout.resume();
+    });
+    const closePromise = once(child, "close");
+    const stdoutEndPromise = once(child.stdout, "end");
+    const [[exitCode]] = await Promise.all([closePromise, stdoutEndPromise]);
+
+    expect(exitCode).toBe(1);
+    expect(stdoutAtExit).not.toContain('"code":"TARGET_CRASHED"');
+    expect(runtimeErrorDiagnosticPhase(stdout)).toBe(
+      "lighthouse-runtime-error-code-target-crashed",
+    );
+  });
+
+  it("flushes an unterminated Chrome cleanup diagnostic before deciding to tolerate exit 1", () => {
+    const parser = new LighthouseDiagnosticParser();
+    const phases = [];
+    const emitted = [];
+    const emit = createBoundedDiagnosticPhaseEmitter(phases, (phase) => emitted.push(phase));
+
+    for (const phase of parser.pushStderr(" LH:status Generating results...\n")) emit(phase);
+    expect(
+      parser.pushStderr(" LH:ChromeLauncher:error Chrome could not be killed for /private/profile"),
+    ).toEqual([]);
+    expect(phases).not.toContain("chrome-kill-failed");
+
+    const tolerated = shouldTolerateWindowsChromeCleanupExit({
+      exitCode: 1,
+      platform: "win32",
+      hasLhr: true,
+      parser,
+      emitPhase: emit,
+      phases,
+    });
+    finishDiagnosticRun(parser, emit, 1, tolerated ? null : runtimeErrorDiagnosticPhase("{}"));
+
+    expect(tolerated).toBe(true);
+    expect(phases).toEqual([
+      "results-started",
+      "chrome-kill-failed",
+      "lighthouse-cli-exit-nonzero",
+    ]);
+    expect(emitted).toEqual(phases);
+  });
+
+  it("reserves truncation and both terminal slots within the child marker cap", () => {
     const phases = [];
     const emitted = [];
     const emit = createBoundedDiagnosticPhaseEmitter(phases, (phase) => emitted.push(phase), 4);
     emit("chrome-starting");
     emit("chrome-ready");
-    emit("navigation-started");
-    emit("audit-started");
-    emit("results-started");
+    finishDiagnosticRun(
+      new LighthouseDiagnosticParser(),
+      emit,
+      1,
+      "lighthouse-runtime-error-code-dns-failure",
+    );
 
     expect(MAX_CHILD_DIAGNOSTIC_PHASES).toBe(192);
     expect(phases).toEqual([
       "chrome-starting",
-      "chrome-ready",
-      "navigation-started",
       "lighthouse-diagnostic-truncated",
+      "lighthouse-runtime-error-code-dns-failure",
+      "lighthouse-cli-exit-nonzero",
     ]);
+    expect(emitted).toEqual(phases);
+    expect(emitted).toHaveLength(4);
+  });
+
+  it("keeps a runtime code and exit marker when the 192-phase detail budget saturates", () => {
+    const phases = [];
+    const emitted = [];
+    const emit = createBoundedDiagnosticPhaseEmitter(phases, (phase) => emitted.push(phase));
+    const detailPhases = [...SAFE_GATHER_DIAGNOSTIC_PHASES];
+    for (let index = 0; index < MAX_CHILD_DIAGNOSTIC_PHASES * 2; index += 1) {
+      emit(detailPhases[index % detailPhases.length]);
+    }
+
+    const runtimeErrorPhase = "lighthouse-runtime-error-code-dns-failure";
+    finishDiagnosticRun(new LighthouseDiagnosticParser(), emit, 1, runtimeErrorPhase);
+
+    expect(phases).toHaveLength(MAX_CHILD_DIAGNOSTIC_PHASES);
+    expect(emitted).toHaveLength(MAX_CHILD_DIAGNOSTIC_PHASES);
+    expect(phases).toContain("lighthouse-diagnostic-truncated");
+    expect(phases).toContain(runtimeErrorPhase);
+    expect(phases).toContain("lighthouse-cli-exit-nonzero");
     expect(emitted).toEqual(phases);
   });
 
@@ -245,6 +391,7 @@ describe("bounded Lighthouse phase diagnostics", () => {
     expect(runner).toContain("diagnosticLib.parseDiagnosticMarkerChunk");
     expect(runner).toContain('HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS: "1"');
     expect(runner).toContain('stdio: ["ignore", "pipe", "pipe"]');
+    expect(runner).toContain("...diagnosticLib.LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES");
     expect(runner).toContain(
       'console.log("Running three Lighthouse samples for each configured route.");',
     );
@@ -254,9 +401,18 @@ describe("bounded Lighthouse phase diagnostics", () => {
     expect(patch).toContain("finishDiagnosticRun");
     expect(cli).toContain("if (DIAGNOSTICS_ENABLED) lhArgs.push('--verbose');");
     expect(cli).toContain("HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-cli-started");
+    expect(cli).toContain("child.once('close', code => {");
+    expect(cli.indexOf("child.once('close', code => {")).toBeLessThan(
+      cli.indexOf("DiagnosticTools.runtimeErrorDiagnosticPhase(stdout)"),
+    );
+    expect(cli).toContain("DiagnosticTools.shouldTolerateWindowsChromeCleanupExit({");
+    expect(cli.indexOf("DiagnosticTools.shouldTolerateWindowsChromeCleanupExit(")).toBeLessThan(
+      cli.indexOf("DiagnosticTools.runtimeErrorDiagnosticPhase(stdout)"),
+    );
     expect(diagnostics).toContain("lighthouse-cli-exit-nonzero");
     expect(cli).toContain("createBoundedDiagnosticPhaseEmitter");
-    expect(cli).toContain("finishDiagnosticRun(diagnosticParser, emitDiagnosticPhase, code)");
+    expect(cli).toContain("DiagnosticTools.finishDiagnosticRun(");
+    expect(cli).toContain("runtimeErrorPhase,");
     expect(cli).toContain("error.stdout = DIAGNOSTICS_ENABLED ? '' : stdout;");
     expect(cli).toContain("raw Lighthouse output suppressed by the bounded diagnostic mode");
   });
