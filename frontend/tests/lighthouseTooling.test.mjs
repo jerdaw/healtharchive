@@ -1,9 +1,12 @@
 import { createRequire } from "node:module";
+import { createHash } from "node:crypto";
 import { spawn, spawnSync } from "node:child_process";
 import { EventEmitter, once } from "node:events";
+import fs from "node:fs";
 import { chmod, mkdir, mkdtemp, readFile, readdir, rm, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
+import vm from "node:vm";
 import { pathToFileURL } from "node:url";
 
 import { describe, expect, it, vi } from "vitest";
@@ -66,6 +69,127 @@ const {
   shouldTolerateWindowsChromeCleanupExit,
   spawnPinnedNode,
 } = require("../scripts/lighthouse-diagnostic-lib.cjs");
+const { applyPatch } = require("diff");
+
+const LHCI_NODE_RUNNER_BASE_BLOB = "cda78e9a28f0e454fc497de50077ab3f705196cb";
+
+function gitBlobSha1(source) {
+  const bytes = Buffer.from(source);
+  return createHash("sha1")
+    .update(Buffer.from(`blob ${bytes.length}\0`))
+    .update(bytes)
+    .digest("hex");
+}
+
+async function createPatchedLhciRunnerHarness({ childProcessModule, envOverrides = {} }) {
+  const root = await mkdtemp(path.join(os.tmpdir(), "ha-patched-lhci-runner-"));
+  const reportsDirectory = path.join(root, "reports");
+  const lighthouseRoot = path.join(root, "lighthouse");
+  const lighthouseCli = path.join(lighthouseRoot, "cli", "index.js");
+  await mkdir(reportsDirectory);
+  await mkdir(path.dirname(lighthouseCli), { recursive: true });
+  await mkdir(path.join(lighthouseRoot, "core"), { recursive: true });
+  await writeFile(path.join(lighthouseRoot, "core", "index.js"), "module.exports = {};\n");
+  await writeFile(
+    lighthouseCli,
+    "process.stdout.write(JSON.stringify({execPath: process.execPath}));\n",
+  );
+
+  const loaded = await loadZeroFuzzPatchedLhciRunner({
+    childProcessModule,
+    envOverrides,
+    root,
+    reportsDirectory,
+  });
+  return {
+    ...loaded,
+    async cleanup() {
+      await rm(root, { recursive: true, force: true });
+    },
+    root,
+  };
+}
+
+async function loadZeroFuzzPatchedLhciRunner({
+  childProcessModule,
+  envOverrides = {},
+  root,
+  reportsDirectory,
+}) {
+  const baselinePath = path.resolve("tests/lhci-node-runner-0.15.1.base.txt");
+  const patchPath = path.resolve("patches/@lhci+cli+0.15.1.patch");
+  const baseline = await readFile(baselinePath, "utf8");
+  const patch = await readFile(patchPath, "utf8");
+  const targetBlobMatch = patch.match(/^index cda78e9\.\.([0-9a-f]{40}) 100644$/m);
+  if (gitBlobSha1(baseline) !== LHCI_NODE_RUNNER_BASE_BLOB || targetBlobMatch === null) {
+    throw new Error("pinned-lhci-node-runner-baseline-mismatch");
+  }
+  const patchedSource = applyPatch(baseline, patch, { fuzzFactor: 0 });
+  if (patchedSource === false || gitBlobSha1(patchedSource) !== targetBlobMatch[1]) {
+    throw new Error("zero-fuzz-lhci-node-runner-patch-mismatch");
+  }
+
+  const lighthouseEntry = path.join(root, "lighthouse", "core", "index.js");
+  const lighthouseCli = path.join(root, "lighthouse", "cli", "index.js");
+  const helperPath = path.resolve("scripts/lighthouse-diagnostic-lib.cjs");
+  const output = [];
+  const fsCounts = { writeFileSync: 0, unlinkSync: 0 };
+  const fsModule = new Proxy(fs, {
+    get(target, property) {
+      if (property === "writeFileSync" || property === "unlinkSync") {
+        return (...args) => {
+          fsCounts[property] += 1;
+          return Reflect.get(target, property, target).apply(target, args);
+        };
+      }
+      const value = Reflect.get(target, property, target);
+      return typeof value === "function" ? value.bind(target) : value;
+    },
+  });
+  const mockedProcess = {
+    env: {
+      ...process.env,
+      ...envOverrides,
+      HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS: "1",
+      HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTIC_HELPER: helperPath,
+      LHCITEST_MOCK_LHR: "",
+    },
+    platform: process.platform,
+    stderr: { write: (marker) => (output.push(String(marker)), true) },
+  };
+  const moduleRecord = { exports: {} };
+  const mockedRequire = (specifier) => {
+    if (specifier === "os") return os;
+    if (specifier === "fs") return fsModule;
+    if (specifier === "path") return path;
+    if (specifier === "uuid") return { v4: () => "bounded-spawn-test" };
+    if (specifier === "child_process") return childProcessModule;
+    if (specifier === "@lhci/utils/src/saved-reports.js") {
+      return { getSavedReportsDirectory: () => reportsDirectory };
+    }
+    if (specifier === helperPath) return require(helperPath);
+    throw new Error(`unexpected-node-runner-dependency:${specifier}`);
+  };
+  mockedRequire.resolve = (specifier) => {
+    if (specifier !== "lighthouse") throw new Error("unexpected-node-runner-resolve");
+    return lighthouseEntry;
+  };
+  vm.runInNewContext(
+    patchedSource,
+    {
+      Buffer,
+      __dirname: path.dirname(path.join(root, "collect", "node-runner.js")),
+      __filename: path.join(root, "collect", "node-runner.js"),
+      console,
+      exports: moduleRecord.exports,
+      module: moduleRecord,
+      process: mockedProcess,
+      require: mockedRequire,
+    },
+    { filename: "pinned-lhci-node-runner-0.15.1.js" },
+  );
+  return { Runner: moduleRecord.exports, fsCounts, lighthouseCli, output };
+}
 
 function runPinnedLighthouseGatherLogger({ colors }) {
   const source = `
@@ -1129,6 +1253,164 @@ describe("bounded Lighthouse browser and CDP diagnostics", () => {
       expect(calls).toEqual([process.execPath, process.execPath]);
     } finally {
       await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("runs the zero-fuzz patched LighthouseRunner with a pinned Node under hostile PATH values", async () => {
+    const root = await mkdtemp(path.join(os.tmpdir(), "ha-node-runner-paths-"));
+    const emptyPath = path.join(root, "empty-path");
+    const conflictingPath = path.join(root, "conflicting-path");
+    const sentinel = path.join(root, "conflicting-node-ran");
+    await mkdir(emptyPath);
+    await mkdir(conflictingPath);
+    const conflictingNode = path.join(conflictingPath, "node");
+    await writeFile(
+      conflictingNode,
+      `#!/bin/sh\nprintf 'ran' > ${JSON.stringify(sentinel)}\nexit 93\n`,
+      { mode: 0o700 },
+    );
+    await chmod(conflictingNode, 0o700);
+
+    try {
+      for (const fakePath of [emptyPath, conflictingPath]) {
+        const calls = [];
+        const harness = await createPatchedLhciRunnerHarness({
+          childProcessModule: {
+            spawn(command, args, options) {
+              calls.push({ command, args, env: options.env });
+              return spawn(command, args, options);
+            },
+          },
+          envOverrides: { PATH: fakePath },
+        });
+        try {
+          const output = await new harness.Runner().run("http://127.0.0.1:4173/", {
+            settings: { maxWaitForLoad: 1 },
+          });
+          expect(JSON.parse(output)).toEqual({ execPath: process.execPath });
+          expect(calls).toHaveLength(1);
+          expect(calls[0].command).toBe(process.execPath);
+          expect(calls[0].env.PATH).toBe(fakePath);
+          expect(harness.fsCounts).toEqual({ writeFileSync: 1, unlinkSync: 1 });
+          expect(harness.output.join("")).not.toContain(sentinel);
+        } finally {
+          await harness.cleanup();
+        }
+      }
+
+      expect(await readdir(root)).toContain("conflicting-path");
+      expect(await readdir(root)).not.toContain("conflicting-node-ran");
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
+  it("settles once and cleans once when the patched runner's spawn throws synchronously", async () => {
+    const secret = "TOKEN_SENTINEL /private/runner/profile /custom/node/path";
+    const spawnCalls = [];
+    const harness = await createPatchedLhciRunnerHarness({
+      childProcessModule: {
+        spawn(command) {
+          spawnCalls.push(command);
+          const error = new Error(secret);
+          error.code = "ENOENT";
+          error.path = secret;
+          error.env = { TOKEN: secret };
+          throw error;
+        },
+      },
+    });
+    try {
+      let settlements = 0;
+      const result = await new harness.Runner()
+        .run("http://127.0.0.1:4173/", {
+          settings: { maxWaitForLoad: 1 },
+        })
+        .then(
+          (value) => ((settlements += 1), { value }),
+          (error) => ((settlements += 1), { error }),
+        );
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(result.error?.message).toBe("Lighthouse child process could not be started");
+      expect(result.error?.stdout).toBe("");
+      expect(result.error?.stderr).toBe(
+        "[raw Lighthouse output suppressed by the bounded diagnostic mode]",
+      );
+      expect(settlements).toBe(1);
+      expect(spawnCalls).toEqual([process.execPath]);
+      expect(harness.fsCounts).toEqual({ writeFileSync: 1, unlinkSync: 1 });
+      const markers = harness.output.join("");
+      expect(
+        markers.match(/HA_LIGHTHOUSE_DIAGNOSTIC spawn-failure class=not-found\n/g),
+      ).toHaveLength(1);
+      expect(
+        markers.match(/HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-cli-exit-nonzero\n/g),
+      ).toHaveLength(1);
+      expect(
+        `${markers}${result.error.message}${result.error.stdout}${result.error.stderr}`,
+      ).not.toContain(secret);
+    } finally {
+      await harness.cleanup();
+    }
+  });
+
+  it("ignores close after async spawn error without duplicate settlement, marker, or cleanup", async () => {
+    const secret = "BEARER_SENTINEL /private/async/profile /sensitive/node/path";
+    const spawnCalls = [];
+    const harness = await createPatchedLhciRunnerHarness({
+      childProcessModule: {
+        spawn(command) {
+          spawnCalls.push(command);
+          const child = new EventEmitter();
+          child.stdout = new EventEmitter();
+          child.stderr = new EventEmitter();
+          queueMicrotask(() => {
+            child.stdout.emit("data", Buffer.from(secret));
+            child.stderr.emit("data", Buffer.from(secret));
+            const error = new Error(secret);
+            error.code = "EACCES";
+            error.path = secret;
+            error.env = { BEARER: secret };
+            child.emit("error", error);
+            child.emit("close", null, "SIGTERM");
+          });
+          return child;
+        },
+      },
+    });
+    try {
+      let settlements = 0;
+      const result = await new harness.Runner()
+        .run("http://127.0.0.1:4173/", {
+          settings: { maxWaitForLoad: 1 },
+        })
+        .then(
+          (value) => ((settlements += 1), { value }),
+          (error) => ((settlements += 1), { error }),
+        );
+      await new Promise((resolve) => setImmediate(resolve));
+
+      expect(result.error?.message).toBe("Lighthouse child process could not be started");
+      expect(result.error?.stdout).toBe("");
+      expect(result.error?.stderr).toBe(
+        "[raw Lighthouse output suppressed by the bounded diagnostic mode]",
+      );
+      expect(settlements).toBe(1);
+      expect(spawnCalls).toEqual([process.execPath]);
+      expect(harness.fsCounts).toEqual({ writeFileSync: 1, unlinkSync: 1 });
+      const markers = harness.output.join("");
+      expect(
+        markers.match(/HA_LIGHTHOUSE_DIAGNOSTIC spawn-failure class=permission-denied\n/g),
+      ).toHaveLength(1);
+      expect(
+        markers.match(/HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-cli-exit-nonzero\n/g),
+      ).toHaveLength(1);
+      expect(
+        `${markers}${result.error.message}${result.error.stdout}${result.error.stderr}`,
+      ).not.toContain(secret);
+    } finally {
+      await harness.cleanup();
     }
   });
 
