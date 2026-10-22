@@ -102,6 +102,7 @@ jobs:
   docker-build-smoke:
     name: Frontend CI / docker-build-smoke
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     needs:
       - contract-sync
       - lint-and-test
@@ -112,3 +113,35 @@ jobs:
 
       - name: Build production image
         run: docker build -t healtharchive-frontend:ci frontend
+
+      - name: Smoke-test public URL references in isolated image
+        shell: bash
+        env:
+          SMOKE_CONTAINER: healtharchive-frontend-smoke-${{ github.run_id }}-${{ github.run_attempt }}
+        run: |
+          set -euo pipefail
+          cleanup() {
+            docker stop --time 2 "$SMOKE_CONTAINER" >/dev/null 2>&1 || true
+            docker rm --force "$SMOKE_CONTAINER" >/dev/null 2>&1 || true
+          }
+          trap cleanup EXIT
+
+          docker run --pull=never --detach \
+            --name "$SMOKE_CONTAINER" \
+            --network none \
+            --read-only \
+            --user 1001:1001 \
+            --cap-drop ALL \
+            --security-opt no-new-privileges \
+            --pids-limit 128 \
+            --memory 1g \
+            --cpus 2 \
+            --tmpfs /tmp:rw,nosuid,nodev,noexec,size=32m,uid=1001,gid=1001,mode=1777 \
+            --tmpfs /app/.next/cache:rw,nosuid,nodev,size=64m,uid=1001,gid=1001,mode=0755 \
+            --env NEXT_PUBLIC_API_BASE_URL=http://localhost:8001 \
+            --env NEXT_PUBLIC_REPLAY_BASE_URL=https://replay-sentinel.invalid \
+            healtharchive-frontend:ci
+
+          docker exec --interactive --user 1001:1001 "$SMOKE_CONTAINER" \
+            node --input-type=module - \
+            < frontend/scripts/docker-public-config-smoke.mjs

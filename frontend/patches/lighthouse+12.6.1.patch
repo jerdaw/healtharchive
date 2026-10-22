@@ -1,0 +1,359 @@
+diff --git a/node_modules/lighthouse/cli/run.js b/node_modules/lighthouse/cli/run.js
+index 51e6b63..e59e7cc 100644
+--- a/node_modules/lighthouse/cli/run.js
++++ b/node_modules/lighthouse/cli/run.js
+@@ -8,6 +8,7 @@
+ 
+ import path from 'path';
+ import os from 'os';
++import {createRequire} from 'node:module';
+ 
+ import * as ChromeLauncher from 'chrome-launcher';
+ import yargsParser from 'yargs-parser';
+@@ -20,6 +21,17 @@ import {getLhrFilenamePrefix} from '../report/generator/file-namer.js';
+ import * as assetSaver from '../core/lib/asset-saver.js';
+ import UrlUtils from '../core/lib/url-utils.js';
+ 
++const DIAGNOSTICS_ENABLED = process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS === '1';
++const DiagnosticTools = DIAGNOSTICS_ENABLED
++  ? createRequire(import.meta.url)(
++      process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTIC_HELPER ||
++        '../../../scripts/lighthouse-diagnostic-lib.cjs',
++    )
++  : null;
++const diagnosticModuleRoots = DIAGNOSTICS_ENABLED
++  ? DiagnosticTools.resolveDiagnosticModuleRoots(import.meta.url)
++  : null;
++
+ /** @typedef {Error & {code: string, friendlyMessage?: string}} ExitError */
+ 
+ const _RUNTIME_ERROR_CODE = 1;
+@@ -107,6 +119,14 @@ function printProtocolTimeoutErrorAndExit() {
+  * @return {never}
+  */
+ function printRuntimeErrorAndExit(err) {
++  if (DIAGNOSTICS_ENABLED) {
++    try {
++      const marker = DiagnosticTools.formatRuntimeErrorDiagnosticMarker(err);
++      process.stderr.write(marker + '\n');
++    } catch {
++      // Diagnostic emission must never alter Lighthouse result semantics.
++    }
++  }
+   console.error('Runtime error encountered:', err.friendlyMessage || err.message);
+   if (err.stack) {
+     console.error(err.stack);
+@@ -182,17 +202,66 @@ async function saveResults(runnerResult, flags) {
+  * @return {Promise<LH.RunnerResult|undefined>}
+  */
+ async function runLighthouse(url, flags, config) {
++  /** @type {ChromeLauncher.LaunchedChrome|undefined} */
++  let launchedChrome;
++  let chromeCleanupAttempted = false;
++
++  function cleanupLaunchedChrome(primaryError = null) {
++    if (!DIAGNOSTICS_ENABLED) {
++      launchedChrome?.kill();
++      return primaryError;
++    }
++    if (!launchedChrome || chromeCleanupAttempted) return primaryError;
++    const chrome = launchedChrome;
++    launchedChrome = undefined;
++    chromeCleanupAttempted = true;
++
++    if (DIAGNOSTICS_ENABLED) {
++      try {
++        return DiagnosticTools.runCleanupPreservingPrimary({
++          cleanup: () => chrome.kill(),
++          primaryError,
++          moduleRoots: diagnosticModuleRoots,
++          writeMarker: marker => process.stderr.write(marker),
++        }).error;
++      } catch (diagnosticError) {
++        return primaryError ?? diagnosticError;
++      }
++    }
++
++    try {
++      chrome.kill();
++      return primaryError;
++    } catch (cleanupError) {
++      return primaryError ?? cleanupError;
++    }
++  }
++
+   /** @param {any} reason */
+   function handleTheUnhandled(reason) {
+     process.stderr.write(`Unhandled Rejection. Reason: ${reason}\n`);
+-    launchedChrome?.kill();
++    if (DIAGNOSTICS_ENABLED) {
++      try {
++        DiagnosticTools.writeUnhandledRejectionDiagnostic(
++          reason,
++          diagnosticModuleRoots,
++          marker => process.stderr.write(marker),
++        );
++      } catch {
++        // Diagnostic emission must never alter Lighthouse error handling.
++      }
++      try {
++        cleanupLaunchedChrome(reason instanceof Error ? reason : null);
++      } catch {
++        // Cleanup diagnostics must not prevent the process from exiting.
++      }
++    } else {
++      launchedChrome?.kill();
++    }
+     process.exit(1);
+   }
+   process.on('unhandledRejection', handleTheUnhandled);
+ 
+-  /** @type {ChromeLauncher.LaunchedChrome|undefined} */
+-  let launchedChrome;
+-
+   try {
+     if (url && flags.auditMode && !flags.gatherMode) {
+       log.warn('CLI', 'URL parameter is ignored if -A flag is used without -G flag');
+@@ -214,7 +283,8 @@ async function runLighthouse(url, flags, config) {
+       await saveResults(runnerResult, flags);
+     }
+ 
+-    launchedChrome?.kill();
++    const cleanupError = cleanupLaunchedChrome();
++    if (cleanupError) throw cleanupError;
+     process.removeListener('unhandledRejection', handleTheUnhandled);
+ 
+     // Runtime errors indicate something was *very* wrong with the page result.
+@@ -232,8 +302,7 @@ async function runLighthouse(url, flags, config) {
+ 
+     return runnerResult;
+   } catch (err) {
+-    launchedChrome?.kill();
+-    return printErrorAndExit(err);
++    return printErrorAndExit(cleanupLaunchedChrome(err));
+   }
+ }
+ 
+diff --git a/node_modules/lighthouse/core/gather/navigation-runner.js b/node_modules/lighthouse/core/gather/navigation-runner.js
+index dcd79e9..853e9a8 100644
+--- a/node_modules/lighthouse/core/gather/navigation-runner.js
++++ b/node_modules/lighthouse/core/gather/navigation-runner.js
+@@ -5,6 +5,7 @@
+  */
+ 
+ import puppeteer from 'puppeteer-core';
++import {createRequire} from 'node:module';
+ import log from 'lighthouse-logger';
+ 
+ import {Driver} from './driver.js';
+@@ -38,6 +39,24 @@ import {NetworkRecords} from '../computed/network-records.js';
+ 
+ const DEFAULT_HOSTNAME = '127.0.0.1';
+ const DEFAULT_PORT = 9222;
++const DIAGNOSTICS_ENABLED = process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS === '1';
++const DiagnosticTools = DIAGNOSTICS_ENABLED
++  ? createRequire(import.meta.url)(
++      process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTIC_HELPER ||
++        '../../../../scripts/lighthouse-diagnostic-lib.cjs',
++    )
++  : null;
++const diagnosticModuleRoots = DIAGNOSTICS_ENABLED
++  ? DiagnosticTools.resolveDiagnosticModuleRoots(import.meta.url)
++  : null;
++
++function runDiagnosticStage(stage, operation) {
++  if (!DIAGNOSTICS_ENABLED) return operation();
++  return DiagnosticTools.runDiagnosticStage(stage, operation, {
++    moduleRoots: diagnosticModuleRoots,
++    writeMarker: marker => process.stderr.write(marker),
++  });
++}
+ 
+ /**
+  * @param {{driver: Driver, resolvedConfig: LH.Config.ResolvedConfig, requestor: LH.NavigationRequestor}} args
+@@ -141,7 +160,8 @@ async function _computeNavigationResult(
+   navigateResult
+ ) {
+   const {navigationError, requestedUrl, mainDocumentUrl} = navigateResult;
+-  const debugData = await _collectDebugData(navigationContext, phaseState);
++  const debugData = await runDiagnosticStage('navigation-debug-data', () =>
++    _collectDebugData(navigationContext, phaseState));
+   const pageLoadError = debugData.records
+     ? getPageLoadError(navigationError, {
+       url: mainDocumentUrl,
+@@ -220,14 +240,16 @@ async function _navigation(navigationContext) {
+   phaseState.url = navigateResult.mainDocumentUrl;
+ 
+   await collectPhaseArtifacts({phase: 'stopSensitiveInstrumentation', ...phaseState});
+-  await collectPhaseArtifacts({phase: 'stopInstrumentation', ...phaseState});
++  await runDiagnosticStage('navigation-stop-instrumentation', () =>
++    collectPhaseArtifacts({phase: 'stopInstrumentation', ...phaseState}));
+ 
+   // bf-cache-failures can emit `Page.frameNavigated` at the end of the run.
+   // This can cause us to issue protocol commands after the target closes.
+   // We should disable our `Page.frameNavigated` handlers before that.
+-  await disableAsyncStacks();
++  await runDiagnosticStage('navigation-disable-async-stacks', disableAsyncStacks);
+ 
+-  await _cleanupNavigation(navigationContext);
++  await runDiagnosticStage('navigation-clear-throttling', () =>
++    _cleanupNavigation(navigationContext));
+ 
+   return _computeNavigationResult(navigationContext, phaseState, navigateResult);
+ }
+@@ -261,7 +283,8 @@ async function navigationGather(page, requestor, options = {}) {
+   const {flags = {}, config} = options;
+   log.setLevel(flags.logLevel || 'error');
+ 
+-  const {resolvedConfig} = await initializeConfig('navigation', config, flags);
++  const {resolvedConfig} = await runDiagnosticStage('config-init', () =>
++    initializeConfig('navigation', config, flags));
+   const computedCache = new Map();
+ 
+   const isCallback = typeof requestor === 'function';
+@@ -269,7 +292,9 @@ async function navigationGather(page, requestor, options = {}) {
+   const runnerOptions = {resolvedConfig, computedCache};
+ 
+   const gatherFn = async () => {
+-    const normalizedRequestor = isCallback ? requestor : UrlUtils.normalizeUrl(requestor);
++    const normalizedRequestor = isCallback
++      ? requestor
++      : runDiagnosticStage('url-normalize', () => UrlUtils.normalizeUrl(requestor));
+ 
+     /** @type {LH.Puppeteer.Browser|undefined} */
+     let lhBrowser = undefined;
+@@ -280,8 +305,9 @@ async function navigationGather(page, requestor, options = {}) {
+     // therefore we connect to the browser in the gatherFn callback.
+     if (!page) {
+       const {hostname = DEFAULT_HOSTNAME, port = DEFAULT_PORT} = flags;
+-      lhBrowser = await puppeteer.connect({browserURL: `http://${hostname}:${port}`, defaultViewport: null});
+-      lhPage = await lhBrowser.newPage();
++      lhBrowser = await runDiagnosticStage('puppeteer-attach', () =>
++        puppeteer.connect({browserURL: `http://${hostname}:${port}`, defaultViewport: null}));
++      lhPage = await runDiagnosticStage('puppeteer-new-page', () => lhBrowser.newPage());
+       page = lhPage;
+     }
+ 
+diff --git a/node_modules/lighthouse/core/gather/session.js b/node_modules/lighthouse/core/gather/session.js
+index 8d9bd24..bffffa6 100644
+--- a/node_modules/lighthouse/core/gather/session.js
++++ b/node_modules/lighthouse/core/gather/session.js
+@@ -5,6 +5,7 @@
+  */
+ 
+ import EventEmitter from 'events';
++import {createRequire} from 'node:module';
+ 
+ import log from 'lighthouse-logger';
+ 
+@@ -13,6 +14,14 @@ import {LighthouseError} from '../lib/lh-error.js';
+ // Controls how long to wait for a response after sending a DevTools protocol command.
+ const DEFAULT_PROTOCOL_TIMEOUT = 30000;
+ const PPTR_BUFFER = 50;
++const DIAGNOSTICS_ENABLED = process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS === '1';
++const DiagnosticTools = DIAGNOSTICS_ENABLED
++  ? createRequire(import.meta.url)('../../../../scripts/lighthouse-diagnostic-lib.cjs')
++  : null;
++const emitCdpFailureDiagnostic = DIAGNOSTICS_ENABLED
++  ? DiagnosticTools.createCdpFailureDiagnosticWriter()
++  : null;
++let browserVersionDiagnosticEmitted = false;
+ 
+ /**
+  * Puppeteer timeouts must fit into an int32 and the maximum timeout for `setTimeout` is a *signed*
+@@ -133,7 +142,23 @@ class ProtocolSession extends CrdpEventEmitter {
+     const resultWithTimeoutPromise =
+       Promise.race([resultPromise, timeoutPromise, this._targetCrashedPromise]);
+ 
+-    return resultWithTimeoutPromise.finally(() => {
++    const instrumentedPromise = DIAGNOSTICS_ENABLED
++      ? resultWithTimeoutPromise.then(
++          result => {
++            if (method === 'Browser.getVersion' && !browserVersionDiagnosticEmitted) {
++              browserVersionDiagnosticEmitted = true;
++              DiagnosticTools.writeBrowserVersionDiagnostic(result?.product);
++            }
++            return result;
++          },
++          error => {
++            emitCdpFailureDiagnostic(method, error);
++            throw error;
++          }
++        )
++      : resultWithTimeoutPromise;
++
++    return instrumentedPromise.finally(() => {
+       if (timeout) clearTimeout(timeout);
+     });
+   }
+diff --git a/node_modules/lighthouse/core/computed/trace-engine-result.js b/node_modules/lighthouse/core/computed/trace-engine-result.js
+index 0adabe9..9bf6b5c 100644
+--- a/node_modules/lighthouse/core/computed/trace-engine-result.js
++++ b/node_modules/lighthouse/core/computed/trace-engine-result.js
+@@ -132,3 +132,3 @@
+-      if (seen.has(seen)) {
++      if (seen.has(obj)) {
+         return;
+       }
+diff --git a/node_modules/lighthouse/core/gather/gatherers/trace-elements.js b/node_modules/lighthouse/core/gather/gatherers/trace-elements.js
+index 463a3e3..e401c34 100644
+--- a/node_modules/lighthouse/core/gather/gatherers/trace-elements.js
++++ b/node_modules/lighthouse/core/gather/gatherers/trace-elements.js
+@@ -29,6 +29,7 @@
+ /** @typedef {{nodeId: number, animations?: {name?: string, failureReasonsMask?: number, unsupportedProperties?: string[]}[], type?: string}} TraceElementData */
+ 
+ const MAX_LAYOUT_SHIFTS = 15;
++const MAX_CONCURRENT_NODE_DETAILS = 4;
+ 
+ /**
+  * @this {HTMLElement}
+@@ -96,7 +97,7 @@
+      * @param {Set<object>} seen
+      */
+     function recursiveObjectEnumerate(obj, cb, seen) {
+-      if (seen.has(seen)) {
++      if (seen.has(obj)) {
+         return;
+       }
+ 
+@@ -414,16 +415,36 @@
+ 
+     /** @type {Map<number, LH.Crdp.Runtime.CallFunctionOnResponse | null>} */
+     const callFunctionOnCache = new Map();
++    const backendNodeIds = [...new Set(
++      [...backendNodeDataMap.values()].flatMap(nodeData => nodeData.map(({nodeId}) => nodeId))
++    )];
++    let nextBackendNodeIndex = 0;
++    let hasNodeDetailsError = false;
++    /** @type {unknown} */
++    let nodeDetailsError;
++    const workerCount = Math.min(MAX_CONCURRENT_NODE_DETAILS, backendNodeIds.length);
++    await Promise.all(Array.from({length: workerCount}, async () => {
++      while (!hasNodeDetailsError && nextBackendNodeIndex < backendNodeIds.length) {
++        const backendNodeId = backendNodeIds[nextBackendNodeIndex++];
++        try {
++          const response = await this.getNodeDetails(session, backendNodeId);
++          callFunctionOnCache.set(backendNodeId, response);
++        } catch (error) {
++          if (!hasNodeDetailsError) {
++            hasNodeDetailsError = true;
++            nodeDetailsError = error;
++          }
++        }
++      }
++    }));
++    if (hasNodeDetailsError) throw nodeDetailsError;
++
+     /** @type {LH.Artifacts.TraceElement[]} */
+     const traceElements = [];
+     for (const [traceEventType, backendNodeData] of backendNodeDataMap) {
+       for (let i = 0; i < backendNodeData.length; i++) {
+         const backendNodeId = backendNodeData[i].nodeId;
+         let response = callFunctionOnCache.get(backendNodeId);
+-        if (response === undefined) {
+-          response = await this.getNodeDetails(session, backendNodeId);
+-          callFunctionOnCache.set(backendNodeId, response);
+-        }
+ 
+         if (response?.result?.value) {
+           traceElements.push({
