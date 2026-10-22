@@ -29,6 +29,10 @@ const MAX_SAMPLE_MS = 120_000;
 const MAX_SERVER_START_MS = 45_000;
 const MAX_BUILD_FILES = 30_000;
 const MAX_BUILD_BYTES = 2_000_000_000;
+const EXPECTED_BUILD_IDENTITY_SHA256 =
+  "af9f0df453041ab9f57c58ddf58c9bfd9b349608d6060afa91032a00ede0fb48";
+const EXPECTED_BUILD_FILES = 2_028;
+const EXPECTED_BUILD_BYTES = 54_854_885;
 const SAFE_PHASES = new Set([
   "lighthouse-cli-started",
   "lighthouse-cli-exit-zero",
@@ -52,6 +56,7 @@ const SAFE_PHASES = new Set([
   "results-started",
   "results-completed",
   "lighthouse-runtime-error",
+  ...diagnosticLib.SAFE_DIAGNOSTIC_STAGE_PHASES,
   ...diagnosticLib.LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
   ...diagnosticLib.SAFE_GATHER_DIAGNOSTIC_PHASES,
   "lighthouse-diagnostic-truncated",
@@ -312,6 +317,7 @@ async function runOneHomeSample({ frontendRoot, origin, scratchRoot, env }) {
     const startedAt = process.hrtime.bigint();
     const progress = new diagnosticLib.LighthouseDiagnosticParser();
     const seenPhases = new Set();
+    const seenFailureMarkers = new Set();
     let markerPending = "";
     let timedOut = false;
     let settled = false;
@@ -337,6 +343,19 @@ async function runOneHomeSample({ frontendRoot, origin, scratchRoot, env }) {
           ? event.failureClass
           : "other";
         console.log(`spawnFailure=${failureClass}`);
+      } else if (event.type === "failure") {
+        const safe = diagnosticLib.normalizeFailureDiagnosticEvent(event);
+        const key = `${safe.stage}:${safe.origin}`;
+        if (
+          seenFailureMarkers.has(key) ||
+          seenFailureMarkers.size >= diagnosticLib.MAX_FAILURE_DIAGNOSTIC_MARKERS
+        ) {
+          return;
+        }
+        seenFailureMarkers.add(key);
+        console.log(
+          `failureStage=${safe.stage} failureOrigin=${safe.origin} failureClass=${safe.nameClass} failureCauseCode=${safe.causeCode} frameModule=${safe.frame.module} frameFile=${safe.frame.file} frameLine=${safe.frame.line} frameColumn=${safe.frame.column}`,
+        );
       }
     };
 
@@ -531,6 +550,13 @@ try {
   interruptController.throwIfInterrupted();
   const buildIdentityBeforeCopy = await hashBuildInputs(frontendRoot);
   interruptController.throwIfInterrupted();
+  if (
+    buildIdentityBeforeCopy.sha256 !== EXPECTED_BUILD_IDENTITY_SHA256 ||
+    buildIdentityBeforeCopy.files !== EXPECTED_BUILD_FILES ||
+    buildIdentityBeforeCopy.bytes !== EXPECTED_BUILD_BYTES
+  ) {
+    throw new Error("saved-build-identity-mismatch");
+  }
   const runtimeRoot = await copyReadOnlyBuildToScratch(frontendRoot, scratchRoot);
   interruptController.throwIfInterrupted();
   const buildIdentityInScratch = await hashBuildInputs(frontendRoot, runtimeRoot, scratchRoot);

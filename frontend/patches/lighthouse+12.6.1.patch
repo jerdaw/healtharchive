@@ -1,5 +1,202 @@
+diff --git a/node_modules/lighthouse/cli/run.js b/node_modules/lighthouse/cli/run.js
+index 51e6b63..f1fecfe 100644
+--- a/node_modules/lighthouse/cli/run.js
++++ b/node_modules/lighthouse/cli/run.js
+@@ -8,6 +8,7 @@
+ 
+ import path from 'path';
+ import os from 'os';
++import {createRequire} from 'node:module';
+ 
+ import * as ChromeLauncher from 'chrome-launcher';
+ import yargsParser from 'yargs-parser';
+@@ -20,6 +21,17 @@ import {getLhrFilenamePrefix} from '../report/generator/file-namer.js';
+ import * as assetSaver from '../core/lib/asset-saver.js';
+ import UrlUtils from '../core/lib/url-utils.js';
+ 
++const DIAGNOSTICS_ENABLED = process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS === '1';
++const DiagnosticTools = DIAGNOSTICS_ENABLED
++  ? createRequire(import.meta.url)(
++      process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTIC_HELPER ||
++        '../../../scripts/lighthouse-diagnostic-lib.cjs',
++    )
++  : null;
++const diagnosticModuleRoots = DIAGNOSTICS_ENABLED
++  ? DiagnosticTools.resolveDiagnosticModuleRoots(import.meta.url)
++  : null;
++
+ /** @typedef {Error & {code: string, friendlyMessage?: string}} ExitError */
+ 
+ const _RUNTIME_ERROR_CODE = 1;
+@@ -107,6 +119,14 @@ function printProtocolTimeoutErrorAndExit() {
+  * @return {never}
+  */
+ function printRuntimeErrorAndExit(err) {
++  if (DIAGNOSTICS_ENABLED) {
++    try {
++      const marker = DiagnosticTools.formatRuntimeErrorDiagnosticMarker(err);
++      process.stderr.write(marker + '\n');
++    } catch {
++      // Diagnostic emission must never alter Lighthouse result semantics.
++    }
++  }
+   console.error('Runtime error encountered:', err.friendlyMessage || err.message);
+   if (err.stack) {
+     console.error(err.stack);
+@@ -182,17 +202,57 @@ async function saveResults(runnerResult, flags) {
+  * @return {Promise<LH.RunnerResult|undefined>}
+  */
+ async function runLighthouse(url, flags, config) {
++  /** @type {ChromeLauncher.LaunchedChrome|undefined} */
++  let launchedChrome;
++  let chromeCleanupAttempted = false;
++
++  function cleanupLaunchedChrome(primaryError = null) {
++    if (!DIAGNOSTICS_ENABLED) {
++      launchedChrome?.kill();
++      return primaryError;
++    }
++    if (!launchedChrome || chromeCleanupAttempted) return primaryError;
++    const chrome = launchedChrome;
++    launchedChrome = undefined;
++    chromeCleanupAttempted = true;
++
++    if (DIAGNOSTICS_ENABLED) {
++      try {
++        return DiagnosticTools.runCleanupPreservingPrimary({
++          cleanup: () => chrome.kill(),
++          primaryError,
++          moduleRoots: diagnosticModuleRoots,
++          writeMarker: marker => process.stderr.write(marker),
++        }).error;
++      } catch (diagnosticError) {
++        return primaryError ?? diagnosticError;
++      }
++    }
++
++    try {
++      chrome.kill();
++      return primaryError;
++    } catch (cleanupError) {
++      return primaryError ?? cleanupError;
++    }
++  }
++
+   /** @param {any} reason */
+   function handleTheUnhandled(reason) {
+     process.stderr.write(`Unhandled Rejection. Reason: ${reason}\n`);
+-    launchedChrome?.kill();
++    if (DIAGNOSTICS_ENABLED) {
++      try {
++        cleanupLaunchedChrome(reason instanceof Error ? reason : null);
++      } catch {
++        // Cleanup diagnostics must not prevent the process from exiting.
++      }
++    } else {
++      launchedChrome?.kill();
++    }
+     process.exit(1);
+   }
+   process.on('unhandledRejection', handleTheUnhandled);
+ 
+-  /** @type {ChromeLauncher.LaunchedChrome|undefined} */
+-  let launchedChrome;
+-
+   try {
+     if (url && flags.auditMode && !flags.gatherMode) {
+       log.warn('CLI', 'URL parameter is ignored if -A flag is used without -G flag');
+@@ -214,7 +274,8 @@ async function runLighthouse(url, flags, config) {
+       await saveResults(runnerResult, flags);
+     }
+ 
+-    launchedChrome?.kill();
++    const cleanupError = cleanupLaunchedChrome();
++    if (cleanupError) throw cleanupError;
+     process.removeListener('unhandledRejection', handleTheUnhandled);
+ 
+     // Runtime errors indicate something was *very* wrong with the page result.
+@@ -232,8 +293,7 @@ async function runLighthouse(url, flags, config) {
+ 
+     return runnerResult;
+   } catch (err) {
+-    launchedChrome?.kill();
+-    return printErrorAndExit(err);
++    return printErrorAndExit(cleanupLaunchedChrome(err));
+   }
+ }
+ 
+diff --git a/node_modules/lighthouse/core/gather/navigation-runner.js b/node_modules/lighthouse/core/gather/navigation-runner.js
+index dcd79e9..f9ec90f 100644
+--- a/node_modules/lighthouse/core/gather/navigation-runner.js
++++ b/node_modules/lighthouse/core/gather/navigation-runner.js
+@@ -5,6 +5,7 @@
+  */
+ 
+ import puppeteer from 'puppeteer-core';
++import {createRequire} from 'node:module';
+ import log from 'lighthouse-logger';
+ 
+ import {Driver} from './driver.js';
+@@ -38,6 +39,24 @@ import {NetworkRecords} from '../computed/network-records.js';
+ 
+ const DEFAULT_HOSTNAME = '127.0.0.1';
+ const DEFAULT_PORT = 9222;
++const DIAGNOSTICS_ENABLED = process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS === '1';
++const DiagnosticTools = DIAGNOSTICS_ENABLED
++  ? createRequire(import.meta.url)(
++      process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTIC_HELPER ||
++        '../../../../scripts/lighthouse-diagnostic-lib.cjs',
++    )
++  : null;
++const diagnosticModuleRoots = DIAGNOSTICS_ENABLED
++  ? DiagnosticTools.resolveDiagnosticModuleRoots(import.meta.url)
++  : null;
++
++function runDiagnosticStage(stage, operation) {
++  if (!DIAGNOSTICS_ENABLED) return operation();
++  return DiagnosticTools.runDiagnosticStage(stage, operation, {
++    moduleRoots: diagnosticModuleRoots,
++    writeMarker: marker => process.stderr.write(marker),
++  });
++}
+ 
+ /**
+  * @param {{driver: Driver, resolvedConfig: LH.Config.ResolvedConfig, requestor: LH.NavigationRequestor}} args
+@@ -261,7 +280,8 @@ async function navigationGather(page, requestor, options = {}) {
+   const {flags = {}, config} = options;
+   log.setLevel(flags.logLevel || 'error');
+ 
+-  const {resolvedConfig} = await initializeConfig('navigation', config, flags);
++  const {resolvedConfig} = await runDiagnosticStage('config-init', () =>
++    initializeConfig('navigation', config, flags));
+   const computedCache = new Map();
+ 
+   const isCallback = typeof requestor === 'function';
+@@ -269,7 +289,9 @@ async function navigationGather(page, requestor, options = {}) {
+   const runnerOptions = {resolvedConfig, computedCache};
+ 
+   const gatherFn = async () => {
+-    const normalizedRequestor = isCallback ? requestor : UrlUtils.normalizeUrl(requestor);
++    const normalizedRequestor = isCallback
++      ? requestor
++      : runDiagnosticStage('url-normalize', () => UrlUtils.normalizeUrl(requestor));
+ 
+     /** @type {LH.Puppeteer.Browser|undefined} */
+     let lhBrowser = undefined;
+@@ -280,8 +302,9 @@ async function navigationGather(page, requestor, options = {}) {
+     // therefore we connect to the browser in the gatherFn callback.
+     if (!page) {
+       const {hostname = DEFAULT_HOSTNAME, port = DEFAULT_PORT} = flags;
+-      lhBrowser = await puppeteer.connect({browserURL: `http://${hostname}:${port}`, defaultViewport: null});
+-      lhPage = await lhBrowser.newPage();
++      lhBrowser = await runDiagnosticStage('puppeteer-attach', () =>
++        puppeteer.connect({browserURL: `http://${hostname}:${port}`, defaultViewport: null}));
++      lhPage = await runDiagnosticStage('puppeteer-new-page', () => lhBrowser.newPage());
+       page = lhPage;
+     }
+ 
 diff --git a/node_modules/lighthouse/core/gather/session.js b/node_modules/lighthouse/core/gather/session.js
-index 8d9bd24..6afe823 100644
+index 8d9bd24..bffffa6 100644
 --- a/node_modules/lighthouse/core/gather/session.js
 +++ b/node_modules/lighthouse/core/gather/session.js
 @@ -5,6 +5,7 @@
@@ -50,28 +247,3 @@ index 8d9bd24..6afe823 100644
        if (timeout) clearTimeout(timeout);
      });
    }
-
-diff --git a/node_modules/lighthouse/cli/run.js b/node_modules/lighthouse/cli/run.js
-index 51e6b6332743116ee10822e32f6a1e9173ea91ec..77636163552d8a0946196f9f4b5aaf18b4a12735 100644
---- a/node_modules/lighthouse/cli/run.js
-+++ b/node_modules/lighthouse/cli/run.js
-@@ -10,0 +11,1 @@
-+import {createRequire} from 'node:module';
-@@ -21,0 +23,8 @@
-+const DIAGNOSTICS_ENABLED = process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS === '1';
-+const DiagnosticTools = DIAGNOSTICS_ENABLED
-+  ? createRequire(import.meta.url)(
-+      process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTIC_HELPER ||
-+        '../../../scripts/lighthouse-diagnostic-lib.cjs',
-+    )
-+  : null;
-+
-@@ -109,0 +119,8 @@
-+  if (DIAGNOSTICS_ENABLED) {
-+    try {
-+      const marker = DiagnosticTools.formatRuntimeErrorDiagnosticMarker(err);
-+      process.stderr.write(marker + '\n');
-+    } catch {
-+      // Diagnostic emission must never alter Lighthouse result semantics.
-+    }
-+  }

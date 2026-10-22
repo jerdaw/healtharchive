@@ -831,7 +831,11 @@ describe("bounded Lighthouse phase diagnostics", () => {
         "+      const marker = DiagnosticTools.formatRuntimeErrorDiagnosticMarker(err);",
       ),
     );
-    expect(earlyErrorHook.slice(0, 300)).not.toMatch(/err\.(message|stack|friendlyMessage)/);
+    const safeMarkerBlock = earlyErrorHook.slice(
+      0,
+      earlyErrorHook.indexOf("console.error('Runtime error encountered:'"),
+    );
+    expect(safeMarkerBlock).not.toMatch(/err\.(message|stack|friendlyMessage)/);
     expect(cli).toContain("if (DIAGNOSTICS_ENABLED) lhArgs.push('--verbose');");
     expect(cli).toContain("HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-cli-started");
     expect(cli).toContain("child.once(DIAGNOSTICS_ENABLED ? 'close' : 'exit', code => {");

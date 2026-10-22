@@ -1,5 +1,12 @@
 "use strict";
 
+/* eslint-disable @typescript-eslint/no-require-imports */
+// Keep builtin loading synchronous here; frame roots are resolved only when local diagnostics are enabled.
+const fs = require("node:fs");
+const path = require("node:path");
+const { createRequire } = require("node:module");
+const { fileURLToPath } = require("node:url");
+
 const ROUTES = new Map([
   ["/", "home"],
   ["/archive?q=health", "archive"],
@@ -9,6 +16,7 @@ const ROUTES = new Map([
 const ANSI_ESCAPE = /\u001b\[[0-?]*[ -/]*[@-~]/g;
 const MAX_PENDING_CHARS = 8_192;
 const MAX_CHILD_CDP_FAILURE_MARKERS = 16;
+const MAX_FAILURE_DIAGNOSTIC_MARKERS = 6;
 const DIAGNOSTIC_UNAVAILABLE = "unavailable-or-other";
 const CHILD_SPAWN_FAILURE_CLASSES = new Set([
   "not-found",
@@ -205,6 +213,54 @@ const LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASS_VALUES = new Set([
   ...LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASSES.values(),
   LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE,
 ]);
+const PRE_DRIVER_FAILURE_STAGES = new Set([
+  "config-init",
+  "url-normalize",
+  "puppeteer-attach",
+  "puppeteer-new-page",
+  "chrome-cleanup",
+]);
+const FAILURE_ORIGINS = new Set(["primary", "cleanup"]);
+const FAILURE_STAGE_UNAVAILABLE = "unavailable-or-other";
+const FAILURE_FRAME_MODULES = new Set(["lighthouse", "puppeteer-core", "chrome-launcher", "none"]);
+const FAILURE_CAUSE_CODES = new Map([
+  ["EADDRNOTAVAIL", "eaddrnotavail"],
+  ["EAI_AGAIN", "eai-again"],
+  ["ECONNREFUSED", "econnrefused"],
+  ["ECONNRESET", "econnreset"],
+  ["EHOSTUNREACH", "ehostunreach"],
+  ["ENETUNREACH", "enetunreach"],
+  ["ENOTFOUND", "enotfound"],
+  ["ETIMEDOUT", "etimedout"],
+  ["UND_ERR_ABORTED", "und-err-aborted"],
+  ["UND_ERR_BODY_TIMEOUT", "und-err-body-timeout"],
+  ["UND_ERR_CONNECT_TIMEOUT", "und-err-connect-timeout"],
+  ["UND_ERR_HEADERS_TIMEOUT", "und-err-headers-timeout"],
+  ["UND_ERR_RESPONSE_STATUS_CODE", "und-err-response-status-code"],
+  ["UND_ERR_SOCKET", "und-err-socket"],
+]);
+const FAILURE_CAUSE_CODE_VALUES = new Set([
+  ...FAILURE_CAUSE_CODES.values(),
+  DIAGNOSTIC_UNAVAILABLE,
+]);
+const MAX_FAILURE_CAUSE_DEPTH = 4;
+const MAX_FAILURE_CAUSE_NODES = 8;
+const MAX_AGGREGATE_FAILURE_CAUSES = 4;
+const DIAGNOSTIC_MODULE_SPECS = [
+  { name: "lighthouse", version: "12.6.1" },
+  { name: "puppeteer-core", version: "24.43.1" },
+  { name: "chrome-launcher", version: "1.2.1" },
+];
+const SAFE_DIAGNOSTIC_STAGE_PHASES = new Set(
+  [...PRE_DRIVER_FAILURE_STAGES].flatMap((stage) =>
+    ["started", "completed", "failed"].map((state) => `${stage}-${state}`),
+  ),
+);
+const FAILURE_FRAME_FILE = /^(?!.*(?:^|\/)\.\.?(?:\/|$))[A-Za-z0-9_.-]+(?:\/[A-Za-z0-9_.-]+)*$/;
+const MAX_FAILURE_STACK_CHARS = 65_536;
+const MAX_FAILURE_STACK_LINES = 128;
+const MAX_FAILURE_FRAME_PATH_CHARS = 4_096;
+const MAX_DIAGNOSTIC_PACKAGE_JSON_BYTES = 131_072;
 const LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES = new Set([
   ...[...LIGHTHOUSE_RUNTIME_ERROR_CODES.values(), LIGHTHOUSE_RUNTIME_ERROR_UNAVAILABLE].map(
     (code) => `lighthouse-runtime-error-code-${code}`,
@@ -234,6 +290,7 @@ const SAFE_CHILD_DIAGNOSTIC_PHASES = new Set([
   "lighthouse-cli-started",
   "lighthouse-cli-exit-zero",
   "lighthouse-cli-exit-nonzero",
+  ...SAFE_DIAGNOSTIC_STAGE_PHASES,
   ...SAFE_GATHER_DIAGNOSTIC_PHASES,
 ]);
 
@@ -251,6 +308,402 @@ function splitBoundedLines(pending, chunk, maxPendingChars = MAX_PENDING_CHARS) 
   return { lines, pending: incomplete.slice(-maxPendingChars) };
 }
 
+function findInstalledModuleRoot(entryPath, expectedName, expectedVersion) {
+  let realEntry;
+  try {
+    realEntry = fs.realpathSync(entryPath);
+  } catch {
+    return null;
+  }
+
+  let directory = path.dirname(realEntry);
+  for (let depth = 0; depth < 12; depth += 1) {
+    const packagePath = path.join(directory, "package.json");
+    try {
+      const packageStat = fs.lstatSync(packagePath);
+      if (
+        !packageStat.isFile() ||
+        packageStat.isSymbolicLink() ||
+        packageStat.size > MAX_DIAGNOSTIC_PACKAGE_JSON_BYTES
+      ) {
+        return null;
+      }
+      const metadata = JSON.parse(fs.readFileSync(packagePath, "utf8"));
+      if (metadata.name === expectedName && metadata.version === expectedVersion) {
+        const realRoot = fs.realpathSync(directory);
+        const relativeEntry = path.relative(realRoot, realEntry);
+        if (
+          relativeEntry === "" ||
+          relativeEntry === ".." ||
+          relativeEntry.startsWith(`..${path.sep}`) ||
+          path.isAbsolute(relativeEntry)
+        ) {
+          return null;
+        }
+        return realRoot;
+      }
+    } catch {
+      // An unavailable, malformed, or unexpected package root is not trusted for frame output.
+    }
+    const parent = path.dirname(directory);
+    if (parent === directory) break;
+    directory = parent;
+  }
+  return null;
+}
+
+function resolveDiagnosticModuleRoots(importerUrl) {
+  const roots = Object.create(null);
+  try {
+    const importerPath = importerUrl instanceof URL ? fileURLToPath(importerUrl) : importerUrl;
+    if (typeof importerPath !== "string" || !path.isAbsolute(importerPath)) return roots;
+    const localRequire = createRequire(importerPath);
+    for (const spec of DIAGNOSTIC_MODULE_SPECS) {
+      try {
+        const entry = localRequire.resolve(spec.name);
+        const root = findInstalledModuleRoot(entry, spec.name, spec.version);
+        if (root !== null) roots[spec.name] = root;
+      } catch {
+        // Missing or version-drifted modules are omitted, never inferred from a stack string.
+      }
+    }
+  } catch {
+    // Diagnostics remain unavailable rather than affecting Lighthouse execution.
+  }
+  return roots;
+}
+
+function failureNameClass(error) {
+  try {
+    const name = error?.name;
+    return LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASSES.get(name) ?? DIAGNOSTIC_UNAVAILABLE;
+  } catch {
+    return DIAGNOSTIC_UNAVAILABLE;
+  }
+}
+
+function parseStackFrame(line) {
+  const match = line.match(/^\s*at\s+(?:(?:async\s+)?[^\n]*?\s+\()?(.+):(\d+):(\d+)\)?\s*$/);
+  if (!match) return null;
+  const lineNumber = Number(match[2]);
+  const columnNumber = Number(match[3]);
+  if (
+    !Number.isSafeInteger(lineNumber) ||
+    lineNumber < 1 ||
+    lineNumber > 10_000_000 ||
+    !Number.isSafeInteger(columnNumber) ||
+    columnNumber < 1 ||
+    columnNumber > 10_000_000
+  ) {
+    return null;
+  }
+  let filePath = match[1];
+  if (filePath.length > MAX_FAILURE_FRAME_PATH_CHARS) return null;
+  if (filePath.startsWith("file://")) {
+    try {
+      filePath = fileURLToPath(filePath);
+    } catch {
+      return null;
+    }
+  }
+  return { filePath, line: lineNumber, column: columnNumber };
+}
+
+function firstRelevantInstalledModuleFrame(error, moduleRoots) {
+  let stack;
+  try {
+    stack = error?.stack;
+  } catch {
+    stack = null;
+  }
+  if (typeof stack !== "string" || stack.length > MAX_FAILURE_STACK_CHARS) {
+    return { module: "none", file: "none", line: 0, column: 0 };
+  }
+
+  const roots = Object.entries(moduleRoots ?? {})
+    .filter(([name, root]) => FAILURE_FRAME_MODULES.has(name) && typeof root === "string")
+    .sort(([, left], [, right]) => right.length - left.length);
+  if (roots.length === 0) return { module: "none", file: "none", line: 0, column: 0 };
+
+  for (const line of stack.split(/\r?\n/).slice(1, MAX_FAILURE_STACK_LINES + 1)) {
+    const frame = parseStackFrame(line);
+    if (!frame) continue;
+    let realFrame;
+    try {
+      realFrame = fs.realpathSync(frame.filePath);
+    } catch {
+      continue;
+    }
+
+    for (const [name, root] of roots) {
+      let realRoot;
+      try {
+        realRoot = fs.realpathSync(root);
+      } catch {
+        continue;
+      }
+      const relative = path.relative(realRoot, realFrame);
+      if (
+        relative === "" ||
+        relative === ".." ||
+        relative.startsWith(`..${path.sep}`) ||
+        path.isAbsolute(relative)
+      ) {
+        continue;
+      }
+      const normalizedFile = relative.split(path.sep).join("/");
+      if (!FAILURE_FRAME_FILE.test(normalizedFile)) continue;
+      return {
+        module: name,
+        file: normalizedFile,
+        line: frame.line,
+        column: frame.column,
+      };
+    }
+  }
+  return { module: "none", file: "none", line: 0, column: 0 };
+}
+
+function safeFailureCauseCode(error) {
+  const pending = [{ value: error, depth: 0 }];
+  const visited = new Set();
+  let visitedCount = 0;
+
+  while (pending.length > 0 && visitedCount < MAX_FAILURE_CAUSE_NODES) {
+    const current = pending.shift();
+    const value = current?.value;
+    if (
+      value === null ||
+      (typeof value !== "object" && typeof value !== "function") ||
+      visited.has(value)
+    ) {
+      continue;
+    }
+    visited.add(value);
+    visitedCount += 1;
+
+    let code;
+    try {
+      code = value.code;
+    } catch {
+      code = null;
+    }
+    if (typeof code === "string" && FAILURE_CAUSE_CODES.has(code)) {
+      return FAILURE_CAUSE_CODES.get(code);
+    }
+    if (current.depth >= MAX_FAILURE_CAUSE_DEPTH) continue;
+
+    let cause;
+    try {
+      cause = value.cause;
+    } catch {
+      cause = null;
+    }
+    if (cause !== null && (typeof cause === "object" || typeof cause === "function")) {
+      pending.push({ value: cause, depth: current.depth + 1 });
+    }
+
+    let errors;
+    try {
+      errors = value.errors;
+    } catch {
+      errors = null;
+    }
+    let hasNestedErrors = false;
+    try {
+      hasNestedErrors = Array.isArray(errors);
+    } catch {
+      hasNestedErrors = false;
+    }
+    if (hasNestedErrors) {
+      let length = 0;
+      try {
+        length = Math.min(errors.length, MAX_AGGREGATE_FAILURE_CAUSES);
+      } catch {
+        length = 0;
+      }
+      for (let index = 0; index < length; index += 1) {
+        let nested;
+        try {
+          nested = errors[index];
+        } catch {
+          continue;
+        }
+        if (nested !== null && (typeof nested === "object" || typeof nested === "function")) {
+          pending.push({ value: nested, depth: current.depth + 1 });
+        }
+      }
+    }
+  }
+
+  return DIAGNOSTIC_UNAVAILABLE;
+}
+
+function normalizeFailureDiagnosticEvent(event) {
+  const frameModule = FAILURE_FRAME_MODULES.has(event?.frame?.module) ? event.frame.module : "none";
+  const frameFile =
+    frameModule !== "none" &&
+    typeof event?.frame?.file === "string" &&
+    event.frame.file.length <= 192 &&
+    FAILURE_FRAME_FILE.test(event.frame.file)
+      ? event.frame.file
+      : "none";
+  const line =
+    frameFile !== "none" &&
+    Number.isSafeInteger(event?.frame?.line) &&
+    event.frame.line > 0 &&
+    event.frame.line <= 10_000_000
+      ? event.frame.line
+      : 0;
+  const column =
+    frameFile !== "none" &&
+    Number.isSafeInteger(event?.frame?.column) &&
+    event.frame.column > 0 &&
+    event.frame.column <= 10_000_000
+      ? event.frame.column
+      : 0;
+  const validFrame = frameFile !== "none" && line > 0 && column > 0;
+  return {
+    type: "failure",
+    stage: PRE_DRIVER_FAILURE_STAGES.has(event?.stage) ? event.stage : FAILURE_STAGE_UNAVAILABLE,
+    origin: FAILURE_ORIGINS.has(event?.origin) ? event.origin : "primary",
+    nameClass: LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASS_VALUES.has(event?.nameClass)
+      ? event.nameClass
+      : DIAGNOSTIC_UNAVAILABLE,
+    causeCode: FAILURE_CAUSE_CODE_VALUES.has(event?.causeCode)
+      ? event.causeCode
+      : DIAGNOSTIC_UNAVAILABLE,
+    frame: validFrame
+      ? { module: frameModule, file: frameFile, line, column }
+      : { module: "none", file: "none", line: 0, column: 0 },
+  };
+}
+
+function failureDiagnosticEvent(stage, origin, error, moduleRoots) {
+  return normalizeFailureDiagnosticEvent({
+    type: "failure",
+    stage,
+    origin,
+    nameClass: failureNameClass(error),
+    causeCode: stage === "puppeteer-attach" ? safeFailureCauseCode(error) : DIAGNOSTIC_UNAVAILABLE,
+    frame: firstRelevantInstalledModuleFrame(error, moduleRoots),
+  });
+}
+
+function formatFailureDiagnosticMarker(event) {
+  const safe = normalizeFailureDiagnosticEvent(event);
+  return [
+    "HA_LIGHTHOUSE_DIAGNOSTIC failure",
+    `stage=${safe.stage}`,
+    `origin=${safe.origin}`,
+    `class=${safe.nameClass}`,
+    `cause-code=${safe.causeCode}`,
+    `frame-module=${safe.frame.module}`,
+    `frame-file=${safe.frame.file}`,
+    `frame-line=${safe.frame.line}`,
+    `frame-column=${safe.frame.column}`,
+  ].join(" ");
+}
+
+function parseFailureDiagnosticMarker(line) {
+  const match = line.match(
+    /^HA_LIGHTHOUSE_DIAGNOSTIC failure stage=([a-z-]+) origin=([a-z-]+) class=([a-z-]+) cause-code=([a-z-]+) frame-module=([a-z-]+) frame-file=([A-Za-z0-9_./-]+) frame-line=(\d+) frame-column=(\d+)$/,
+  );
+  if (!match) {
+    return normalizeFailureDiagnosticEvent(null);
+  }
+  return normalizeFailureDiagnosticEvent({
+    type: "failure",
+    stage: match[1],
+    origin: match[2],
+    nameClass: match[3],
+    causeCode: match[4],
+    frame: {
+      module: match[5],
+      file: match[6],
+      line: Number(match[7]),
+      column: Number(match[8]),
+    },
+  });
+}
+
+function writeFailureDiagnostic(stage, origin, error, moduleRoots, writeMarker) {
+  try {
+    const marker = formatFailureDiagnosticMarker(
+      failureDiagnosticEvent(stage, origin, error, moduleRoots),
+    );
+    writeMarker(`${marker}\n`);
+  } catch {
+    // Diagnostics are best-effort and must not replace Lighthouse errors.
+  }
+}
+
+function writeDiagnosticStagePhase(stage, state, writeMarker) {
+  const phase = `${stage}-${state}`;
+  if (!SAFE_DIAGNOSTIC_STAGE_PHASES.has(phase)) return;
+  try {
+    writeMarker(`HA_LIGHTHOUSE_DIAGNOSTIC phase=${phase}\n`);
+  } catch {
+    // Stage telemetry is best-effort and must not change Lighthouse execution.
+  }
+}
+
+function runDiagnosticStage(stage, operation, options = {}) {
+  const settings = options && typeof options === "object" ? options : {};
+  const writeMarker =
+    typeof settings.writeMarker === "function"
+      ? settings.writeMarker
+      : (line) => process.stderr.write(line);
+  const reportFailure = (error) => {
+    writeDiagnosticStagePhase(stage, "failed", writeMarker);
+    writeFailureDiagnostic(stage, "primary", error, settings.moduleRoots, writeMarker);
+  };
+
+  writeDiagnosticStagePhase(stage, "started", writeMarker);
+  try {
+    const result = operation();
+    if (result && typeof result.then === "function") {
+      return result.then(
+        (value) => {
+          writeDiagnosticStagePhase(stage, "completed", writeMarker);
+          return value;
+        },
+        (error) => {
+          reportFailure(error);
+          throw error;
+        },
+      );
+    }
+    writeDiagnosticStagePhase(stage, "completed", writeMarker);
+    return result;
+  } catch (error) {
+    reportFailure(error);
+    throw error;
+  }
+}
+
+function runCleanupPreservingPrimary(options = {}) {
+  const settings = options && typeof options === "object" ? options : {};
+  const writeMarker =
+    typeof settings.writeMarker === "function"
+      ? settings.writeMarker
+      : (line) => process.stderr.write(line);
+  writeDiagnosticStagePhase("chrome-cleanup", "started", writeMarker);
+  let cleanupError = null;
+  try {
+    settings.cleanup();
+    writeDiagnosticStagePhase("chrome-cleanup", "completed", writeMarker);
+  } catch (error) {
+    cleanupError = error;
+    writeDiagnosticStagePhase("chrome-cleanup", "failed", writeMarker);
+    writeFailureDiagnostic("chrome-cleanup", "cleanup", error, settings.moduleRoots, writeMarker);
+  }
+  return {
+    error: settings.primaryError ?? cleanupError,
+    cleanupError,
+  };
+}
+
 function parseDiagnosticMarkerChunk(
   pending,
   chunk,
@@ -263,6 +716,7 @@ function parseDiagnosticMarkerChunk(
   const cdpFailures = [];
   const spawnFailures = [];
   const events = [];
+  const failures = [];
   for (const line of split.lines) {
     const match = line.match(/^HA_LIGHTHOUSE_DIAGNOSTIC phase=([a-z-]+)$/);
     if (match && allowlist.has(match[1])) {
@@ -273,6 +727,15 @@ function parseDiagnosticMarkerChunk(
 
     if (line.startsWith("HA_LIGHTHOUSE_DIAGNOSTIC runtime-error ")) {
       events.push(parseRuntimeErrorDiagnosticMarker(line));
+      continue;
+    }
+
+    if (line.startsWith("HA_LIGHTHOUSE_DIAGNOSTIC failure ")) {
+      const event = parseFailureDiagnosticMarker(line);
+      if (failures.length < MAX_FAILURE_DIAGNOSTIC_MARKERS) {
+        failures.push(event);
+        events.push(event);
+      }
       continue;
     }
 
@@ -320,7 +783,15 @@ function parseDiagnosticMarkerChunk(
       events.push(event);
     }
   }
-  return { phases, browserVersions, cdpFailures, spawnFailures, events, pending: split.pending };
+  return {
+    phases,
+    browserVersions,
+    cdpFailures,
+    spawnFailures,
+    failures,
+    events,
+    pending: split.pending,
+  };
 }
 
 function dispatchDiagnosticEvents(events, { emitPhase, emitTelemetry }) {
@@ -428,6 +899,7 @@ function formatDiagnosticTelemetryMarker(event) {
       : "other";
     return `HA_LIGHTHOUSE_DIAGNOSTIC spawn-failure class=${failureClass}`;
   }
+  if (event?.type === "failure") return formatFailureDiagnosticMarker(event);
   return null;
 }
 
@@ -470,6 +942,7 @@ function createBoundedDiagnosticEventEmitter(
   let browserVersionReported = false;
   let runtimeErrorReported = false;
   let spawnFailureReported = false;
+  const reportedFailures = new Set();
   const reportedCdpFailures = new Set();
   const limit = Number.isSafeInteger(maxCdpFailureMarkers)
     ? Math.min(MAX_CHILD_CDP_FAILURE_MARKERS, Math.max(0, maxCdpFailureMarkers))
@@ -510,6 +983,13 @@ function createBoundedDiagnosticEventEmitter(
           ? event.failureClass
           : "other",
       };
+    } else if (event?.type === "failure") {
+      event = normalizeFailureDiagnosticEvent(event);
+      const key = `${event.stage}:${event.origin}`;
+      if (reportedFailures.has(key) || reportedFailures.size >= MAX_FAILURE_DIAGNOSTIC_MARKERS) {
+        return;
+      }
+      reportedFailures.add(key);
     } else {
       return;
     }
@@ -765,8 +1245,17 @@ class LighthouseDiagnosticParser {
   classifyDiagnosticLine(rawLine) {
     const line = rawLine.replace(ANSI_ESCAPE, "");
     const events = [];
+    const phaseMatch = line.match(/^HA_LIGHTHOUSE_DIAGNOSTIC phase=([a-z-]+)$/);
+    if (phaseMatch && SAFE_CHILD_DIAGNOSTIC_PHASES.has(phaseMatch[1])) {
+      events.push(phaseMatch[1]);
+      return events;
+    }
     if (line.startsWith("HA_LIGHTHOUSE_DIAGNOSTIC runtime-error ")) {
       events.push(parseRuntimeErrorDiagnosticMarker(line));
+      return events;
+    }
+    if (line.startsWith("HA_LIGHTHOUSE_DIAGNOSTIC failure ")) {
+      events.push(parseFailureDiagnosticMarker(line));
       return events;
     }
     const browserPrefix = "HA_LIGHTHOUSE_DIAGNOSTIC browser ";
@@ -866,7 +1355,9 @@ module.exports = {
   CHILD_SPAWN_FAILURE_CLASSES,
   DIAGNOSTIC_UNAVAILABLE,
   MAX_CHILD_CDP_FAILURE_MARKERS,
+  MAX_FAILURE_DIAGNOSTIC_MARKERS,
   SAFE_CDP_METHODS,
+  SAFE_DIAGNOSTIC_STAGE_PHASES,
   browserVersionDiagnosticEvent,
   cdpFailureDiagnosticEvent,
   childSpawnFailureDiagnosticEvent,
@@ -875,6 +1366,9 @@ module.exports = {
   dispatchDiagnosticEvents,
   createBoundedDiagnosticPhaseEmitter,
   formatDiagnosticTelemetryMarker,
+  formatFailureDiagnosticMarker,
+  failureDiagnosticEvent,
+  firstRelevantInstalledModuleFrame,
   finishDiagnosticRun,
   LighthouseDiagnosticParser,
   LIGHTHOUSE_RUNTIME_ERROR_CODES,
@@ -882,6 +1376,8 @@ module.exports = {
   LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASSES,
   MAX_CHILD_DIAGNOSTIC_PHASES,
   parseDiagnosticMarkerChunk,
+  parseFailureDiagnosticMarker,
+  normalizeFailureDiagnosticEvent,
   SAFE_GATHER_DIAGNOSTIC_PHASES,
   formatProgressEvent,
   homeSampleOutcome,
@@ -889,6 +1385,9 @@ module.exports = {
   runtimeErrorDiagnosticEvent,
   runtimeErrorCodeDiagnosticPhase,
   formatRuntimeErrorDiagnosticMarker,
+  resolveDiagnosticModuleRoots,
+  runCleanupPreservingPrimary,
+  runDiagnosticStage,
   shouldTolerateWindowsChromeCleanupExit,
   spawnPinnedNode,
   splitBoundedLines,

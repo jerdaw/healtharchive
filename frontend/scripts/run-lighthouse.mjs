@@ -52,6 +52,7 @@ const SAFE_DIAGNOSTIC_PHASES = new Set([
   "results-started",
   "results-completed",
   "lighthouse-runtime-error",
+  ...diagnosticLib.SAFE_DIAGNOSTIC_STAGE_PHASES,
   ...diagnosticLib.LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
   ...diagnosticLib.SAFE_GATHER_DIAGNOSTIC_PHASES,
   "lighthouse-diagnostic-truncated",
@@ -69,6 +70,7 @@ function runCommand(args, { env }) {
     let currentAttempt = 0;
     let telemetryRunKey = "";
     let reportedCdpFailures = new Set();
+    let reportedFailureMarkers = new Set();
     let browserVersionReported = false;
     let spawnFailureReported = false;
     const resetTelemetryBudget = () => {
@@ -76,6 +78,7 @@ function runCommand(args, { env }) {
       if (key === telemetryRunKey) return;
       telemetryRunKey = key;
       reportedCdpFailures = new Set();
+      reportedFailureMarkers = new Set();
       browserVersionReported = false;
       spawnFailureReported = false;
     };
@@ -117,6 +120,21 @@ function runCommand(args, { env }) {
           ? event.failureClass
           : "other";
         console.log(`Lighthouse diagnostic: spawnFailure=${failureClass} ${context}`);
+        return;
+      }
+      if (event.type === "failure") {
+        const safe = diagnosticLib.normalizeFailureDiagnosticEvent(event);
+        const key = `${safe.stage}:${safe.origin}`;
+        if (
+          reportedFailureMarkers.has(key) ||
+          reportedFailureMarkers.size >= diagnosticLib.MAX_FAILURE_DIAGNOSTIC_MARKERS
+        ) {
+          return;
+        }
+        reportedFailureMarkers.add(key);
+        console.log(
+          `Lighthouse diagnostic: failureStage=${safe.stage} failureOrigin=${safe.origin} failureClass=${safe.nameClass} failureCauseCode=${safe.causeCode} frameModule=${safe.frame.module} frameFile=${safe.frame.file} frameLine=${safe.frame.line} frameColumn=${safe.frame.column} ${context}`,
+        );
         return;
       }
       if (event.type !== "cdp-failure") return;
