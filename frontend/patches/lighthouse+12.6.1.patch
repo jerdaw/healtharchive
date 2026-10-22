@@ -287,17 +287,30 @@ index 0adabe9..9bf6b5c 100644
          return;
        }
 diff --git a/node_modules/lighthouse/core/gather/gatherers/trace-elements.js b/node_modules/lighthouse/core/gather/gatherers/trace-elements.js
-index 4d72bd7..e401c34 100644
+index 463a3e3..e401c34 100644
 --- a/node_modules/lighthouse/core/gather/gatherers/trace-elements.js
 +++ b/node_modules/lighthouse/core/gather/gatherers/trace-elements.js
-@@ -31,1 +31,2 @@
+@@ -29,6 +29,7 @@
+ /** @typedef {{nodeId: number, animations?: {name?: string, failureReasonsMask?: number, unsupportedProperties?: string[]}[], type?: string}} TraceElementData */
+ 
  const MAX_LAYOUT_SHIFTS = 15;
 +const MAX_CONCURRENT_NODE_DETAILS = 4;
-@@ -99,1 +100,1 @@
+ 
+ /**
+  * @this {HTMLElement}
+@@ -96,7 +97,7 @@
+      * @param {Set<object>} seen
+      */
+     function recursiveObjectEnumerate(obj, cb, seen) {
 -      if (seen.has(seen)) {
 +      if (seen.has(obj)) {
-@@ -417,1 +418,25 @@
--    /** @type {LH.Artifacts.TraceElement[]>} */
+         return;
+       }
+ 
+@@ -414,16 +415,36 @@
+ 
+     /** @type {Map<number, LH.Crdp.Runtime.CallFunctionOnResponse | null>} */
+     const callFunctionOnCache = new Map();
 +    const backendNodeIds = [...new Set(
 +      [...backendNodeDataMap.values()].flatMap(nodeData => nodeData.map(({nodeId}) => nodeId))
 +    )];
@@ -322,9 +335,16 @@ index 4d72bd7..e401c34 100644
 +    }));
 +    if (hasNodeDetailsError) throw nodeDetailsError;
 +
-+    /** @type {LH.Artifacts.TraceElement[]} */
-@@ -423,4 +447,0 @@
+     /** @type {LH.Artifacts.TraceElement[]} */
+     const traceElements = [];
+     for (const [traceEventType, backendNodeData] of backendNodeDataMap) {
+       for (let i = 0; i < backendNodeData.length; i++) {
+         const backendNodeId = backendNodeData[i].nodeId;
+         let response = callFunctionOnCache.get(backendNodeId);
 -        if (response === undefined) {
 -          response = await this.getNodeDetails(session, backendNodeId);
 -          callFunctionOnCache.set(backendNodeId, response);
 -        }
+ 
+         if (response?.result?.value) {
+           traceElements.push({
