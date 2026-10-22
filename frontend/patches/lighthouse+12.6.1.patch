@@ -277,3 +277,54 @@ index 8d9bd24..bffffa6 100644
        if (timeout) clearTimeout(timeout);
      });
    }
+
+diff --git a/node_modules/lighthouse/core/computed/trace-engine-result.js b/node_modules/lighthouse/core/computed/trace-engine-result.js
+index 0adabe9..9bf6b5c 100644
+--- a/node_modules/lighthouse/core/computed/trace-engine-result.js
++++ b/node_modules/lighthouse/core/computed/trace-engine-result.js
+@@ -132,3 +132,3 @@
+-      if (seen.has(seen)) {
++      if (seen.has(obj)) {
+         return;
+       }
+diff --git a/node_modules/lighthouse/core/gather/gatherers/trace-elements.js b/node_modules/lighthouse/core/gather/gatherers/trace-elements.js
+index 4d72bd7..e401c34 100644
+--- a/node_modules/lighthouse/core/gather/gatherers/trace-elements.js
++++ b/node_modules/lighthouse/core/gather/gatherers/trace-elements.js
+@@ -31,0 +32,1 @@
++const MAX_CONCURRENT_NODE_DETAILS = 4;
+@@ -99,1 +100,1 @@
+-      if (seen.has(seen)) {
++      if (seen.has(obj)) {
+@@ -417,1 +418,25 @@
+-    /** @type {LH.Artifacts.TraceElement[]>} */
++    const backendNodeIds = [...new Set(
++      [...backendNodeDataMap.values()].flatMap(nodeData => nodeData.map(({nodeId}) => nodeId))
++    )];
++    let nextBackendNodeIndex = 0;
++    let hasNodeDetailsError = false;
++    /** @type {unknown} */
++    let nodeDetailsError;
++    const workerCount = Math.min(MAX_CONCURRENT_NODE_DETAILS, backendNodeIds.length);
++    await Promise.all(Array.from({length: workerCount}, async () => {
++      while (!hasNodeDetailsError && nextBackendNodeIndex < backendNodeIds.length) {
++        const backendNodeId = backendNodeIds[nextBackendNodeIndex++];
++        try {
++          const response = await this.getNodeDetails(session, backendNodeId);
++          callFunctionOnCache.set(backendNodeId, response);
++        } catch (error) {
++          if (!hasNodeDetailsError) {
++            hasNodeDetailsError = true;
++            nodeDetailsError = error;
++          }
++        }
++      }
++    }));
++    if (hasNodeDetailsError) throw nodeDetailsError;
++
++    /** @type {LH.Artifacts.TraceElement[]} */
+@@ -423,4 +447,0 @@
+-        if (response === undefined) {
+-          response = await this.getNodeDetails(session, backendNodeId);
+-          callFunctionOnCache.set(backendNodeId, response);
+-        }
