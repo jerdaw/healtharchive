@@ -126,7 +126,7 @@ index 51e6b63..f1fecfe 100644
  }
  
 diff --git a/node_modules/lighthouse/core/gather/navigation-runner.js b/node_modules/lighthouse/core/gather/navigation-runner.js
-index dcd79e9..f9ec90f 100644
+index dcd79e9..853e9a8 100644
 --- a/node_modules/lighthouse/core/gather/navigation-runner.js
 +++ b/node_modules/lighthouse/core/gather/navigation-runner.js
 @@ -5,6 +5,7 @@
@@ -162,7 +162,37 @@ index dcd79e9..f9ec90f 100644
  
  /**
   * @param {{driver: Driver, resolvedConfig: LH.Config.ResolvedConfig, requestor: LH.NavigationRequestor}} args
-@@ -261,7 +280,8 @@ async function navigationGather(page, requestor, options = {}) {
+@@ -141,7 +160,8 @@ async function _computeNavigationResult(
+   navigateResult
+ ) {
+   const {navigationError, requestedUrl, mainDocumentUrl} = navigateResult;
+-  const debugData = await _collectDebugData(navigationContext, phaseState);
++  const debugData = await runDiagnosticStage('navigation-debug-data', () =>
++    _collectDebugData(navigationContext, phaseState));
+   const pageLoadError = debugData.records
+     ? getPageLoadError(navigationError, {
+       url: mainDocumentUrl,
+@@ -220,14 +240,16 @@ async function _navigation(navigationContext) {
+   phaseState.url = navigateResult.mainDocumentUrl;
+ 
+   await collectPhaseArtifacts({phase: 'stopSensitiveInstrumentation', ...phaseState});
+-  await collectPhaseArtifacts({phase: 'stopInstrumentation', ...phaseState});
++  await runDiagnosticStage('navigation-stop-instrumentation', () =>
++    collectPhaseArtifacts({phase: 'stopInstrumentation', ...phaseState}));
+ 
+   // bf-cache-failures can emit `Page.frameNavigated` at the end of the run.
+   // This can cause us to issue protocol commands after the target closes.
+   // We should disable our `Page.frameNavigated` handlers before that.
+-  await disableAsyncStacks();
++  await runDiagnosticStage('navigation-disable-async-stacks', disableAsyncStacks);
+ 
+-  await _cleanupNavigation(navigationContext);
++  await runDiagnosticStage('navigation-clear-throttling', () =>
++    _cleanupNavigation(navigationContext));
+ 
+   return _computeNavigationResult(navigationContext, phaseState, navigateResult);
+ }
+@@ -261,7 +283,8 @@ async function navigationGather(page, requestor, options = {}) {
    const {flags = {}, config} = options;
    log.setLevel(flags.logLevel || 'error');
  
@@ -172,7 +202,7 @@ index dcd79e9..f9ec90f 100644
    const computedCache = new Map();
  
    const isCallback = typeof requestor === 'function';
-@@ -269,7 +289,9 @@ async function navigationGather(page, requestor, options = {}) {
+@@ -269,7 +292,9 @@ async function navigationGather(page, requestor, options = {}) {
    const runnerOptions = {resolvedConfig, computedCache};
  
    const gatherFn = async () => {
@@ -183,7 +213,7 @@ index dcd79e9..f9ec90f 100644
  
      /** @type {LH.Puppeteer.Browser|undefined} */
      let lhBrowser = undefined;
-@@ -280,8 +302,9 @@ async function navigationGather(page, requestor, options = {}) {
+@@ -280,8 +305,9 @@ async function navigationGather(page, requestor, options = {}) {
      // therefore we connect to the browser in the gatherFn callback.
      if (!page) {
        const {hostname = DEFAULT_HOSTNAME, port = DEFAULT_PORT} = flags;

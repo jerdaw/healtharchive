@@ -1,5 +1,6 @@
 import { execFile } from "node:child_process";
 import { createRequire } from "node:module";
+import { EventEmitter } from "node:events";
 import net from "node:net";
 import { readFile } from "node:fs/promises";
 import path from "node:path";
@@ -85,7 +86,7 @@ function formatSafeChildFailure(error) {
   return `status=${status} signal=${signal} killed=${error?.killed === true} phases=${phases.join(",") || "none"} failures=${failures.join(",") || "none"}`;
 }
 
-describe("pre-Driver Lighthouse failure diagnostics", () => {
+describe("Lighthouse failure diagnostics", () => {
   it("identifies a real Lighthouse configuration throw before browser attachment", async () => {
     const { initializeConfig } = await import(
       pathToFileURL(path.join(lighthouseRoot, "core/config/config.js"))
@@ -139,6 +140,178 @@ describe("pre-Driver Lighthouse failure diagnostics", () => {
     ).toEqual(["url-normalize-started", "url-normalize-completed"]);
   });
 
+  it("reports bounded async navigation stages and preserves failure classification", async () => {
+    const stages = [
+      "navigation-stop-instrumentation",
+      "navigation-disable-async-stacks",
+      "navigation-clear-throttling",
+      "navigation-debug-data",
+    ];
+    const markers = [];
+
+    for (const stage of stages) {
+      await diagnostics.runDiagnosticStage(stage, async () => undefined, {
+        moduleRoots: diagnosticRoots,
+        writeMarker: (line) => markers.push(line),
+      });
+    }
+
+    const parsed = diagnostics.parseDiagnosticMarkerChunk(
+      "",
+      markers.join(""),
+      diagnostics.SAFE_DIAGNOSTIC_STAGE_PHASES,
+    );
+    expect(parsed.phases).toEqual(
+      stages.flatMap((stage) => [`${stage}-started`, `${stage}-completed`]),
+    );
+
+    const failure = new TypeError("private diagnostic detail must not be emitted");
+    await expect(
+      diagnostics.runDiagnosticStage("navigation-clear-throttling", () => Promise.reject(failure), {
+        moduleRoots: diagnosticRoots,
+        writeMarker: (line) => markers.push(line),
+      }),
+    ).rejects.toBe(failure);
+    expect(readFailureMarker(markers)).toMatchObject({
+      stage: "navigation-clear-throttling",
+      origin: "primary",
+      nameClass: "type-error",
+    });
+    expect(markers.join("")).not.toContain("private diagnostic detail");
+  });
+
+  it("marks the actual patched navigation post-instrumentation awaits", async () => {
+    const navigationRunnerPath = path.join(lighthouseRoot, "core/gather/navigation-runner.js");
+    const previousDiagnostics = process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS;
+    const markers = [];
+    process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS = "1";
+    vi.resetModules();
+
+    try {
+      const { _navigation } = await import(pathToFileURL(navigationRunnerPath).href);
+      const session = new EventEmitter();
+      let failNetworkCleanup = false;
+      session.setNextProtocolTimeout = vi.fn();
+      session.onCrashPromise = () => new Promise(() => {});
+      session.sendCommand = vi.fn(async (method) => {
+        if (method === "Page.navigate") {
+          setImmediate(() => {
+            session.emit("Page.domContentEventFired", {});
+            session.emit("Page.loadEventFired", {});
+          });
+        }
+        return {};
+      });
+      session.sendCommandAndIgnore = vi.fn(async (method) => {
+        if (failNetworkCleanup && method === "Network.emulateNetworkConditions") {
+          throw new TypeError("private cleanup detail");
+        }
+      });
+      const networkMonitor = new EventEmitter();
+      networkMonitor.is2Idle = () => true;
+      networkMonitor.isCriticalIdle = () => true;
+      networkMonitor.getInflightRequests = () => [];
+      networkMonitor.getNavigationUrls = async () => ({
+        requestedUrl: "http://127.0.0.1/",
+        mainDocumentUrl: "http://127.0.0.1/",
+      });
+      const baseArtifacts = {
+        URL: {
+          requestedUrl: "http://127.0.0.1/",
+          mainDocumentUrl: "http://127.0.0.1/",
+          finalDisplayedUrl: "http://127.0.0.1/",
+        },
+        LighthouseRunWarnings: [],
+      };
+      const driver = {
+        url: vi.fn(async () => "http://127.0.0.1/"),
+        defaultSession: session,
+        networkMonitor,
+      };
+      const resolvedConfig = {
+        artifacts: [],
+        settings: {
+          networkQuietThresholdMs: 0,
+          cpuQuietThresholdMs: 0,
+          pauseAfterLoadMs: 0,
+          pauseAfterFcpMs: 0,
+          maxWaitForLoad: 500,
+        },
+      };
+
+      const originalWrite = process.stderr.write;
+      process.stderr.write = (chunk) => {
+        markers.push(String(chunk));
+        return true;
+      };
+      try {
+        await _navigation({
+          driver,
+          page: {},
+          resolvedConfig,
+          requestor: "http://127.0.0.1/",
+          baseArtifacts,
+          computedCache: new Map(),
+        });
+      } finally {
+        process.stderr.write = originalWrite;
+      }
+
+      const phaseEvents = diagnostics.parseDiagnosticMarkerChunk(
+        "",
+        markers.join(""),
+        diagnostics.SAFE_DIAGNOSTIC_STAGE_PHASES,
+      ).phases;
+      expect(phaseEvents).toEqual([
+        "navigation-stop-instrumentation-started",
+        "navigation-stop-instrumentation-completed",
+        "navigation-disable-async-stacks-started",
+        "navigation-disable-async-stacks-completed",
+        "navigation-clear-throttling-started",
+        "navigation-clear-throttling-completed",
+        "navigation-debug-data-started",
+        "navigation-debug-data-completed",
+      ]);
+
+      failNetworkCleanup = true;
+      const secondMarkers = [];
+      process.stderr.write = (chunk) => {
+        secondMarkers.push(String(chunk));
+        return true;
+      };
+      try {
+        await expect(
+          _navigation({
+            driver,
+            page: {},
+            resolvedConfig,
+            requestor: "http://127.0.0.1/",
+            baseArtifacts,
+            computedCache: new Map(),
+          }),
+        ).rejects.toBeInstanceOf(TypeError);
+      } finally {
+        process.stderr.write = originalWrite;
+      }
+      expect(secondMarkers.join("")).toContain(
+        "phase=navigation-clear-throttling-started\nHA_LIGHTHOUSE_DIAGNOSTIC phase=navigation-clear-throttling-failed\n",
+      );
+      expect(readFailureMarker(secondMarkers)).toMatchObject({
+        stage: "navigation-clear-throttling",
+        origin: "primary",
+        nameClass: "type-error",
+      });
+      expect(secondMarkers.join("")).not.toContain("private cleanup detail");
+    } finally {
+      vi.resetModules();
+      if (previousDiagnostics === undefined) {
+        delete process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS;
+      } else {
+        process.env.HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS = previousDiagnostics;
+      }
+    }
+  });
+
   it("formats child failures with bounded fields and omits raw process details", () => {
     const secret = "/private/runner/token.env?token=do-not-print";
     const error = Object.assign(new Error(`raw child error ${secret}`), {
@@ -173,6 +346,25 @@ describe("pre-Driver Lighthouse failure diagnostics", () => {
     expect(formatSafeChildFailure(error)).toBe(
       "status=other signal=none killed=false phases=none failures=none",
     );
+  });
+
+  it("reports a bounded last-entered navigation stage in child timeout summaries", () => {
+    const secret = "/private/runner/command.env?token=do-not-print";
+    const error = Object.assign(new Error(secret), {
+      code: "ETIMEDOUT",
+      signal: "SIGTERM",
+      killed: true,
+      stderr: [
+        "HA_LIGHTHOUSE_DIAGNOSTIC phase=navigation-clear-throttling-started",
+        `raw timeout details ${secret}`,
+      ].join("\n"),
+    });
+
+    const summary = formatSafeChildFailure(error);
+    expect(summary).toBe(
+      "status=other signal=sigterm killed=true phases=navigation-clear-throttling-started failures=none",
+    );
+    expect(summary).not.toContain(secret);
   });
 
   it("identifies a real Lighthouse URL-normalization failure", async () => {
@@ -502,7 +694,7 @@ describe("pre-Driver Lighthouse failure diagnostics", () => {
     expect(readFailureMarker(markers).origin).toBe("cleanup");
   });
 
-  it("patches only the four pre-Driver boundaries and routes CLI cleanup through preservation", async () => {
+  it("patches bounded navigation boundaries and routes CLI cleanup through preservation", async () => {
     const navigationRunner = await readFile(
       path.join(lighthouseRoot, "core/gather/navigation-runner.js"),
       "utf8",
@@ -521,6 +713,16 @@ describe("pre-Driver Lighthouse failure diagnostics", () => {
       "puppeteer-new-page",
     ]) {
       expect(navigationRunner).toContain(`runDiagnosticStage('${stage}'`);
+    }
+    for (const stage of [
+      "navigation-stop-instrumentation",
+      "navigation-disable-async-stacks",
+      "navigation-clear-throttling",
+      "navigation-debug-data",
+    ]) {
+      expect(navigationRunner).toContain(`runDiagnosticStage('${stage}'`);
+      expect(diagnostics.SAFE_DIAGNOSTIC_STAGE_PHASES).toContain(`${stage}-started`);
+      expect(diagnostics.SAFE_DIAGNOSTIC_STAGE_PHASES).toContain(`${stage}-completed`);
     }
     expect(navigationRunner.indexOf("runDiagnosticStage('puppeteer-new-page'")).toBeLessThan(
       navigationRunner.indexOf("new Driver(page)"),

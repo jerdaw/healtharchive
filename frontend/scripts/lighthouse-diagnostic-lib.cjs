@@ -220,6 +220,13 @@ const PRE_DRIVER_FAILURE_STAGES = new Set([
   "puppeteer-new-page",
   "chrome-cleanup",
 ]);
+const DIAGNOSTIC_STAGE_NAMES = new Set([
+  ...PRE_DRIVER_FAILURE_STAGES,
+  "navigation-stop-instrumentation",
+  "navigation-disable-async-stacks",
+  "navigation-clear-throttling",
+  "navigation-debug-data",
+]);
 const FAILURE_ORIGINS = new Set(["primary", "cleanup"]);
 const FAILURE_STAGE_UNAVAILABLE = "unavailable-or-other";
 const FAILURE_FRAME_MODULES = new Set(["lighthouse", "puppeteer-core", "chrome-launcher", "none"]);
@@ -252,7 +259,7 @@ const DIAGNOSTIC_MODULE_SPECS = [
   { name: "chrome-launcher", version: "1.2.1" },
 ];
 const SAFE_DIAGNOSTIC_STAGE_PHASES = new Set(
-  [...PRE_DRIVER_FAILURE_STAGES].flatMap((stage) =>
+  [...DIAGNOSTIC_STAGE_NAMES].flatMap((stage) =>
     ["started", "completed", "failed"].map((state) => `${stage}-${state}`),
   ),
 );
@@ -565,7 +572,7 @@ function normalizeFailureDiagnosticEvent(event) {
   const validFrame = frameFile !== "none" && line > 0 && column > 0;
   return {
     type: "failure",
-    stage: PRE_DRIVER_FAILURE_STAGES.has(event?.stage) ? event.stage : FAILURE_STAGE_UNAVAILABLE,
+    stage: DIAGNOSTIC_STAGE_NAMES.has(event?.stage) ? event.stage : FAILURE_STAGE_UNAVAILABLE,
     origin: FAILURE_ORIGINS.has(event?.origin) ? event.origin : "primary",
     nameClass: LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASS_VALUES.has(event?.nameClass)
       ? event.nameClass
