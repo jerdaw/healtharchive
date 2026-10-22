@@ -33,6 +33,58 @@ function readFailureMarker(markers) {
   return result.failures[0];
 }
 
+const SAFE_CHILD_PROCESS_SIGNALS = new Set([
+  "SIGABRT",
+  "SIGALRM",
+  "SIGBUS",
+  "SIGFPE",
+  "SIGHUP",
+  "SIGILL",
+  "SIGINT",
+  "SIGKILL",
+  "SIGPIPE",
+  "SIGQUIT",
+  "SIGSEGV",
+  "SIGTERM",
+  "SIGTRAP",
+  "SIGUSR1",
+  "SIGUSR2",
+]);
+
+function formatSafeChildFailure(error) {
+  const code = error?.code;
+  const status =
+    Number.isSafeInteger(code) && code >= 0 && code <= 255
+      ? `exit-${code}`
+      : code === "ERR_CHILD_PROCESS_STDIO_MAXBUFFER"
+        ? "max-buffer"
+        : code === "ENOENT"
+          ? "spawn-not-found"
+          : code === "EACCES"
+            ? "spawn-denied"
+            : "other";
+  const signal = SAFE_CHILD_PROCESS_SIGNALS.has(error?.signal)
+    ? error.signal.toLowerCase()
+    : "none";
+  const stderr = Buffer.isBuffer(error?.stderr)
+    ? error.stderr.toString("utf8", Math.max(0, error.stderr.length - 16_384))
+    : typeof error?.stderr === "string"
+      ? error.stderr.slice(-16_384)
+      : "";
+  const parser = new diagnostics.LighthouseDiagnosticParser();
+  const events = [...parser.pushStderr(stderr), ...parser.flushStderr()];
+  const phases = events
+    .filter(
+      (event) => typeof event === "string" && diagnostics.SAFE_DIAGNOSTIC_STAGE_PHASES.has(event),
+    )
+    .slice(0, 8);
+  const failures = events
+    .filter((event) => event?.type === "failure")
+    .slice(0, 2)
+    .map((event) => `${event.stage}/${event.origin}/${event.nameClass}/${event.causeCode}`);
+  return `status=${status} signal=${signal} killed=${error?.killed === true} phases=${phases.join(",") || "none"} failures=${failures.join(",") || "none"}`;
+}
+
 describe("pre-Driver Lighthouse failure diagnostics", () => {
   it("identifies a real Lighthouse configuration throw before browser attachment", async () => {
     const { initializeConfig } = await import(
@@ -85,6 +137,42 @@ describe("pre-Driver Lighthouse failure diagnostics", () => {
         diagnostics.SAFE_DIAGNOSTIC_STAGE_PHASES,
       ).phases,
     ).toEqual(["url-normalize-started", "url-normalize-completed"]);
+  });
+
+  it("formats child failures with bounded fields and omits raw process details", () => {
+    const secret = "/private/runner/token.env?token=do-not-print";
+    const error = Object.assign(new Error(`raw child error ${secret}`), {
+      code: 13,
+      signal: "SIGKILL",
+      killed: true,
+      stderr: [
+        "HA_LIGHTHOUSE_DIAGNOSTIC phase=puppeteer-attach-started",
+        "HA_LIGHTHOUSE_DIAGNOSTIC failure stage=puppeteer-attach origin=primary class=type-error cause-code=econnreset frame-module=none frame-file=none frame-line=0 frame-column=0",
+        `Error: ${secret} command=/private/runner/node env=DO_NOT_PRINT`,
+      ].join("\n"),
+    });
+
+    const summary = formatSafeChildFailure(error);
+    expect(summary).toBe(
+      "status=exit-13 signal=sigkill killed=true phases=puppeteer-attach-started failures=puppeteer-attach/primary/type-error/econnreset",
+    );
+    expect(summary).not.toContain(secret);
+    expect(summary).not.toContain("command=");
+    expect(summary).not.toContain("env=");
+    expect(summary).not.toContain("/private/");
+  });
+
+  it("maps unsupported child error scalars to safe fallback values", () => {
+    const error = Object.assign(new Error("not emitted"), {
+      code: "ECONNRESET",
+      signal: "SIGUNKNOWN",
+      killed: "yes",
+      stderr: "raw process output must not be emitted",
+    });
+
+    expect(formatSafeChildFailure(error)).toBe(
+      "status=other signal=none killed=false phases=none failures=none",
+    );
   });
 
   it("identifies a real Lighthouse URL-normalization failure", async () => {
@@ -239,7 +327,7 @@ describe("pre-Driver Lighthouse failure diagnostics", () => {
   });
 
   it("reports a bounded cause code through the actual patched navigation runner", async () => {
-    const server = net.createServer((socket) => socket.destroy());
+    const server = net.createServer((socket) => socket.once("data", () => socket.destroy()));
     await new Promise((resolve, reject) => {
       server.once("error", reject);
       server.listen(0, "127.0.0.1", resolve);
@@ -259,18 +347,20 @@ describe("pre-Driver Lighthouse failure diagnostics", () => {
     `;
 
     try {
-      const { stderr } = await execFileAsync(
-        process.execPath,
-        ["--input-type=module", "-e", source],
-        {
+      let stderr;
+      try {
+        ({ stderr } = await execFileAsync(process.execPath, ["--input-type=module", "-e", source], {
           cwd: path.resolve(".."),
           env: {
             ...process.env,
             HEALTHARCHIVE_LIGHTHOUSE_DIAGNOSTICS: "1",
           },
           maxBuffer: 16_384,
-        },
-      );
+        }));
+      } catch (error) {
+        throw new Error(`Patched navigation runner child failed: ${formatSafeChildFailure(error)}`);
+      }
+
       const events = new diagnostics.LighthouseDiagnosticParser().pushStderr(stderr);
       const failure = events.find((event) => event?.type === "failure");
 
