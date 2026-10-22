@@ -277,7 +277,6 @@ index 8d9bd24..bffffa6 100644
        if (timeout) clearTimeout(timeout);
      });
    }
-
 diff --git a/node_modules/lighthouse/core/computed/trace-engine-result.js b/node_modules/lighthouse/core/computed/trace-engine-result.js
 index 0adabe9..9bf6b5c 100644
 --- a/node_modules/lighthouse/core/computed/trace-engine-result.js
@@ -291,7 +290,8 @@ diff --git a/node_modules/lighthouse/core/gather/gatherers/trace-elements.js b/n
 index 4d72bd7..e401c34 100644
 --- a/node_modules/lighthouse/core/gather/gatherers/trace-elements.js
 +++ b/node_modules/lighthouse/core/gather/gatherers/trace-elements.js
-@@ -31,0 +32,1 @@
+@@ -31,1 +31,2 @@
+ const MAX_LAYOUT_SHIFTS = 15;
 +const MAX_CONCURRENT_NODE_DETAILS = 4;
 @@ -99,1 +100,1 @@
 -      if (seen.has(seen)) {

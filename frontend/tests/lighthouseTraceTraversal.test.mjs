@@ -1,9 +1,13 @@
+import fs from "node:fs";
+import { createRequire } from "node:module";
 import path from "node:path";
 import { pathToFileURL } from "node:url";
 
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 const lighthouseRoot = path.resolve("node_modules/lighthouse");
+const require = createRequire(import.meta.url);
+const { parsePatchFile } = require("patch-package/dist/patch/parse");
 
 async function loadTraceElements() {
   const moduleUrl = pathToFileURL(
@@ -45,6 +49,21 @@ afterEach(() => {
 });
 
 describe("pinned Lighthouse trace model traversal", () => {
+  it("parses every frontend patch with the installed patch-package parser", () => {
+    const patchDirectory = path.resolve("patches");
+    const patchFilenames = fs
+      .readdirSync(patchDirectory)
+      .filter((filename) => filename.endsWith(".patch"));
+
+    expect(patchFilenames).not.toHaveLength(0);
+    for (const patchFilename of patchFilenames) {
+      const patchText = fs.readFileSync(path.join(patchDirectory, patchFilename), "utf8");
+      const effects = parsePatchFile(patchText);
+
+      expect(effects, patchFilename).not.toHaveLength(0);
+    }
+  });
+
   it("visits a shared trace node only once while collecting node IDs", async () => {
     const TraceElements = await loadTraceElements();
     let nodeIdReads = 0;
