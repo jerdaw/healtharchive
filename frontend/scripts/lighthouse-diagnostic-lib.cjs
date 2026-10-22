@@ -227,18 +227,41 @@ const DIAGNOSTIC_STAGE_NAMES = new Set([
   "navigation-clear-throttling",
   "navigation-debug-data",
 ]);
+const FAILURE_DIAGNOSTIC_STAGE_NAMES = new Set([...DIAGNOSTIC_STAGE_NAMES, "unhandled-rejection"]);
 const FAILURE_ORIGINS = new Set(["primary", "cleanup"]);
 const FAILURE_STAGE_UNAVAILABLE = "unavailable-or-other";
 const FAILURE_FRAME_MODULES = new Set(["lighthouse", "puppeteer-core", "chrome-launcher", "none"]);
 const FAILURE_CAUSE_CODES = new Map([
+  ["EACCES", "eacces"],
   ["EADDRNOTAVAIL", "eaddrnotavail"],
+  ["EBADF", "ebadf"],
+  ["EBUSY", "ebusy"],
+  ["EEXIST", "eexist"],
+  ["EFAULT", "efault"],
   ["EAI_AGAIN", "eai-again"],
+  ["EINVAL", "einval"],
+  ["EIO", "eio"],
+  ["EISDIR", "eisdir"],
+  ["EMFILE", "emfile"],
+  ["ENFILE", "enfile"],
+  ["ENOENT", "enoent"],
+  ["ENOMEM", "enomem"],
+  ["ENOSPC", "enospc"],
+  ["ENOTDIR", "enotdir"],
+  ["ENOTEMPTY", "enotempty"],
   ["ECONNREFUSED", "econnrefused"],
   ["ECONNRESET", "econnreset"],
   ["EHOSTUNREACH", "ehostunreach"],
   ["ENETUNREACH", "enetunreach"],
   ["ENOTFOUND", "enotfound"],
+  ["EPERM", "eperm"],
+  ["EROFS", "erofs"],
+  ["ESRCH", "esrch"],
   ["ETIMEDOUT", "etimedout"],
+  ["ETXTBSY", "etxtbsy"],
+  ["ERR_INVALID_ARG_TYPE", "err-invalid-arg-type"],
+  ["ERR_INVALID_ARG_VALUE", "err-invalid-arg-value"],
+  ["ERR_OUT_OF_RANGE", "err-out-of-range"],
   ["UND_ERR_ABORTED", "und-err-aborted"],
   ["UND_ERR_BODY_TIMEOUT", "und-err-body-timeout"],
   ["UND_ERR_CONNECT_TIMEOUT", "und-err-connect-timeout"],
@@ -572,7 +595,9 @@ function normalizeFailureDiagnosticEvent(event) {
   const validFrame = frameFile !== "none" && line > 0 && column > 0;
   return {
     type: "failure",
-    stage: DIAGNOSTIC_STAGE_NAMES.has(event?.stage) ? event.stage : FAILURE_STAGE_UNAVAILABLE,
+    stage: FAILURE_DIAGNOSTIC_STAGE_NAMES.has(event?.stage)
+      ? event.stage
+      : FAILURE_STAGE_UNAVAILABLE,
     origin: FAILURE_ORIGINS.has(event?.origin) ? event.origin : "primary",
     nameClass: LIGHTHOUSE_RUNTIME_ERROR_NAME_CLASS_VALUES.has(event?.nameClass)
       ? event.nameClass
@@ -592,7 +617,10 @@ function failureDiagnosticEvent(stage, origin, error, moduleRoots) {
     stage,
     origin,
     nameClass: failureNameClass(error),
-    causeCode: stage === "puppeteer-attach" ? safeFailureCauseCode(error) : DIAGNOSTIC_UNAVAILABLE,
+    causeCode:
+      stage === "puppeteer-attach" || stage === "chrome-cleanup" || stage === "unhandled-rejection"
+        ? safeFailureCauseCode(error)
+        : DIAGNOSTIC_UNAVAILABLE,
     frame: firstRelevantInstalledModuleFrame(error, moduleRoots),
   });
 }
@@ -643,6 +671,10 @@ function writeFailureDiagnostic(stage, origin, error, moduleRoots, writeMarker) 
   } catch {
     // Diagnostics are best-effort and must not replace Lighthouse errors.
   }
+}
+
+function writeUnhandledRejectionDiagnostic(error, moduleRoots, writeMarker) {
+  writeFailureDiagnostic("unhandled-rejection", "primary", error, moduleRoots, writeMarker);
 }
 
 function writeDiagnosticStagePhase(stage, state, writeMarker) {
@@ -1398,5 +1430,6 @@ module.exports = {
   shouldTolerateWindowsChromeCleanupExit,
   spawnPinnedNode,
   splitBoundedLines,
+  writeUnhandledRejectionDiagnostic,
   writeBrowserVersionDiagnostic,
 };

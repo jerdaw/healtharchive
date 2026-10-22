@@ -17,6 +17,7 @@ const lighthouseRoot = path.resolve("node_modules/lighthouse");
 const lighthouseRequire = createRequire(
   path.join(lighthouseRoot, "core/gather/navigation-runner.js"),
 );
+const lighthouseCliRequire = createRequire(path.join(lighthouseRoot, "cli/run.js"));
 const diagnosticRoots = diagnostics.resolveDiagnosticModuleRoots(
   pathToFileURL(path.join(lighthouseRoot, "core/gather/navigation-runner.js")),
 );
@@ -603,7 +604,10 @@ describe("Lighthouse failure diagnostics", () => {
     const chromeLauncher = lighthouseRequire("chrome-launcher");
     const launcher = new chromeLauncher.Launcher({}, {});
     launcher.chromeProcess = { pid: 31337, on() {} };
-    launcher.userDataDir = "\0";
+    const cleanupError = Object.assign(new Error("private cleanup detail"), { code: "EBUSY" });
+    launcher.destroyTmp = () => {
+      throw cleanupError;
+    };
     const killError = Object.assign(new Error("private process detail"), { code: "ESRCH" });
     process.kill = vi.fn(() => {
       throw killError;
@@ -619,19 +623,106 @@ describe("Lighthouse failure diagnostics", () => {
     });
 
     expect(result.error).toBe(primaryError);
-    expect(result.cleanupError).toBeInstanceOf(TypeError);
+    expect(result.cleanupError).toBeInstanceOf(Error);
+    expect(result.cleanupError).toBe(cleanupError);
     expect(process.kill).toHaveBeenCalledTimes(1);
     const failure = readFailureMarker(markers);
     expect(failure).toMatchObject({
       stage: "chrome-cleanup",
       origin: "cleanup",
-      nameClass: "type-error",
-      frame: { module: "chrome-launcher" },
+      nameClass: "error",
+      causeCode: "ebusy",
+      frame: { module: "none", file: "none", line: 0, column: 0 },
     });
-    expect(failure.frame.file).toMatch(/chrome-launcher\.js$/);
+    expect(markers.join("")).not.toContain("private cleanup detail");
     expect(markers.join("")).not.toContain("private process detail");
     expect(markers.join("")).not.toContain("primary message must not be emitted");
     expect(markers.join("")).not.toContain("\0");
+  });
+
+  it("resolves the exact nested ChromeLauncher used by the pinned Lighthouse CLI", async () => {
+    const launcherEntry = lighthouseCliRequire.resolve("chrome-launcher");
+    const expectedEntry = path.join(
+      lighthouseRoot,
+      "node_modules",
+      "chrome-launcher",
+      "dist",
+      "index.js",
+    );
+    expect(launcherEntry).toBe(expectedEntry);
+
+    const packageRoot = path.resolve(path.dirname(launcherEntry), "..");
+    const packageMetadata = JSON.parse(
+      await readFile(path.join(packageRoot, "package.json"), "utf8"),
+    );
+    expect(packageMetadata.version).toBe("1.2.1");
+
+    const { Launcher } = lighthouseCliRequire("chrome-launcher");
+    expect(new Launcher({}, {}).kill()).toBeUndefined();
+  });
+
+  it("attributes unhandled and cleanup errors separately with only allowlisted codes", () => {
+    const privateText = "/Users/jer/private/cleanup-secret.txt?token=not-for-output";
+    const primaryError = Object.assign(new Error(privateText), {
+      code: "EACCES",
+      stack: `Error: ${privateText}\n    at ${privateText}:1:1`,
+    });
+    const cleanupError = Object.assign(new Error(privateText), {
+      code: "EBUSY",
+      stack: `Error: ${privateText}\n    at ${privateText}:2:2`,
+    });
+    const markers = [];
+    const writeMarker = (line) => markers.push(line);
+    const noModuleRoots = Object.create(null);
+
+    diagnostics.writeUnhandledRejectionDiagnostic(primaryError, noModuleRoots, writeMarker);
+    const cleanup = diagnostics.runCleanupPreservingPrimary({
+      cleanup: () => {
+        throw cleanupError;
+      },
+      primaryError,
+      moduleRoots: noModuleRoots,
+      writeMarker,
+    });
+
+    expect(cleanup.error).toBe(primaryError);
+    expect(cleanup.cleanupError).toBe(cleanupError);
+    const parsed = diagnostics.parseDiagnosticMarkerChunk("", markers.join(""), new Set());
+    expect(parsed.failures).toHaveLength(2);
+    expect(parsed.failures).toMatchObject([
+      { stage: "unhandled-rejection", origin: "primary", causeCode: "eacces" },
+      { stage: "chrome-cleanup", origin: "cleanup", causeCode: "ebusy" },
+    ]);
+    expect(diagnostics.SAFE_DIAGNOSTIC_STAGE_PHASES).not.toContain("unhandled-rejection-started");
+    expect(parsed.failures.every((failure) => failure.frame.module === "none")).toBe(true);
+    expect(markers.join("")).not.toContain(privateText);
+    expect(markers.join("")).not.toContain("token=");
+
+    const nonEmptyError = Object.assign(new Error(privateText), { code: "ENOTEMPTY" });
+    const nonEmptyMarkers = [];
+    const nonEmptyCleanup = diagnostics.runCleanupPreservingPrimary({
+      cleanup: () => {
+        throw nonEmptyError;
+      },
+      moduleRoots: noModuleRoots,
+      writeMarker: (line) => nonEmptyMarkers.push(line),
+    });
+    expect(nonEmptyCleanup.cleanupError).toBe(nonEmptyError);
+    expect(readFailureMarker(nonEmptyMarkers).causeCode).toBe("enotempty");
+    expect(nonEmptyMarkers.join("")).not.toContain(privateText);
+
+    const hostileCodeError = Object.assign(new Error(privateText), {
+      code: "PRIVATE_CODE_SENTINEL",
+      stack: `Error: ${privateText}\n    at ${privateText}:3:3`,
+    });
+    const hostileMarkers = [];
+    diagnostics.writeUnhandledRejectionDiagnostic(hostileCodeError, noModuleRoots, (line) =>
+      hostileMarkers.push(line),
+    );
+    const hostileFailure = readFailureMarker(hostileMarkers);
+    expect(hostileFailure.causeCode).toBe("unavailable-or-other");
+    expect(hostileMarkers.join("")).not.toContain("PRIVATE_CODE_SENTINEL");
+    expect(hostileMarkers.join("")).not.toContain(privateText);
   });
 
   it("reduces invalid markers and hostile errors to bounded enums without paths or messages", async () => {
@@ -676,7 +767,10 @@ describe("Lighthouse failure diagnostics", () => {
     const chromeLauncher = lighthouseRequire("chrome-launcher");
     const launcher = new chromeLauncher.Launcher({}, {});
     launcher.chromeProcess = { pid: 31338, on() {} };
-    launcher.userDataDir = "\0";
+    const cleanupError = Object.assign(new Error("not emitted"), { code: "ENOSPC" });
+    launcher.destroyTmp = () => {
+      throw cleanupError;
+    };
     process.kill = vi.fn(() => {
       throw Object.assign(new Error("not emitted"), { code: "ESRCH" });
     });
@@ -689,9 +783,12 @@ describe("Lighthouse failure diagnostics", () => {
     });
 
     expect(result.error).toBe(result.cleanupError);
-    expect(result.cleanupError).toBeInstanceOf(TypeError);
+    expect(result.cleanupError).toBe(cleanupError);
     expect(process.kill).toHaveBeenCalledTimes(1);
-    expect(readFailureMarker(markers).origin).toBe("cleanup");
+    expect(readFailureMarker(markers)).toMatchObject({
+      origin: "cleanup",
+      causeCode: "enospc",
+    });
   });
 
   it("patches bounded navigation boundaries and routes CLI cleanup through preservation", async () => {
@@ -728,6 +825,9 @@ describe("Lighthouse failure diagnostics", () => {
       navigationRunner.indexOf("new Driver(page)"),
     );
     expect(cliRun).toContain("runCleanupPreservingPrimary({");
+    expect(cliRun.indexOf("writeUnhandledRejectionDiagnostic(")).toBeLessThan(
+      cliRun.indexOf("cleanupLaunchedChrome(reason instanceof Error ? reason : null)"),
+    );
     expect(cliRun).toContain("if (!DIAGNOSTICS_ENABLED) {");
     expect(cliRun).toContain("const cleanupError = cleanupLaunchedChrome();");
     expect(cliRun).toContain("return printErrorAndExit(cleanupLaunchedChrome(err));");
@@ -800,6 +900,68 @@ describe("Lighthouse failure diagnostics", () => {
     expect(result).toBe("baseline-printed");
     expect(kill).toHaveBeenCalledTimes(2);
     expect(printedErrors).toEqual([killError]);
+  });
+
+  it("runs the patched unhandled handler before cleanup and preserves one exit", async () => {
+    const cliRun = await readFile(path.join(lighthouseRoot, "cli/run.js"), "utf8");
+    const start = cliRun.indexOf("async function runLighthouse(");
+    const end = cliRun.indexOf("\nexport {", start);
+    const functionSource = cliRun.slice(start, end);
+    const cleanupError = Object.assign(new Error("cleanup detail"), { code: "EBUSY" });
+    const output = [];
+    let unhandledHandler = null;
+    const fixtureProcess = {
+      stderr: { write: (line) => output.push(line) },
+      on(event, handler) {
+        if (event === "unhandledRejection") unhandledHandler = handler;
+      },
+      removeListener() {},
+      exit: vi.fn(),
+    };
+    const kill = vi.fn(() => {
+      throw cleanupError;
+    });
+    const context = vm.createContext({
+      DIAGNOSTICS_ENABLED: true,
+      DiagnosticTools: diagnostics,
+      diagnosticModuleRoots: Object.create(null),
+      process: fixtureProcess,
+      Error,
+      getDebuggableChrome: async () => ({ port: 9222, kill }),
+      lighthouse: () => new Promise(() => {}),
+      saveResults: async () => {},
+      printErrorAndExit: vi.fn(),
+      log: { warn() {} },
+      UrlUtils: { isLikeLocalhost: () => true },
+    });
+    vm.runInContext(`${functionSource}\nthis.runLighthouse = runLighthouse;`, context);
+
+    void context.runLighthouse(
+      null,
+      { gatherMode: true, auditMode: false, hostname: "localhost" },
+      null,
+    );
+    await new Promise((resolve) => setImmediate(resolve));
+    expect(unhandledHandler).toBeTypeOf("function");
+
+    const primaryError = vm.runInContext(
+      'Object.assign(new Error("primary detail"), { code: "ENOENT" })',
+      context,
+    );
+    expect(() => unhandledHandler(primaryError)).not.toThrow();
+
+    const markers = output.filter((line) => line.startsWith("HA_LIGHTHOUSE_DIAGNOSTIC failure "));
+    const parsed = diagnostics.parseDiagnosticMarkerChunk("", markers.join(""), new Set());
+    expect(parsed.failures).toMatchObject([
+      { stage: "unhandled-rejection", origin: "primary", causeCode: "enoent" },
+      { stage: "chrome-cleanup", origin: "cleanup", causeCode: "ebusy" },
+    ]);
+    expect(output.indexOf(markers[0])).toBeLessThan(output.indexOf(markers[1]));
+    expect(kill).toHaveBeenCalledTimes(1);
+    expect(fixtureProcess.exit).toHaveBeenCalledTimes(1);
+    expect(fixtureProcess.exit).toHaveBeenCalledWith(1);
+    expect(markers.join("")).not.toContain("primary detail");
+    expect(markers.join("")).not.toContain("cleanup detail");
   });
 
   it("preserves disabled-mode unhandled cleanup throws before process exit", async () => {

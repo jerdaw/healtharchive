@@ -1,5 +1,5 @@
 diff --git a/node_modules/lighthouse/cli/run.js b/node_modules/lighthouse/cli/run.js
-index 51e6b63..f1fecfe 100644
+index 51e6b63..e59e7cc 100644
 --- a/node_modules/lighthouse/cli/run.js
 +++ b/node_modules/lighthouse/cli/run.js
 @@ -8,6 +8,7 @@
@@ -43,7 +43,7 @@ index 51e6b63..f1fecfe 100644
    console.error('Runtime error encountered:', err.friendlyMessage || err.message);
    if (err.stack) {
      console.error(err.stack);
-@@ -182,17 +202,57 @@ async function saveResults(runnerResult, flags) {
+@@ -182,17 +202,66 @@ async function saveResults(runnerResult, flags) {
   * @return {Promise<LH.RunnerResult|undefined>}
   */
  async function runLighthouse(url, flags, config) {
@@ -88,6 +88,15 @@ index 51e6b63..f1fecfe 100644
 -    launchedChrome?.kill();
 +    if (DIAGNOSTICS_ENABLED) {
 +      try {
++        DiagnosticTools.writeUnhandledRejectionDiagnostic(
++          reason,
++          diagnosticModuleRoots,
++          marker => process.stderr.write(marker),
++        );
++      } catch {
++        // Diagnostic emission must never alter Lighthouse error handling.
++      }
++      try {
 +        cleanupLaunchedChrome(reason instanceof Error ? reason : null);
 +      } catch {
 +        // Cleanup diagnostics must not prevent the process from exiting.
@@ -105,7 +114,7 @@ index 51e6b63..f1fecfe 100644
    try {
      if (url && flags.auditMode && !flags.gatherMode) {
        log.warn('CLI', 'URL parameter is ignored if -A flag is used without -G flag');
-@@ -214,7 +274,8 @@ async function runLighthouse(url, flags, config) {
+@@ -214,7 +283,8 @@ async function runLighthouse(url, flags, config) {
        await saveResults(runnerResult, flags);
      }
  
@@ -115,7 +124,7 @@ index 51e6b63..f1fecfe 100644
      process.removeListener('unhandledRejection', handleTheUnhandled);
  
      // Runtime errors indicate something was *very* wrong with the page result.
-@@ -232,8 +293,7 @@ async function runLighthouse(url, flags, config) {
+@@ -232,8 +302,7 @@ async function runLighthouse(url, flags, config) {
  
      return runnerResult;
    } catch (err) {
