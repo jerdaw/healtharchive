@@ -36,6 +36,7 @@ const lighthouseRequire = createRequire(
   path.resolve("node_modules/lighthouse/core/gather/runner-helpers.js"),
 );
 const lighthouseLoggerPath = lighthouseRequire.resolve("lighthouse-logger");
+const diagnosticLib = require("../scripts/lighthouse-diagnostic-lib.cjs");
 const {
   AUDIT_PATHS,
   createLighthouseConfig,
@@ -68,7 +69,7 @@ const {
   homeSampleOutcome,
   shouldTolerateWindowsChromeCleanupExit,
   spawnPinnedNode,
-} = require("../scripts/lighthouse-diagnostic-lib.cjs");
+} = diagnosticLib;
 const { applyPatch } = require("diff");
 
 const LHCI_NODE_RUNNER_BASE_BLOB = "cda78e9a28f0e454fc497de50077ab3f705196cb";
@@ -189,6 +190,50 @@ async function loadZeroFuzzPatchedLhciRunner({
     { filename: "pinned-lhci-node-runner-0.15.1.js" },
   );
   return { Runner: moduleRecord.exports, fsCounts, lighthouseCli, output };
+}
+
+function extractRunCommandDeclaration(source, name) {
+  const start = source.indexOf(`    const ${name} = `);
+  const end = source.indexOf("\n    };", start);
+  if (start < 0 || end < 0) throw new Error(`missing-run-command-declaration:${name}`);
+  return source.slice(start, end + "\n    };".length);
+}
+
+function createOuterDiagnosticWriters({ runnerSource, output }) {
+  const resetTelemetryBudget = extractRunCommandDeclaration(runnerSource, "resetTelemetryBudget");
+  const writeDiagnosticPhase = extractRunCommandDeclaration(runnerSource, "writeDiagnosticPhase");
+  const writeDiagnosticTelemetry = extractRunCommandDeclaration(
+    runnerSource,
+    "writeDiagnosticTelemetry",
+  );
+  const factory = `
+    (() => {
+      let currentRoute = "home";
+      let currentRun = 1;
+      let currentAttempt = 0;
+      let telemetryRunKey = "";
+      let lastPhase = "lhci-started";
+      let reportedCdpFailures = new Set();
+      let reportedFailureMarkers = new Set();
+      let browserVersionReported = false;
+      let runtimeErrorReported = false;
+      let spawnFailureReported = false;
+      const commandStartedAt = 0n;
+      const elapsedSeconds = () => 7;
+      const console = { log: (line) => output.push(line) };
+      const SAFE_DIAGNOSTIC_PHASES = new Set([
+        "lighthouse-cli-started",
+        "lighthouse-cli-exit-zero",
+        "lighthouse-cli-exit-nonzero",
+        ...diagnosticLib.LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
+      ]);
+      ${resetTelemetryBudget}
+      ${writeDiagnosticPhase}
+      ${writeDiagnosticTelemetry}
+      return { writeDiagnosticPhase, writeDiagnosticTelemetry, get lastPhase() { return lastPhase; } };
+    })()
+  `;
+  return vm.runInNewContext(factory, { diagnosticLib, output, Set });
 }
 
 function runPinnedLighthouseGatherLogger({ colors }) {
@@ -637,6 +682,101 @@ describe("bounded Lighthouse phase diagnostics", () => {
       },
     ]);
     expect(JSON.stringify(hostileMarker)).not.toContain(sentinel);
+  });
+
+  it("forwards the patched LHCI runtime-error marker through the actual outer callback once", async () => {
+    const sentinel = "PRIVATE_RUNTIME_MESSAGE /private/runtime/path";
+    const lhr = JSON.stringify({
+      lighthouseVersion: "12.6.1",
+      runtimeError: { code: "PROTOCOL_TIMEOUT", message: sentinel },
+      requestedUrl: `http://127.0.0.1:4173/?token=${sentinel}`,
+    });
+    const runtimeMarker = `${formatRuntimeErrorDiagnosticMarker({
+      name: "Error",
+      code: "PROTOCOL_TIMEOUT",
+      message: sentinel,
+    })}\n`;
+    const harness = await createPatchedLhciRunnerHarness({
+      childProcessModule: {
+        spawn() {
+          const child = new EventEmitter();
+          child.stdout = new EventEmitter();
+          child.stderr = new EventEmitter();
+          queueMicrotask(() => {
+            child.stdout.emit("data", Buffer.from(lhr));
+            child.stderr.emit("data", Buffer.from(runtimeMarker));
+            child.emit("close", 1, null);
+          });
+          return child;
+        },
+      },
+    });
+    try {
+      const result = await new harness.Runner()
+        .run("http://127.0.0.1:4173/", {
+          settings: { maxWaitForLoad: 1 },
+        })
+        .then(
+          (value) => ({ value }),
+          (error) => ({ error }),
+        );
+      expect(result.error?.stdout).toBe("");
+      expect(result.error?.stderr).toBe(
+        "[raw Lighthouse output suppressed by the bounded diagnostic mode]",
+      );
+
+      const innerOutput = harness.output.join("");
+      expect(innerOutput.match(/HA_LIGHTHOUSE_DIAGNOSTIC runtime-error /g)).toHaveLength(1);
+      expect(innerOutput).not.toContain(
+        "HA_LIGHTHOUSE_DIAGNOSTIC phase=lighthouse-runtime-error-code-protocol-timeout",
+      );
+      expect(innerOutput).not.toContain(sentinel);
+
+      const runnerSource = await readFile(path.resolve("scripts/run-lighthouse.mjs"), "utf8");
+      const outerOutput = [];
+      const outer = createOuterDiagnosticWriters({ runnerSource, output: outerOutput });
+      const knownMarker = innerOutput.match(/HA_LIGHTHOUSE_DIAGNOSTIC runtime-error [^\n]+/)[0];
+      const parsed = parseDiagnosticMarkerChunk(
+        "",
+        `${innerOutput}${knownMarker}\n`,
+        new Set([
+          "lighthouse-cli-started",
+          "lighthouse-cli-exit-zero",
+          "lighthouse-cli-exit-nonzero",
+          ...LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
+        ]),
+      );
+      dispatchDiagnosticEvents(parsed.events, {
+        emitPhase: outer.writeDiagnosticPhase,
+        emitTelemetry: outer.writeDiagnosticTelemetry,
+      });
+      expect(
+        outerOutput.filter((line) =>
+          line.includes("phase=lighthouse-runtime-error-code-protocol-timeout"),
+        ),
+      ).toHaveLength(1);
+      expect(outerOutput.at(-1)).toContain("phase=lighthouse-cli-exit-nonzero");
+      expect(outerOutput.join(" ")).not.toContain(sentinel);
+
+      const hostileOutput = [];
+      const hostileOuter = createOuterDiagnosticWriters({ runnerSource, output: hostileOutput });
+      const hostile = parseDiagnosticMarkerChunk(
+        "",
+        `HA_LIGHTHOUSE_DIAGNOSTIC runtime-error class=${sentinel} code-present=true code-phase=${sentinel}\n`,
+        LIGHTHOUSE_RUNTIME_ERROR_DIAGNOSTIC_PHASES,
+      );
+      dispatchDiagnosticEvents(hostile.events, {
+        emitPhase: hostileOuter.writeDiagnosticPhase,
+        emitTelemetry: hostileOuter.writeDiagnosticTelemetry,
+      });
+      expect(hostileOutput.join(" ")).toContain(
+        "phase=lighthouse-runtime-error-code-unavailable-or-other",
+      );
+      expect(hostileOutput.join(" ")).not.toContain(sentinel);
+      expect(harness.fsCounts).toEqual({ writeFileSync: 1, unlinkSync: 1 });
+    } finally {
+      await harness.cleanup();
+    }
   });
 
   it("covers every error code in the pinned Lighthouse package", async () => {

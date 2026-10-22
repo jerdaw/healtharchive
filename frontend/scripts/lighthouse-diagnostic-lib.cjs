@@ -840,6 +840,12 @@ function dispatchDiagnosticEvents(events, { emitPhase, emitTelemetry }) {
   }
 }
 
+function emitRuntimeErrorDiagnosticPhase(event, emitPhase) {
+  if (event?.type !== "runtime-error" || typeof emitPhase !== "function") return false;
+  emitPhase(normalizeRuntimeErrorDiagnosticEvent(event).codePhase);
+  return true;
+}
+
 function browserVersionDiagnosticEvent(product) {
   if (typeof product !== "string") {
     return {
@@ -1403,6 +1409,7 @@ module.exports = {
   createBoundedDiagnosticEventEmitter,
   createCdpFailureDiagnosticWriter,
   dispatchDiagnosticEvents,
+  emitRuntimeErrorDiagnosticPhase,
   createBoundedDiagnosticPhaseEmitter,
   formatDiagnosticTelemetryMarker,
   formatFailureDiagnosticMarker,

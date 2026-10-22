@@ -72,6 +72,7 @@ function runCommand(args, { env }) {
     let reportedCdpFailures = new Set();
     let reportedFailureMarkers = new Set();
     let browserVersionReported = false;
+    let runtimeErrorReported = false;
     let spawnFailureReported = false;
     const resetTelemetryBudget = () => {
       const key = `${currentRoute}:${currentRun}:${currentAttempt}`;
@@ -80,6 +81,7 @@ function runCommand(args, { env }) {
       reportedCdpFailures = new Set();
       reportedFailureMarkers = new Set();
       browserVersionReported = false;
+      runtimeErrorReported = false;
       spawnFailureReported = false;
     };
     const writeProgress = (event) => {
@@ -135,6 +137,12 @@ function runCommand(args, { env }) {
         console.log(
           `Lighthouse diagnostic: failureStage=${safe.stage} failureOrigin=${safe.origin} failureClass=${safe.nameClass} failureCauseCode=${safe.causeCode} frameModule=${safe.frame.module} frameFile=${safe.frame.file} frameLine=${safe.frame.line} frameColumn=${safe.frame.column} ${context}`,
         );
+        return;
+      }
+      if (event.type === "runtime-error") {
+        if (runtimeErrorReported) return;
+        runtimeErrorReported = true;
+        diagnosticLib.emitRuntimeErrorDiagnosticPhase(event, writeDiagnosticPhase);
         return;
       }
       if (event.type !== "cdp-failure") return;
